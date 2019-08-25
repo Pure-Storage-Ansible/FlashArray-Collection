@@ -1,0 +1,110 @@
+---
+# (c) 2019, Remko Deenik (rdeenik@purestorage.com)
+# BSD 2-Clause License
+#
+# Description:
+# This ansible-playbook will clone a volume from the source FlashArray to a target
+# FlashArray, using the protection group (incl. it's target array) for replication.
+# It assumes the following:
+# - a protection group has been created on the source array;
+# - the target FlashArray is added to the protection group.
+# The playbook will create a snapshot on the source array, which is replicated and 
+# than cloned to a new volume on the target array. After the copy the snapshots 
+# are removed from both the source and target.
+#
+# How to use:
+# Change the 'vars:' section below with the correct IP  address or hostname and
+# the correct API token for the source/target arrays. Also change the name of the 
+# source protectiongroup and source volume.
+#
+# System requirements:
+# The playbook uses jquery which requires jmespath, make sure these are installed
+# use 'pip install jmespath' to install. This playbook requires Ansible version 2.9 to run.
+#
+- name: Clone a volume between to FlashArray's using the volumes protection group
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    # IP address of URL to source Cloud Block Storage/FlashArray
+    fa_url_source: 10.10.1.1
+    # API token used for source Cloud Block Storage/FlashArray
+    fa_api_token_source: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    # Protection group name
+    source_pg: protection-group-name
+    # Volume name
+    source_vol: volume-group-name/volume-name
+    # IP address of URL to target Cloud Block Storage/FlashArray
+    fa_url_target: 172.39.1.1
+    # API token used for target Cloud Block Storage/FlashArray
+    fa_api_token_target: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  tasks:
+  - name: "Collect information of the source Pure Storage FlashArray ({{ fa_url_source }})"
+    purefa_info:
+      fa_url: "{{ fa_url_source }}"
+      api_token: "{{ fa_api_token_source }}"
+    register: array_info
+  - set_fact:
+      fa_host_source: "{{ array_info['purefa_facts']['default']['array_name'] }}"
+  - name: "Collect information of the target Pure Storage FlashArray ({{ fa_url_target }})"
+    purefa_info:
+      fa_url: "{{ fa_url_target }}"
+      api_token: "{{ fa_api_token_target }}"
+    register: array_info
+  - set_fact:
+      fa_host_target: "{{ array_info['purefa_facts']['default']['array_name'] }}"
+      snapshot_name: "{{ ansible_facts['date_time']['iso8601_basic_short'] }}"
+  - debug: 
+      msg: 
+      - "Working with FlashArray {{ fa_host_source }} and {{ fa_host_target }} and using snapshot name {{ snapshot_name }}"
+  - name: "Create snd replicate snapshot on protection group {{ source_pg }}"
+    purefa_pgsnap:
+      name: "{{ source_pg }}"
+      suffix: "{{ snapshot_name }}"
+      state: present
+      now: true
+      apply_retention: true
+      remote: true
+      fa_url: "{{ fa_url_source }}"
+      api_token: "{{ fa_api_token_source }}"
+  - name: Wait until PG transfer is complete
+    purefa_facts:
+      gather_subset: pgroups
+      api_token: "{{ fa_api_token_target }}"
+      fa_url: "{{ fa_url_target }}"
+    register: output
+    retries: 10
+    delay: 5
+    ignore_errors: true
+    until: "output | json_query('ansible_facts.ansible_purefa_facts.pgroups.\"'+fa_host_source + ':' + source_pg+'\".snaps.\"'+fa_host_source + ':' + source_pg + '.' + snapshot_name+'\".progress') != 0.0"
+  - name: "Creating volume group if required"
+    purefa_vg:
+      vgroup: "{{ source_vol.split('/')[0] }}"
+      api_token: "{{ fa_api_token_target }}"
+      fa_url: "{{ fa_url_target }}"
+      state: present
+    when: source_vol.find("/") != -1
+  - name: "Restore volume from the snapshot on {{ fa_host_target }}"
+    purefa_pgsnap:
+      name: "{{ fa_host_source }}:{{ source_pg }}"
+      suffix: "{{ snapshot_name }}"
+      state: copy
+      restore: "{{ source_vol }}"
+      overwrite: true
+      fa_url: "{{ fa_url_target }}"
+      api_token: "{{ fa_api_token_target }}"
+  - name: "Remove temporary snapshot from {{ fa_host_source }}"
+    purefa_pgsnap:
+      name: "{{ source_pg }}"
+      suffix: "{{ snapshot_name }}"
+      eradicate: true
+      fa_url: "{{ fa_url_source }}"
+      api_token: "{{ fa_api_token_source }}"
+      state: absent
+  - name: "Remove temporary snapshot from {{ fa_host_target }}"
+    purefa_pgsnap:
+      name: "{{ fa_host_source }}:{{ source_pg }}"
+      suffix: "{{ snapshot_name }}"
+      eradicate: true
+      fa_url: "{{ fa_url_target }}"
+      api_token: "{{ fa_api_token_target }}"
+      state: absent
