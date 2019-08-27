@@ -97,14 +97,7 @@ RETURN = r'''
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
-
 from datetime import datetime
-
-try:
-    from purestorage import purestorage
-    HAS_PURESTORAGE = True
-except ImportError:
-    HAS_PURESTORAGE = False
 
 
 def get_volume(module, array):
@@ -205,9 +198,6 @@ def main():
                            required_if=required_if,
                            supports_check_mode=True)
 
-    if not HAS_PURESTORAGE:
-        module.fail_json(msg='purestorage sdk is required for this module in volume')
-
     if module.params['suffix'] is None:
         suffix = "snap-" + str((datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0, 0)).total_seconds())
         module.params['suffix'] = suffix.replace(".", "")
@@ -215,7 +205,6 @@ def main():
     state = module.params['state']
     array = get_system(module)
     volume = get_volume(module, array)
-    target = get_target(module, array)
     snap = get_snapshot(module, array)
 
     if state == 'present' and volume and not snap:

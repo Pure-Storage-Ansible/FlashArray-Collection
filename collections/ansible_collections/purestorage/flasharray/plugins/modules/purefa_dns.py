@@ -93,7 +93,8 @@ def create_dns(module, array):
     """Set DNS settings"""
     changed = False
     current_dns = array.get_dns()
-    if current_dns['domain'] != module.params['domain'] or sorted(module.params['nameservers']) != sorted(current_dns['nameservers']):
+    if current_dns['domain'] != module.params['domain'] or \
+       sorted(module.params['nameservers']) != sorted(current_dns['nameservers']):
         try:
             array.set_dns(domain=module.params['domain'],
                           nameservers=module.params['nameservers'][0:3])

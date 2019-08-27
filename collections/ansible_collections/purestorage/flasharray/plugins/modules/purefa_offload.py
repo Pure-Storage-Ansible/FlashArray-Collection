@@ -226,7 +226,8 @@ def main():
                              'Target name must be between 1 and 56 characters (alphanumeric and -) in length '
                              'and begin and end with a letter or number. The name must include at least one letter.')
     if module.params['protocol'] == "s3":
-        if not re.match(r"^[a-z0-9][a-z0-9.\-]*[a-z0-9]$", module.params['bucket']) or len(module.params['bucket']) > 63:
+        if not re.match(r"^[a-z0-9][a-z0-9.\-]*[a-z0-9]$", module.params['bucket']) or \
+           len(module.params['bucket']) > 63:
             module.fail_json(msg='Bucket name invalid. '
                                  'Bucket name must be between 3 and 63 characters '
                                  '(ilowercase, alphanumeric, dash or period) in length '
@@ -237,9 +238,7 @@ def main():
     all_good = False
     for app in range(0, len(apps)):
         if apps[app]['name'] == 'offload':
-            if (apps[app]['enabled'] and
-                    apps[app]['status'] == 'healthy' and
-                    LooseVersion(apps[app]['version']) >= LooseVersion('5.2.0')):
+            if (apps[app]['enabled'] and apps[app]['status'] == 'healthy' and LooseVersion(apps[app]['version']) >= LooseVersion('5.2.0')):
                 all_good = True
                 app_version = apps[app]['version']
                 break
