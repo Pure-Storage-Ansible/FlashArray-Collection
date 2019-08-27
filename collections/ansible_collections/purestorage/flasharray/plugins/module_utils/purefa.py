@@ -37,9 +37,7 @@ try:
 except ImportError:
     HAS_PURESTORAGE = False
 
-from functools import wraps
 from os import environ
-from os import path
 import platform
 
 VERSION = 1.3
@@ -60,9 +58,12 @@ def get_system(module):
     if array_name and api:
         system = purestorage.FlashArray(array_name, api_token=api, user_agent=user_agent)
     elif environ.get('PUREFA_URL') and environ.get('PUREFA_API'):
-        system = purestorage.FlashArray(environ.get('PUREFA_URL'), api_token=(environ.get('PUREFA_API')), user_agent=user_agent)
+        system = purestorage.FlashArray(environ.get('PUREFA_URL'),
+                                        api_token=(environ.get('PUREFA_API')),
+                                        user_agent=user_agent)
     else:
-        module.fail_json(msg="You must set PUREFA_URL and PUREFA_API environment variables or the fa_url and api_token module arguments")
+        module.fail_json(msg="You must set PUREFA_URL and PUREFA_API environment variables "
+                             "or the fa_url and api_token module arguments")
     try:
         system.get()
     except Exception:

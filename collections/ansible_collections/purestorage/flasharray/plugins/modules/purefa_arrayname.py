@@ -79,7 +79,7 @@ def main():
     array = get_system(module)
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,54}[a-zA-Z0-9])?$")
     if not pattern.match(module.params['name']):
-        module.fail_json(msg='Array name {0} does not conform to array name rules. See documentation.'.format(module.params['name']))
+        module.fail_json(msg='Array name {0} does not conform to array name rules'.format(module.params['name']))
     if module.params['name'] != array.get()['array_name']:
         update_name(module, array)
 

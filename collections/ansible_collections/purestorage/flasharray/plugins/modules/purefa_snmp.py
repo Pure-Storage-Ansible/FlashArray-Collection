@@ -131,7 +131,7 @@ def update_manager(module, array):
         try:
             mgr = array.get_snmp_manager(module.params['name'])
         except Exception:
-            module.fail_json(msg="Failed to get current configuration for SNMP manager {0}.".format(module.params['name']))
+            module.fail_json(msg="Failed to get configuration for SNMP manager {0}.".format(module.params['name']))
         if mgr['version'] != module.params['version']:
             module.fail_json(msg="Changing an SNMP managers version is not supported.")
         elif module.params['version'] == "v2c":

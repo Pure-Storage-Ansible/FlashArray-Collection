@@ -125,7 +125,7 @@ def create_role(module, array):
                                            group=module.params['group'])
         changed = True
     except Exception:
-        module.fail_json(msg='Create Directory Service Role {0} failed: Check configuration'.format(module.params['role']))
+        module.fail_json(msg='Create Directory Service Role {0} failed'.format(module.params['role']))
     module.exit_json(changed=changed)
 
 
