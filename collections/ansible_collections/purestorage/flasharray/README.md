@@ -40,7 +40,7 @@ Install the Pure Storage FlashArray collection on your Ansible management host.
 
 - Using ansible-galaxy (Ansible 2.9 or later):
 ```
-ansible-galaxy install purestorage.flasharray
+ansible-galaxy collection install purestorage.flasharray -p ~/.ansible/collections
 ```
 
 ## Example Playbook
