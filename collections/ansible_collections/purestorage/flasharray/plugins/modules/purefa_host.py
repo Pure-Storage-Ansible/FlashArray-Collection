@@ -434,7 +434,7 @@ def main():
             if module.params['preferred_array'] != ['delete']:
                 all_connected_arrays = array.list_array_connections()
                 if not all_connected_arrays:
-                    module.fail_json(msg='No target arrays connected to source array. Setting preferred arrays not possible.')
+                    module.fail_json(msg='No target arrays connected to source array - preferred arrays not possible.')
                 else:
                     current_arrays = []
                     for current_array in range(0, len(all_connected_arrays)):

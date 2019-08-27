@@ -104,13 +104,6 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
 
 
-try:
-    from purestorage import purestorage
-    HAS_PURESTORAGE = True
-except ImportError:
-    HAS_PURESTORAGE = False
-
-
 def get_hostgroup(module, array):
 
     hostgroup = None
@@ -223,9 +216,6 @@ def main():
     ))
 
     module = AnsibleModule(argument_spec, supports_check_mode=False)
-
-    if not HAS_PURESTORAGE:
-        module.fail_json(msg='purestorage sdk is required for this module in host')
 
     state = module.params['state']
     array = get_system(module)

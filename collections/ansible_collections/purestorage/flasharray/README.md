@@ -38,19 +38,37 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 
 Install the Pure Storage FlashArray collection on your Ansible management host.
 
-- Using ansible-galaxy (Ansible 2.9 [`devel` branch of Ansible repo from mid-2019 or later] or later):
-`ansible-galaxy install purestorage.flasharray`
+- Using ansible-galaxy (Ansible 2.9 or later):
+```
+ansible-galaxy install purestorage.flasharray
+```
 
 ## Example Playbook
 ```yaml
 - hosts: localhost
   gather_facts: true
-  collection:
+  collections:
     - puestorage.flasharray
   tasks:
     - name: Get FlashArray information
       purefa_info:
-    
+        fa_url: 10.0.0.2
+        api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+    - name: Create a volume
+      purefa_volume:
+        name: foo
+        size: 100G
+        fa_url: 10.0.0.2
+        api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+    - name: Create a host
+      purefa_host:
+        name: "{{ ansible_hostname }}"
+        protocol: iscsi
+        iqn: "{{ ansible_iscsi_iqn }}"
+        fa_url: 10.0.0.2
+        api_token: e31060a7-21fc-e277-6240-25983c6c4592
 ```
 
 ## License

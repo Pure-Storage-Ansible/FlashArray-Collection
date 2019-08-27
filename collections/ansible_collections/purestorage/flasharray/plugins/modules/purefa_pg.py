@@ -343,7 +343,9 @@ def update_pgroup(module, array):
         except Exception:
             module.fail_json(msg='Changing enabled status of pgroup {0} failed.'.format(module.params['pgroup']))
 
-    if module.params['volume'] and get_pgroup(module, array)['hosts'] is None and get_pgroup(module, array)['hgroups'] is None:
+    if module.params['volume'] and \
+       get_pgroup(module, array)['hosts'] is None and \
+       get_pgroup(module, array)['hgroups'] is None:
         if get_pgroup(module, array)['volumes'] is None:
             try:
                 array.set_pgroup(module.params['pgroup'], vollist=module.params['volume'])
@@ -358,7 +360,9 @@ def update_pgroup(module, array):
                 except Exception:
                     module.fail_json(msg='Changing volumes in pgroup {0} failed.'.format(module.params['pgroup']))
 
-    if module.params['host'] and get_pgroup(module, array)['volumes'] is None and get_pgroup(module, array)['hgroups'] is None:
+    if module.params['host'] and \
+       get_pgroup(module, array)['volumes'] is None and \
+       get_pgroup(module, array)['hgroups'] is None:
         if not get_pgroup(module, array)['hosts'] is None:
             try:
                 array.set_pgroup(module.params['pgroup'], hostlist=module.params['host'])
@@ -373,7 +377,9 @@ def update_pgroup(module, array):
                 except Exception:
                     module.fail_json(msg='Changing hosts in pgroup {0} failed.'.format(module.params['pgroup']))
 
-    if module.params['hostgroup'] and get_pgroup(module, array)['hosts'] is None and get_pgroup(module, array)['volumes'] is None:
+    if module.params['hostgroup'] and \
+       get_pgroup(module, array)['hosts'] is None and \
+       get_pgroup(module, array)['volumes'] is None:
         if not get_pgroup(module, array)['hgroups'] is None:
             try:
                 array.set_pgroup(module.params['pgroup'], hgrouplist=module.params['hostgroup'])
