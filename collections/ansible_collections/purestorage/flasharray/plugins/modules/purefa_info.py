@@ -406,6 +406,7 @@ purefa_info:
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+import time
 
 S3_REQUIRED_API_VERSION = '1.16'
 LATENCY_REQUIRED_API_VERSION = '1.16'
@@ -807,14 +808,16 @@ def generate_certs_dict(array):
         certs = array.list_certificates()
         for cert in range(0, len(certs)):
             certificate = certs[cert]['name']
+            valid_from = time.strftime("%a, %d %b %Y %H:%M:%S %Z", time.localtime(certs[cert]['valid_from'] / 1000))
+            valid_to = time.strftime("%a, %d %b %Y %H:%M:%S %Z", time.localtime(certs[cert]['valid_to'] / 1000))
             certs_info[certificate] = {
                 'status': certs[cert]['status'],
                 'issued_to': certs[cert]['issued_to'],
-                'valid_from': certs[cert]['valid_from'],
+                'valid_from': valid_from,
                 'locality': certs[cert]['locality'],
                 'country': certs[cert]['country'],
                 'issued_by': certs[cert]['issued_by'],
-                'valid_to': certs[cert]['valid_to'],
+                'valid_to': valid_to,
                 'state': certs[cert]['state'],
                 'key_size': certs[cert]['key_size'],
                 'org_unit': certs[cert]['organizational_unit'],
