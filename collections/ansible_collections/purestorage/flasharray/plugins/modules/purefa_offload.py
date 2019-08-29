@@ -15,9 +15,9 @@ DOCUMENTATION = r'''
 ---
 module: purefa_offload
 version_added: '2.8'
-short_description: Create, modify and delete NFS or S3 offload targets
+short_description: Create, modify and delete NFS, S3 or Azure offload targets
 description:
-- Create, modify and delete NFS or S3 offload targets.
+- Create, modify and delete NFS, S3 or Azure offload targets.
 - Only supported on Purity v5.2.0 or higher.
 - You must have a correctly configured offload network for offload to work.
 author:
@@ -38,7 +38,7 @@ options:
     description:
     - Define which protocol the offload engine uses
     default: nfs
-    choices: [ nfs, s3 ]
+    choices: [ nfs, s3, azure ]
     type: str
   address:
     description:
@@ -60,19 +60,34 @@ options:
     description:
     - Access Key ID of the S3 target
     type: str
+  container:
+    description:
+    - Name of the blob container of the Azure target
+    default: offload
+    type: str
   bucket:
     description:
     - Name of the bucket for the S3 target
     type: str
+  account:
+    description:
+    - Name of the Azure blob storage account
+    type: str
   secret:
     description:
-    - Secret Access Key for the S3 target
+    - Secret Access Key for the S3 or Azure target
     type: str
   initialize:
     description:
     - Define whether to initialize the S3 bucket
     type: bool
     default: true
+  placement:
+    description:
+    - AWS S3 placement strategy
+    type: str
+    options: ['retention-based', 'aws-standard-class']
+    default: retention-based
 
 extends_documentation_fragment:
 - purestorage.fa
@@ -95,6 +110,17 @@ EXAMPLES = r'''
     access_key: "3794fb12c6204e19195f"
     bucket: offload-bucket
     secret: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+    placement: aws-standard-class
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Create Azure offload target
+  purefa_offload:
+    name: azure-offload
+    protocol: azure
+    secret: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+    container: offload-container
+    account: user1
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
@@ -105,7 +131,6 @@ EXAMPLES = r'''
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-
 
 '''
 
@@ -120,6 +145,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 MIN_REQUIRED_API_VERSION = '1.16'
 REGEX_TARGET_NAME = re.compile(r"^[a-zA-Z0-9\-]*$")
+P53_API_VERSION = '1.17'
 
 
 def get_target(module, array):
@@ -132,34 +158,56 @@ def get_target(module, array):
 
 def create_offload(module, array):
     """Create offload target"""
-    changed = False
-    # First check if the offload network inteface is there and enabled
-    try:
-        if not array.get_network_interface('@offload.data')['enabled']:
-            module.fail_json(msg='Offload Network interface not enabled. Please resolve.')
-    except Exception:
-        module.fail_json(msg='Offload Network interface not correctly configured. Please resolve.')
-    if module.params['protocol'] == 'nfs':
+    changed = True
+    api_version = array._list_available_rest_versions()
+    if not module.check_mode:
+        # First check if the offload network inteface is there and enabled
         try:
-            array.connect_nfs_offload(module.params['name'],
-                                      mount_point=module.params['share'],
-                                      address=module.params['address'],
-                                      mount_options=module.params['options'])
-            changed = True
+            if not array.get_network_interface('@offload.data')['enabled']:
+                module.fail_json(msg='Offload Network interface not enabled. Please resolve.')
         except Exception:
-            module.fail_json(msg='Failed to create NFS offload {0}. '
-                                 'Please perform diagnostic checks.'.format(module.params['name']))
-    if module.params['protocol'] == 's3':
-        try:
-            array.connect_s3_offload(module.params['name'],
-                                     access_key_id=module.params['access_key'],
-                                     secret_access_key=module.params['secret'],
-                                     bucket=module.params['bucket'],
-                                     initialize=module.params['initialize'])
-            changed = True
-        except Exception:
-            module.fail_json(msg='Failed to create S3 offload {0}. '
-                                 'Please perform diagnostic checks.'.format(module.params['name']))
+            module.fail_json(msg='Offload Network interface not correctly configured. Please resolve.')
+        if module.params['protocol'] == 'nfs':
+            try:
+                array.connect_nfs_offload(module.params['name'],
+                                          mount_point=module.params['share'],
+                                          address=module.params['address'],
+                                          mount_options=module.params['options'])
+            except Exception:
+                module.fail_json(msg='Failed to create NFS offload {0}. '
+                                     'Please perform diagnostic checks.'.format(module.params['name']))
+        if module.params['protocol'] == 's3':
+            if P53_API_VERSION in api_version:
+                try:
+                    array.connect_s3_offload(module.params['name'],
+                                             access_key_id=module.params['access_key'],
+                                             secret_access_key=module.params['secret'],
+                                             bucket=module.params['bucket'],
+                                             placement_strategy=module.params['placement'],
+                                             initialize=module.params['initialize'])
+                except Exception:
+                    module.fail_json(msg='Failed to create S3 offload {0}. '
+                                         'Please perform diagnostic checks.'.format(module.params['name']))
+            else:
+                try:
+                    array.connect_s3_offload(module.params['name'],
+                                             access_key_id=module.params['access_key'],
+                                             secret_access_key=module.params['secret'],
+                                             bucket=module.params['bucket'],
+                                             initialize=module.params['initialize'])
+                except Exception:
+                    module.fail_json(msg='Failed to create S3 offload {0}. '
+                                         'Please perform diagnostic checks.'.format(module.params['name']))
+        if module.params['protocol'] == 'azure' and P53_API_VERSION in api_version:
+            try:
+                array.connect_azure_offload(module.params['name'],
+                                            container_name=module.params['container'],
+                                            secret_access_key=module.params['secret'],
+                                            account_name=module.params['.bucket'],
+                                            initialize=module.params['initialize'])
+            except Exception:
+                module.fail_json(msg='Failed to create Azure offload {0}. '
+                                     'Please perform diagnostic checks.'.format(module.params['name']))
     module.exit_json(changed=changed)
 
 
@@ -171,19 +219,24 @@ def update_offload(module, array):
 
 def delete_offload(module, array):
     """Delete offload target"""
-    changed = False
-    if module.params['protocol'] == 'nfs':
-        try:
-            array.disconnect_nfs_offload(module.params['name'])
-            changed = True
-        except Exception:
-            module.fail_json(msg='Failed to delete NFS offload {0}.'.format(module.params['name']))
-    if module.params['protocol'] == 's3':
-        try:
-            array.disconnect_nfs_offload(module.params['name'])
-            changed = True
-        except Exception:
-            module.fail_json(msg='Failed to delete S3 offload {0}.'.format(module.params['name']))
+    changed = True
+    api_version = array._list_available_rest_versions()
+    if not module.check_mode:
+        if module.params['protocol'] == 'nfs':
+            try:
+                array.disconnect_nfs_offload(module.params['name'])
+            except Exception:
+                module.fail_json(msg='Failed to delete NFS offload {0}.'.format(module.params['name']))
+        if module.params['protocol'] == 's3':
+            try:
+                array.disconnect_s3_offload(module.params['name'])
+            except Exception:
+                module.fail_json(msg='Failed to delete S3 offload {0}.'.format(module.params['name']))
+        if module.params['protocol'] == 'azure' and P53_API_VERSION in api_version:
+            try:
+                array.disconnect_azure_offload(module.params['name'])
+            except Exception:
+                module.fail_json(msg='Failed to delete Azure offload {0}.'.format(module.params['name']))
     module.exit_json(changed=changed)
 
 
@@ -191,12 +244,15 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(dict(
         state=dict(type='str', default='present', choices=['present', 'absent']),
-        protocol=dict(type='str', default='nfs', choices=['nfs', 's3']),
+        protocol=dict(type='str', default='nfs', choices=['nfs', 's3', 'azure']),
+        placement=dict(type='str', default='retention-based', choices=['retention-based', 'aws-standard-class']),
         name=dict(type='str', required=True),
         initialize=dict(default=True, type='bool'),
         access_key=dict(type='str'),
         secret=dict(type='str', no_log=True),
         bucket=dict(type='str'),
+        container=dict(type='str', default='offload'),
+        account=dict(type='str'),
         share=dict(type='str'),
         address=dict(type='str'),
         options=dict(type='str', default=''),
@@ -207,12 +263,13 @@ def main():
     if argument_spec['state'] == "present":
         required_if = [
             ('protocol', 'nfs', ['address', 'share']),
-            ('protocol', 's3', ['access_key', 'secret', 'bucket'])
+            ('protocol', 's3', ['access_key', 'secret', 'bucket']),
+            ('protocol', 'azure', ['account', 'secret'])
         ]
 
     module = AnsibleModule(argument_spec,
                            required_if=required_if,
-                           supports_check_mode=False)
+                           supports_check_mode=True)
 
     array = get_system(module)
     api_version = array._list_available_rest_versions()

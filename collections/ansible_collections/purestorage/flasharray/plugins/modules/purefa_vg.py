@@ -37,6 +37,20 @@ options:
     - Define whether to eradicate the volume group on delete and leave in trash.
     type : bool
     default: 'no'
+  bw_qos:
+    description:
+    - Bandwidth limit for vgroup in M or G units.
+      M will set MB/s
+      G will set GB/s
+      To clear an existing QoS setting use 0 (zero)
+    type: str
+  iops_qos:
+    description:
+    - IOPs limit for vgroup - use value or K or M
+      K will mean 1000
+      M will mean 1000000
+      To clear an existing IOPs setting use 0 (zero)
+    type: str
 extends_documentation_fragment:
 - purestorage.fa
 '''
@@ -45,6 +59,15 @@ EXAMPLES = r'''
 - name: Create new volune group
   purefa_vg:
     vgroup: foo
+    bw_qos: 50M
+    iops_qos: 100
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+- name: Update volune group QoS limits
+  purefa_vg:
+    vgroup: foo
+    bw_qos: 0
+    iops_qos: 5555
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Destroy volume group
@@ -75,6 +98,53 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 
 VGROUP_API_VERSION = '1.13'
+VG_IOPS_VERSION = '1.17'
+
+
+def human_to_bytes(size):
+    """Given a human-readable byte string (e.g. 2G, 30M),
+       return the number of bytes.  Will return 0 if the argument has
+       unexpected form.
+    """
+    bytes = size[:-1]
+    unit = size[-1]
+    if bytes.isdigit():
+        bytes = int(bytes)
+        if unit == 'P':
+            bytes *= 1125899906842624
+        elif unit == 'T':
+            bytes *= 1099511627776
+        elif unit == 'G':
+            bytes *= 1073741824
+        elif unit == 'M':
+            bytes *= 1048576
+        elif unit == 'K':
+            bytes *= 1024
+        else:
+            bytes = 0
+    else:
+        bytes = 0
+    return bytes
+
+
+def human_to_real(iops):
+    """Given a human-readable IOPs string (e.g. 2K, 30M),
+       return the real number.  Will return 0 if the argument has
+       unexpected form.
+    """
+    digit = iops[:-1]
+    unit = iops[-1]
+    if digit.isdigit():
+        digit = int(digit)
+        if unit == 'M':
+            digit *= 1000000
+        elif unit == 'K':
+            digit *= 1000
+        else:
+            digit = 0
+    else:
+        digit = 0
+    return digit
 
 
 def get_pending_vgroup(module, array):
@@ -103,10 +173,89 @@ def make_vgroup(module, array):
     """ Create Volume Group"""
     changed = True
     if not module.check_mode:
-        try:
-            array.create_vgroup(module.params['vgroup'])
-        except Exception:
-            module.fail_json(msg='creation of volume group {0} failed.'.format(module.params['vgroup']))
+        api_version = array._list_available_rest_versions()
+        if module.params['bw_qos'] or module.params['iops_qos']:
+            if module.params['bw_qos'] and not module.params['iops_qos']:
+                if 549755813888 >= int(human_to_bytes(module.params['bw_qos'])) >= 1048576:
+                    try:
+                        array.create_vgroup(module.params['name'],
+                                            bandwidth_limit=module.params['bw_qos'])
+                    except Exception:
+                        module.fail_json(msg='Vgroup {0} creation failed.'.format(module.params['name']))
+                else:
+                    module.fail_json(msg='Bandwidth QoS value {0} out of range.'.format(module.params['bw_qos']))
+            elif module.params['iops_qos'] and not module.params['bw_qos']:
+                if 100000000 >= int(human_to_real(module.params['iops_qos'])) >= 100:
+                    try:
+                        array.create_vgroup(module.params['name'],
+                                            iops_limit=module.params['iops_qos'])
+                    except Exception:
+                        module.fail_json(msg='Vgroup {0} creation failed.'.format(module.params['name']))
+                else:
+                    module.fail_json(msg='IOPs QoS value {0} out of range.'.format(module.params['iops_qos']))
+            else:
+                bw_qos_size = int(human_to_bytes(module.params['bw_qos']))
+                if 100000000 >= int(human_to_real(module.params['iops_qos'])) >= 100 and 549755813888 >= bw_qos_size >= 1048576:
+                    try:
+                        array.create_vgroup(module.params['name'],
+                                            iops_limit=module.params['iops_qos'],
+                                            bandwidth_limit=module.params['bw_qos'])
+                    except Exception:
+                        module.fail_json(msg='Vgroup {0} creation failed.'.format(module.params['name']))
+                else:
+                    module.fail_json(msg='IOPs or Bandwidth QoS value out of range.')
+        else:
+            try:
+                array.create_vgroup(module.params['vgroup'])
+            except Exception:
+                module.fail_json(msg='creation of volume group {0} failed.'.format(module.params['vgroup']))
+
+    module.exit_json(changed=changed)
+
+
+def update_vgroup(module, array):
+    """ Update Volume Group"""
+    changed = True
+    if not module.check_mode:
+        api_version = array._list_available_rest_versions()
+        if VG_IOPS_VERSION in api_version:
+            try:
+                vg_qos = array.get_vgroup(module.params['name'], qos=True)
+            except Exception:
+                module.fail_json(msg='Failed to get QoS settings for vgroup {0}.'.format(module.params['name']))
+        if VG_IOPS_VERSION in api_version:
+            if vg_qos['bandwidth_limit'] is None:
+                vg_qos['bandwidth_limit'] = 0
+            if vg_qos['iops_limit'] is None:
+                vg_qos['iops_limit'] = 0
+        if module.params['bw_qos'] and VG_IOPS_VERSION in api_version:
+            if human_to_bytes(module.params['bw_qos']) != vg_qos['bandwidth_limit']:
+                if module.params['bw_qos'] == '0':
+                    try:
+                        array.set_volume(module.params['name'], bandwidth_limit='')
+                    except Exception:
+                        module.fail_json(msg='Vgroup {0} Bandwidth QoS removal failed.'.format(module.params['name']))
+                elif 549755813888 >= int(human_to_bytes(module.params['bw_qos'])) >= 1048576:
+                    try:
+                        array.set_volume(module.params['name'], bandwidth_limit=module.params['bw_qos'])
+                    except Exception:
+                        module.fail_json(msg='Vgroup {0} Bandwidth QoS change failed.'.format(module.params['name']))
+                else:
+                    module.fail_json(msg='Bandwidth QoS value {0} out of range.'.format(module.params['bw_qos']))
+        if module.params['iops_qos'] and VG_IOPS_VERSION in api_version:
+            if human_to_real(module.params['iops_qos']) != vg_qos['iops_limit']:
+                if module.params['iops_qos'] == '0':
+                    try:
+                        array.set_volume(module.params['name'], iops_limit='')
+                    except Exception:
+                        module.fail_json(msg='Vgroup {0} IOPs QoS removal failed.'.format(module.params['name']))
+                elif 100000000 >= int(human_to_real(module.params['iops_qos'])) >= 100:
+                    try:
+                        array.set_volume(module.params['name'], iops_limit=module.params['iops_qos'])
+                    except Exception:
+                        module.fail_json(msg='Vgroup {0} IOPs QoS change failed.'.format(module.params['name']))
+                else:
+                    module.fail_json(msg='Bandwidth QoS value {0} out of range.'.format(module.params['bw_qos']))
 
     module.exit_json(changed=changed)
 
@@ -153,6 +302,8 @@ def main():
     argument_spec.update(dict(
         vgroup=dict(type='str', required=True),
         state=dict(type='str', default='present', choices=['absent', 'present']),
+        bw_qos=dict(type='str'),
+        iops_qos=dict(type='str'),
         eradicate=dict(type='bool', default=False),
     ))
 
@@ -176,6 +327,8 @@ def main():
         eradicate_vgroup(module, array)
     elif not vgroup and not xvgroup and state == 'present':
         make_vgroup(module, array)
+    elif vgroup and state == 'present':
+        update_vgroup(module, array)
     elif vgroup is None and state == 'absent':
         module.exit_json(changed=False)
 
