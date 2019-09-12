@@ -408,6 +408,7 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
 import time
 
+ADMIN_API_VERSION = '1.14'
 S3_REQUIRED_API_VERSION = '1.16'
 LATENCY_REQUIRED_API_VERSION = '1.16'
 AC_REQUIRED_API_VERSION = '1.14'
@@ -458,15 +459,12 @@ def generate_perf_dict(array):
     if LATENCY_REQUIRED_API_VERSION in api_version:
         latency_info = array.get(action='monitor', latency=True)[0]
     perf_info = array.get(action='monitor')[0]
-    #  IOPS
     perf_info['writes_per_sec'] = perf_info['writes_per_sec']
     perf_info['reads_per_sec'] = perf_info['reads_per_sec']
 
-    #  Bandwidth
     perf_info['input_per_sec'] = perf_info['input_per_sec']
     perf_info['output_per_sec'] = perf_info['output_per_sec']
 
-    #  Latency
     if LATENCY_REQUIRED_API_VERSION in api_version:
         perf_info['san_usec_per_read_op'] = latency_info['san_usec_per_read_op']
         perf_info['san_usec_per_write_op'] = latency_info['san_usec_per_write_op']
@@ -484,14 +482,11 @@ def generate_perf_dict(array):
 def generate_config_dict(array):
     config_info = {}
     api_version = array._list_available_rest_versions()
-    # DNS
+    config_info['console_lock'] = array.get_console_lock_status()['console_lock']
     config_info['dns'] = array.get_dns()
-    # SMTP
     config_info['smtp'] = array.list_alert_recipients()
-    # SMNP
     config_info['snmp'] = array.list_snmp_managers()
     config_info['snmp_v3_engine_id'] = array.get_snmp_engine_id()['engine_id']
-    # DS
     config_info['directory_service'] = array.get_directory_service()
     if S3_REQUIRED_API_VERSION in api_version:
         config_info['directory_service_roles'] = {}
@@ -504,25 +499,15 @@ def generate_config_dict(array):
             }
     else:
         config_info['directory_service'].update(array.get_directory_service(groups=True))
-    # NTP
     config_info['ntp'] = array.get(ntpserver=True)['ntpserver']
-    # SYSLOG
     config_info['syslog'] = array.get(syslogserver=True)['syslogserver']
-    # Phonehome
     config_info['phonehome'] = array.get(phonehome=True)['phonehome']
-    # Proxy
     config_info['proxy'] = array.get(proxy=True)['proxy']
-    # Relay Host
     config_info['relayhost'] = array.get(relayhost=True)['relayhost']
-    # Sender Domain
     config_info['senderdomain'] = array.get(senderdomain=True)['senderdomain']
-    # SYSLOG
     config_info['syslog'] = array.get(syslogserver=True)['syslogserver']
-    # Idle Timeout
     config_info['idle_timeout'] = array.get(idle_timeout=True)['idle_timeout']
-    # SCSI Timeout
     config_info['scsi_timeout'] = array.get(scsi_timeout=True)['scsi_timeout']
-    # Global Admin settings
     if S3_REQUIRED_API_VERSION in api_version:
         config_info['global_admin'] = array.get_global_admin_attributes()
     return config_info
@@ -530,13 +515,15 @@ def generate_config_dict(array):
 
 def generate_admin_dict(array):
     admin_info = {}
-    admins = array.list_admins()
-    for admin in range(0, len(admins)):
-        admin_name = admins[admin]['name']
-        admin_info[admin_name] = {
-            'type': admins[admin]['type'],
-            'role': admins[admin]['role'],
-        }
+    api_version = array._list_available_rest_versions()
+    if ADMIN_API_VERSION in api_version:
+        admins = array.list_admins()
+        for admin in range(0, len(admins)):
+            admin_name = admins[admin]['name']
+            admin_info[admin_name] = {
+                'type': admins[admin]['type'],
+                'role': admins[admin]['role'],
+            }
     return admin_info
 
 
@@ -685,6 +672,10 @@ def generate_host_dict(array):
                                           personality=True)['personality'],
             'target_port': tports
         }
+        if host_info[hostname]['iqn']:
+            chap_data = array.get_host(hostname, chap=True)
+            host_info[hostname]['target_user'] = chap_data['target_user']
+            host_info[hostname]['host_user'] = chap_data['host_user']
         if NVME_API_VERSION in api_version:
             host_info[hostname]['nqn'] = hosts[host]['nqn']
     if PREFERRED_API_VERSION in api_version:
@@ -749,6 +740,8 @@ def generate_pods_dict(array):
             pods_info[acpod] = {
                 'source': pods[pod]['source'],
                 'arrays': pods[pod]['arrays'],
+                'mediator': pods[pod]['mediator'],
+                'mediator_version': pods[pod]['mediator_version'],
             }
     return pods_info
 
@@ -769,6 +762,8 @@ def generate_conn_array_dict(array):
         }
         if P53_API_VERSION in api_version:
             conn_array_info[arrayname]['status'] = carrays[carray]['status']
+        else:
+            conn_array_info[arrayname]['connected'] = carrays[carray]['connected']
     throttles = array.list_array_connections(throttle=True)
     for throttle in range(0, len(throttles)):
         arrayname = throttles[throttle]['array_name']
@@ -793,6 +788,12 @@ def generate_apps_dict(array):
                 'status': apps[app]['status'],
                 'description': apps[app]['description'],
             }
+    if P53_API_VERSION in api_version:
+        app_nodes = array.list_app_nodes()
+        for app in range(0, len(app_nodes)):
+            appname = app_nodes[app]['name']
+            apps_info[appname]['index'] = app_nodes[app]['index']
+            apps_info[appname]['vnc'] = app_nodes[app]['vnc']
     return apps_info
 
 
@@ -962,7 +963,7 @@ def main():
 
     info = {}
 
-    if 'minimum' in subset or 'all' in subset:
+    if 'minimum' in subset or 'all' in subset or 'apps' in subset:
         info['default'] = generate_default_dict(array)
     if 'performance' in subset or 'all' in subset:
         info['performance'] = generate_perf_dict(array)
@@ -997,7 +998,10 @@ def main():
         info['nfs_offload'] = generate_nfs_offload_dict(array)
         info['s3_offload'] = generate_s3_offload_dict(array)
     if 'apps' in subset or 'all' in subset:
-        info['apps'] = generate_apps_dict(array)
+        if 'FA-C' not in info['default']['array_model']:
+            info['apps'] = generate_apps_dict(array)
+        else:
+            info['apps'] = {}
     if 'arrays' in subset or 'all' in subset:
         info['arrays'] = generate_conn_array_dict(array)
     if 'certs' in subset or 'all' in subset:

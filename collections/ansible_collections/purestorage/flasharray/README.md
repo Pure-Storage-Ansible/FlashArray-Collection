@@ -1,16 +1,17 @@
 # Pure Storage FlashArray Collection
 
-The Pure Storage FlashArray collection consists of the latest versions of the FlashArray modules.
-
+The Pure Storage FlashArray collection consists of the latest versions of the FlashArray modules and also includes support fro Cloud block Store
 ## Modules
 
 - purefa_alert - manage email alert settings on the FlashArray
 - purefa_arrayname - manage the name of the FlashArray
 - purefa_banner - manage the CLI and GUI login banner of the FlashArray
 - purefa_connect - manage FlashArrays connecting for replication purposes
+- purefa_console - manage Console Lock setting for the FlashArray
 - purefa_dns - manage the DNS settings of the FlashArray
 - purefa_ds - manage the Directory Services of the FlashArray
 - purefa_dsrole - manage the Directory Service Roles of the FlashArray
+- purefa_eula - sign, or resign, FlashArray EULA
 - purefa_hg - manage hostgroups on the FlashArray
 - purefa_host - manage hosts on the FlashArray
 - purefa_info - get information regarding the configuration of the Flasharray
@@ -32,6 +33,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 
 - Ansible 2.9 or later
 - Pure Storage FlashArray system running Purity 4.6 or later
+- Pure Storage Cloud Block Store
 - purestorage Python SDK
 
 ## Instructions

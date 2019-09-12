@@ -75,12 +75,21 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
 
 
+P53_API_VERSION = '1.17'
+
+
 def _check_connected(module, array):
     connected_arrays = array.list_array_connections()
+    api_version = array._list_available_rest_versions()
     for target in range(0, len(connected_arrays)):
-        if connected_arrays[target]['management_address'] == module.params['target_url'] and \
-           connected_arrays[target]['connected']:
-            return connected_arrays[target]
+        if P53_API_VERSION in api_version:
+            if connected_arrays[target]['management_address'] == module.params['target_url'] and \
+               connected_arrays[target]['status'] == "connected":
+                return connected_arrays[target]
+        else:
+            if connected_arrays[target]['management_address'] == module.params['target_url'] and \
+               connected_arrays[target]['connected']:
+                return connected_arrays[target]
     return None
 
 
