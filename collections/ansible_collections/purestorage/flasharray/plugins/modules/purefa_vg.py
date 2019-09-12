@@ -174,7 +174,7 @@ def make_vgroup(module, array):
     changed = True
     if not module.check_mode:
         api_version = array._list_available_rest_versions()
-        if module.params['bw_qos'] or module.params['iops_qos']:
+        if module.params['bw_qos'] or module.params['iops_qos'] and VG_IOPS_VERSION in api_version:
             if module.params['bw_qos'] and not module.params['iops_qos']:
                 if 549755813888 >= int(human_to_bytes(module.params['bw_qos'])) >= 1048576:
                     try:
