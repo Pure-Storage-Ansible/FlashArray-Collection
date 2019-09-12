@@ -157,6 +157,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 
 OFFLOAD_API_VERSION = '1.16'
+P53_API_VERSION = '1.17'
 
 
 def get_targets(array):
@@ -177,10 +178,14 @@ def get_arrays(array):
     """ Get Connected Arrays"""
     arrays = []
     array_details = array.list_array_connections()
+    api_version = array._list_available_rest_versions()
     for arraycnt in range(0, len(array_details)):
-        if array_details[arraycnt]['connected']:
-            arrays.append(array_details[arraycnt]['array_name'])
-
+        if P53_API_VERSION in api_version:
+            if array_details[arraycnt]['status'] == "connected":
+                arrays.append(array_details[arraycnt]['array_name'])
+        else:
+            if array_details[arraycnt]['connected']:
+                arrays.append(array_details[arraycnt]['array_name'])
     return arrays
 
 
