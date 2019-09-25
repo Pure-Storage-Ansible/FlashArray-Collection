@@ -186,7 +186,7 @@ def _is_cbs(module, array, is_cbs=False):
     else:
         ct1_model = array.get_hardware('CT1')['model']
         model = ct1_model
-    if 'FA-C' in model:
+    if 'CBS' in model:
         is_cbs = True
     return is_cbs
 
