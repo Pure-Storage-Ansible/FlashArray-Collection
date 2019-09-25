@@ -998,7 +998,7 @@ def main():
         info['nfs_offload'] = generate_nfs_offload_dict(array)
         info['s3_offload'] = generate_s3_offload_dict(array)
     if 'apps' in subset or 'all' in subset:
-        if 'FA-C' not in info['default']['array_model']:
+        if 'CBS' not in info['default']['array_model']:
             info['apps'] = generate_apps_dict(array)
         else:
             info['apps'] = {}
