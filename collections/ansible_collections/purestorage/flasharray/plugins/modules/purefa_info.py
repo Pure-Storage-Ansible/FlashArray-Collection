@@ -402,7 +402,7 @@ purefa_info:
                 "source": null
             }
         }
-    }
+    )
 '''
 
 
