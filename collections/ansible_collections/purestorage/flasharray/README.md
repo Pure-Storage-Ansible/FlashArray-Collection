@@ -20,6 +20,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - purefa_pg - manage protection groups on the FlashArray
 - purefa_pgsnap - manage protection group snapshots (local and remote) on the FlashArray
 - purefa_phonehome - manage the phonehome setting for the FlashArray
+- purefa_pod - manage ActiveCluster pods in FlashArrays
 - purefa_proxy - manage the phonehome HTTPS proxy setting for the FlashArray
 - purefa_ra - manage the Remote Assist setting for the FlashArray
 - purefa_snap - manage local snapshots on the FlashArray
@@ -51,7 +52,7 @@ ansible-galaxy collection install purestorage.flasharray -p ~/.ansible/collectio
 - hosts: localhost
   gather_facts: true
   collections:
-    - puestorage.flasharray
+    - purestorage.flasharray
   tasks:
     - name: Get FlashArray information
       purefa_info:
