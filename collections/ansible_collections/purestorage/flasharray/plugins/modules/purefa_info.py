@@ -434,14 +434,7 @@ def generate_default_dict(array):
     snaps = array.list_volumes(snap=True, pending=True)
     pgroups = array.list_pgroups(pending=True)
     hgroups = array.list_hgroups()
-    # Old FA arrays only report model from the primary controller
-    ct0_model = array.get_hardware('CT0')['model']
-    if ct0_model:
-        model = ct0_model
-    else:
-        ct1_model = array.get_hardware('CT1')['model']
-        model = ct1_model
-    default_info['array_model'] = model
+    default_info['array_model'] = array.get(controllers=True)[0]['model']
     default_info['array_name'] = defaults['array_name']
     default_info['purity_version'] = defaults['version']
     default_info['hosts'] = len(hosts)
