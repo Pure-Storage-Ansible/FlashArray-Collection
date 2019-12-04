@@ -728,7 +728,7 @@ def generate_pods_dict(array):
     pods_info = {}
     api_version = array._list_available_rest_versions()
     if AC_REQUIRED_API_VERSION in api_version:
-        pods = array.list_pods()
+        pods = array.list_pods(mediator=True)
         for pod in range(0, len(pods)):
             acpod = pods[pod]['name']
             pods_info[acpod] = {
@@ -737,6 +737,10 @@ def generate_pods_dict(array):
                 'mediator': pods[pod]['mediator'],
                 'mediator_version': pods[pod]['mediator_version'],
             }
+        pods_fp = array.list_pods(failover_preference=True)
+        for pod in range(0, len(pods_fp)):
+            acpod = pods_fp[pod]['name']
+            pods_info[acpod]['failover_preference'] = pods_fp[pod]['failover_preference']
     return pods_info
 
 
