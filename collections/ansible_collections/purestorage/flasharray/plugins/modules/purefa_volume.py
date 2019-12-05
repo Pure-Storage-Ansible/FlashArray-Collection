@@ -67,6 +67,20 @@ options:
       To clear an existing IOPs setting use 0 (zero)
     version_added: '2.9'
     type: str
+  move:
+    description:
+    - Move a volume in and out of a pod or vgroup
+    - Provide the name of pod or vgroup to move the volume to
+    - Pod and Vgroup names must be unique in the array
+    - To move to the local array, specify C(local)
+    - This is not idempotent - use C(ignore_errors) in the play
+    type: str
+  rename:
+    description:
+    - Value to rename the specified volume to.
+    - Rename only applies to the container the current volumes is in.
+    - There is no requirement to specify the pod or vgroup name as this is implied.
+    type: str
 extends_documentation_fragment:
 - purestorage.fa
 '''
@@ -123,6 +137,34 @@ EXAMPLES = r'''
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: present
+
+- name: Move local volume foo from local array to pod bar
+  purefa_volume:
+    name: foo
+    move: bar
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Move volume foo in pod bar to local array
+  purefa_volume:
+    name: bar::foo
+    move: local
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Move volume foo in pod bar to vgroup fin
+  purefa_volume:
+    name: bar::foo
+    move: fin
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Rename volume foo in pod bar to fin (still in pod bar)
+  purefa_volume:
+    name: bar::foo
+    rename: fin
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
 '''
 
 RETURN = r'''
@@ -418,6 +460,118 @@ def update_volume(module, array):
     module.exit_json(changed=changed)
 
 
+def rename_volume(module, array):
+    """Rename volume within a container, ie pod, vgroup or local array"""
+    changed = True
+    if not module.check_mode:
+        changed = False
+        pod_name = ''
+        vgroup_name = ''
+        volfact = []
+        target_exists = False
+        if "::" in module.params['name']:
+            pod_name = module.params["name"].split("::")[0]
+            target_name = pod_name + "::" + module.params['rename']
+            try:
+                array.get_volume(target_name, pending=True)
+                target_exists = True
+            except Exception:
+                target_exists = False
+        elif "/" in module.params['name']:
+            vgroup_name = module.params["name"].split("/")[0]
+            target_name = vgroup_name + "/" + module.params['rename']
+            try:
+                array.get_volume(target_name, pending=True)
+                target_exists = True
+            except Exception:
+                target_exists = False
+        else:
+            try:
+                array.get_volume(target_name, pending=True)
+                target_exists = True
+            except Exception:
+                target_exists = False
+        if not target_exists:
+            try:
+                volfact = array.rename_volume(module.params["name"], target_name)
+                changed = True
+            except Exception:
+                module.fail_json(msg='Rename volume {0} to {1} failed.'.format(module.params["name"], module.params['rename']))
+        else:
+            module.fail_json(msg="Target volume {0} already exists.".format(target_name))
+
+    module.exit_json(changed=changed, volume=volfact)
+
+
+def move_volume(module, array):
+    """Move volume between pods, vgroups or local array"""
+    changed = True
+    if not module.check_mode:
+        changed = False
+        vgroup_exists = False
+        pod_exists = False
+        pod_name = ''
+        vgroup_name = ''
+        volfact = []
+        volume_name = module.params['name']
+        if "::" in module.params['name']:
+            volume_name = module.params["name"].split("::")[1]
+            pod_name = module.params["name"].split("::")[0]
+        if "/" in module.params['name']:
+            volume_name = module.params["name"].split("/")[1]
+            vgroup_name = module.params["name"].split("/")[0]
+        if module.params['move'] == 'local':
+            target_location = ""
+            if "::" not in module.params['name']:
+                if "/" not in module.params['name']:
+                    module.fail_json(msg='Source and destination [local] cannot be the same.')
+            try:
+                target_exists = array.get_volume(volume_name, pending=True)
+            except Exception:
+                target_exists = False
+            if target_exists:
+                module.fail_json(msg='Target volume {0} already exists'.format(volume_name))
+        else:
+            try:
+                pod_exists = array.get_pod(module.params['move'])
+                if len(pod_exists['arrays']) > 1:
+                    module.fail_json(msg='Volume cannot be moved into a stretched pod')
+                try:
+                    target_exists = array.get_volume(module.params['move'] + "::" + volume_name, pending=True)
+                    module.exit_json(changed=changed)
+                except Exception:
+                    target_exists = False
+            except Exception:
+                pod_exists = False
+            try:
+                vgroup_exists = bool(array.get_vgroup(module.params['move']))
+                try:
+                    target_exists = array.get_volume(module.params['move'] + "/" + volume_name, pending=True)
+                    module.exit_json(changed=changed)
+                except Exception:
+                    target_exists = False
+            except Exception:
+                vgroup_exists = False
+            if pod_exists and vgroup_exists:
+                module.fail_json(msg='Move location {0} matches both a pod and a vgroup. Please rename one of these.'.format(module.params['move']))
+            if not pod_exists and not vgroup_exists:
+                module.fail_json(msg='Move location {0} does not exist.'.format(module.params['move']))
+            if "::" in module.params['name']:
+                if len(array.get_pod(module.params['move'])['arrays']) > 1:
+                    module.fail_json(msg='Volume cannot be moved out of a stretched pod')
+            if "/" in module.params['name']:
+                if vgroup_name == module.params['move'] or pod_name == module.params['move']:
+                    module.fail_json(msg='Source and destination cannot be the same')
+            target_location = module.params['move']
+        try:
+            volfact = array.move_volume(module.params['name'], target_location)
+            changed = True
+        except Exception:
+            module.fail_json(msg='Move of volume {0} to {1} failed.'.format(module.params['name'],
+                                                                            target_location))
+    module.exit_json(changed=changed, volume=volfact)
+
+
 def delete_volume(module, array):
     """ Delete Volume"""
     changed = True
@@ -453,6 +607,8 @@ def main():
     argument_spec.update(dict(
         name=dict(type='str', required=True),
         target=dict(type='str'),
+        move=dict(type='str'),
+        rename=dict(type='str'),
         overwrite=dict(type='bool', default=False),
         eradicate=dict(type='bool', default=False),
         state=dict(type='str', default='present', choices=['absent', 'present']),
@@ -461,7 +617,9 @@ def main():
         size=dict(type='str'),
     ))
 
-    mutually_exclusive = [['size', 'target'], ['qos', 'target']]
+    mutually_exclusive = [['size'], ['target'],
+                          ['move'], ['rename', 'target', 'overwrite', 'eradicate', 'bw_qos', 'iops_qos', 'size'],
+                          ['rename'], ['move', 'target', 'overwrite', 'eradicate', 'bw_qos', 'iops_qos', 'size']]
 
     module = AnsibleModule(argument_spec,
                            mutually_exclusive=mutually_exclusive,
@@ -481,6 +639,12 @@ def main():
         create_volume(module, array)
     elif state == 'present' and volume and (size or bw_qos or iops_qos):
         update_volume(module, array)
+    elif state == 'present' and volume and module.params['move']:
+        move_volume(module, array)
+    elif state == 'present' and volume and module.params['rename']:
+        rename_volume(module, array)
+    elif state == 'present' and destroyed and module.params['move']:
+        module.fail_json(msg='Volume {0} exists, but in destroyed state'.format(module.params['name']))
     elif state == 'present' and volume and target:
         copy_from_volume(module, array)
     elif state == 'present' and volume and not target:
