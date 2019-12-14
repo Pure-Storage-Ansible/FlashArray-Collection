@@ -320,12 +320,12 @@ def check_pod(module, array):
 def create_volume(module, array):
     """Create Volume"""
     changed = True
+    volfact = []
     if not module.check_mode:
         if "/" in module.params['name'] and not check_vgroup(module, array):
             module.fail_json(msg="Failed to create volume {0}. Volume Group does not exist.".format(module.params["name"]))
         if "::" in module.params['name'] and not check_pod(module, array):
             module.fail_json(msg="Failed to create volume {0}. Poid does not exist".format(module.params["name"]))
-        volfact = []
         api_version = array._list_available_rest_versions()
         if module.params['bw_qos'] or module.params['iops_qos']:
             if module.params['bw_qos'] and QOS_API_VERSION in api_version or module.params['iops_qos'] and IOPS_API_VERSION in api_version:
@@ -374,8 +374,8 @@ def create_volume(module, array):
 def copy_from_volume(module, array):
     """Create Volume Clone"""
     changed = True
+    volfact = []
     if not module.check_mode:
-        volfact = []
         tgt = get_target(module, array)
 
         if tgt is None:
@@ -400,9 +400,9 @@ def copy_from_volume(module, array):
 def update_volume(module, array):
     """Update Volume size and/or QoS"""
     changed = True
+    volfact = []
     if not module.check_mode:
         change = False
-        volfact = []
         api_version = array._list_available_rest_versions()
         vol = array.get_volume(module.params['name'])
         vol_qos = array.get_volume(module.params['name'], qos=True)
@@ -463,11 +463,11 @@ def update_volume(module, array):
 def rename_volume(module, array):
     """Rename volume within a container, ie pod, vgroup or local array"""
     changed = True
+    volfact = []
     if not module.check_mode:
         changed = False
         pod_name = ''
         vgroup_name = ''
-        volfact = []
         target_exists = False
         if "::" in module.params['name']:
             pod_name = module.params["name"].split("::")[0]
@@ -506,13 +506,13 @@ def rename_volume(module, array):
 def move_volume(module, array):
     """Move volume between pods, vgroups or local array"""
     changed = True
+    volfact = []
     if not module.check_mode:
         changed = False
         vgroup_exists = False
         pod_exists = False
         pod_name = ''
         vgroup_name = ''
-        volfact = []
         volume_name = module.params['name']
         if "::" in module.params['name']:
             volume_name = module.params["name"].split("::")[1]
@@ -575,8 +575,8 @@ def move_volume(module, array):
 def delete_volume(module, array):
     """ Delete Volume"""
     changed = True
+    volfact = []
     if not module.check_mode:
-        volfact = []
         try:
             array.destroy_volume(module.params['name'])
             if module.params['eradicate']:
@@ -592,8 +592,8 @@ def delete_volume(module, array):
 def eradicate_volume(module, array):
     """ Eradicate Deleted Volume"""
     changed = True
+    volfact = []
     if not module.check_mode:
-        volfact = []
         if module.params['eradicate']:
             try:
                 array.eradicate_volume(module.params['name'])
