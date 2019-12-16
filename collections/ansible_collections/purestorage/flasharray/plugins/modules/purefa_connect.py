@@ -49,7 +49,7 @@ EXAMPLES = r'''
 - name: Create an async connection to remote array
   purefa_connect:
     target_url: 10.10.10.20
-    target_api:
+    target_api: 9c0b56bc-f941-f7a6-9f85-dcc3e9a8f7d6
     connection: async
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
@@ -57,6 +57,7 @@ EXAMPLES = r'''
   purefa_connect:
     state: absent
     target_url: 10.10.10.20
+    target_api: 9c0b56bc-f941-f7a6-9f85-dcc3e9a8f7d6
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 '''
@@ -84,7 +85,7 @@ def _check_connected(module, array):
     for target in range(0, len(connected_arrays)):
         if P53_API_VERSION in api_version:
             if connected_arrays[target]['management_address'] == module.params['target_url'] and \
-               connected_arrays[target]['status'] == "connected":
+               "connected" in connected_arrays[target]['status']:
                 return connected_arrays[target]
         else:
             if connected_arrays[target]['management_address'] == module.params['target_url'] and \
@@ -99,6 +100,8 @@ def break_connection(module, array, target_array):
     if not module.check_mode:
         source_array = array.get()['array_name']
         try:
+            if target_array['management_address'] is None:
+                module.fail_json(msg="disconnect can only happen from the array that formed the connection")
             array.disconnect_array(target_array['array_name'])
         except Exception:
             module.fail_json(msg="Failed to disconnect {0} from {1}.".format(target_array['array_name'], source_array))
