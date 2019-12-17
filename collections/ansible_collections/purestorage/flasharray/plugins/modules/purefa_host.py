@@ -453,9 +453,15 @@ def main():
                     module.fail_json(msg='No target arrays connected to source array - preferred arrays not possible.')
                 else:
                     current_arrays = [array.get()['array_name']]
-                    for current_array in range(0, len(all_connected_arrays)):
-                        if all_connected_arrays[current_array]['type'] == "sync-replication":
-                            current_arrays.append(all_connected_arrays[current_array]['array_name'])
+                    api_version = array._list_available_rest_versions()
+                    if NVME_API_VERSION in api_version:
+                        for current_array in range(0, len(all_connected_arrays)):
+                            if all_connected_arrays[current_array]['type'] == "sync-replication":
+                                current_arrays.append(all_connected_arrays[current_array]['array_name'])
+                    else:
+                        for current_array in range(0, len(all_connected_arrays)):
+                            if all_connected_arrays[current_array]['type'] == ["sync-replication"]:
+                                current_arrays.append(all_connected_arrays[current_array]['array_name'])
                 for array_to_connect in range(0, len(module.params['preferred_array'])):
                     if module.params['preferred_array'][array_to_connect] not in current_arrays:
                         module.fail_json(msg='Array {0} is not a synchronously connected array.'.format(module.params['preferred_array'][array_to_connect]))
