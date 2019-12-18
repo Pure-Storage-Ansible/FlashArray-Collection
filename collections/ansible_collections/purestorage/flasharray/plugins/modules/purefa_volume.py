@@ -158,13 +158,6 @@ EXAMPLES = r'''
     move: fin
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-
-- name: Rename volume foo in pod bar to fin (still in pod bar)
-  purefa_volume:
-    name: bar::foo
-    rename: fin
-    fa_url: 10.10.10.2
-    api_token: e31060a7-21fc-e277-6240-25983c6c4592
 '''
 
 RETURN = r'''
@@ -263,10 +256,26 @@ def get_volume(module, array):
         return None
 
 
-def get_destroyed_volume(module, array):
+def get_endpoint(name, array):
+    """Return Endpoint or None"""
+    try:
+        return array.get_volume(name, pending=True, protocol_endpoint=True)
+    except Exception:
+        return None
+
+
+def get_destroyed_volume(vol, array):
     """Return Destroyed Volume or None"""
     try:
-        return bool(array.get_volume(module.params['name'], pending=True)['time_remaining'] != '')
+        return bool(array.get_volume(vol, pending=True)['time_remaining'] != '')
+    except Exception:
+        return False
+
+
+def get_destroyed_endpoint(vol, array):
+    """Return Destroyed Endpoint or None"""
+    try:
+        return bool(array.get_volume(vol, protocol_endpoint=True, pending=True)['time_remaining'] != '')
     except Exception:
         return False
 
@@ -320,12 +329,12 @@ def check_pod(module, array):
 def create_volume(module, array):
     """Create Volume"""
     changed = True
-    volfact = []
     if not module.check_mode:
         if "/" in module.params['name'] and not check_vgroup(module, array):
             module.fail_json(msg="Failed to create volume {0}. Volume Group does not exist.".format(module.params["name"]))
         if "::" in module.params['name'] and not check_pod(module, array):
             module.fail_json(msg="Failed to create volume {0}. Poid does not exist".format(module.params["name"]))
+        volfact = []
         api_version = array._list_available_rest_versions()
         if module.params['bw_qos'] or module.params['iops_qos']:
             if module.params['bw_qos'] and QOS_API_VERSION in api_version or module.params['iops_qos'] and IOPS_API_VERSION in api_version:
@@ -364,7 +373,10 @@ def create_volume(module, array):
 
         else:
             try:
-                volfact = array.create_volume(module.params['name'], module.params['size'])
+                if module.params['size']:
+                    volfact = array.create_volume(module.params['name'], module.params['size'])
+                else:
+                    module.fail_json(msg='Size for a new volume must be specified')
             except Exception:
                 module.fail_json(msg='Volume {0} creation failed.'.format(module.params['name']))
 
@@ -374,8 +386,8 @@ def create_volume(module, array):
 def copy_from_volume(module, array):
     """Create Volume Clone"""
     changed = True
-    volfact = []
     if not module.check_mode:
+        volfact = []
         tgt = get_target(module, array)
 
         if tgt is None:
@@ -400,9 +412,9 @@ def copy_from_volume(module, array):
 def update_volume(module, array):
     """Update Volume size and/or QoS"""
     changed = True
-    volfact = []
     if not module.check_mode:
         change = False
+        volfact = []
         api_version = array._list_available_rest_versions()
         vol = array.get_volume(module.params['name'])
         vol_qos = array.get_volume(module.params['name'], qos=True)
@@ -463,11 +475,12 @@ def update_volume(module, array):
 def rename_volume(module, array):
     """Rename volume within a container, ie pod, vgroup or local array"""
     changed = True
-    volfact = []
     if not module.check_mode:
         changed = False
         pod_name = ''
         vgroup_name = ''
+        volfact = []
+        target_name = module.params['rename']
         target_exists = False
         if "::" in module.params['name']:
             pod_name = module.params["name"].split("::")[0]
@@ -491,12 +504,17 @@ def rename_volume(module, array):
                 target_exists = True
             except Exception:
                 target_exists = False
+        if target_exists and get_endpoint(target_name, array):
+            module.fail_json(msg='Target volume {0} is a protocol-endpoinnt'.format(target_name))
         if not target_exists:
-            try:
-                volfact = array.rename_volume(module.params["name"], target_name)
-                changed = True
-            except Exception:
-                module.fail_json(msg='Rename volume {0} to {1} failed.'.format(module.params["name"], module.params['rename']))
+            if get_destroyed_endpoint(target_name, array):
+                module.fail_json(msg='Target volume {0} is a destroyed protocol-endpoinnt'.format(target_name))
+            else:
+                try:
+                    volfact = array.rename_volume(module.params["name"], module.params['rename'])
+                    changed = True
+                except Exception:
+                    module.fail_json(msg='Rename volume {0} to {1} failed.'.format(module.params["name"], module.params['rename']))
         else:
             module.fail_json(msg="Target volume {0} already exists.".format(target_name))
 
@@ -506,13 +524,13 @@ def rename_volume(module, array):
 def move_volume(module, array):
     """Move volume between pods, vgroups or local array"""
     changed = True
-    volfact = []
     if not module.check_mode:
         changed = False
         vgroup_exists = False
         pod_exists = False
         pod_name = ''
         vgroup_name = ''
+        volfact = []
         volume_name = module.params['name']
         if "::" in module.params['name']:
             volume_name = module.params["name"].split("::")[1]
@@ -563,6 +581,8 @@ def move_volume(module, array):
                 if vgroup_name == module.params['move'] or pod_name == module.params['move']:
                     module.fail_json(msg='Source and destination cannot be the same')
             target_location = module.params['move']
+        if get_endpoint(target_location, array):
+            module.fail_json(msg='Target volume {0} is a protocol-endpoinnt'.format(target_location))
         try:
             volfact = array.move_volume(module.params['name'], target_location)
             changed = True
@@ -575,8 +595,8 @@ def move_volume(module, array):
 def delete_volume(module, array):
     """ Delete Volume"""
     changed = True
-    volfact = []
     if not module.check_mode:
+        volfact = []
         try:
             array.destroy_volume(module.params['name'])
             if module.params['eradicate']:
@@ -592,13 +612,25 @@ def delete_volume(module, array):
 def eradicate_volume(module, array):
     """ Eradicate Deleted Volume"""
     changed = True
-    volfact = []
     if not module.check_mode:
+        volfact = []
         if module.params['eradicate']:
             try:
                 array.eradicate_volume(module.params['name'])
             except Exception:
                 module.fail_json(msg='Eradication of volume {0} failed'.format(module.params['name']))
+    module.exit_json(changed=changed, volume=volfact)
+
+
+def recover_volume(module, array):
+    """ Recover Deleted Volume"""
+    changed = True
+    if not module.check_mode:
+        volfact = []
+        try:
+            array.recover_volume(module.params['name'])
+        except Exception:
+            module.fail_json(msg='Recovery of volume {0} failed'.format(module.params['name']))
     module.exit_json(changed=changed, volume=volfact)
 
 
@@ -617,9 +649,9 @@ def main():
         size=dict(type='str'),
     ))
 
-    mutually_exclusive = [['size'], ['target'],
-                          ['move'], ['rename', 'target', 'overwrite', 'eradicate', 'bw_qos', 'iops_qos', 'size'],
-                          ['rename'], ['move', 'target', 'overwrite', 'eradicate', 'bw_qos', 'iops_qos', 'size']]
+    mutually_exclusive = [['size', 'target'],
+                          ['move', 'rename', 'target', 'eradicate'],
+                          ['rename', 'move', 'target', 'eradicate']]
 
     module = AnsibleModule(argument_spec,
                            mutually_exclusive=mutually_exclusive,
@@ -629,13 +661,19 @@ def main():
     bw_qos = module.params['bw_qos']
     iops_qos = module.params['iops_qos']
     state = module.params['state']
+    destroyed = False
     array = get_system(module)
     volume = get_volume(module, array)
+    endpoint = get_endpoint(module.params['name'], array)
+
+    if endpoint:
+        module.fail_json(msg='Volume {0} is an endpoint. Use purefa_endpoint module.'.format(module.params['name']))
+
     if not volume:
-        destroyed = get_destroyed_volume(module, array)
+        destroyed = get_destroyed_volume(module.params['name'], array)
     target = get_target(module, array)
 
-    if state == 'present' and not volume and size:
+    if state == 'present' and not volume and not destroyed and size:
         create_volume(module, array)
     elif state == 'present' and volume and (size or bw_qos or iops_qos):
         update_volume(module, array)
@@ -643,6 +681,8 @@ def main():
         move_volume(module, array)
     elif state == 'present' and volume and module.params['rename']:
         rename_volume(module, array)
+    elif state == 'present' and destroyed and not module.params['move'] and not module.params['rename']:
+        recover_volume(module, array)
     elif state == 'present' and destroyed and module.params['move']:
         module.fail_json(msg='Volume {0} exists, but in destroyed state'.format(module.params['name']))
     elif state == 'present' and volume and target:
@@ -654,9 +694,11 @@ def main():
     elif state == 'absent' and destroyed:
         eradicate_volume(module, array)
     elif state == 'present' and not volume or not size:
-        module.exit_json(changed=False)
+        module.fail_json(msg="Size must be specified to create a new volume")
     elif state == 'absent' and not volume:
         module.exit_json(changed=False)
+
+    module.exit_json(changed=False)
 
 
 if __name__ == '__main__':
