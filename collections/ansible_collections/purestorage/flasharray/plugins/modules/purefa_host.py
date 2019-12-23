@@ -103,8 +103,8 @@ EXAMPLES = r'''
     host: bar
     protocol: fc
     wwns:
-    - "00:00:00:00:00:00:00"
-    - "11:11:11:11:11:11:11"
+    - 00:00:00:00:00:00:00
+    - 11:11:11:11:11:11:11
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
@@ -148,6 +148,14 @@ EXAMPLES = r'''
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
+- name: Disconnect volume bar from host foo
+  purefa_host:
+    host: foo
+    volume: bar
+    state: absent
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
 - name: Add preferred arrays to host foo
   purefa_host:
     host: foo
@@ -177,7 +185,7 @@ PREFERRED_ARRAY_API_VERSION = '1.15'
 NVME_API_VERSION = '1.16'
 
 
-def _is_cbs(module, array, is_cbs=False):
+def _is_cbs(array, is_cbs=False):
     """Is the selected array a Cloud Block Store"""
     model = ''
     ct0_model = array.get_hardware('CT0')['model']
@@ -267,6 +275,16 @@ def _connect_new_volume(module, array, answer=False):
     else:
         array.connect_host(module.params['host'], module.params['volume'])
         answer = True
+    return answer
+
+
+def _disconnect_volume(module, array, answer=False):
+    """Disconnect volume from host"""
+    try:
+        array.disconnect_host(module.params['host'], module.params['volume'])
+        answer = True
+    except Exception:
+        module.fail_json(msg="Failed to disconnect volume {0}".format(module.params['volume']))
     return answer
 
 
@@ -380,22 +398,31 @@ def make_host(module, array):
 def update_host(module, array):
     changed = True
     if not module.check_mode:
-        init_changed = vol_changed = pers_changed = pref_changed = False
-        volumes = array.list_host_connections(module.params['host'])
-        if module.params['iqn'] or module.params['wwns'] or module.params['nqn']:
-            init_changed = _update_host_initiators(module, array)
-        if module.params['volume']:
-            current_vols = [vol['vol'] for vol in volumes]
-            if not module.params['volume'] in current_vols:
-                vol_changed = _connect_new_volume(module, array)
-        api_version = array._list_available_rest_versions()
-        if AC_REQUIRED_API_VERSION in api_version:
-            if module.params['personality']:
-                pers_changed = _update_host_personality(module, array)
-        if PREFERRED_ARRAY_API_VERSION in api_version:
-            if module.params['preferred_array']:
-                pref_changed = _update_preferred_array(module, array)
-        changed = init_changed or vol_changed or pers_changed or pref_changed
+        if module.params['state'] == 'present':
+            init_changed = vol_changed = pers_changed = pref_changed = False
+            volumes = array.list_host_connections(module.params['host'])
+            if module.params['iqn'] or module.params['wwns'] or module.params['nqn']:
+                init_changed = _update_host_initiators(module, array)
+            if module.params['volume']:
+                current_vols = [vol['vol'] for vol in volumes]
+                if not module.params['volume'] in current_vols:
+                    vol_changed = _connect_new_volume(module, array)
+            api_version = array._list_available_rest_versions()
+            if AC_REQUIRED_API_VERSION in api_version:
+                if module.params['personality']:
+                    pers_changed = _update_host_personality(module, array)
+            if PREFERRED_ARRAY_API_VERSION in api_version:
+                if module.params['preferred_array']:
+                    pref_changed = _update_preferred_array(module, array)
+            changed = init_changed or vol_changed or pers_changed or pref_changed
+        else:
+            if module.params['volume']:
+                volumes = array.list_host_connections(module.params['host'])
+                current_vols = [vol['vol'] for vol in volumes]
+                if module.params['volume'] in current_vols:
+                    vol_changed = _disconnect_volume(module, array)
+                else:
+                    changed = False
     module.exit_json(changed=changed)
 
 
@@ -431,7 +458,7 @@ def main():
     module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     array = get_system(module)
-    if _is_cbs(module, array) and module.params['wwns'] or module.params['nqn']:
+    if _is_cbs(array) and module.params['wwns'] or module.params['nqn']:
         module.fail_json(msg='Cloud block Store only support iSCSI as a protocol')
     api_version = array._list_available_rest_versions()
     if module.params['nqn'] is not None and NVME_API_VERSION not in api_version:
@@ -471,6 +498,8 @@ def main():
     if host is None and state == 'present':
         make_host(module, array)
     elif host and state == 'present':
+        update_host(module, array)
+    elif host and state == 'absent' and module.params['volume']:
         update_host(module, array)
     elif host and state == 'absent':
         delete_host(module, array)
