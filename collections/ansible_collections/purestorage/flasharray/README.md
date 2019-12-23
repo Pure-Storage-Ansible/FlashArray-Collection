@@ -11,6 +11,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - purefa_dns - manage the DNS settings of the FlashArray
 - purefa_ds - manage the Directory Services of the FlashArray
 - purefa_dsrole - manage the Directory Service Roles of the FlashArray
+- purefa_endpoint - manage VMware protocol-endpoints on the FlashArray
 - purefa_eula - sign, or resign, FlashArray EULA
 - purefa_hg - manage hostgroups on the FlashArray
 - purefa_host - manage hosts on the FlashArray
