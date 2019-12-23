@@ -40,6 +40,13 @@ options:
     type: list
     description:
     - List of existing volumes to add to hostgroup.
+  lun:
+    description:
+    - LUN ID to assign to volume for hostgroup. Must be unique.
+    - Only applicable when only one volume is specified for connection.
+    - If not provided the ID will be automatically assigned.
+    - Range for LUN ID is 1 to 4095.
+    type: int
 extends_documentation_fragment:
 - purestorage.fa
 '''
@@ -127,8 +134,17 @@ def make_hostgroup(module, array):
     if module.params['host']:
         array.set_hgroup(module.params['hostgroup'], hostlist=module.params['host'])
     if module.params['volume']:
-        for vol in module.params['volume']:
-            array.connect_hgroup(module.params['hostgroup'], vol)
+        if len(module.params['volume']) == 1 and module.params['lun']:
+            try:
+                array.connect_hgroup(module.params['hostgroup'], module.params['volume'][0], lun=module.params['lun'])
+            except Exception:
+                module.fail_json(msg="Failed to add volume {0} with LUN ID {1}".format(module.params['volume'][0], module.params['lun']))
+        else:
+            for vol in module.params['volume']:
+                try:
+                    array.connect_hgroup(module.params['hostgroup'], vol)
+                except Exception:
+                    module.fail_json(msg="Failed to add volume {0} to hostgroup {1)".format(vol, module.params['hostgroup']))
     module.exit_json(changed=changed)
 
 
@@ -149,21 +165,36 @@ def update_hostgroup(module, array):
             if volumes:
                 current_vols = [vol['vol'] for vol in volumes]
                 new_volumes = list(set(module.params['volume']).difference(set(current_vols)))
-                for cvol in new_volumes:
+                if len(new_volumes) == 1 and module.params['lun']:
                     try:
-                        array.connect_hgroup(module.params['hostgroup'], cvol)
+                        array.connect_hgroup(module.params['hostgroup'], new_volumes[0], lun=module.params['lun'])
                         changed = True
                     except Exception:
-                        changed = False
+                        module.fail_json(msg="Failed to add volume {0} with LUN ID {1}".format(new_volumes[0], module.params['lun']))
+                else:
+                    for cvol in new_volumes:
+                        try:
+                            array.connect_hgroup(module.params['hostgroup'], cvol)
+                            changed = True
+                        except Exception:
+                            changed = False
             else:
-                for cvol in module.params['volume']:
+                if len(module.params['volume']) == 1 and module.params['lun']:
                     try:
-                        array.connect_hgroup(module.params['hostgroup'], cvol)
+                        array.connect_hgroup(module.params['hostgroup'], module.params['volume'][0], lun=module.params['lun'])
                         changed = True
                     except Exception:
-                        changed = False
+                        module.fail_json(msg="Failed to add volume {0} with LUN ID {1}".format(module.params['volume'], module.params['lun']))
+                else:
+                    for cvol in module.params['volume']:
+                        try:
+                            array.connect_hgroup(module.params['hostgroup'], cvol)
+                            changed = True
+                        except Exception:
+                            changed = False
     else:
         if module.params['host']:
+            old_hosts = list(set(module.params['host']).intersection(hgroup['hosts']))
             old_hosts = list(set(module.params['host']).intersection(hgroup['hosts']))
             if old_hosts:
                 try:
@@ -212,6 +243,7 @@ def main():
         hostgroup=dict(type='str', required=True),
         state=dict(type='str', default='present', choices=['absent', 'present']),
         host=dict(type='list'),
+        lun=dict(type='int'),
         volume=dict(type='list'),
     ))
 
@@ -227,6 +259,11 @@ def main():
                 array.get_host(hst)
         except Exception:
             module.fail_json(msg='Host {0} not found'.format(hst))
+    if module.params['lun'] and len(module.params['volume']) > 1:
+        module.fail_json(msg='LUN ID cannot be specified with multiple volumes.')
+
+    if module.params['lun'] and not 1 <= module.params['lun'] <= 4095:
+        module.fail_json(msg='LUN ID of {0} is out of range (1 to 4095)'.format(module.params['lun']))
 
     if module.params['volume']:
         try:
