@@ -79,6 +79,7 @@ ansible-galaxy collection install purestorage.flasharray -p ~/.ansible/collectio
 ## License
 
 [BSD-2-Clause](https://directory.fsf.org/wiki?title=License:FreeBSD)
+[GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 ## Author
 

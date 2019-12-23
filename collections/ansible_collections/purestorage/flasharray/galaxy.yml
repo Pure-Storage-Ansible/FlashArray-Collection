@@ -6,7 +6,8 @@ authors:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 description: Collection of modules to manage Pure Storage FlashArrays (including Cloud Block Store)
 license:
- - GPL-2.0-or-later
+ - GPL-3.0-or-later
+ - BSD-2-clause
 tags:
   - purestorage
   - flasharray
