@@ -91,10 +91,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 def update_role(module, array):
     """Update Directory Service Role"""
     changed = False
-    role = array.list_directory_services_roles(names=[module.params['role']])
+    role = array.list_directory_service_roles(names=[module.params['role']])
     if role['group_base'] != module.params['group_base'] or role['group'] != module.params['group']:
         try:
-            array.set_directory_services_roles(names=[module.params['role']],
+            array.set_directory_service_roles(names=[module.params['role']],
                                                group_base=module.params['group_base'],
                                                group=module.params['group'])
             changed = True
@@ -107,7 +107,7 @@ def delete_role(module, array):
     """Delete Directory Service Role"""
     changed = False
     try:
-        array.set_directory_services_roles(names=[module.params['role']],
+        array.set_directory_service_roles(names=[module.params['role']],
                                            group_base='',
                                            group='')
         changed = True
@@ -120,7 +120,7 @@ def create_role(module, array):
     """Create Directory Service Role"""
     changed = False
     try:
-        array.set_directory_services_roles(names=[module.params['role']],
+        array.set_directory_service_roles(names=[module.params['role']],
                                            group_base=module.params['group_base'],
                                            group=module.params['group'])
         changed = True
@@ -147,7 +147,7 @@ def main():
     state = module.params['state']
     array = get_system(module)
     role_configured = False
-    role = array.list_directory_services_roles(names=[module.params['role']])
+    role = array.list_directory_service_roles(names=[module.params['role']])
     if role['group'] is not None:
         role_configured = True
 
