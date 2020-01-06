@@ -92,11 +92,11 @@ def update_role(module, array):
     """Update Directory Service Role"""
     changed = False
     role = array.list_directory_service_roles(names=[module.params['role']])
-    if role['group_base'] != module.params['group_base'] or role['group'] != module.params['group']:
+    if role[0]['group_base'] != module.params['group_base'] or role[0]['group'] != module.params['group']:
         try:
             array.set_directory_service_roles(names=[module.params['role']],
-                                               group_base=module.params['group_base'],
-                                               group=module.params['group'])
+                                              group_base=module.params['group_base'],
+                                              group=module.params['group'])
             changed = True
         except Exception:
             module.fail_json(msg='Update Directory Service Role {0} failed'.format(module.params['role']))
@@ -108,8 +108,8 @@ def delete_role(module, array):
     changed = False
     try:
         array.set_directory_service_roles(names=[module.params['role']],
-                                           group_base='',
-                                           group='')
+                                          group_base='',
+                                          group='')
         changed = True
     except Exception:
         module.fail_json(msg='Delete Directory Service Role {0} failed'.format(module.params['role']))
@@ -121,8 +121,8 @@ def create_role(module, array):
     changed = False
     try:
         array.set_directory_service_roles(names=[module.params['role']],
-                                           group_base=module.params['group_base'],
-                                           group=module.params['group'])
+                                          group_base=module.params['group_base'],
+                                          group=module.params['group'])
         changed = True
     except Exception:
         module.fail_json(msg='Create Directory Service Role {0} failed'.format(module.params['role']))
@@ -132,11 +132,11 @@ def create_role(module, array):
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(dict(
-        role=dict(required=True, type='str', choices=['array_admin', 'ops_admin', 'readonly', 'storage_admin']),
-        state=dict(type='str', default='present', choices=['absent', 'present']),
-        group_base=dict(type='str'),
-        group=dict(type='str'),
-    ))
+                         role=dict(required=True, type='str', choices=['array_admin', 'ops_admin', 'readonly', 'storage_admin']),
+                         state=dict(type='str', default='present', choices=['absent', 'present']),
+                         group_base=dict(type='str'),
+                         group=dict(type='str'),
+                         ))
 
     required_together = [['group', 'group_base']]
 
@@ -148,7 +148,7 @@ def main():
     array = get_system(module)
     role_configured = False
     role = array.list_directory_service_roles(names=[module.params['role']])
-    if role['group'] is not None:
+    if role[0]['group'] is not None:
         role_configured = True
 
     if state == 'absent' and role_configured:
