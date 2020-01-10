@@ -27,6 +27,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - purefa_snap - manage local snapshots on the FlashArray
 - purefa_smtp - manage SMTP settings on the FlashArray
 - purefa_snmp - manage SNMP settings on the FlashArray
+- purefa_subnet - manage network subnets on the FlashArray
 - purefa_syslog - manage the Syslog settings on the FlashArray
 - purefa_timeout - manage the GUI idle timeout on the FlashArray
 - purefa_user - manage local user accounts on the FlashArray
