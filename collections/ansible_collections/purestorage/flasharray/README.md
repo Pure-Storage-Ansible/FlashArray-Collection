@@ -32,6 +32,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - purefa_timeout - manage the GUI idle timeout on the FlashArray
 - purefa_user - manage local user accounts on the FlashArray
 - purefa_vg - manage volume groups on the FlashArray
+- purefa_vlan - manage VLAN interfaces on the FlashArray
 - purefa_volume - manage volumes on the FlashArray
 
 ## Requirements
