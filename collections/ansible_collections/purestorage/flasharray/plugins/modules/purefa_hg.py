@@ -160,7 +160,7 @@ def update_hostgroup(module, array):
                     array.set_hgroup(module.params['hostgroup'], addhostlist=new_hosts)
                     changed = True
                 except Exception:
-                    module.fail_josn(msg='Failed to add host(s) to hostgroup')
+                    module.fail_json(msg='Failed to add host(s) to hostgroup')
         if module.params['volume']:
             if volumes:
                 current_vols = [vol['vol'] for vol in volumes]
