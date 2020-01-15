@@ -21,7 +21,7 @@ description:
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
-  vgroup:
+  name:
     description:
     - The name of the volume group.
     type: str
@@ -58,32 +58,32 @@ extends_documentation_fragment:
 EXAMPLES = r'''
 - name: Create new volune group
   purefa_vg:
-    vgroup: foo
+    name: foo
     bw_qos: 50M
     iops_qos: 100
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Update volune group QoS limits
   purefa_vg:
-    vgroup: foo
+    name: foo
     bw_qos: 0
     iops_qos: 5555
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Destroy volume group
   purefa_vg:
-    vgroup: foo
+    name: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
 - name: Recover deleted volune group
   purefa_vg:
-    vgroup: foo
+    name: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Destroy and Eradicate volume group
   purefa_vg:
-    vgroup: foo
+    name: foo
     eradicate: true
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
@@ -151,7 +151,7 @@ def get_pending_vgroup(module, array):
     """ Get Deleted Volume Group"""
     vgroup = None
     for vgrp in array.list_vgroups(pending=True):
-        if vgrp["name"] == module.params['vgroup'] and vgrp['time_remaining']:
+        if vgrp["name"] == module.params['name'] and vgrp['time_remaining']:
             vgroup = vgrp
             break
 
@@ -162,7 +162,7 @@ def get_vgroup(module, array):
     """ Get Volume Group"""
     vgroup = None
     for vgrp in array.list_vgroups():
-        if vgrp["name"] == module.params['vgroup']:
+        if vgrp["name"] == module.params['name']:
             vgroup = vgrp
             break
 
@@ -206,9 +206,9 @@ def make_vgroup(module, array):
                     module.fail_json(msg='IOPs or Bandwidth QoS value out of range.')
         else:
             try:
-                array.create_vgroup(module.params['vgroup'])
+                array.create_vgroup(module.params['name'])
             except Exception:
-                module.fail_json(msg='creation of volume group {0} failed.'.format(module.params['vgroup']))
+                module.fail_json(msg='creation of volume group {0} failed.'.format(module.params['name']))
 
     module.exit_json(changed=changed)
 
@@ -265,9 +265,9 @@ def recover_vgroup(module, array):
     changed = True
     if not module.check_mode:
         try:
-            array.recover_vgroup(module.params['vgroup'])
+            array.recover_vgroup(module.params['name'])
         except Exception:
-            module.fail_json(msg='Recovery of volume group {0} failed.'.format(module.params['vgroup']))
+            module.fail_json(msg='Recovery of volume group {0} failed.'.format(module.params['name']))
 
     module.exit_json(changed=changed)
 
@@ -277,9 +277,9 @@ def eradicate_vgroup(module, array):
     changed = True
     if not module.check_mode:
         try:
-            array.eradicate_vgroup(module.params['vgroup'])
+            array.eradicate_vgroup(module.params['name'])
         except Exception:
-            module.fail_json(msg='Eradicating vgroup {0} failed.'.format(module.params['vgroup']))
+            module.fail_json(msg='Eradicating vgroup {0} failed.'.format(module.params['name']))
     module.exit_json(changed=changed)
 
 
@@ -288,9 +288,9 @@ def delete_vgroup(module, array):
     changed = True
     if not module.check_mode:
         try:
-            array.destroy_vgroup(module.params['vgroup'])
+            array.destroy_vgroup(module.params['name'])
         except Exception:
-            module.fail_json(msg='Deleting vgroup {0} failed.'.format(module.params['vgroup']))
+            module.fail_json(msg='Deleting vgroup {0} failed.'.format(module.params['name']))
     if module.params['eradicate']:
         eradicate_vgroup(module, array)
 
