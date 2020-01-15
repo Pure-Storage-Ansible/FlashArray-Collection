@@ -300,7 +300,7 @@ def delete_vgroup(module, array):
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(dict(
-        vgroup=dict(type='str', required=True),
+        name=dict(type='str', required=True),
         state=dict(type='str', default='present', choices=['absent', 'present']),
         bw_qos=dict(type='str'),
         iops_qos=dict(type='str'),
