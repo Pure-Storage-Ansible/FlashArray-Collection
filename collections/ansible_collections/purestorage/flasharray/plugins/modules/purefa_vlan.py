@@ -43,8 +43,6 @@ options:
   address:
     description:
       - IPv4 or IPv6 address of interface.
-      - For example IPv4: ddd.ddd.ddd.ddd
-      - For example IPv6: xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx
     required: false
     type: str
   subnet:
