@@ -200,11 +200,11 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
-            name=dict(type=str, required=True),
-            subnet=dict(type=str, required=True),
-            enabled=dict(type=bool, default=True),
-            state=dict(type=str, default='present', choices=['present', 'absent']),
-            address=dict(type=str),
+            name=dict(type='str', required=True),
+            subnet=dict(type='str', required=True),
+            enabled=dict(type='bool', default=True),
+            state=dict(type='str', default='present', choices=['present', 'absent']),
+            address=dict(type='str'),
         )
     )
 
