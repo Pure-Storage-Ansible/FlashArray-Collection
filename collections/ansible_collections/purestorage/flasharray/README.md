@@ -41,7 +41,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - Ansible 2.9 or later
 - Pure Storage FlashArray system running Purity 4.6 or later
 - Pure Storage Cloud Block Store
-- purestorage Python SDK
+- purestorage Python SDK (recommended to use latest)
 
 ## Instructions
 
