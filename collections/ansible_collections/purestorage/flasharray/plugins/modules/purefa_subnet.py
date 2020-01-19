@@ -250,7 +250,6 @@ def main():
             name=dict(type='str', required=True),
             prefix=dict(type='str'),
             state=dict(type='str', default='present', choices=['present', 'absent']),
-            address=dict(type='str'),
             gateway=dict(type='str'),
             enabled=dict(type='bool', default=True),
             mtu=dict(type='int', default=1500),
