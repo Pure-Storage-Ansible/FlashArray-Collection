@@ -39,8 +39,6 @@ options:
   address:
     description:
       - IPv4 or IPv6 address of interface in CIDR notation.
-      - For example IPv4: ddd.ddd.ddd.ddd/dd
-      - For example IPv6: xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx/xxx
       - To remove an IP address from a non-management port use 0.0.0.0/0
     required: false
     type: str

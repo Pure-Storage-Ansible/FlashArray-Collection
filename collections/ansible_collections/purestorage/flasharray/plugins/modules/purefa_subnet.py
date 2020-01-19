@@ -41,8 +41,6 @@ options:
   prefix:
     description:
       - Set the IPv4 or IPv6 address to be associated with the subnet.
-      - For example IPv4: ddd.ddd.ddd.ddd/dd
-      - For example IPv6: xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx/xxx
     required: false
     type: str
   gateway:
