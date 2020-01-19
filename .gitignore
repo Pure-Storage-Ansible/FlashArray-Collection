@@ -1,2 +1,3 @@
 *.tar.gz
 .pylintrc
+collections/ansible_collections/purestorage/flasharray/tests/output/*
