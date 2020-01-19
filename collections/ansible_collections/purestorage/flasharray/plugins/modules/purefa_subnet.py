@@ -36,7 +36,7 @@ options:
   enabled:
     description:
       - whether the subnet should be enabled or not
-    default: true
+    default: True
     type: bool
   prefix:
     description:
@@ -249,12 +249,12 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
-            name=dict(type=str, required=True),
-            prefix=dict(type=str),
-            state=dict(type=str, default='present', choices=['present', 'absent']),
-            address=dict(type=str),
-            gateway=dict(type=str),
-            enabled=dict(type=bool, default=True),
+            name=dict(type='str', required=True),
+            prefix=dict(type='str'),
+            state=dict(type='str', default='present', choices=['present', 'absent']),
+            address=dict(type='str'),
+            gateway=dict(type='str'),
+            enabled=dict(type='bool', default=True),
             mtu=dict(type='int', default=1500),
             vlan=dict(type='int'),
         )

@@ -86,7 +86,7 @@ options:
     description:
     - AWS S3 placement strategy
     type: str
-    options: ['retention-based', 'aws-standard-class']
+    choices: ['retention-based', 'aws-standard-class']
     default: retention-based
 
 extends_documentation_fragment:
