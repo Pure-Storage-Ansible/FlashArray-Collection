@@ -26,7 +26,7 @@ options:
     - Define state of console lockout
     - When set to I(enable) the console port is locked from root login.
     type: str
-    default: cwdisable
+    default: disable
     choices: [ enable, disable ]
 extends_documentation_fragment:
 - purestorage.fa

@@ -202,10 +202,10 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
-            name=dict(type=str, required=True),
-            state=dict(type=str, default='present', choices=['present', 'absent']),
-            address=dict(type=str),
-            gateway=dict(type=str),
+            name=dict(type='str', required=True),
+            state=dict(type='str', default='present', choices=['present', 'absent']),
+            address=dict(type='str'),
+            gateway=dict(type='str'),
             mtu=dict(type='int', default=1500),
         )
     )
