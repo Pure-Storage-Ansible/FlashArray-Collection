@@ -28,7 +28,7 @@ options:
   stretch:
     description:
     - The name of the array to stretch to/unstretch from. Must be synchromously replicated.
-    - To unstretch an array use C(state: absent)
+    - To unstretch an array use state I(absent)
     - You can only specify a remote array, ie you cannot unstretch a pod from the
       current array and then restretch back to the current array.
     - To restretch a pod you must perform this from the remaining array the pod
