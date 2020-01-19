@@ -144,7 +144,7 @@ def make_hostgroup(module, array):
                 try:
                     array.connect_hgroup(module.params['hostgroup'], vol)
                 except Exception:
-                    module.fail_json(msg="Failed to add volume {0} to hostgroup {1)".format(vol, module.params['hostgroup']))
+                    module.fail_json(msg='Failed to add volume to hostgroup')
     module.exit_json(changed=changed)
 
 
