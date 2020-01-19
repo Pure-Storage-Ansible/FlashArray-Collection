@@ -318,8 +318,8 @@ def main():
         state=dict(type='str', default='present', choices=['absent', 'present']),
     ))
 
-    mutually_exclusive = [['stretch'], ['failover', 'eradicate'],
-                          ['target'], ['stretch', 'failover', 'eradicate']]
+    mutually_exclusive = [['stretch', ['failover', 'eradicate']],
+                          ['target', ['stretch', 'failover', 'eradicate']]]
 
     module = AnsibleModule(argument_spec,
                            mutually_exclusive=mutually_exclusive,
