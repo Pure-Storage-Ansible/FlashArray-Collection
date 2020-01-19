@@ -27,10 +27,10 @@ jobs:
     - name: Run pycodestyle
       run: |
         pycodestyle --max-line-length=160 --ignore=E305,E402,W503,W504,E722,E741 ./
-#    - name: Run yamlint
-#      run: |
-#        cd collections/ansible_collections/purestorage/flasharray
-#        ansible-test sanity --docker=default --test yamllint plugins/modules/*
+    - name: Run yamlint
+      run: |
+        cd collections/ansible_collections/purestorage/flasharray
+        ansible-test sanity --docker=default --test yamllint plugins/modules/*
     - name: Run validate modules
       run: |
         cd collections/ansible_collections/purestorage/flasharray
