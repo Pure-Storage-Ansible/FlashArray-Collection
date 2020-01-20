@@ -120,8 +120,8 @@ def get_snapshot(module, array):
     """Return Snapshot or None"""
     try:
         snapname = module.params['name'] + "." + module.params['suffix']
-        for s in array.get_volume(module.params['name'], snap='true'):
-            if s['name'] == snapname:
+        for snaps in array.get_volume(module.params['name'], snap='true'):
+            if snaps['name'] == snapname:
                 return snapname
     except Exception:
         return None

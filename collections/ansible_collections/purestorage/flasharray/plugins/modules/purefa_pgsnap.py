@@ -61,6 +61,11 @@ options:
     - If not supplied this will default to the volume defined in I(restore)
     type: str
     version_added: 2.8
+  offload:
+    description:
+    - Name of offload target on which the snapshot exists.
+    - This is only applicable for deletion and erasure of snapshots
+    type: str
   now:
     description: Whether to initiate a snapshot of the protection group immeadiately
     type: bool
@@ -128,6 +133,16 @@ EXAMPLES = r'''
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: copy
+
+- name: Delete and eradicate snapshot named foo.snap on offload target bar from arrayA
+  purefa_pgsnap:
+    name: "arrayA:foo"
+    suffix: snap
+    offload: bar
+    eradicate: true
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+    state: absent
 '''
 
 RETURN = r'''
@@ -137,6 +152,18 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
 
 from datetime import datetime
+
+OFFLOAD_API = '1.16'
+
+
+def _check_offload(module, array):
+    try:
+        offload = array.get_offload(module.params['offload'])
+        if offload['status'] == "connected":
+            return True
+        return False
+    except Exception:
+        return None
 
 
 def get_pgroup(module, array):
@@ -169,11 +196,22 @@ def get_rpgsnapshot(module, array):
         return None
 
 
+def get_offload_snapshot(module, array):
+    """Return Snapshot (active or deleted) or None"""
+    try:
+        snapname = module.params['name'] + "." + module.params['suffix']
+        for snap in array.get_pgroup(module.params['name'], snap=True, on=module.params['offload']):
+            if snap['name'] == snapname:
+                return snapname
+    except Exception:
+        return None
+
+
 def get_pgsnapshot(module, array):
     """Return Snapshot (active or deleted) or None"""
     try:
         snapname = module.params['name'] + "." + module.params['suffix']
-        for snap in array.get_pgroup(module.params['name'], snap=True, pending=True):
+        for snap in array.get_pgroup(module.params['name'], pending=True, snap=True):
             if snap['name'] == snapname:
                 return snapname
     except Exception:
@@ -219,9 +257,27 @@ def restore_pgsnapvolume(module, array):
     module.exit_json(changed=changed)
 
 
-def update_pgsnapshot(module, array):
-    """Update Protection Group Snapshot"""
+def delete_offload_snapshot(module, array):
+    """ Delete Offloaded Protection Group Snapshot"""
     changed = True
+    if not module.check_mode:
+        snapname = module.params['name'] + "." + module.params['suffix']
+        if ":" in module.params['name'] and module.params['offload']:
+            if _check_offload(module, array):
+                try:
+                    array.destroy_pgroup(snapname, on=module.params['offload'])
+                    if module.params['eradicate']:
+                        try:
+                            array.eradicate_pgroup(snapname, on=module.params['offload'])
+                        except Exception:
+                            module.fail_json(msg='Failed to eradicate offloaded snapshot {0} on target {1}'.format(snapname, module.params['offload']))
+                except Exception:
+                    changed = False
+            else:
+                module.fail_json(msg='Offload target {0} does not exist or not connected'.format(module.params['offload']))
+        else:
+            module.fail_json(msg='Protection Group name not in the correct format')
+
     module.exit_json(changed=changed)
 
 
@@ -248,6 +304,7 @@ def main():
         name=dict(type='str', required=True),
         suffix=dict(type='str'),
         restore=dict(type='str'),
+        offload=dict(type='str'),
         overwrite=dict(type='bool', default=False),
         target=dict(type='str'),
         eradicate=dict(type='bool', default=False),
@@ -272,17 +329,23 @@ def main():
 
     state = module.params['state']
     array = get_system(module)
+    api_version = array._list_available_rest_versions()
+    if OFFLOAD_API not in api_version and module.params['offload']:
+        module.fail_json(msg='Minimum version {0} required for offload support'.format(OFFLOAD_API))
     pgroup = get_pgroup(module, array)
     if pgroup is None:
         module.fail_json(msg="Protection Group {0} does not exist.".format(module.params['name']))
     pgsnap = get_pgsnapshot(module, array)
-
-    if state == 'copy':
+    if state != "absent" and module.params['offload']:
+        module.fail_json(msg='offload parameter not supported for state {0}'.format(state))
+    elif state == 'copy':
         restore_pgsnapvolume(module, array)
     elif state == 'present' and not pgsnap:
         create_pgsnapshot(module, array)
     elif state == 'present' and pgsnap:
-        update_pgsnapshot(module, array)
+        module.exit_json(changed=False)
+    elif state == 'absent' and module.params['offload'] and get_offload_snapshot(module, array):
+        delete_offload_snapshot(module, array)
     elif state == 'absent' and pgsnap:
         delete_pgsnapshot(module, array)
     elif state == 'absent' and not pgsnap:
