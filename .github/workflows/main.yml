@@ -43,7 +43,7 @@ jobs:
       run: |
         pip install flake8
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Run Pylint
+    - name: Run pylint
       run: |
         cd collections/ansible_collections/purestorage/flasharray
         ansible-test sanity --docker=default --test pylint plugins/modules/*
