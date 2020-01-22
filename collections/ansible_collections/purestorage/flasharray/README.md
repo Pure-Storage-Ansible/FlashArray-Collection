@@ -20,6 +20,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - purefa_ntp - manage the NTP settings on the FlashArray
 - purefa_offload - manage the offload targets for a FlashArray
 - purefa_pg - manage protection groups on the FlashArray
+- purefa_pgsched - manage protection group snapshot and replication schedules on the FlashArray
 - purefa_pgsnap - manage protection group snapshots (local and remote) on the FlashArray
 - purefa_phonehome - manage the phonehome setting for the FlashArray
 - purefa_pod - manage ActiveCluster pods in FlashArrays
@@ -34,6 +35,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - purefa_user - manage local user accounts on the FlashArray
 - purefa_vg - manage volume groups on the FlashArray
 - purefa_vlan - manage VLAN interfaces on the FlashArray
+- purefa_vnc - manage VNC for installed applications on the FlashArray
 - purefa_volume - manage volumes on the FlashArray
 
 ## Requirements
