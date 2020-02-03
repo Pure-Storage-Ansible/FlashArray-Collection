@@ -29,41 +29,7 @@ Parameters
 ----------
 
   state (optional, str, present)
-    S
-
-    e
-
-    t
-
-     
-
-    t
-
-    h
-
-    e
-
-     
-
-    a
-
-    r
-
-    r
-
-    a
-
-    y
-
-     
-
-    n
-
-    a
-
-    m
-
-    e
+    Set the array name
 
 
   api_token (True, str, None)

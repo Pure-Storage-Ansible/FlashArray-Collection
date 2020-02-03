@@ -22,12 +22,14 @@ author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
-    description: Set or disable the GUI idle timeout
+    description:
+    - Set or disable the GUI idle timeout
     default: present
     type: str
     choices: [ present, absent ]
   timeout:
-    description: Minutes for idle timeout.
+    description:
+    - Minutes for idle timeout.
     type: int
     default: 30
 extends_documentation_fragment:
