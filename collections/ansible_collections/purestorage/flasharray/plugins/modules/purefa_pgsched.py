@@ -32,12 +32,14 @@ options:
     default: present
     choices: [ absent, present ]
   schedule:
-    description: Which schedule to change.
+    description:
+    - Which schedule to change.
     type: str
     choices: ['replication', 'snapshot']
     required: True
   enabled:
-    description: Enable the schedule being configured.
+    description:
+    - Enable the schedule being configured.
     type: bool
     default: True
   replicate_at:

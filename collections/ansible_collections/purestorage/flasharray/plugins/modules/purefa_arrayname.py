@@ -23,7 +23,8 @@ author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
-    description: Set the array name
+    description:
+    - Set the array name
     type: str
     default: present
     choices: [ present ]
