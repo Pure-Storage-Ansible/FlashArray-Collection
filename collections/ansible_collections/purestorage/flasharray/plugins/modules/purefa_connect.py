@@ -37,7 +37,8 @@ options:
     - API token for target array
     type: str
   connection:
-    description: Type of connection between arrays.
+    description:
+    - Type of connection between arrays.
     type: str
     choices: [ sync, async ]
     default: async
