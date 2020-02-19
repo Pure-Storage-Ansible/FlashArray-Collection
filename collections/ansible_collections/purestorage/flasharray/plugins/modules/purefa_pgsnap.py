@@ -67,17 +67,20 @@ options:
     - This is only applicable for deletion and erasure of snapshots
     type: str
   now:
-    description: Whether to initiate a snapshot of the protection group immeadiately
+    description:
+    - Whether to initiate a snapshot of the protection group immeadiately
     type: bool
     default: False
     version_added: 2.9
   apply_retention:
-    description: Apply retention schedule settings to the snapshot
+    description:
+    - Apply retention schedule settings to the snapshot
     type: bool
     default: False
     version_added: 2.9
   remote:
-    description: Force immeadiate snapshot to remote targets
+    description:
+    - Force immeadiate snapshot to remote targets
     type: bool
     default: False
     version_added: 2.9

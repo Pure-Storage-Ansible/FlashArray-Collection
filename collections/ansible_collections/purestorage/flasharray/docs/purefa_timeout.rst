@@ -29,75 +29,7 @@ Parameters
 ----------
 
   state (optional, str, present)
-    S
-
-    e
-
-    t
-
-     
-
-    o
-
-    r
-
-     
-
-    d
-
-    i
-
-    s
-
-    a
-
-    b
-
-    l
-
-    e
-
-     
-
-    t
-
-    h
-
-    e
-
-     
-
-    G
-
-    U
-
-    I
-
-     
-
-    i
-
-    d
-
-    l
-
-    e
-
-     
-
-    t
-
-    i
-
-    m
-
-    e
-
-    o
-
-    u
-
-    t
+    Set or disable the GUI idle timeout
 
 
   api_token (True, str, None)
@@ -105,55 +37,7 @@ Parameters
 
 
   timeout (optional, int, 30)
-    M
-
-    i
-
-    n
-
-    u
-
-    t
-
-    e
-
-    s
-
-     
-
-    f
-
-    o
-
-    r
-
-     
-
-    i
-
-    d
-
-    l
-
-    e
-
-     
-
-    t
-
-    i
-
-    m
-
-    e
-
-    o
-
-    u
-
-    t
-
-    .
+    Minutes for idle timeout.
 
 
   fa_url (True, str, None)

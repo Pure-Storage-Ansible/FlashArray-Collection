@@ -31,49 +31,7 @@ Parameters
 ----------
 
   state (optional, str, present)
-    S
-
-    e
-
-    t
-
-     
-
-    o
-
-    t
-
-     
-
-    d
-
-    e
-
-    l
-
-    e
-
-    t
-
-    e
-
-     
-
-    t
-
-    h
-
-    e
-
-     
-
-    M
-
-    O
-
-    T
-
-    D
+    Set ot delete the MOTD
 
 
   api_token (True, str, None)
@@ -81,61 +39,7 @@ Parameters
 
 
   banner (optional, str, Welcome to the machine...)
-    B
-
-    a
-
-    n
-
-    n
-
-    e
-
-    r
-
-     
-
-    t
-
-    e
-
-    x
-
-    t
-
-    ,
-
-     
-
-    o
-
-    r
-
-     
-
-    M
-
-    O
-
-    T
-
-    D
-
-    ,
-
-     
-
-    t
-
-    o
-
-     
-
-    u
-
-    s
-
-    e
+    Banner text, or MOTD, to use
 
 
   fa_url (True, str, None)
