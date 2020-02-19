@@ -45,55 +45,7 @@ Parameters
 
 
   schedule (True, str, None)
-    W
-
-    h
-
-    i
-
-    c
-
-    h
-
-     
-
-    s
-
-    c
-
-    h
-
-    e
-
-    d
-
-    u
-
-    l
-
-    e
-
-     
-
-    t
-
-    o
-
-     
-
-    c
-
-    h
-
-    a
-
-    n
-
-    g
-
-    e
-
-    .
+    Which schedule to change.
 
 
   per_day (optional, int, None)
@@ -139,79 +91,7 @@ Parameters
 
 
   enabled (optional, bool, True)
-    E
-
-    n
-
-    a
-
-    b
-
-    l
-
-    e
-
-     
-
-    t
-
-    h
-
-    e
-
-     
-
-    s
-
-    c
-
-    h
-
-    e
-
-    d
-
-    u
-
-    l
-
-    e
-
-     
-
-    b
-
-    e
-
-    i
-
-    n
-
-    g
-
-     
-
-    c
-
-    o
-
-    n
-
-    f
-
-    i
-
-    g
-
-    u
-
-    r
-
-    e
-
-    d
-
-    .
+    Enable the schedule being configured.
 
 
   days (optional, int, None)

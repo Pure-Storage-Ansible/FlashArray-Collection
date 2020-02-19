@@ -35,73 +35,7 @@ Parameters
 
 
   connection (optional, str, async)
-    T
-
-    y
-
-    p
-
-    e
-
-     
-
-    o
-
-    f
-
-     
-
-    c
-
-    o
-
-    n
-
-    n
-
-    e
-
-    c
-
-    t
-
-    i
-
-    o
-
-    n
-
-     
-
-    b
-
-    e
-
-    t
-
-    w
-
-    e
-
-    e
-
-    n
-
-     
-
-    a
-
-    r
-
-    r
-
-    a
-
-    y
-
-    s
-
-    .
+    Type of connection between arrays.
 
 
   state (optional, str, present)
