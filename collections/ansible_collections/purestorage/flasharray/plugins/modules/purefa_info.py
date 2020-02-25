@@ -606,6 +606,7 @@ def generate_vol_dict(array):
     for vol in range(0, len(vols)):
         volume = vols[vol]['name']
         volume_info[volume] = {
+            'protocol_endpoint': False,
             'source': vols[vol]['source'],
             'size': vols[vol]['size'],
             'serial': vols[vol]['serial'],
@@ -626,6 +627,7 @@ def generate_vol_dict(array):
         for vvol in range(0, len(vvols)):
             volume = vvols[vvol]['name']
             volume_info[volume] = {
+                'protocol_endpoint': True,
                 'source': vvols[vvol]['source'],
                 'serial': vvols[vvol]['serial'],
                 'hosts': []
