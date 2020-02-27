@@ -26,8 +26,8 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - purefa_pod - manage ActiveCluster pods in FlashArrays
 - purefa_proxy - manage the phonehome HTTPS proxy setting for the FlashArray
 - purefa_ra - manage the Remote Assist setting for the FlashArray
-- purefa_snap - manage local snapshots on the FlashArray
 - purefa_smtp - manage SMTP settings on the FlashArray
+- purefa_snap - manage local snapshots on the FlashArray
 - purefa_snmp - manage SNMP settings on the FlashArray
 - purefa_subnet - manage network subnets on the FlashArray
 - purefa_syslog - manage the Syslog settings on the FlashArray
