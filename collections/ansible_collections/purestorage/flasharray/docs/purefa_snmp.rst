@@ -54,7 +54,7 @@ Parameters
     SNMP v3 only. Hash algorithm to use
 
 
-  host (True, str, None)
+  host (optional, str, None)
     IPv4 or IPv6 address or FQDN to send trap messages to.
 
 
