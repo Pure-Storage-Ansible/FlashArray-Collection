@@ -418,6 +418,7 @@ SAN_REQUIRED_API_VERSION = '1.10'
 NVME_API_VERSION = '1.16'
 PREFERRED_API_VERSION = '1.15'
 P53_API_VERSION = '1.17'
+P6_API_VERSION = '1.19'
 
 
 def generate_default_dict(array):
@@ -583,6 +584,8 @@ def generate_capacity_dict(array):
         capacity_info['snapshot_space'] = capacity[0]['snapshots']
         capacity_info['thin_provisioning'] = capacity[0]['thin_provisioning']
         capacity_info['total_reduction'] = capacity[0]['total_reduction']
+        if P6_API_VERSION in api_version:
+            capacity_info['journal_space'] = capacity[0]['journal']
 
     return capacity_info
 
