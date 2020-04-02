@@ -44,6 +44,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - Pure Storage FlashArray system running Purity 4.6 or later
 - Pure Storage Cloud Block Store
 - purestorage Python SDK
+- netaddr
 
 ## Instructions
 
