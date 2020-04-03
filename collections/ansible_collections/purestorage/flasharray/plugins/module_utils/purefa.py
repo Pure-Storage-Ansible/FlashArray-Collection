@@ -54,20 +54,22 @@ def get_system(module):
     }
     array_name = module.params['fa_url']
     api = module.params['api_token']
-
-    if array_name and api:
-        system = purestorage.FlashArray(array_name, api_token=api, user_agent=user_agent)
-    elif environ.get('PUREFA_URL') and environ.get('PUREFA_API'):
-        system = purestorage.FlashArray(environ.get('PUREFA_URL'),
-                                        api_token=(environ.get('PUREFA_API')),
-                                        user_agent=user_agent)
+    if HAS_PURESTORAGE:
+        if array_name and api:
+            system = purestorage.FlashArray(array_name, api_token=api, user_agent=user_agent)
+        elif environ.get('PUREFA_URL') and environ.get('PUREFA_API'):
+            system = purestorage.FlashArray(environ.get('PUREFA_URL'),
+                                            api_token=(environ.get('PUREFA_API')),
+                                            user_agent=user_agent)
+        else:
+            module.fail_json(msg="You must set PUREFA_URL and PUREFA_API environment variables "
+                                 "or the fa_url and api_token module arguments")
+        try:
+            system.get()
+        except Exception:
+            module.fail_json(msg="Pure Storage FlashArray authentication failed. Check your credentials")
     else:
-        module.fail_json(msg="You must set PUREFA_URL and PUREFA_API environment variables "
-                             "or the fa_url and api_token module arguments")
-    try:
-        system.get()
-    except Exception:
-        module.fail_json(msg="Pure Storage FlashArray authentication failed. Check your credentials")
+        module.fail_json(msg="purestorage SDK is not installed.")
     return system
 
 
