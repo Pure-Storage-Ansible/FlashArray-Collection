@@ -16,6 +16,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - purefa_hg - manage hostgroups on the FlashArray
 - purefa_host - manage hosts on the FlashArray
 - purefa_info - get information regarding the configuration of the Flasharray
+- purefa_inventory - get hardware inventory information from a FlashArray
 - purefa_network - manage the physical and virtual network settings on the FlashArray
 - purefa_ntp - manage the NTP settings on the FlashArray
 - purefa_offload - manage the offload targets for a FlashArray
