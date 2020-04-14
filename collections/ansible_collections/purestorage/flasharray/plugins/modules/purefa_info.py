@@ -443,6 +443,7 @@ def generate_default_dict(array):
     default_info['protection_groups'] = len(pgroups)
     default_info['hostgroups'] = len(hgroups)
     default_info['admins'] = len(admins)
+    default_info['remote_assist'] = array.get_remote_assist_status()['status']
     if P53_API_VERSION in api_version:
         default_info['maintenance_window'] = array.list_maintenance_windows()
     return default_info
