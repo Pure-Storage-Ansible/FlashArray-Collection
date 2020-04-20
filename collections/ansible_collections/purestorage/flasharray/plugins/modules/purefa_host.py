@@ -234,13 +234,7 @@ NVME_API_VERSION = '1.16'
 
 def _is_cbs(array, is_cbs=False):
     """Is the selected array a Cloud Block Store"""
-    model = ''
-    ct0_model = array.get_hardware('CT0')['model']
-    if ct0_model:
-        model = ct0_model
-    else:
-        ct1_model = array.get_hardware('CT1')['model']
-        model = ct1_model
+    model = array.get(controllers=True)[0]['model']
     if 'CBS' in model:
         is_cbs = True
     return is_cbs
