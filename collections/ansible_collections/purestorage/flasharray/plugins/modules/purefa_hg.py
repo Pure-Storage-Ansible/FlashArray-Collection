@@ -251,6 +251,8 @@ def main():
 
     state = module.params['state']
     array = get_system(module)
+    new_hosts = [host.lower() for host in module.params['host']]
+    module.params['host'] = new_hosts
     hostgroup = get_hostgroup(module, array)
 
     if module.params['host']:
