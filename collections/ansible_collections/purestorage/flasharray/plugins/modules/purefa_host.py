@@ -572,6 +572,7 @@ def main():
     module = AnsibleModule(argument_spec, supports_check_mode=True, required_together=required_together)
 
     array = get_system(module)
+    module.params['name'] = module.params['name'].lower()
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
     if not pattern.match(module.params['name']):
         module.fail_json(msg='Host name {0} does not conform to naming convention'.format(module.params['name']))
