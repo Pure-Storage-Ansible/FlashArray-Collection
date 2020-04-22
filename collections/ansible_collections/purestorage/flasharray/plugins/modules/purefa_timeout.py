@@ -60,26 +60,25 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 def set_timeout(module, array):
     """Set GUI idle timeout"""
-    changed = False
-
-    try:
-        if not module.check_mode:
-            array.set(idle_timeout=module.params['timeout'])
-        changed = True
-    except Exception:
-        module.fail_json(msg='Failed to set GUI idle timeout')
+    changed = True
+    if not module.check_mode:
+        try:
+            if not module.check_mode:
+                array.set(idle_timeout=module.params['timeout'])
+        except Exception:
+            module.fail_json(msg='Failed to set GUI idle timeout')
 
     module.exit_json(changed=changed)
 
 
 def disable_timeout(module, array):
     """Disable idle timeout"""
-    changed = False
-    try:
-        array.set(idle_timeout=0)
-        changed = True
-    except Exception:
-        module.fail_json(msg='Failed to disable GUI idle timeout')
+    changed = True
+    if not module.check_mode:
+        try:
+            array.set(idle_timeout=0)
+        except Exception:
+            module.fail_json(msg='Failed to disable GUI idle timeout')
     module.exit_json(changed=changed)
 
 
@@ -91,7 +90,7 @@ def main():
     ))
 
     module = AnsibleModule(argument_spec,
-                           supports_check_mode=False)
+                           supports_check_mode=True)
 
     state = module.params['state']
     if 5 < module.params['timeout'] > 180 and module.params['timeout'] != 0:
