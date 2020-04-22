@@ -76,26 +76,26 @@ def remove(duplicate):
 
 def delete_ntp(module, array):
     """Delete NTP Servers"""
-    changed = False
-    if array.get(ntpserver=True)['ntpserver'] != []:
-        try:
-            array.set(ntpserver=[])
-            changed = True
-        except Exception:
-            module.fail_json(msg='Deletion of NTP servers failed')
+    changed = True
+    if not module.check_mode:
+        if array.get(ntpserver=True)['ntpserver'] != []:
+            try:
+                array.set(ntpserver=[])
+            except Exception:
+                module.fail_json(msg='Deletion of NTP servers failed')
     module.exit_json(changed=changed)
 
 
 def create_ntp(module, array):
     """Set NTP Servers"""
-    changed = False
-    if not module.params['ntp_servers']:
-        module.params['ntp_servers'] = ['0.pool.ntp.org']
-    try:
-        array.set(ntpserver=module.params['ntp_servers'][0:4])
-        changed = True
-    except Exception:
-        module.fail_json(msg='Update of NTP servers failed')
+    changed = True
+    if not module.check_mode:
+        if not module.params['ntp_servers']:
+            module.params['ntp_servers'] = ['0.pool.ntp.org']
+        try:
+            array.set(ntpserver=module.params['ntp_servers'][0:4])
+        except Exception:
+            module.fail_json(msg='Update of NTP servers failed')
     module.exit_json(changed=changed)
 
 
@@ -110,7 +110,7 @@ def main():
 
     module = AnsibleModule(argument_spec,
                            required_if=required_if,
-                           supports_check_mode=False)
+                           supports_check_mode=True)
 
     array = get_system(module)
 

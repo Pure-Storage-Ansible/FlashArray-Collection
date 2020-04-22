@@ -189,114 +189,110 @@ def update_ds(module, array):
 
 def enable_ds(module, array):
     """Enable Directory Service"""
-    changed = False
-    api_version = array._list_available_rest_versions()
-    if DS_ROLE_REQUIRED_API_VERSION in api_version:
-        try:
-            roles = array.list_directory_service_roles()
-            enough_roles = False
-            for role in range(0, len(roles)):
-                if roles[role]["group_base"]:
-                    enough_roles = True
-            if enough_roles:
+    changed = True
+    if not module.check_mode:
+        api_version = array._list_available_rest_versions()
+        if DS_ROLE_REQUIRED_API_VERSION in api_version:
+            try:
+                roles = array.list_directory_service_roles()
+                enough_roles = False
+                for role in range(0, len(roles)):
+                    if roles[role]["group_base"]:
+                        enough_roles = True
+                if enough_roles:
+                    array.enable_directory_service()
+                else:
+                    module.fail_json(msg='Cannot enable directory service - please create a directory service role')
+            except Exception:
+                module.fail_json(msg='Enable Directory Service failed: Check Configuration')
+        else:
+            try:
                 array.enable_directory_service()
-                changed = True
-            else:
-                module.fail_json(msg='Cannot enable directory service - please create a directory service role')
-        except Exception:
-            module.fail_json(msg='Enable Directory Service failed: Check Configuration')
-    else:
-        try:
-            array.enable_directory_service()
-            changed = True
-        except Exception:
-            module.fail_json(msg='Enable Directory Service failed: Check Configuration')
+            except Exception:
+                module.fail_json(msg='Enable Directory Service failed: Check Configuration')
     module.exit_json(changed=changed)
 
 
 def disable_ds(module, array):
     """Disable Directory Service"""
-    changed = False
-    try:
-        array.disable_directory_service()
-        changed = True
-    except Exception:
-        module.fail_json(msg='Disable Directory Service failed')
+    changed = True
+    if not module.check_mode:
+        try:
+            array.disable_directory_service()
+        except Exception:
+            module.fail_json(msg='Disable Directory Service failed')
     module.exit_json(changed=changed)
 
 
 def delete_ds(module, array):
     """Delete Directory Service"""
-    changed = False
-    try:
-        api_version = array._list_available_rest_versions()
-        array.set_directory_service(enabled=False)
-        if DS_ROLE_REQUIRED_API_VERSION in api_version:
-            array.set_directory_service(uri=[''],
-                                        base_dn="",
-                                        bind_user="",
-                                        bind_password="",
-                                        certificate="")
-            changed = True
-        else:
-            array.set_directory_service(uri=[''],
-                                        base_dn="",
-                                        group_base="",
-                                        bind_user="",
-                                        bind_password="",
-                                        readonly_group="",
-                                        storage_admin_group="",
-                                        array_admin_group="",
-                                        certificate="")
-            changed = True
-    except Exception:
-        module.fail_json(msg='Delete Directory Service failed')
+    changed = True
+    if not module.check_mode:
+        try:
+            api_version = array._list_available_rest_versions()
+            array.set_directory_service(enabled=False)
+            if DS_ROLE_REQUIRED_API_VERSION in api_version:
+                array.set_directory_service(uri=[''],
+                                            base_dn="",
+                                            bind_user="",
+                                            bind_password="",
+                                            certificate="")
+            else:
+                array.set_directory_service(uri=[''],
+                                            base_dn="",
+                                            group_base="",
+                                            bind_user="",
+                                            bind_password="",
+                                            readonly_group="",
+                                            storage_admin_group="",
+                                            array_admin_group="",
+                                            certificate="")
+        except Exception:
+            module.fail_json(msg='Delete Directory Service failed')
     module.exit_json(changed=changed)
 
 
 def create_ds(module, array):
     """Create Directory Service"""
-    changed = False
-    api_version = array._list_available_rest_versions()
-    if DS_ROLE_REQUIRED_API_VERSION in api_version:
-        try:
-            array.set_directory_service(uri=module.params['uri'],
-                                        base_dn=module.params['base_dn'],
-                                        bind_user=module.params['bind_user'],
-                                        bind_password=module.params['bind_password'])
-            roles = array.list_directory_service_roles()
-            enough_roles = False
-            for role in range(0, len(roles)):
-                if roles[role]["group_base"]:
-                    enough_roles = True
-            if enough_roles:
+    changed = True
+    if not module.check_mode:
+        api_version = array._list_available_rest_versions()
+        if DS_ROLE_REQUIRED_API_VERSION in api_version:
+            try:
+                array.set_directory_service(uri=module.params['uri'],
+                                            base_dn=module.params['base_dn'],
+                                            bind_user=module.params['bind_user'],
+                                            bind_password=module.params['bind_password'])
+                roles = array.list_directory_service_roles()
+                enough_roles = False
+                for role in range(0, len(roles)):
+                    if roles[role]["group_base"]:
+                        enough_roles = True
+                if enough_roles:
+                    array.set_directory_service(enabled=module.params['enable'])
+                else:
+                    module.fail_json(msg='Cannot enable directory service - please create a directory service role')
+            except Exception:
+                module.fail_json(msg='Create Directory Service failed: Check configuration')
+        else:
+            groups_rule = [not module.params['ro_group'],
+                           not module.params['sa_group'],
+                           not module.params['aa_group']]
+
+            if all(groups_rule):
+                module.fail_json(msg='At least one group must be configured')
+            try:
+                array.set_directory_service(uri=module.params['uri'],
+                                            base_dn=module.params['base_dn'],
+                                            group_base=module.params['group_base'],
+                                            bind_user=module.params['bind_user'],
+                                            bind_password=module.params['bind_password'],
+                                            readonly_group=module.params['ro_group'],
+                                            storage_admin_group=module.params['sa_group'],
+                                            array_admin_group=module.params['aa_group'])
                 array.set_directory_service(enabled=module.params['enable'])
-            else:
-                module.fail_json(msg='Cannot enable directory service - please create a directory service role')
-
-            changed = True
-        except Exception:
-            module.fail_json(msg='Create Directory Service failed: Check configuration')
-    else:
-        groups_rule = [not module.params['ro_group'],
-                       not module.params['sa_group'],
-                       not module.params['aa_group']]
-
-        if all(groups_rule):
-            module.fail_json(msg='At least one group must be configured')
-        try:
-            array.set_directory_service(uri=module.params['uri'],
-                                        base_dn=module.params['base_dn'],
-                                        group_base=module.params['group_base'],
-                                        bind_user=module.params['bind_user'],
-                                        bind_password=module.params['bind_password'],
-                                        readonly_group=module.params['ro_group'],
-                                        storage_admin_group=module.params['sa_group'],
-                                        array_admin_group=module.params['aa_group'])
-            array.set_directory_service(enabled=module.params['enable'])
-            changed = True
-        except Exception:
-            module.fail_json(msg='Create Directory Service failed: Check configuration')
+            except Exception:
+                module.fail_json(msg='Create Directory Service failed: Check configuration')
     module.exit_json(changed=changed)
 
 
@@ -319,7 +315,7 @@ def main():
 
     module = AnsibleModule(argument_spec,
                            required_together=required_together,
-                           supports_check_mode=False)
+                           supports_check_mode=True)
 
     state = module.params['state']
     array = get_system(module)

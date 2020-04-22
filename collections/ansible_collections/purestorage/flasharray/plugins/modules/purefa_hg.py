@@ -126,114 +126,109 @@ def get_hostgroup(module, array):
 def make_hostgroup(module, array):
 
     changed = True
-
-    try:
-        array.create_hgroup(module.params['hostgroup'])
-    except Exception:
-        changed = False
-    if module.params['host']:
-        array.set_hgroup(module.params['hostgroup'], hostlist=module.params['host'])
-    if module.params['volume']:
-        if len(module.params['volume']) == 1 and module.params['lun']:
-            try:
-                array.connect_hgroup(module.params['hostgroup'], module.params['volume'][0], lun=module.params['lun'])
-            except Exception:
-                module.fail_json(msg="Failed to add volume {0} with LUN ID {1}".format(module.params['volume'][0], module.params['lun']))
-        else:
-            for vol in module.params['volume']:
+    if not module.check_mode:
+        try:
+            array.create_hgroup(module.params['hostgroup'])
+        except Exception:
+            module.fail_json(msg='Failed to create hostgroup {0}'.format(module.params['hostgroup']))
+        if module.params['host']:
+            array.set_hgroup(module.params['hostgroup'], hostlist=module.params['host'])
+        if module.params['volume']:
+            if len(module.params['volume']) == 1 and module.params['lun']:
                 try:
-                    array.connect_hgroup(module.params['hostgroup'], vol)
+                    array.connect_hgroup(module.params['hostgroup'], module.params['volume'][0], lun=module.params['lun'])
                 except Exception:
-                    module.fail_json(msg='Failed to add volume to hostgroup')
+                    module.fail_json(msg="Failed to add volume {0} with LUN ID {1}".format(module.params['volume'][0], module.params['lun']))
+            else:
+                for vol in module.params['volume']:
+                    try:
+                        array.connect_hgroup(module.params['hostgroup'], vol)
+                    except Exception:
+                        module.fail_json(msg='Failed to add volume to hostgroup')
     module.exit_json(changed=changed)
 
 
 def update_hostgroup(module, array):
-    changed = False
-    hgroup = get_hostgroup(module, array)
-    volumes = array.list_hgroup_connections(module.params['hostgroup'])
-    if module.params['state'] == "present":
-        if module.params['host']:
-            new_hosts = list(set(module.params['host']).difference(hgroup['hosts']))
-            if new_hosts:
-                try:
-                    array.set_hgroup(module.params['hostgroup'], addhostlist=new_hosts)
-                    changed = True
-                except Exception:
-                    module.fail_json(msg='Failed to add host(s) to hostgroup')
-        if module.params['volume']:
-            if volumes:
-                current_vols = [vol['vol'] for vol in volumes]
-                new_volumes = list(set(module.params['volume']).difference(set(current_vols)))
-                if len(new_volumes) == 1 and module.params['lun']:
+    changed = True
+    if not module.check_mode:
+        hgroup = get_hostgroup(module, array)
+        volumes = array.list_hgroup_connections(module.params['hostgroup'])
+        if module.params['state'] == "present":
+            if module.params['host']:
+                new_hosts = list(set(module.params['host']).difference(hgroup['hosts']))
+                if new_hosts:
                     try:
-                        array.connect_hgroup(module.params['hostgroup'], new_volumes[0], lun=module.params['lun'])
-                        changed = True
+                        array.set_hgroup(module.params['hostgroup'], addhostlist=new_hosts)
                     except Exception:
-                        module.fail_json(msg="Failed to add volume {0} with LUN ID {1}".format(new_volumes[0], module.params['lun']))
-                else:
-                    for cvol in new_volumes:
+                        module.fail_json(msg='Failed to add host(s) to hostgroup')
+            if module.params['volume']:
+                if volumes:
+                    current_vols = [vol['vol'] for vol in volumes]
+                    new_volumes = list(set(module.params['volume']).difference(set(current_vols)))
+                    if len(new_volumes) == 1 and module.params['lun']:
                         try:
-                            array.connect_hgroup(module.params['hostgroup'], cvol)
-                            changed = True
+                            array.connect_hgroup(module.params['hostgroup'], new_volumes[0], lun=module.params['lun'])
                         except Exception:
-                            changed = False
-            else:
-                if len(module.params['volume']) == 1 and module.params['lun']:
+                            module.fail_json(msg="Failed to add volume {0} with LUN ID {1}".format(new_volumes[0], module.params['lun']))
+                    else:
+                        for cvol in new_volumes:
+                            try:
+                                array.connect_hgroup(module.params['hostgroup'], cvol)
+                            except Exception:
+                                module.fail_json(msg='Failed to connect volume {0} to hostgroup {1}.'.format(cvol, module.params['hostgroup']))
+                else:
+                    if len(module.params['volume']) == 1 and module.params['lun']:
+                        try:
+                            array.connect_hgroup(module.params['hostgroup'], module.params['volume'][0], lun=module.params['lun'])
+                        except Exception:
+                            module.fail_json(msg="Failed to add volume {0} with LUN ID {1}".format(module.params['volume'], module.params['lun']))
+                    else:
+                        for cvol in module.params['volume']:
+                            try:
+                                array.connect_hgroup(module.params['hostgroup'], cvol)
+                            except Exception:
+                                module.fail_json(msg='Failed to connect volume {0} to hostgroup {1}.'.format(cvol, module.params['hostgroup']))
+        else:
+            if module.params['host']:
+                old_hosts = list(set(module.params['host']).intersection(hgroup['hosts']))
+                old_hosts = list(set(module.params['host']).intersection(hgroup['hosts']))
+                if old_hosts:
                     try:
-                        array.connect_hgroup(module.params['hostgroup'], module.params['volume'][0], lun=module.params['lun'])
-                        changed = True
+                        array.set_hgroup(module.params['hostgroup'], remhostlist=old_hosts)
                     except Exception:
-                        module.fail_json(msg="Failed to add volume {0} with LUN ID {1}".format(module.params['volume'], module.params['lun']))
-                else:
-                    for cvol in module.params['volume']:
-                        try:
-                            array.connect_hgroup(module.params['hostgroup'], cvol)
-                            changed = True
-                        except Exception:
-                            changed = False
-    else:
-        if module.params['host']:
-            old_hosts = list(set(module.params['host']).intersection(hgroup['hosts']))
-            old_hosts = list(set(module.params['host']).intersection(hgroup['hosts']))
-            if old_hosts:
-                try:
-                    array.set_hgroup(module.params['hostgroup'], remhostlist=old_hosts)
-                    changed = True
-                except Exception:
-                    changed = False
-        if module.params['volume']:
-            old_volumes = list(set(module.params['volume']).difference(set([vol['name'] for vol in volumes])))
-            for cvol in old_volumes:
-                try:
-                    array.disconnect_hgroup(module.params['hostgroup'], cvol)
-                    changed = True
-                except Exception:
-                    changed = False
+                        module.fail_json(msg='Failed to remove hosts {0} from hostgroup {1}'.format(old_hosts, module.params['hostgroup']))
+            if module.params['volume']:
+                old_volumes = list(set(module.params['volume']).difference(set([vol['name'] for vol in volumes])))
+                for cvol in old_volumes:
+                    try:
+                        array.disconnect_hgroup(module.params['hostgroup'], cvol)
+                    except Exception:
+                        module.fail_json(msg='Failed to disconnect volume {0} from hostgroup {1}'.format(cvol, module.params['hostgroup']))
 
     module.exit_json(changed=changed)
 
 
 def delete_hostgroup(module, array):
     changed = True
-    try:
-        vols = array.list_hgroup_connections(module.params['hostgroup'])
-        for vol in vols:
-            try:
-                array.disconnect_hgroup(module.params['hostgroup'], vol["vol"])
-            except Exception:
-                changed = False
-        host = array.get_hgroup(module.params['hostgroup'])
+    if not module.check_mode:
         try:
-            array.set_hgroup(module.params['hostgroup'], remhostlist=host['hosts'])
+            vols = array.list_hgroup_connections(module.params['hostgroup'])
+            for vol in vols:
+                try:
+                    array.disconnect_hgroup(module.params['hostgroup'], vol["vol"])
+                except Exception:
+                    module.fail_json(msg='Failed to disconnect volume {0} from hostgroup {1}'.format(vol["vol"], module.params['hostgroup']))
+            host = array.get_hgroup(module.params['hostgroup'])
             try:
-                array.delete_hgroup(module.params['hostgroup'])
+                array.set_hgroup(module.params['hostgroup'], remhostlist=host['hosts'])
+                try:
+                    array.delete_hgroup(module.params['hostgroup'])
+                except Exception:
+                    module.fail_json(msg='Failed to delete hostgroup {0}'.format(module.params['hostgroup']))
             except Exception:
-                changed = False
+                module.fail_json(msg='Failed to remove hosts {0} from hostgroup {1}'.format(host['hosts'], module.params['hostgroup']))
         except Exception:
-            changed = False
-    except Exception:
-        changed = False
+            module.fail_json(msg='Failed to get volume connection for hostgroup {0}'.format(module.params['hostgroup']))
     module.exit_json(changed=changed)
 
 
@@ -247,7 +242,7 @@ def main():
         volume=dict(type='list'),
     ))
 
-    module = AnsibleModule(argument_spec, supports_check_mode=False)
+    module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     state = module.params['state']
     array = get_system(module)
