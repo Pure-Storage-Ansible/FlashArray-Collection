@@ -462,6 +462,8 @@ def main():
                            supports_check_mode=False)
 
     state = module.params['state']
+    new_hosts = [host.lower() for host in module.params['host']]
+    module.params['host'] = new_hosts
     array = get_system(module)
     api_version = array._list_available_rest_versions()
     if ":" in module.params['pgroup'] and OFFLOAD_API_VERSION not in api_version:

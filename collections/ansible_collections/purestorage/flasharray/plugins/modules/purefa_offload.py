@@ -287,7 +287,7 @@ def main():
            len(module.params['bucket']) > 63:
             module.fail_json(msg='Bucket name invalid. '
                                  'Bucket name must be between 3 and 63 characters '
-                                 '(ilowercase, alphanumeric, dash or period) in length '
+                                 '(lowercase, alphanumeric, dash or period) in length '
                                  'and begin and end with a letter or number.')
 
     apps = array.list_apps()
