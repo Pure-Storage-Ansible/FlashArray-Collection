@@ -246,8 +246,9 @@ def main():
 
     state = module.params['state']
     array = get_system(module)
-    new_hosts = [host.lower() for host in module.params['host']]
-    module.params['host'] = new_hosts
+    if module.params['host'] is not None:
+        new_hosts = [host.lower() for host in module.params['host']]
+        module.params['host'] = new_hosts
     hostgroup = get_hostgroup(module, array)
 
     if module.params['host']:
@@ -281,6 +282,8 @@ def main():
         module.exit_json(changed=False)
     else:
         make_hostgroup(module, array)
+
+    module.exit_json(changed=False)
 
 
 if __name__ == '__main__':
