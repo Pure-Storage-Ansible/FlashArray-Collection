@@ -76,31 +76,31 @@ def remove(duplicate):
 
 def delete_dns(module, array):
     """Delete DNS settings"""
-    changed = False
-    current_dns = array.get_dns()
-    if current_dns['domain'] == '' and current_dns['nameservers'] == ['']:
-        module.exit_json(changed=changed)
-    else:
-        try:
-            array.set_dns(domain='', nameservers=[])
-            changed = True
-        except Exception:
-            module.fail_json(msg='Delete DNS settigs failed')
+    changed = True
+    if not module.check_mode:
+        current_dns = array.get_dns()
+        if current_dns['domain'] == '' and current_dns['nameservers'] == ['']:
+            module.exit_json(changed=changed)
+        else:
+            try:
+                array.set_dns(domain='', nameservers=[])
+            except Exception:
+                module.fail_json(msg='Delete DNS settigs failed')
     module.exit_json(changed=changed)
 
 
 def create_dns(module, array):
     """Set DNS settings"""
-    changed = False
-    current_dns = array.get_dns()
-    if current_dns['domain'] != module.params['domain'] or \
-       sorted(module.params['nameservers']) != sorted(current_dns['nameservers']):
-        try:
-            array.set_dns(domain=module.params['domain'],
-                          nameservers=module.params['nameservers'][0:3])
-            changed = True
-        except Exception:
-            module.fail_json(msg='Set DNS settings failed: Check configuration')
+    changed = True
+    if not module.check_mode:
+        current_dns = array.get_dns()
+        if current_dns['domain'] != module.params['domain'] or \
+           sorted(module.params['nameservers']) != sorted(current_dns['nameservers']):
+            try:
+                array.set_dns(domain=module.params['domain'],
+                              nameservers=module.params['nameservers'][0:3])
+            except Exception:
+                module.fail_json(msg='Set DNS settings failed: Check configuration')
     module.exit_json(changed=changed)
 
 
@@ -116,7 +116,7 @@ def main():
 
     module = AnsibleModule(argument_spec,
                            required_if=required_if,
-                           supports_check_mode=False)
+                           supports_check_mode=True)
 
     state = module.params['state']
     array = get_system(module)

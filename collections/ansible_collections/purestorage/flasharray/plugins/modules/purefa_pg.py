@@ -250,195 +250,185 @@ def check_pg_on_offload(module, array):
 
 def make_pgroup(module, array):
     """ Create Protection Group"""
-    changed = False
-    if module.params['target']:
-        api_version = array._list_available_rest_versions()
-        connected_targets = []
-        connected_arrays = get_arrays(array)
-        if OFFLOAD_API_VERSION in api_version:
-            connected_targets = get_targets(array)
-            offload_name = check_pg_on_offload(module, array)
-            if offload_name and offload_name in module.params['target'][0:4]:
-                module.fail_json(msg='Protection Group {0} already exists on offload target {1}.'.format(module.params['pgroup'], offload_name))
-
-        connected_arrays = connected_arrays + connected_targets
-        if connected_arrays == []:
-            module.fail_json(msg='No connected targets on source array.')
-        if set(module.params['target'][0:4]).issubset(connected_arrays):
-            try:
-                array.create_pgroup(module.params['pgroup'], targetlist=module.params['target'][0:4])
-            except Exception:
-                module.fail_json(msg='Creation of replicated pgroup {0} failed. {1}'.format(module.params['pgroup'], module.params['target'][0:4]))
-        else:
-            module.fail_json(msg='Check all selected targets are connected to the source array.')
-    else:
-        try:
-            array.create_pgroup(module.params['pgroup'])
-        except Exception:
-            module.fail_json(msg='Creation of pgroup {0} failed.'.format(module.params['pgroup']))
-    try:
-        if module.params['target']:
-            array.set_pgroup(module.params['pgroup'], replicate_enabled=module.params['enabled'])
-        else:
-            array.set_pgroup(module.params['pgroup'], snap_enabled=module.params['enabled'])
-    except Exception:
-        module.fail_json(msg='Enabling pgroup {0} failed.'.format(module.params['pgroup']))
-    if module.params['volume']:
-        try:
-            array.set_pgroup(module.params['pgroup'], vollist=module.params['volume'])
-        except Exception:
-            module.fail_json(msg='Adding volumes to pgroup {0} failed.'.format(module.params['pgroup']))
-    if module.params['host']:
-        try:
-            array.set_pgroup(module.params['pgroup'], hostlist=module.params['host'])
-        except Exception:
-            module.fail_json(msg='Adding hosts to pgroup {0} failed.'.format(module.params['pgroup']))
-    if module.params['hostgroup']:
-        try:
-            array.set_pgroup(module.params['pgroup'], hgrouplist=module.params['hostgroup'])
-        except Exception:
-            module.fail_json(msg='Adding hostgroups to pgroup {0} failed.'.format(module.params['pgroup']))
     changed = True
+    if not module.check_mode:
+        if module.params['target']:
+            api_version = array._list_available_rest_versions()
+            connected_targets = []
+            connected_arrays = get_arrays(array)
+            if OFFLOAD_API_VERSION in api_version:
+                connected_targets = get_targets(array)
+                offload_name = check_pg_on_offload(module, array)
+                if offload_name and offload_name in module.params['target'][0:4]:
+                    module.fail_json(msg='Protection Group {0} already exists on offload target {1}.'.format(module.params['pgroup'], offload_name))
+
+            connected_arrays = connected_arrays + connected_targets
+            if connected_arrays == []:
+                module.fail_json(msg='No connected targets on source array.')
+            if set(module.params['target'][0:4]).issubset(connected_arrays):
+                try:
+                    array.create_pgroup(module.params['pgroup'], targetlist=module.params['target'][0:4])
+                except Exception:
+                    module.fail_json(msg='Creation of replicated pgroup {0} failed. {1}'.format(module.params['pgroup'], module.params['target'][0:4]))
+            else:
+                module.fail_json(msg='Check all selected targets are connected to the source array.')
+        else:
+            try:
+                array.create_pgroup(module.params['pgroup'])
+            except Exception:
+                module.fail_json(msg='Creation of pgroup {0} failed.'.format(module.params['pgroup']))
+        try:
+            if module.params['target']:
+                array.set_pgroup(module.params['pgroup'], replicate_enabled=module.params['enabled'])
+            else:
+                array.set_pgroup(module.params['pgroup'], snap_enabled=module.params['enabled'])
+        except Exception:
+            module.fail_json(msg='Enabling pgroup {0} failed.'.format(module.params['pgroup']))
+        if module.params['volume']:
+            try:
+                array.set_pgroup(module.params['pgroup'], vollist=module.params['volume'])
+            except Exception:
+                module.fail_json(msg='Adding volumes to pgroup {0} failed.'.format(module.params['pgroup']))
+        if module.params['host']:
+            try:
+                array.set_pgroup(module.params['pgroup'], hostlist=module.params['host'])
+            except Exception:
+                module.fail_json(msg='Adding hosts to pgroup {0} failed.'.format(module.params['pgroup']))
+        if module.params['hostgroup']:
+            try:
+                array.set_pgroup(module.params['pgroup'], hgrouplist=module.params['hostgroup'])
+            except Exception:
+                module.fail_json(msg='Adding hostgroups to pgroup {0} failed.'.format(module.params['pgroup']))
     module.exit_json(changed=changed)
 
 
 def update_pgroup(module, array):
     """ Update Protection Group"""
-    changed = False
-    if module.params['target']:
-        api_version = array._list_available_rest_versions()
-        connected_targets = []
-        connected_arrays = get_arrays(array)
+    changed = True
+    if not module.check_mode:
+        if module.params['target']:
+            api_version = array._list_available_rest_versions()
+            connected_targets = []
+            connected_arrays = get_arrays(array)
 
-        if OFFLOAD_API_VERSION in api_version:
-            connected_targets = get_targets(array)
-            offload_name = check_pg_on_offload(module, array)
-            if offload_name and offload_name in module.params['target'][0:4]:
-                module.fail_json(msg='Protection Group {0} already exists on offload target {1}.'.format(module.params['pgroup'], offload_name))
+            if OFFLOAD_API_VERSION in api_version:
+                connected_targets = get_targets(array)
+                offload_name = check_pg_on_offload(module, array)
+                if offload_name and offload_name in module.params['target'][0:4]:
+                    module.fail_json(msg='Protection Group {0} already exists on offload target {1}.'.format(module.params['pgroup'], offload_name))
 
-        connected_arrays = connected_arrays + connected_targets
-        if connected_arrays == []:
-            module.fail_json(msg='No targets connected to source array.')
-        current_connects = array.get_pgroup(module.params['pgroup'])['targets']
-        current_targets = []
+            connected_arrays = connected_arrays + connected_targets
+            if connected_arrays == []:
+                module.fail_json(msg='No targets connected to source array.')
+            current_connects = array.get_pgroup(module.params['pgroup'])['targets']
+            current_targets = []
 
-        if current_connects:
-            for targetcnt in range(0, len(current_connects)):
-                current_targets.append(current_connects[targetcnt]['name'])
+            if current_connects:
+                for targetcnt in range(0, len(current_connects)):
+                    current_targets.append(current_connects[targetcnt]['name'])
 
-        if set(module.params['target'][0:4]) != set(current_targets):
-            if not set(module.params['target'][0:4]).issubset(connected_arrays):
-                module.fail_json(msg='Check all selected targets are connected to the source array.')
+            if set(module.params['target'][0:4]) != set(current_targets):
+                if not set(module.params['target'][0:4]).issubset(connected_arrays):
+                    module.fail_json(msg='Check all selected targets are connected to the source array.')
+                try:
+                    array.set_pgroup(module.params['pgroup'], targetlist=module.params['target'][0:4])
+                except Exception:
+                    module.fail_json(msg='Changing targets for pgroup {0} failed.'.format(module.params['pgroup']))
+
+        if module.params['target'] and module.params['enabled'] != get_pgroup_sched(module, array)['replicate_enabled']:
             try:
-                array.set_pgroup(module.params['pgroup'], targetlist=module.params['target'][0:4])
-                changed = True
+                array.set_pgroup(module.params['pgroup'], replicate_enabled=module.params['enabled'])
             except Exception:
-                module.fail_json(msg='Changing targets for pgroup {0} failed.'.format(module.params['pgroup']))
-
-    if module.params['target'] and module.params['enabled'] != get_pgroup_sched(module, array)['replicate_enabled']:
-        try:
-            array.set_pgroup(module.params['pgroup'], replicate_enabled=module.params['enabled'])
-            changed = True
-        except Exception:
-            module.fail_json(msg='Changing enabled status of pgroup {0} failed.'.format(module.params['pgroup']))
-    elif not module.params['target'] and module.params['enabled'] != get_pgroup_sched(module, array)['snap_enabled']:
-        try:
-            array.set_pgroup(module.params['pgroup'], snap_enabled=module.params['enabled'])
-            changed = True
-        except Exception:
-            module.fail_json(msg='Changing enabled status of pgroup {0} failed.'.format(module.params['pgroup']))
-
-    if module.params['volume'] and \
-       get_pgroup(module, array)['hosts'] is None and \
-       get_pgroup(module, array)['hgroups'] is None:
-        if get_pgroup(module, array)['volumes'] is None:
+                module.fail_json(msg='Changing enabled status of pgroup {0} failed.'.format(module.params['pgroup']))
+        elif not module.params['target'] and module.params['enabled'] != get_pgroup_sched(module, array)['snap_enabled']:
             try:
-                array.set_pgroup(module.params['pgroup'], vollist=module.params['volume'])
-                changed = True
+                array.set_pgroup(module.params['pgroup'], snap_enabled=module.params['enabled'])
             except Exception:
-                module.fail_json(msg='Adding volumes to pgroup {0} failed.'.format(module.params['pgroup']))
-        else:
-            if not all(x in get_pgroup(module, array)['volumes'] for x in module.params['volume']):
+                module.fail_json(msg='Changing enabled status of pgroup {0} failed.'.format(module.params['pgroup']))
+
+        if module.params['volume'] and \
+           get_pgroup(module, array)['hosts'] is None and \
+           get_pgroup(module, array)['hgroups'] is None:
+            if get_pgroup(module, array)['volumes'] is None:
                 try:
                     array.set_pgroup(module.params['pgroup'], vollist=module.params['volume'])
-                    changed = True
                 except Exception:
-                    module.fail_json(msg='Changing volumes in pgroup {0} failed.'.format(module.params['pgroup']))
+                    module.fail_json(msg='Adding volumes to pgroup {0} failed.'.format(module.params['pgroup']))
+            else:
+                if not all(x in get_pgroup(module, array)['volumes'] for x in module.params['volume']):
+                    try:
+                        array.set_pgroup(module.params['pgroup'], vollist=module.params['volume'])
+                    except Exception:
+                        module.fail_json(msg='Changing volumes in pgroup {0} failed.'.format(module.params['pgroup']))
 
-    if module.params['host'] and \
-       get_pgroup(module, array)['volumes'] is None and \
-       get_pgroup(module, array)['hgroups'] is None:
-        if not get_pgroup(module, array)['hosts'] is None:
-            try:
-                array.set_pgroup(module.params['pgroup'], hostlist=module.params['host'])
-                changed = True
-            except Exception:
-                module.fail_json(msg='Adding hosts to pgroup {0} failed.'.format(module.params['pgroup']))
-        else:
-            if not all(x in get_pgroup(module, array)['hosts'] for x in module.params['host']):
+        if module.params['host'] and \
+           get_pgroup(module, array)['volumes'] is None and \
+           get_pgroup(module, array)['hgroups'] is None:
+            if not get_pgroup(module, array)['hosts'] is None:
                 try:
                     array.set_pgroup(module.params['pgroup'], hostlist=module.params['host'])
-                    changed = True
                 except Exception:
-                    module.fail_json(msg='Changing hosts in pgroup {0} failed.'.format(module.params['pgroup']))
+                    module.fail_json(msg='Adding hosts to pgroup {0} failed.'.format(module.params['pgroup']))
+            else:
+                if not all(x in get_pgroup(module, array)['hosts'] for x in module.params['host']):
+                    try:
+                        array.set_pgroup(module.params['pgroup'], hostlist=module.params['host'])
+                    except Exception:
+                        module.fail_json(msg='Changing hosts in pgroup {0} failed.'.format(module.params['pgroup']))
 
-    if module.params['hostgroup'] and \
-       get_pgroup(module, array)['hosts'] is None and \
-       get_pgroup(module, array)['volumes'] is None:
-        if not get_pgroup(module, array)['hgroups'] is None:
-            try:
-                array.set_pgroup(module.params['pgroup'], hgrouplist=module.params['hostgroup'])
-                changed = True
-            except Exception:
-                module.fail_json(msg='Adding hostgroups to pgroup {0} failed.'.format(module.params['pgroup']))
-        else:
-            if not all(x in get_pgroup(module, array)['hgroups'] for x in module.params['hostgroup']):
+        if module.params['hostgroup'] and \
+           get_pgroup(module, array)['hosts'] is None and \
+           get_pgroup(module, array)['volumes'] is None:
+            if not get_pgroup(module, array)['hgroups'] is None:
                 try:
                     array.set_pgroup(module.params['pgroup'], hgrouplist=module.params['hostgroup'])
-                    changed = True
                 except Exception:
-                    module.fail_json(msg='Changing hostgroups in pgroup {0} failed.'.format(module.params['pgroup']))
+                    module.fail_json(msg='Adding hostgroups to pgroup {0} failed.'.format(module.params['pgroup']))
+            else:
+                if not all(x in get_pgroup(module, array)['hgroups'] for x in module.params['hostgroup']):
+                    try:
+                        array.set_pgroup(module.params['pgroup'], hgrouplist=module.params['hostgroup'])
+                    except Exception:
+                        module.fail_json(msg='Changing hostgroups in pgroup {0} failed.'.format(module.params['pgroup']))
 
     module.exit_json(changed=changed)
 
 
 def eradicate_pgroup(module, array):
     """ Eradicate Protection Group"""
-    changed = False
-    if ":" in module.params['pgroup']:
-        try:
-            target = ''.join(module.params['target'])
-            array.destroy_pgroup(module.params['pgroup'], on=target, eradicate=True)
-            changed = True
-        except Exception:
-            module.fail_json(msg='Eradicating pgroup {0} failed.'.format(module.params['pgroup']))
-    else:
-        try:
-            array.destroy_pgroup(module.params['pgroup'], eradicate=True)
-            changed = True
-        except Exception:
-            module.fail_json(msg='Eradicating pgroup {0} failed.'.format(module.params['pgroup']))
+    changed = True
+    if not module.check_mode:
+        if ":" in module.params['pgroup']:
+            try:
+                target = ''.join(module.params['target'])
+                array.destroy_pgroup(module.params['pgroup'], on=target, eradicate=True)
+            except Exception:
+                module.fail_json(msg='Eradicating pgroup {0} failed.'.format(module.params['pgroup']))
+        else:
+            try:
+                array.destroy_pgroup(module.params['pgroup'], eradicate=True)
+            except Exception:
+                module.fail_json(msg='Eradicating pgroup {0} failed.'.format(module.params['pgroup']))
     module.exit_json(changed=changed)
 
 
 def delete_pgroup(module, array):
     """ Delete Protection Group"""
-    changed = False
-    if ":" in module.params['pgroup']:
-        try:
-            target = ''.join(module.params['target'])
-            array.destroy_pgroup(module.params['pgroup'], on=target)
-            changed = True
-        except Exception:
-            module.fail_json(msg='Deleting pgroup {0} failed.'.format(module.params['pgroup']))
-    else:
-        try:
-            array.destroy_pgroup(module.params['pgroup'])
-            changed = True
-        except Exception:
-            module.fail_json(msg='Deleting pgroup {0} failed.'.format(module.params['pgroup']))
-    if module.params['eradicate']:
-        eradicate_pgroup(module, array)
+    changed = True
+    if not module.check_mode:
+        if ":" in module.params['pgroup']:
+            try:
+                target = ''.join(module.params['target'])
+                array.destroy_pgroup(module.params['pgroup'], on=target)
+            except Exception:
+                module.fail_json(msg='Deleting pgroup {0} failed.'.format(module.params['pgroup']))
+        else:
+            try:
+                array.destroy_pgroup(module.params['pgroup'])
+            except Exception:
+                module.fail_json(msg='Deleting pgroup {0} failed.'.format(module.params['pgroup']))
+        if module.params['eradicate']:
+            eradicate_pgroup(module, array)
 
     module.exit_json(changed=changed)
 
@@ -459,7 +449,7 @@ def main():
     mutually_exclusive = [['volume', 'host', 'hostgroup']]
     module = AnsibleModule(argument_spec,
                            mutually_exclusive=mutually_exclusive,
-                           supports_check_mode=False)
+                           supports_check_mode=True)
 
     state = module.params['state']
     new_hosts = [host.lower() for host in module.params['host']]
