@@ -56,13 +56,13 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 def update_name(module, array):
     """Change aray name"""
-    changed = False
+    changed = True
+    if not module.check_mode:
 
-    try:
-        array.set(name=module.params['name'])
-        changed = True
-    except Exception:
-        module.fail_json(msg='Failed to change array name to {0}'.format(module.params['name']))
+        try:
+            array.set(name=module.params['name'])
+        except Exception:
+            module.fail_json(msg='Failed to change array name to {0}'.format(module.params['name']))
 
     module.exit_json(changed=changed)
 
@@ -75,7 +75,7 @@ def main():
     ))
 
     module = AnsibleModule(argument_spec,
-                           supports_check_mode=False)
+                           supports_check_mode=True)
 
     array = get_system(module)
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,54}[a-zA-Z0-9])?$")

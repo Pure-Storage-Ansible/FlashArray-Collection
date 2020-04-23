@@ -79,55 +79,55 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 def delete_syslog(module, array):
     """Delete Syslog Server"""
-    changed = False
-    noport_address = module.params['protocol'] + "://" + module.params['address']
+    changed = True
+    if not module.check_mode:
+        noport_address = module.params['protocol'] + "://" + module.params['address']
 
-    if module.params['port']:
-        full_address = noport_address + ":" + module.params['port']
-    else:
-        full_address = noport_address
+        if module.params['port']:
+            full_address = noport_address + ":" + module.params['port']
+        else:
+            full_address = noport_address
 
-    address_list = array.get(syslogserver=True)['syslogserver']
+        address_list = array.get(syslogserver=True)['syslogserver']
 
-    if address_list:
-        for address in range(0, len(address_list)):
-            if address_list[address] == full_address:
-                del address_list[address]
-                try:
-                    array.set(syslogserver=address_list)
-                    changed = True
-                    break
-                except Exception:
-                    module.fail_json(msg='Failed to remove syslog server: {0}'.format(full_address))
+        if address_list:
+            for address in range(0, len(address_list)):
+                if address_list[address] == full_address:
+                    del address_list[address]
+                    try:
+                        array.set(syslogserver=address_list)
+                        break
+                    except Exception:
+                        module.fail_json(msg='Failed to remove syslog server: {0}'.format(full_address))
 
     module.exit_json(changed=changed)
 
 
 def add_syslog(module, array):
     """Add Syslog Server"""
-    changed = False
-    noport_address = module.params['protocol'] + "://" + module.params['address']
+    changed = True
+    if not module.check_mode:
+        noport_address = module.params['protocol'] + "://" + module.params['address']
 
-    if module.params['port']:
-        full_address = noport_address + ":" + module.params['port']
-    else:
-        full_address = noport_address
+        if module.params['port']:
+            full_address = noport_address + ":" + module.params['port']
+        else:
+            full_address = noport_address
 
-    address_list = array.get(syslogserver=True)['syslogserver']
-    exists = False
+        address_list = array.get(syslogserver=True)['syslogserver']
+        exists = False
 
-    if address_list:
-        for address in range(0, len(address_list)):
-            if address_list[address] == full_address:
-                exists = True
-                break
-    if not exists:
-        try:
-            address_list.append(full_address)
-            array.set(syslogserver=address_list)
-            changed = True
-        except Exception:
-            module.fail_json(msg='Failed to add syslog server: {0}'.format(full_address))
+        if address_list:
+            for address in range(0, len(address_list)):
+                if address_list[address] == full_address:
+                    exists = True
+                    break
+        if not exists:
+            try:
+                address_list.append(full_address)
+                array.set(syslogserver=address_list)
+            except Exception:
+                module.fail_json(msg='Failed to add syslog server: {0}'.format(full_address))
 
     module.exit_json(changed=changed)
 
@@ -142,7 +142,7 @@ def main():
     ))
 
     module = AnsibleModule(argument_spec,
-                           supports_check_mode=False)
+                           supports_check_mode=True)
 
     array = get_system(module)
 

@@ -59,35 +59,35 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 def enable_ra(module, array):
     """Enable Remote Assist"""
-    changed = False
+    changed = True
     ra_facts = {}
-    if array.get_remote_assist_status()['status'] != 'enabled':
-        try:
-            ra_data = array.enable_remote_assist()
-            ra_facts['fa_ra'] = {'name': ra_data['name'],
-                                 'port': ra_data['port']}
-            changed = True
-        except Exception:
-            module.fail_json(msg='Enabling Remote Assist failed')
-    else:
-        try:
-            ra_data = array.get_remote_assist_status()
-            ra_facts['fa_ra'] = {'name': ra_data['name'],
-                                 'port': ra_data['port']}
-        except Exception:
-            module.fail_json(msg='Getting Remote Assist failed')
+    if not module.check_mode:
+        if array.get_remote_assist_status()['status'] != 'enabled':
+            try:
+                ra_data = array.enable_remote_assist()
+                ra_facts['fa_ra'] = {'name': ra_data['name'],
+                                     'port': ra_data['port']}
+            except Exception:
+                module.fail_json(msg='Enabling Remote Assist failed')
+        else:
+            try:
+                ra_data = array.get_remote_assist_status()
+                ra_facts['fa_ra'] = {'name': ra_data['name'],
+                                     'port': ra_data['port']}
+            except Exception:
+                module.fail_json(msg='Getting Remote Assist failed')
     module.exit_json(changed=changed, ra_info=ra_facts)
 
 
 def disable_ra(module, array):
     """Disable Remote Assist"""
-    changed = False
-    if array.get_remote_assist_status()['status'] == 'enabled':
-        try:
-            array.disable_remote_assist()
-            changed = True
-        except Exception:
-            module.fail_json(msg='Disabling Remote Assist failed')
+    changed = True
+    if not module.check_mode:
+        if array.get_remote_assist_status()['status'] == 'enabled':
+            try:
+                array.disable_remote_assist()
+            except Exception:
+                module.fail_json(msg='Disabling Remote Assist failed')
     module.exit_json(changed=changed)
 
 
@@ -98,7 +98,7 @@ def main():
     ))
 
     module = AnsibleModule(argument_spec,
-                           supports_check_mode=False)
+                           supports_check_mode=True)
 
     array = get_system(module)
 

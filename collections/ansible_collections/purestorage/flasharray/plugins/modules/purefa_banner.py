@@ -62,29 +62,27 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 def set_banner(module, array):
     """Set MOTD banner text"""
-    changed = False
+    changed = True
+    if not module.check_mode:
+        try:
+            if not module.params['banner']:
+                module.fail_json(msg='Invalid MOTD banner given')
 
-    try:
-        if not module.params['banner']:
-            module.fail_json(msg='Invalid MOTD banner given')
-
-        if not module.check_mode:
             array.set(banner=module.params['banner'])
-        changed = True
-    except Exception:
-        module.fail_json(msg='Failed to set MOTD banner text')
+        except Exception:
+            module.fail_json(msg='Failed to set MOTD banner text')
 
     module.exit_json(changed=changed)
 
 
 def delete_banner(module, array):
     """Delete MOTD banner text"""
-    changed = False
-    try:
-        array.set(banner="")
-        changed = True
-    except Exception:
-        module.fail_json(msg='Failed to delete current MOTD banner text')
+    changed = True
+    if not module.check_mode:
+        try:
+            array.set(banner="")
+        except Exception:
+            module.fail_json(msg='Failed to delete current MOTD banner text')
     module.exit_json(changed=changed)
 
 
@@ -99,7 +97,7 @@ def main():
 
     module = AnsibleModule(argument_spec,
                            required_if=required_if,
-                           supports_check_mode=False)
+                           supports_check_mode=True)
 
     state = module.params['state']
     array = get_system(module)

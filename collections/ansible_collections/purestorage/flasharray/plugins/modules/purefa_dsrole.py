@@ -90,42 +90,42 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 def update_role(module, array):
     """Update Directory Service Role"""
-    changed = False
-    role = array.list_directory_service_roles(names=[module.params['role']])
-    if role[0]['group_base'] != module.params['group_base'] or role[0]['group'] != module.params['group']:
-        try:
-            array.set_directory_service_roles(names=[module.params['role']],
-                                              group_base=module.params['group_base'],
-                                              group=module.params['group'])
-            changed = True
-        except Exception:
-            module.fail_json(msg='Update Directory Service Role {0} failed'.format(module.params['role']))
+    changed = True
+    if not module.check_mode:
+        role = array.list_directory_service_roles(names=[module.params['role']])
+        if role[0]['group_base'] != module.params['group_base'] or role[0]['group'] != module.params['group']:
+            try:
+                array.set_directory_service_roles(names=[module.params['role']],
+                                                  group_base=module.params['group_base'],
+                                                  group=module.params['group'])
+            except Exception:
+                module.fail_json(msg='Update Directory Service Role {0} failed'.format(module.params['role']))
     module.exit_json(changed=changed)
 
 
 def delete_role(module, array):
     """Delete Directory Service Role"""
-    changed = False
-    try:
-        array.set_directory_service_roles(names=[module.params['role']],
-                                          group_base='',
-                                          group='')
-        changed = True
-    except Exception:
-        module.fail_json(msg='Delete Directory Service Role {0} failed'.format(module.params['role']))
+    changed = True
+    if not module.check_mode:
+        try:
+            array.set_directory_service_roles(names=[module.params['role']],
+                                              group_base='',
+                                              group='')
+        except Exception:
+            module.fail_json(msg='Delete Directory Service Role {0} failed'.format(module.params['role']))
     module.exit_json(changed=changed)
 
 
 def create_role(module, array):
     """Create Directory Service Role"""
-    changed = False
-    try:
-        array.set_directory_service_roles(names=[module.params['role']],
-                                          group_base=module.params['group_base'],
-                                          group=module.params['group'])
-        changed = True
-    except Exception:
-        module.fail_json(msg='Create Directory Service Role {0} failed'.format(module.params['role']))
+    changed = True
+    if not module.check_mode:
+        try:
+            array.set_directory_service_roles(names=[module.params['role']],
+                                              group_base=module.params['group_base'],
+                                              group=module.params['group'])
+        except Exception:
+            module.fail_json(msg='Create Directory Service Role {0} failed'.format(module.params['role']))
     module.exit_json(changed=changed)
 
 
@@ -142,7 +142,7 @@ def main():
 
     module = AnsibleModule(argument_spec,
                            required_together=required_together,
-                           supports_check_mode=False)
+                           supports_check_mode=True)
 
     state = module.params['state']
     array = get_system(module)
