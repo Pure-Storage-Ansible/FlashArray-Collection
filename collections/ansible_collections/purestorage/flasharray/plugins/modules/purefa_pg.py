@@ -452,8 +452,9 @@ def main():
                            supports_check_mode=True)
 
     state = module.params['state']
-    new_hosts = [host.lower() for host in module.params['host']]
-    module.params['host'] = new_hosts
+    if module.params['host'] is not None:
+        new_hosts = [host.lower() for host in module.params['host']]
+        module.params['host'] = new_hosts
     array = get_system(module)
     api_version = array._list_available_rest_versions()
     if ":" in module.params['pgroup'] and OFFLOAD_API_VERSION not in api_version:
@@ -486,6 +487,8 @@ def main():
         make_pgroup(module, array)
     elif pgroup is None and state == 'absent':
         module.exit_json(changed=False)
+
+    module.exit_json(changed=False)
 
 
 if __name__ == '__main__':
