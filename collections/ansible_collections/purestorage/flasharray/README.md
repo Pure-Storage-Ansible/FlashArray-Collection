@@ -1,7 +1,25 @@
 # Pure Storage FlashArray Collection
 
-The Pure Storage FlashArray collection consists of the latest versions of the FlashArray modules and also includes support fro Cloud block Store
-## Modules
+The Pure Storage FlashArray collection consists of the latest versions of the FlashArray modules and also includes support for Cloud Block Store
+
+## Supported Platforms
+
+- Pure Storage FlashArray with Purity 4.6 or later
+- Certain modules and functionality require higher versions of Purity. Modules will inform you if your Purity version is not high enough to use a module.
+
+## Prerequisites
+
+- Ansible 2.9 or later
+- Pure Storage FlashArray system running Purity 4.6 or later
+- purestorage Python SDK 1.18 or higher
+- Python >=v2.7
+- netaddr
+
+## Idempotency
+
+All modules are idempotent with the exception of modules that change or set passwords. Due to security requirements exisitng passwords can be validated against and therefore will always be modified, even if there is no change.
+
+## Available Modules
 
 - purefa_alert - manage email alert settings on the FlashArray
 - purefa_arrayname - manage the name of the FlashArray
@@ -39,14 +57,6 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - purefa_vnc - manage VNC for installed applications on the FlashArray
 - purefa_volume - manage volumes on the FlashArray
 
-## Requirements
-
-- Ansible 2.9 or later
-- Pure Storage FlashArray system running Purity 4.6 or later
-- Pure Storage Cloud Block Store
-- purestorage Python SDK
-- netaddr
-
 ## Instructions
 
 Install the Pure Storage FlashArray collection on your Ansible management host.
@@ -54,34 +64,6 @@ Install the Pure Storage FlashArray collection on your Ansible management host.
 - Using ansible-galaxy (Ansible 2.9 or later):
 ```
 ansible-galaxy collection install purestorage.flasharray -p ~/.ansible/collections
-```
-
-## Example Playbook
-```yaml
-- hosts: localhost
-  gather_facts: true
-  collections:
-    - purestorage.flasharray
-  tasks:
-    - name: Get FlashArray information
-      purefa_info:
-        fa_url: 10.0.0.2
-        api_token: e31060a7-21fc-e277-6240-25983c6c4592
-
-    - name: Create a volume
-      purefa_volume:
-        name: foo
-        size: 100G
-        fa_url: 10.0.0.2
-        api_token: e31060a7-21fc-e277-6240-25983c6c4592
-
-    - name: Create a host
-      purefa_host:
-        name: "{{ ansible_hostname }}"
-        protocol: iscsi
-        iqn: "{{ ansible_iscsi_iqn }}"
-        fa_url: 10.0.0.2
-        api_token: e31060a7-21fc-e277-6240-25983c6c4592
 ```
 
 ## License
