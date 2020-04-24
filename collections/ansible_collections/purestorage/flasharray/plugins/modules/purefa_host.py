@@ -575,8 +575,9 @@ def main():
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
     if not pattern.match(module.params['name']):
         module.fail_json(msg='Host name {0} does not conform to naming convention'.format(module.params['name']))
-    if _is_cbs(array) and module.params['wwns'] or module.params['nqn']:
-        module.fail_json(msg='Cloud Block Store only support iSCSI as a protocol')
+    if _is_cbs(array):
+        if module.params['wwns'] or module.params['nqn']:
+            module.fail_json(msg='Cloud Block Store only supports iSCSI as a protocol')
     api_version = array._list_available_rest_versions()
     if module.params['nqn'] is not None and NVME_API_VERSION not in api_version:
         module.fail_json(msg='NVMe protocol not supported. Please upgrade your array.')
