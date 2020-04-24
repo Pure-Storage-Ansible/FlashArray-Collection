@@ -235,8 +235,7 @@ NVME_API_VERSION = '1.16'
 def _is_cbs(array, is_cbs=False):
     """Is the selected array a Cloud Block Store"""
     model = array.get(controllers=True)[0]['model']
-    if 'CBS' in model:
-        is_cbs = True
+    is_cbs = bool('CBS' in model)
     return is_cbs
 
 
@@ -577,7 +576,7 @@ def main():
     if not pattern.match(module.params['name']):
         module.fail_json(msg='Host name {0} does not conform to naming convention'.format(module.params['name']))
     if _is_cbs(array) and module.params['wwns'] or module.params['nqn']:
-        module.fail_json(msg='Cloud block Store only support iSCSI as a protocol')
+        module.fail_json(msg='Cloud Block Store only support iSCSI as a protocol')
     api_version = array._list_available_rest_versions()
     if module.params['nqn'] is not None and NVME_API_VERSION not in api_version:
         module.fail_json(msg='NVMe protocol not supported. Please upgrade your array.')
