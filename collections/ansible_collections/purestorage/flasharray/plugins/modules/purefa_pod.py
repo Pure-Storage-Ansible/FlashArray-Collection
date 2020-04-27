@@ -55,6 +55,11 @@ options:
     description:
     - Name of clone target pod.
     type: str
+  mediator:
+    description:
+    - Name of the mediator to use for a pod
+    type: str
+    default: purestorage
 extends_documentation_fragment:
 - purestorage.fa
 '''
@@ -80,6 +85,13 @@ EXAMPLES = r'''
     name: foo
     failover:
     - array1
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Set mediator for pod named foo
+  purefa_pod:
+    name: foo
+    mediator: bar
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
@@ -185,6 +197,11 @@ def create_pod(module, array):
                 array.create_pod(module.params['name'])
         except Exception:
             module.fail_json(msg='Pod {0} creation failed.'.format(module.params['name']))
+        if module.params['mediator'] != 'purestorage':
+            try:
+                array.set_pod(module.params['name'], mediator=module.params['mediator'])
+            except Exception:
+                module.warn('Failed to communicate with mediator {0}, using default value'.format(module.params['mediator']))
         if module.params['stretch']:
             current_array = array.get()['array_name']
             if module.params['stretch'] != current_array:
@@ -235,7 +252,13 @@ def update_pod(module, array):
                         changed = True
                 except Exception:
                     module.fail_json(msg='Failed to set failover preference for pod {0}.'.format(module.params['name']))
-
+        current_config = array.get_pod(module.params['name'], mediator=True)
+        if current_config['mediator'] != module.params['mediator']:
+            try:
+                array.set_pod(module.params['name'], mediator=module.params['mediator'])
+                changed = True
+            except Exception:
+                module.warn('Failed to communicate with mediator {0}. Setting unchanged.'.format(module.params['mediator']))
     module.exit_json(changed=changed)
 
 
@@ -313,6 +336,7 @@ def main():
         name=dict(type='str', required=True),
         stretch=dict(type='str'),
         target=dict(type='str'),
+        mediator=dict(type='str', default='purestorage'),
         failover=dict(type='list'),
         eradicate=dict(type='bool', default=False),
         state=dict(type='str', default='present', choices=['absent', 'present']),
@@ -320,6 +344,8 @@ def main():
 
     mutually_exclusive = [['stretch', 'failover'],
                           ['stretch', 'eradicate'],
+                          ['stretch', 'mediator'],
+                          ['target', 'mediator'],
                           ['target', 'stretch'],
                           ['target', 'failover'],
                           ['target', 'eradicate']]

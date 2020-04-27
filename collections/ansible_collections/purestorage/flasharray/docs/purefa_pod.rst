@@ -19,7 +19,8 @@ Requirements
 The below requirements are needed on the host that executes this module.
 
 - python >= 2.7
-- purestorage
+- purestorage >= 1.18
+- netaddr
 
 
 
@@ -34,8 +35,8 @@ Parameters
     Name of clone target pod.
 
 
-  api_token (True, str, None)
-    FlashArray API token for admin privileged user.
+  mediator (optional, str, purestorage)
+    Name of the mediator to use for a pod
 
 
   stretch (optional, str, None)
@@ -60,6 +61,10 @@ Parameters
 
   fa_url (True, str, None)
     FlashArray management IPv4 address or Hostname.
+
+
+  api_token (True, str, None)
+    FlashArray API token for admin privileged user.
 
 
   name (True, str, None)
@@ -105,6 +110,13 @@ Examples
         name: foo
         failover:
         - array1
+        fa_url: 10.10.10.2
+        api_token: e31060a7-21fc-e277-6240-25983c6c4592
+    
+    - name: Set mediator for pod named foo
+      purefa_pod:
+        name: foo
+        mediator: bar
         fa_url: 10.10.10.2
         api_token: e31060a7-21fc-e277-6240-25983c6c4592
     
