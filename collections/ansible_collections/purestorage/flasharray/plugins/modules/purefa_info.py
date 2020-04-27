@@ -163,7 +163,7 @@ purefa_info:
                 {
                     "auth_passphrase": null,
                     "auth_protocol": null,
-                    "community": "****",
+                    "community": "",
                     "host": "10.21.23.34",
                     "name": "manager1",
                     "notification": "trap",
