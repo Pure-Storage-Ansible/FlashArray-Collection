@@ -37,7 +37,7 @@ options:
       nameservers will be used.
     - if no servers are given a default of I(0.pool.ntp.org) will be used.
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

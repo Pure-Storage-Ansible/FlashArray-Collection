@@ -43,7 +43,7 @@ options:
     choices: [ sync, async ]
     default: async
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

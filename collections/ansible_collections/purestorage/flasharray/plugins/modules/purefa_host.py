@@ -107,7 +107,7 @@ options:
     - To clear the username/password pair use I(clear) as the password
     - SETTING A PASSWORD IS NON-IDEMPOTENT
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

@@ -35,7 +35,7 @@ options:
     type: str
     default: "Welcome to the machine..."
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

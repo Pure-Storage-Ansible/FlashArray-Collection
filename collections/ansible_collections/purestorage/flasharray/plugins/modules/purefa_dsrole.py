@@ -52,7 +52,7 @@ options:
       Common Name of the group without the CN= specifier.
     - Common Names should not exceed 64 characters in length.
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

@@ -51,7 +51,7 @@ options:
     type: bool
     default: 'no'
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

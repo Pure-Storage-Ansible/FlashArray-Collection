@@ -38,7 +38,7 @@ options:
       IPv4 or IPv6 - No validation is done of the addresses is performed.
     type: list
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

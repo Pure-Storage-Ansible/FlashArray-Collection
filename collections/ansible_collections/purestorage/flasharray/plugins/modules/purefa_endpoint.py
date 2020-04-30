@@ -50,7 +50,7 @@ options:
     - name of hostgroup to attach endpoint to
     type: str
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''
