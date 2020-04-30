@@ -54,11 +54,7 @@ options:
     default: 1500
     type: int
 extends_documentation_fragment:
-    - purestorage.fa
-notes:
-    - Requires the netaddr Python package on the host.
-requirements:
-    - netaddr
+    - purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = '''

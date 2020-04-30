@@ -105,7 +105,7 @@ options:
     - Max retention period is 4000 days
     type: int
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

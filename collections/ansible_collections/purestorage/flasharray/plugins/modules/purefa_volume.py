@@ -82,7 +82,7 @@ options:
     - There is no requirement to specify the pod or vgroup name as this is implied.
     type: str
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

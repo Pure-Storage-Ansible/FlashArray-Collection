@@ -40,7 +40,7 @@ options:
     type: str
     required: true
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

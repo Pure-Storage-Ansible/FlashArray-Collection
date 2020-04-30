@@ -48,7 +48,7 @@ options:
     - Range for LUN ID is 1 to 4095.
     type: int
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

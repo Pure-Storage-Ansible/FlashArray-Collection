@@ -68,7 +68,7 @@ options:
     type: list
     version_added: '2.8'
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

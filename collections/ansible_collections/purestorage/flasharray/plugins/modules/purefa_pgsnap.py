@@ -85,7 +85,7 @@ options:
     default: False
     version_added: 2.9
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''
