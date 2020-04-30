@@ -33,7 +33,7 @@ options:
     type: int
     default: 30
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

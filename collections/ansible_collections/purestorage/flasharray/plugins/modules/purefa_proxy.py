@@ -36,7 +36,7 @@ options:
     - The proxy TCP/IP port number.
     type: int
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

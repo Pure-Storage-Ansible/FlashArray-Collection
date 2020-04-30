@@ -51,7 +51,7 @@ options:
     required: true
     type: str
 extends_documentation_fragment:
-    - purestorage.fa
+    - purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = '''

@@ -36,7 +36,7 @@ options:
     required: false
     default: minimum
 extends_documentation_fragment:
-  - purestorage.fa
+  - purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''
