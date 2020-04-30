@@ -40,7 +40,7 @@ options:
     description:
     - Set specified email address to be enabled or disabled
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

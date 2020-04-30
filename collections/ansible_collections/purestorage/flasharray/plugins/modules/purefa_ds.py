@@ -102,7 +102,7 @@ options:
       CN= specifier. Common Names should not exceed 64 characters in length.
     - Not Supported from Purity 5.2.0 or higher. Use I(purefa_dsrole) module.
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

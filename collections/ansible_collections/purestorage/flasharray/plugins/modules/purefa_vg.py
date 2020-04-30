@@ -52,7 +52,7 @@ options:
       To clear an existing IOPs setting use 0 (zero)
     type: str
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''

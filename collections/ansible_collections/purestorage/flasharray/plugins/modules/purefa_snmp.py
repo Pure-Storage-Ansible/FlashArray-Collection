@@ -81,7 +81,7 @@ options:
     - SNMP v3 only. Encryption protocol to use
     choices: [ AES, DES ]
 extends_documentation_fragment:
-- purestorage.fa
+- purestorage.flasharray.purestorage.fa
 '''
 
 EXAMPLES = r'''
