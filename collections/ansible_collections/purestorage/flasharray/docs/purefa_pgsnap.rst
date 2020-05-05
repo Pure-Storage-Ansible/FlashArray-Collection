@@ -83,6 +83,7 @@ Parameters
   suffix (optional, str, None)
     Suffix of snapshot name.
 
+    Special case. If *latest* the module will select the latest snapshot created in the group
 
 
 
