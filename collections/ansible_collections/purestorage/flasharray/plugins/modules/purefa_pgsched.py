@@ -59,7 +59,8 @@ options:
   replicate_frequency:
     description:
     - Specifies the replication frequency in seconds.
-    - Range 14400 - 34560000.
+    - Range 900 - 34560000 (FA-405, //M10, //X10i and Cloud Block Store).
+    - Range 300 - 34560000 (all other arrays).
     type: int
   snap_at:
     description:
@@ -290,10 +291,17 @@ def update_schedule(module, array):
             if not module.params['replicate_frequency']:
                 replicate_frequency = current_repl['replicate_frequency']
             else:
-                if not 1440 <= module.params['replicate_frequency'] <= 34560000:
-                    module.fail_json(msg="Replication Frequency support is out of range (14400 to 34560000)")
+                model = array.get(controllers=True)[0]['model']
+                if '405' in model or '10' in model or 'CBS' in model:
+                    if not 900 <= module.params['replicate_frequency'] <= 34560000:
+                        module.fail_json(msg="Replication Frequency support is out of range (900 to 34560000)")
+                    else:
+                        replicate_frequency = module.params['replicate_frequency']
                 else:
-                    replicate_frequency = module.params['replicate_frequency']
+                    if not 300 <= module.params['replicate_frequency'] <= 34560000:
+                        module.fail_json(msg="Replication Frequency support is out of range (300 to 34560000)")
+                    else:
+                        replicate_frequency = module.params['replicate_frequency']
 
             if not module.params['replicate_at']:
                 replicate_at = current_repl['replicate_at']
