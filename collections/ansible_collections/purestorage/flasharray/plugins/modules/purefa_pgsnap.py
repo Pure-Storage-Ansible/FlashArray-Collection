@@ -30,6 +30,7 @@ options:
   suffix:
     description:
     - Suffix of snapshot name.
+    - Special case. If I(latest) the module will select the latest snapshot created in the group
     type: str
   state:
     description:
@@ -246,6 +247,10 @@ def restore_pgsnapvolume(module, array):
     """Restore a Protection Group Snapshot Volume"""
     changed = True
     if not module.check_mode:
+        if module.params['suffix'] == 'latest':
+            all_snaps = array.get_pgroup(module.params['name'], snap=True)
+            latest_snap = all_snaps[len(all_snaps) - 1]['name']
+            module.params['suffix'] = latest_snap.split('.')[1]
         if ":" in module.params['name']:
             if get_rpgsnapshot(module, array)is None:
                 module.fail_json(msg="Selected restore snapshot {0} does not exist in the Protection Group".format(module.params['restore']))
