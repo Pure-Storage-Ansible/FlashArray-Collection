@@ -92,12 +92,14 @@ def update_role(module, array):
     """Update Directory Service Role"""
     changed = True
     if not module.check_mode:
+        changed = False
         role = array.list_directory_service_roles(names=[module.params['role']])
         if role[0]['group_base'] != module.params['group_base'] or role[0]['group'] != module.params['group']:
             try:
                 array.set_directory_service_roles(names=[module.params['role']],
                                                   group_base=module.params['group_base'],
                                                   group=module.params['group'])
+                changed = True
             except Exception:
                 module.fail_json(msg='Update Directory Service Role {0} failed'.format(module.params['role']))
     module.exit_json(changed=changed)
