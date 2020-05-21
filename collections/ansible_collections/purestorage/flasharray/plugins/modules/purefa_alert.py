@@ -69,8 +69,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 def create_alert(module, array):
     """Create Alert Email"""
-    changed = False
+    changed = True
     if not module.check_mode:
+        changed = False
         try:
             array.create_alert_recipient(module.params['address'])
             changed = True
@@ -80,50 +81,53 @@ def create_alert(module, array):
         if not module.params['enabled']:
             try:
                 array.disable_alert_recipient(module.params['address'])
+                changed = True
             except Exception:
                 module.fail_json(msg='Failed to create alert email: {0}'.format(module.params['address']))
-    changed = True
 
     module.exit_json(changed=changed)
 
 
 def enable_alert(module, array):
     """Enable Alert Email"""
-    changed = False
+    changed = True
     if not module.check_mode:
+        changed = False
         try:
             array.enable_alert_recipient(module.params['address'])
+            changed = True
         except Exception:
             module.fail_json(msg='Failed to enable alert email: {0}'.format(module.params['address']))
-    changed = True
 
     module.exit_json(changed=changed)
 
 
 def disable_alert(module, array):
     """Disable Alert Email"""
-    changed = False
+    changed = True
     if not module.check_mode:
+        changed = False
         try:
             array.disable_alert_recipient(module.params['address'])
+            changed = True
         except Exception:
             module.fail_json(msg='Failed to disable alert email: {0}'.format(module.params['address']))
-    changed = True
 
     module.exit_json(changed=changed)
 
 
 def delete_alert(module, array):
     """Delete Alert Email"""
-    changed = False
+    changed = True
     if module.params['address'] == "flasharray-alerts@purestorage.com":
         module.fail_json(msg='Built-in address {0} cannot be deleted.'.format(module.params['address']))
     if not module.check_mode:
+        changed = False
         try:
             array.delete_alert_recipient(module.params['address'])
+            changed = True
         except Exception:
             module.fail_json(msg='Failed to delete alert email: {0}'.format(module.params['address']))
-    changed = True
 
     module.exit_json(changed=changed)
 

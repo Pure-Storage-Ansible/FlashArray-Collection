@@ -252,7 +252,7 @@ def restore_pgsnapvolume(module, array):
             latest_snap = all_snaps[len(all_snaps) - 1]['name']
             module.params['suffix'] = latest_snap.split('.')[1]
         if ":" in module.params['name']:
-            if get_rpgsnapshot(module, array)is None:
+            if get_rpgsnapshot(module, array) is None:
                 module.fail_json(msg="Selected restore snapshot {0} does not exist in the Protection Group".format(module.params['restore']))
         else:
             if get_pgroupvolume(module, array) is None:

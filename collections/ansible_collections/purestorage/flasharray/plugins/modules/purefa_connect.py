@@ -156,7 +156,7 @@ def main():
 
     if state == 'present' and target_array is None:
         create_connection(module, array)
-    elif state == 'absent'and target_array is not None:
+    elif state == 'absent' and target_array is not None:
         break_connection(module, array, target_array)
 
     module.exit_json(changed=False)

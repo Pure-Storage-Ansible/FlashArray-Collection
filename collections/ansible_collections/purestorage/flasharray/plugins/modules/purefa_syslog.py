@@ -107,6 +107,7 @@ def add_syslog(module, array):
     """Add Syslog Server"""
     changed = True
     if not module.check_mode:
+        changed = False
         noport_address = module.params['protocol'] + "://" + module.params['address']
 
         if module.params['port']:
@@ -126,6 +127,7 @@ def add_syslog(module, array):
             try:
                 address_list.append(full_address)
                 array.set(syslogserver=address_list)
+                changed = True
             except Exception:
                 module.fail_json(msg='Failed to add syslog server: {0}'.format(full_address))
 
