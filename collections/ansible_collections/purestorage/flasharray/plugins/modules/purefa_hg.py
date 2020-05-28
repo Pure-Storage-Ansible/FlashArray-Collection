@@ -151,6 +151,7 @@ def make_hostgroup(module, array):
 def update_hostgroup(module, array):
     changed = True
     if not module.check_mode:
+        changed = False
         hgroup = get_hostgroup(module, array)
         volumes = array.list_hgroup_connections(module.params['hostgroup'])
         if module.params['state'] == "present":
@@ -159,6 +160,7 @@ def update_hostgroup(module, array):
                 if new_hosts:
                     try:
                         array.set_hgroup(module.params['hostgroup'], addhostlist=new_hosts)
+                        changed = True
                     except Exception:
                         module.fail_json(msg='Failed to add host(s) to hostgroup')
             if module.params['volume']:
@@ -168,24 +170,28 @@ def update_hostgroup(module, array):
                     if len(new_volumes) == 1 and module.params['lun']:
                         try:
                             array.connect_hgroup(module.params['hostgroup'], new_volumes[0], lun=module.params['lun'])
+                            changed = True
                         except Exception:
                             module.fail_json(msg="Failed to add volume {0} with LUN ID {1}".format(new_volumes[0], module.params['lun']))
                     else:
                         for cvol in new_volumes:
                             try:
                                 array.connect_hgroup(module.params['hostgroup'], cvol)
+                                changed = True
                             except Exception:
                                 module.fail_json(msg='Failed to connect volume {0} to hostgroup {1}.'.format(cvol, module.params['hostgroup']))
                 else:
                     if len(module.params['volume']) == 1 and module.params['lun']:
                         try:
                             array.connect_hgroup(module.params['hostgroup'], module.params['volume'][0], lun=module.params['lun'])
+                            changed = True
                         except Exception:
                             module.fail_json(msg="Failed to add volume {0} with LUN ID {1}".format(module.params['volume'], module.params['lun']))
                     else:
                         for cvol in module.params['volume']:
                             try:
                                 array.connect_hgroup(module.params['hostgroup'], cvol)
+                                changed = True
                             except Exception:
                                 module.fail_json(msg='Failed to connect volume {0} to hostgroup {1}.'.format(cvol, module.params['hostgroup']))
         else:
@@ -195,6 +201,7 @@ def update_hostgroup(module, array):
                 if old_hosts:
                     try:
                         array.set_hgroup(module.params['hostgroup'], remhostlist=old_hosts)
+                        changed = True
                     except Exception:
                         module.fail_json(msg='Failed to remove hosts {0} from hostgroup {1}'.format(old_hosts, module.params['hostgroup']))
             if module.params['volume']:
@@ -202,6 +209,7 @@ def update_hostgroup(module, array):
                 for cvol in old_volumes:
                     try:
                         array.disconnect_hgroup(module.params['hostgroup'], cvol)
+                        changed = True
                     except Exception:
                         module.fail_json(msg='Failed to disconnect volume {0} from hostgroup {1}'.format(cvol, module.params['hostgroup']))
 

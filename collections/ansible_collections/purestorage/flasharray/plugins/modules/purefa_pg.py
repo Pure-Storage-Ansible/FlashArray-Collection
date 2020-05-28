@@ -306,6 +306,7 @@ def update_pgroup(module, array):
     """ Update Protection Group"""
     changed = True
     if not module.check_mode:
+        changed = False
         if module.params['target']:
             api_version = array._list_available_rest_versions()
             connected_targets = []
@@ -332,17 +333,20 @@ def update_pgroup(module, array):
                     module.fail_json(msg='Check all selected targets are connected to the source array.')
                 try:
                     array.set_pgroup(module.params['pgroup'], targetlist=module.params['target'][0:4])
+                    changed = True
                 except Exception:
                     module.fail_json(msg='Changing targets for pgroup {0} failed.'.format(module.params['pgroup']))
 
         if module.params['target'] and module.params['enabled'] != get_pgroup_sched(module, array)['replicate_enabled']:
             try:
                 array.set_pgroup(module.params['pgroup'], replicate_enabled=module.params['enabled'])
+                changed = True
             except Exception:
                 module.fail_json(msg='Changing enabled status of pgroup {0} failed.'.format(module.params['pgroup']))
         elif not module.params['target'] and module.params['enabled'] != get_pgroup_sched(module, array)['snap_enabled']:
             try:
                 array.set_pgroup(module.params['pgroup'], snap_enabled=module.params['enabled'])
+                changed = True
             except Exception:
                 module.fail_json(msg='Changing enabled status of pgroup {0} failed.'.format(module.params['pgroup']))
 
@@ -352,12 +356,14 @@ def update_pgroup(module, array):
             if get_pgroup(module, array)['volumes'] is None:
                 try:
                     array.set_pgroup(module.params['pgroup'], vollist=module.params['volume'])
+                    changed = True
                 except Exception:
                     module.fail_json(msg='Adding volumes to pgroup {0} failed.'.format(module.params['pgroup']))
             else:
                 if not all(x in get_pgroup(module, array)['volumes'] for x in module.params['volume']):
                     try:
                         array.set_pgroup(module.params['pgroup'], vollist=module.params['volume'])
+                        changed = True
                     except Exception:
                         module.fail_json(msg='Changing volumes in pgroup {0} failed.'.format(module.params['pgroup']))
 
@@ -367,12 +373,14 @@ def update_pgroup(module, array):
             if not get_pgroup(module, array)['hosts'] is None:
                 try:
                     array.set_pgroup(module.params['pgroup'], hostlist=module.params['host'])
+                    changed = True
                 except Exception:
                     module.fail_json(msg='Adding hosts to pgroup {0} failed.'.format(module.params['pgroup']))
             else:
                 if not all(x in get_pgroup(module, array)['hosts'] for x in module.params['host']):
                     try:
                         array.set_pgroup(module.params['pgroup'], hostlist=module.params['host'])
+                        changed = True
                     except Exception:
                         module.fail_json(msg='Changing hosts in pgroup {0} failed.'.format(module.params['pgroup']))
 
@@ -382,12 +390,14 @@ def update_pgroup(module, array):
             if not get_pgroup(module, array)['hgroups'] is None:
                 try:
                     array.set_pgroup(module.params['pgroup'], hgrouplist=module.params['hostgroup'])
+                    changed = True
                 except Exception:
                     module.fail_json(msg='Adding hostgroups to pgroup {0} failed.'.format(module.params['pgroup']))
             else:
                 if not all(x in get_pgroup(module, array)['hgroups'] for x in module.params['hostgroup']):
                     try:
                         array.set_pgroup(module.params['pgroup'], hgrouplist=module.params['hostgroup'])
+                        changed = True
                     except Exception:
                         module.fail_json(msg='Changing hostgroups in pgroup {0} failed.'.format(module.params['pgroup']))
 
