@@ -604,6 +604,21 @@ def generate_snap_dict(array):
     return snap_info
 
 
+def generate_del_vol_dict(array):
+    volume_info = {}
+    vols = array.list_volumes(pending_only=True)
+    for vol in range(0, len(vols)):
+        volume = vols[vol]['name']
+        volume_info[volume] = {
+            'size': vols[vol]['size'],
+            'source': vols[vol]['source'],
+            'created': vols[vol]['created'],
+            'serial': vols[vol]['serial'],
+            'time_remaining': vols[vol]['time_remaining'],
+        }
+    return volume_info
+
+
 def generate_vol_dict(array):
     volume_info = {}
     vols = array.list_volumes()
@@ -670,8 +685,17 @@ def generate_host_dict(array):
             'wwn': hosts[host]['wwn'],
             'personality': array.get_host(hostname,
                                           personality=True)['personality'],
-            'target_port': tports
+            'target_port': tports,
+            'volumes': []
         }
+        host_connections = array.list_host_connections(hostname)
+        for connection in range(0, len(host_connections)):
+            connection_dict = {
+                'hostgroup': host_connections[connection]['hgroup'],
+                'volume': host_connections[connection]['vol'],
+                'lun': host_connections[connection]['lun']
+            }
+            host_info[hostname]['volumes'].append(connection_dict)
         if host_info[hostname]['iqn']:
             chap_data = array.get_host(hostname, chap=True)
             host_info[hostname]['target_user'] = chap_data['target_user']
@@ -985,6 +1009,7 @@ def main():
         info['hosts'] = generate_host_dict(array)
     if 'volumes' in subset or 'all' in subset:
         info['volumes'] = generate_vol_dict(array)
+        info['deleted_volumes'] = generate_del_vol_dict(array)
     if 'snapshots' in subset or 'all' in subset:
         info['snapshots'] = generate_snap_dict(array)
     if 'hgroups' in subset or 'all' in subset:
