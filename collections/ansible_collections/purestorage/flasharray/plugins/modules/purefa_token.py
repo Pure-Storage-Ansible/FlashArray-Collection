@@ -129,6 +129,7 @@ def main():
 
     module = AnsibleModule(argument_spec, supports_check_mode=False)
     array = get_session(module)
+    changed = False
 
     if module.params['username']:
         username = module.params['username']
@@ -140,15 +141,18 @@ def main():
     result = array.get_api_token(admin=username)
     if state == 'present' and result['api_token'] is None:
         result = array.create_api_token(admin=username)
+        changed = True
     elif state == 'present' and recreate:
         result = array.delete_api_token(admin=username)
         result = array.create_api_token(admin=username)
+        changed = True
     elif state == 'absent' and result['api_token']:
         result = array.delete_api_token(admin=username)
+        changed = True
 
     api_token = result['api_token']
 
-    module.exit_json(changed=False, purefa_token=api_token)
+    module.exit_json(changed=changed, purefa_token=api_token)
 
 
 if __name__ == '__main__':
