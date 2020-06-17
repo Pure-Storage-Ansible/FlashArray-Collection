@@ -76,6 +76,12 @@ import platform
 VERSION = 1.0
 USER_AGENT_BASE = 'Ansible_token'
 
+HAS_PURESTORAGE = True
+try:
+    from purestorage import purestorage
+except ImportError:
+    HAS_PURESTORAGE = False
+
 
 def get_session(module):
     """Return System Object or Fail"""
@@ -90,18 +96,15 @@ def get_session(module):
     username = module.params['username']
     password = module.params['password']
 
-    HAS_PURESTORAGE = True
-    try:
-        from purestorage import purestorage
-    except ImportError:
-        HAS_PURESTORAGE = False
-
     if HAS_PURESTORAGE:
         if array_name and username and password:
             system = purestorage.FlashArray(array_name, username=username, password=password, user_agent=user_agent)
         elif environ.get('PUREFA_URL'):
             if environ.get('PUREFA_USERNAME') and environ.get('PUREFA_PASSWORD'):
-                system = purestorage.FlashArray(environ.get('PUREFA_URL'), username=environ.get('PUREFA_USERNAME'), password=environ.get('PUREFA_PASSWORD'), user_agent=user_agent)
+                url = environ.get('PUREFA_URL')
+                username = environ.get('PUREFA_USERNAME')
+                password = environ.get('PUREFA_PASSWORD')
+                system = purestorage.FlashArray(url, username=username, password=password, user_agent=user_agent)
         else:
             module.fail_json(msg="You must set PUREFA_URL and PUREFA_USERNAME, PUREFA_PASSWORD "
                                  "environment variables or the fa_url, username and password "
@@ -146,6 +149,7 @@ def main():
     api_token = result['api_token']
 
     module.exit_json(changed=False, purefa_token=api_token)
+
 
 if __name__ == '__main__':
     main()
