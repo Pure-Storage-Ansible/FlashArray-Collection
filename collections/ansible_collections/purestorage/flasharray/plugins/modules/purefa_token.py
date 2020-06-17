@@ -76,6 +76,7 @@ import platform
 VERSION = 1.0
 USER_AGENT_BASE = 'Ansible_token'
 
+
 def get_session(module):
     """Return System Object or Fail"""
     user_agent = '%(base)s %(class)s/%(version)s (%(platform)s)' % {
@@ -98,8 +99,10 @@ def get_session(module):
     if HAS_PURESTORAGE:
         if array_name and username and password:
             system = purestorage.FlashArray(array_name, username=username, password=password, user_agent=user_agent)
-        elif environ.get('PUREFA_URL') and environ.get('PUREFA_USERNAME') and environ.get('PUREFA_PASSWORD'):
-            system = purestorage.FlashArray(environ.get('PUREFA_URL'), username=environ.get('PUREFA_USERNAME'), password=environ.get('PUREFA_PASSWORD'), user_agent=user_agent)
+        elif environ.get('PUREFA_URL') and environ.get('PUREFA_USERNAME') 
+                    and environ.get('PUREFA_PASSWORD'):
+            system = purestorage.FlashArray(environ.get('PUREFA_URL'), username=environ.get('PUREFA_USERNAME'), 
+                    password=environ.get('PUREFA_PASSWORD'), user_agent=user_agent)
         else:
             module.fail_json(msg="You must set PUREFA_URL and PUREFA_USERNAME, PUREFA_PASSWORD "
                                  "environment variables or the fa_url, username and password "
@@ -138,7 +141,7 @@ def main():
     elif state == 'present' and recreate:
         result = array.delete_api_token(admin=username)
         result = array.create_api_token(admin=username)
-    elif state =='absent' and result['api_token']:
+    elif state == 'absent' and result['api_token']:
         result = array.delete_api_token(admin=username)
 
     api_token = result['api_token']
@@ -147,4 +150,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
