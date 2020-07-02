@@ -30,8 +30,8 @@ options:
       - When supplied, this argument will define the information to be collected.
         Possible values for this include all, minimum, config, performance,
         capacity, network, subnet, interfaces, hgroups, pgroups, hosts,
-        admins, volumes, snapshots, pods, vgroups, offload, apps, arrays,
-        certs and kmip.
+        admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
+        arrays, certs and kmip.
     type: list
     required: false
     default: minimum
@@ -406,7 +406,7 @@ purefa_info:
 
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_array, get_system, purefa_argument_spec
 import time
 
 ADMIN_API_VERSION = '1.14'
@@ -418,7 +418,8 @@ SAN_REQUIRED_API_VERSION = '1.10'
 NVME_API_VERSION = '1.16'
 PREFERRED_API_VERSION = '1.15'
 P53_API_VERSION = '1.17'
-P6_API_VERSION = '1.19'
+ACTIVE_DR_API = '1.19'
+V6_MINIMUM_API_VERSION = '2.2'
 
 
 def generate_default_dict(array):
@@ -475,7 +476,7 @@ def generate_perf_dict(array):
     return perf_info
 
 
-def generate_config_dict(array):
+def generate_config_dict(module, array):
     config_info = {}
     api_version = array._list_available_rest_versions()
     config_info['console_lock'] = array.get_console_lock_status()['console_lock']
@@ -483,7 +484,10 @@ def generate_config_dict(array):
     config_info['smtp'] = array.list_alert_recipients()
     config_info['snmp'] = array.list_snmp_managers()
     config_info['snmp_v3_engine_id'] = array.get_snmp_engine_id()['engine_id']
-    config_info['directory_service'] = array.get_directory_service()
+    try:
+        config_info['directory_service'] = array.get_directory_service()
+    except Exception:
+        config_info['directory_service'] = ['Array and Data Configurations found']
     if S3_REQUIRED_API_VERSION in api_version:
         config_info['directory_service_roles'] = {}
         roles = array.list_directory_service_roles()
@@ -506,6 +510,13 @@ def generate_config_dict(array):
     config_info['scsi_timeout'] = array.get(scsi_timeout=True)['scsi_timeout']
     if S3_REQUIRED_API_VERSION in api_version:
         config_info['global_admin'] = array.get_global_admin_attributes()
+    if V6_MINIMUM_API_VERSION in api_version:
+        array = get_array(module)
+        smi_s = list(array.get_smi_s().items)[0]
+        config_info['smi-s'] = {
+            'slp_enabled': smi_s.slp_enabled,
+            'wbem_https_enabled': smi_s.wbem_https_enabled
+        }
     return config_info
 
 
@@ -585,14 +596,12 @@ def generate_capacity_dict(array):
         capacity_info['snapshot_space'] = capacity[0]['snapshots']
         capacity_info['thin_provisioning'] = capacity[0]['thin_provisioning']
         capacity_info['total_reduction'] = capacity[0]['total_reduction']
-        if P6_API_VERSION in api_version:
-            capacity_info['journal_space'] = capacity[0]['journal']
-
     return capacity_info
 
 
 def generate_snap_dict(array):
     snap_info = {}
+    api_version = array._list_available_rest_versions()
     snaps = array.list_volumes(snap=True)
     for snap in range(0, len(snaps)):
         snapshot = snaps[snap]['name']
@@ -600,11 +609,76 @@ def generate_snap_dict(array):
             'size': snaps[snap]['size'],
             'source': snaps[snap]['source'],
             'created': snaps[snap]['created'],
+            'tags': [],
         }
+    if ACTIVE_DR_API in api_version:
+        snaptags = array.list_volumes(snap=True, tags=True)
+        for snaptag in range(0, len(snaptags)):
+            snapname = snaptags[snaptag]['name']
+            tagdict = {
+                'key': snaptags[snaptag]['key'],
+                'value': snaptags[snaptag]['value'],
+                'namespace': snaptags[snaptag]['namespace']
+            }
+            snap_info[snapname]['tags'].append(tagdict)
     return snap_info
 
 
-def generate_vol_dict(array):
+def generate_del_snap_dict(array):
+    snap_info = {}
+    api_version = array._list_available_rest_versions()
+    snaps = array.list_volumes(snap=True, pending_only=True)
+    for snap in range(0, len(snaps)):
+        snapshot = snaps[snap]['name']
+        snap_info[snapshot] = {
+            'size': snaps[snap]['size'],
+            'source': snaps[snap]['source'],
+            'created': snaps[snap]['created'],
+            'time_remaining': snaps[snap]['time_remaining'],
+            'tags': [],
+        }
+    if ACTIVE_DR_API in api_version:
+        snaptags = array.list_volumes(snap=True, tags=True, pending_only=True)
+        for snaptag in range(0, len(snaptags)):
+            snapname = snaptags[snaptag]['name']
+            tagdict = {
+                'key': snaptags[snaptag]['key'],
+                'value': snaptags[snaptag]['value'],
+                'namespace': snaptags[snaptag]['namespace']
+            }
+            snap_info[snapname]['tags'].append(tagdict)
+    return snap_info
+
+
+def generate_del_vol_dict(module, array):
+    volume_info = {}
+    api_version = array._list_available_rest_versions()
+    vols = array.list_volumes(pending_only=True)
+    for vol in range(0, len(vols)):
+        volume = vols[vol]['name']
+        volume_info[volume] = {
+            'size': vols[vol]['size'],
+            'source': vols[vol]['source'],
+            'created': vols[vol]['created'],
+            'serial': vols[vol]['serial'],
+            'time_remaining': vols[vol]['time_remaining'],
+            'tags': [],
+        }
+    if ACTIVE_DR_API in api_version:
+        voltags = array.list_volumes(tags=True, pending_only=True)
+        for voltag in range(0, len(voltags)):
+            volume = voltags[voltag]['name']
+            tagdict = {
+                'key': voltags[voltag]['key'],
+                'value': voltags[voltag]['value'],
+                'copyable': voltags[voltag]['copyable'],
+                'namespace': voltags[voltag]['namespace']
+            }
+            volume_info[volume]['tags'].append(tagdict)
+    return volume_info
+
+
+def generate_vol_dict(module, array):
     volume_info = {}
     vols = array.list_volumes()
     for vol in range(0, len(vols)):
@@ -614,6 +688,7 @@ def generate_vol_dict(array):
             'source': vols[vol]['source'],
             'size': vols[vol]['size'],
             'serial': vols[vol]['serial'],
+            'tags': [],
             'hosts': [],
             'bandwidth': ""
         }
@@ -634,7 +709,8 @@ def generate_vol_dict(array):
                 'protocol_endpoint': True,
                 'source': vvols[vvol]['source'],
                 'serial': vvols[vvol]['serial'],
-                'hosts': []
+                'tags': [],
+                'hosts': [],
             }
         if P53_API_VERSION in array._list_available_rest_versions():
             pe_e2ees = array.list_volumes(protocol_endpoint=True, host_encryption_key=True)
@@ -651,6 +727,17 @@ def generate_vol_dict(array):
         volume = cvols[cvol]['name']
         voldict = {'host': cvols[cvol]['host'], 'lun': cvols[cvol]['lun']}
         volume_info[volume]['hosts'].append(voldict)
+    if ACTIVE_DR_API in api_version:
+        voltags = array.list_volumes(tags=True)
+        for voltag in range(0, len(voltags)):
+            volume = voltags[voltag]['name']
+            tagdict = {
+                'key': voltags[voltag]['key'],
+                'value': voltags[voltag]['value'],
+                'copyable': voltags[voltag]['copyable'],
+                'namespace': voltags[voltag]['namespace']
+            }
+            volume_info[volume]['tags'].append(tagdict)
     return volume_info
 
 
@@ -670,8 +757,17 @@ def generate_host_dict(array):
             'wwn': hosts[host]['wwn'],
             'personality': array.get_host(hostname,
                                           personality=True)['personality'],
-            'target_port': tports
+            'target_port': tports,
+            'volumes': []
         }
+        host_connections = array.list_host_connections(hostname)
+        for connection in range(0, len(host_connections)):
+            connection_dict = {
+                'hostgroup': host_connections[connection]['hgroup'],
+                'volume': host_connections[connection]['vol'],
+                'lun': host_connections[connection]['lun']
+            }
+            host_info[hostname]['volumes'].append(connection_dict)
         if host_info[hostname]['iqn']:
             chap_data = array.get_host(hostname, chap=True)
             host_info[hostname]['target_user'] = chap_data['target_user']
@@ -730,6 +826,60 @@ def generate_pgroups_dict(array):
     return pgroups_info
 
 
+def generate_rl_dict(module, array):
+    rl_info = {}
+    api_version = array._list_available_rest_versions()
+    if ACTIVE_DR_API in api_version:
+        try:
+            rlinks = array.list_pod_replica_links()
+            for rlink in range(0, len(rlinks)):
+                link_name = rlinks[rlink]['local_pod_name']
+                since_epoch = rlinks[rlink]['recovery_point'] / 1000
+                recovery_datatime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(since_epoch))
+                rl_info[link_name] = {
+                    'status': rlinks[rlink]['status'],
+                    'direction': rlinks[rlink]['direction'],
+                    'lag': str(rlinks[rlink]['lag'] / 1000) + 's',
+                    'remote_pod_name': rlinks[rlink]['remote_pod_name'],
+                    'remote_names': rlinks[rlink]['remote_names'],
+                    'recovery_point': recovery_datatime,
+                }
+        except Exception:
+            module.warn('Replica Links info requires purestorage SDK 1.19 or hisher')
+    return rl_info
+
+
+def generate_del_pods_dict(array):
+    pods_info = {}
+    api_version = array._list_available_rest_versions()
+    if AC_REQUIRED_API_VERSION in api_version:
+        pods = array.list_pods(mediator=True, pending_only=True)
+        for pod in range(0, len(pods)):
+            acpod = pods[pod]['name']
+            pods_info[acpod] = {
+                'source': pods[pod]['source'],
+                'arrays': pods[pod]['arrays'],
+                'mediator': pods[pod]['mediator'],
+                'mediator_version': pods[pod]['mediator_version'],
+                'time_remaining': pods[pod]['time_remaining'],
+            }
+            if ACTIVE_DR_API in api_version:
+                if pods_info[acpod]['arrays'][0]['frozen_at']:
+                    frozen_time = pods_info[acpod]['arrays'][0]['frozen_at'] / 1000
+                    frozen_datetime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(frozen_time))
+                    pods_info[acpod]['arrays'][0]['frozen_at'] = frozen_datetime
+                pods_info[acpod]['link_source_count'] = pods[pod]['link_source_count']
+                pods_info[acpod]['link_target_count'] = pods[pod]['link_target_count']
+                pods_info[acpod]['promotion_status'] = pods[pod]['promotion_status']
+                pods_info[acpod]['requested_promotion_state'] = pods[pod]['requested_promotion_state']
+        if PREFERRED_API_VERSION in api_version:
+            pods_fp = array.list_pods(failover_preference=True, pending_only=True)
+            for pod in range(0, len(pods_fp)):
+                acpod = pods_fp[pod]['name']
+                pods_info[acpod]['failover_preference'] = pods_fp[pod]['failover_preference']
+    return pods_info
+
+
 def generate_pods_dict(array):
     pods_info = {}
     api_version = array._list_available_rest_versions()
@@ -743,10 +893,20 @@ def generate_pods_dict(array):
                 'mediator': pods[pod]['mediator'],
                 'mediator_version': pods[pod]['mediator_version'],
             }
-        pods_fp = array.list_pods(failover_preference=True)
-        for pod in range(0, len(pods_fp)):
-            acpod = pods_fp[pod]['name']
-            pods_info[acpod]['failover_preference'] = pods_fp[pod]['failover_preference']
+            if ACTIVE_DR_API in api_version:
+                if pods_info[acpod]['arrays'][0]['frozen_at']:
+                    frozen_time = pods_info[acpod]['arrays'][0]['frozen_at'] / 1000
+                    frozen_datetime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(frozen_time))
+                    pods_info[acpod]['arrays'][0]['frozen_at'] = frozen_datetime
+                pods_info[acpod]['link_source_count'] = pods[pod]['link_source_count']
+                pods_info[acpod]['link_target_count'] = pods[pod]['link_target_count']
+                pods_info[acpod]['promotion_status'] = pods[pod]['promotion_status']
+                pods_info[acpod]['requested_promotion_state'] = pods[pod]['requested_promotion_state']
+        if PREFERRED_API_VERSION in api_version:
+            pods_fp = array.list_pods(failover_preference=True)
+            for pod in range(0, len(pods_fp)):
+                acpod = pods_fp[pod]['name']
+                pods_info[acpod]['failover_preference'] = pods_fp[pod]['failover_preference']
     return pods_info
 
 
@@ -958,7 +1118,7 @@ def main():
     subset = [test.lower() for test in module.params['gather_subset']]
     valid_subsets = ('all', 'minimum', 'config', 'performance', 'capacity',
                      'network', 'subnet', 'interfaces', 'hgroups', 'pgroups',
-                     'hosts', 'admins', 'volumes', 'snapshots', 'pods',
+                     'hosts', 'admins', 'volumes', 'snapshots', 'pods', 'replication',
                      'vgroups', 'offload', 'apps', 'arrays', 'certs', 'kmip')
     subset_test = (test in valid_subsets for test in subset)
     if not all(subset_test):
@@ -972,7 +1132,7 @@ def main():
     if 'performance' in subset or 'all' in subset:
         info['performance'] = generate_perf_dict(array)
     if 'config' in subset or 'all' in subset:
-        info['config'] = generate_config_dict(array)
+        info['config'] = generate_config_dict(module, array)
     if 'capacity' in subset or 'all' in subset:
         info['capacity'] = generate_capacity_dict(array)
     if 'network' in subset or 'all' in subset:
@@ -984,15 +1144,19 @@ def main():
     if 'hosts' in subset or 'all' in subset:
         info['hosts'] = generate_host_dict(array)
     if 'volumes' in subset or 'all' in subset:
-        info['volumes'] = generate_vol_dict(array)
+        info['volumes'] = generate_vol_dict(module, array)
+        info['deleted_volumes'] = generate_del_vol_dict(module, array)
     if 'snapshots' in subset or 'all' in subset:
         info['snapshots'] = generate_snap_dict(array)
+        info['deleted_snapshots'] = generate_del_snap_dict(array)
     if 'hgroups' in subset or 'all' in subset:
         info['hgroups'] = generate_hgroups_dict(array)
     if 'pgroups' in subset or 'all' in subset:
         info['pgroups'] = generate_pgroups_dict(array)
-    if 'pods' in subset or 'all' in subset:
+    if 'pods' in subset or 'all' in subset or 'replication' in subset:
+        info['replica_links'] = generate_rl_dict(module, array)
         info['pods'] = generate_pods_dict(array)
+        info['deleted_pods'] = generate_del_pods_dict(array)
     if 'admins' in subset or 'all' in subset:
         info['admins'] = generate_admin_dict(array)
     if 'vgroups' in subset or 'all' in subset:
