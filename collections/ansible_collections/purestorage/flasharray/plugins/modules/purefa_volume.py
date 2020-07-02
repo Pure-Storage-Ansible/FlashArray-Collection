@@ -333,7 +333,7 @@ def create_volume(module, array):
         if "/" in module.params['name'] and not check_vgroup(module, array):
             module.fail_json(msg="Failed to create volume {0}. Volume Group does not exist.".format(module.params["name"]))
         if "::" in module.params['name'] and not check_pod(module, array):
-            module.fail_json(msg="Failed to create volume {0}. Poid does not exist".format(module.params["name"]))
+            module.fail_json(msg="Failed to create volume {0}. Pod does not exist".format(module.params["name"]))
         volfact = []
         api_version = array._list_available_rest_versions()
         if module.params['bw_qos'] or module.params['iops_qos']:
