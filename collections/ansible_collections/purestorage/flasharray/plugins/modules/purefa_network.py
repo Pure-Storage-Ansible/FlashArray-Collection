@@ -171,15 +171,15 @@ def update_interface(module, array, interface):
             try:
                 if new_state['gateway'] is not None:
                     array.set_network_interface(interface['name'],
-                                            address=new_state['address'],
-                                            mtu=new_state['mtu'],
-                                            netmask=new_state['netmask'],
-                                            gateway=new_state['gateway'])
-                else:    
+                                                address=new_state['address'],
+                                                mtu=new_state['mtu'],
+                                                netmask=new_state['netmask'],
+                                                gateway=new_state['gateway'])
+                else:
                     array.set_network_interface(interface['name'],
-                                            address=new_state['address'],
-                                            mtu=new_state['mtu'],
-                                            netmask=new_state['netmask'])
+                                                address=new_state['address'],
+                                                mtu=new_state['mtu'],
+                                                netmask=new_state['netmask'])
             except Exception:
                 module.fail_json(msg="Failed to change settings for interface {0}.".format(interface['name']))
         if not interface['enabled'] and module.params['state'] == 'present':
