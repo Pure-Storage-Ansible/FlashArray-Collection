@@ -37,10 +37,16 @@ try:
 except ImportError:
     HAS_PURESTORAGE = False
 
+HAS_PYPURECLIENT = True
+try:
+    from pypureclient import flasharray
+except ImportError:
+    HAS_PYPURECLIENT = False
+
 from os import environ
 import platform
 
-VERSION = 1.3
+VERSION = 1.4
 USER_AGENT_BASE = 'Ansible'
 
 
@@ -70,6 +76,35 @@ def get_system(module):
             module.fail_json(msg="Pure Storage FlashArray authentication failed. Check your credentials")
     else:
         module.fail_json(msg="purestorage SDK is not installed.")
+    return system
+
+
+def get_array(module):
+    """Return System Object or Fail"""
+    user_agent = '%(base)s %(class)s/%(version)s (%(platform)s)' % {
+        'base': USER_AGENT_BASE,
+        'class': __name__,
+        'version': VERSION,
+        'platform': platform.platform()
+    }
+    array_name = module.params['fa_url']
+    api = module.params['api_token']
+    if HAS_PYPURECLIENT:
+        if array_name and api:
+            system = flasharray.Client(target=array_name, api_token=api, user_agent=user_agent)
+        elif environ.get('PUREFA_URL') and environ.get('PUREFA_API'):
+            system = flasharray.Client(target=(environ.get('PUREFA_URL')),
+                                       api_token=(environ.get('PUREFA_API')),
+                                       user_agent=user_agent)
+        else:
+            module.fail_json(msg="You must set PUREFA_URL and PUREFA_API environment variables "
+                                 "or the fa_url and api_token module arguments")
+        try:
+            system.get_hardware()
+        except Exception:
+            module.fail_json(msg="Pure Storage FlashArray authentication failed. Check your credentials")
+    else:
+        module.fail_json(msg="py-pure-client SDK is not installed.")
     return system
 
 
