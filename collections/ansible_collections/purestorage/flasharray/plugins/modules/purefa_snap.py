@@ -95,6 +95,7 @@ EXAMPLES = r'''
 RETURN = r'''
 '''
 
+import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
 from datetime import datetime
@@ -114,6 +115,15 @@ def get_target(module, array):
         return array.get_volume(module.params['target'])
     except Exception:
         return None
+
+
+def get_deleted_snapshot(module, array):
+    """Return Deleted Snapshot"""
+    try:
+        snapname = module.params['name'] + "." + module.params['suffix']
+        return bool(array.get_volume(snapname, snap=True, pending=True)[0]['time_remaining'] != '')
+    except Exception:
+        return False
 
 
 def get_snapshot(module, array):
@@ -155,6 +165,19 @@ def create_from_snapshot(module, array):
                               overwrite=module.params['overwrite'])
     elif tgt is not None and not module.params['overwrite']:
         changed = False
+    module.exit_json(changed=changed)
+
+
+def recover_snapshot(module, array):
+    """Recover Snapshot"""
+    changed = False
+    if not module.check_mode:
+        snapname = module.params['name'] + "." + module.params['suffix']
+        try:
+            array.recover_volume(snapname)
+            changed = True
+        except Exception:
+            module.fail_json(msg='Recovery of snapshot {0} failed'.format(snapname))
     module.exit_json(changed=changed)
 
 
@@ -201,14 +224,23 @@ def main():
     if module.params['suffix'] is None:
         suffix = "snap-" + str((datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0, 0)).total_seconds())
         module.params['suffix'] = suffix.replace(".", "")
+    else:
+        pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$")
+        if not pattern.match(module.params['suffix']):
+            module.fail_json(msg='Suffix name {0} does not conform to suffix name rules'.format(module.params['suffix']))
 
     state = module.params['state']
     array = get_system(module)
+    destroyed = False
     volume = get_volume(module, array)
     snap = get_snapshot(module, array)
+    if not snap:
+        destroyed = get_deleted_snapshot(module, array)
 
-    if state == 'present' and volume and not snap:
+    if state == 'present' and volume and not destroyed:
         create_snapshot(module, array)
+    elif state == 'present' and volume and destroyed:
+        recover_snapshot(module, array)
     elif state == 'present' and volume and snap:
         update_snapshot(module, array)
     elif state == 'present' and not volume:
@@ -221,6 +253,8 @@ def main():
         delete_snapshot(module, array)
     elif state == 'absent' and not snap:
         module.exit_json(changed=False)
+
+    module.exit_json(changed=False)
 
 
 if __name__ == '__main__':

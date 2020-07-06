@@ -56,6 +56,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_vlan - manage VLAN interfaces on the FlashArray
 - purefa_vnc - manage VNC for installed applications on the FlashArray
 - purefa_volume - manage volumes on the FlashArray
+- purefa_volume_tags - manage volume tags on the FlashArray
 
 ## Instructions
 
