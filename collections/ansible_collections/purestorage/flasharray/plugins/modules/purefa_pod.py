@@ -60,6 +60,27 @@ options:
     - Name of the mediator to use for a pod
     type: str
     default: purestorage
+  promote:
+    description:
+      - Promote/demote any pod not in a stretched relationship. .
+      - Demoting a pod will render it read-only.
+    required: false
+    type: bool
+  quiesce:
+    description:
+      - Quiesce/Skip quiesce when I(promote) is false and demoting an ActiveDR pod.
+      - Quiesce will ensure all local data has been replicated before demotion.
+      - Skipping quiesce looses all pending data to be replicated to the remote pod.
+      - Can only demote the pod if it is in a Acrive DR replica link relationship.
+      - This will default to True
+    required: false
+    type: bool
+  undo:
+    description:
+      - Use the I(undo-remote) pod when I(promote) is true and promoting an ActiveDR pod.
+      - This will default to True
+    required: false
+    type: bool
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 '''
@@ -133,6 +154,14 @@ def get_pod(module, array):
     """Return Pod or None"""
     try:
         return array.get_pod(module.params['name'])
+    except Exception:
+        return None
+
+
+def get_undo_pod(module, array):
+    """Return Undo Pod or None"""
+    try:
+        return array.get_pod(module.params['name'] + '.undo-demote', pending_only=True)
     except Exception:
         return None
 
@@ -259,6 +288,45 @@ def update_pod(module, array):
                 changed = True
             except Exception:
                 module.warn('Failed to communicate with mediator {0}. Setting unchanged.'.format(module.params['mediator']))
+        if module.params['promote'] is not None:
+            if len(current_config['arrays']) > 1:
+                module.fail_json(msg='Promotion/Demotion not permitted. Pod {0} is stretched'.format(module.params['name']))
+            else:
+                if current_config['promotion_status'] == 'demoted' and module.params['promote']:
+                    try:
+                        if module.params['undo'] is None:
+                            module.params['undo'] = True
+                        if current_config['promotion_status'] == 'quiescing':
+                            module.fail_json(msg='Cannot promote pod {0} as it is still quiesing'.format(module.params['name']))
+                        elif module.params['undo']:
+                            if get_undo_pod(module, array):
+                                array.promote_pod(module.params['name'], promote_from=module.params['name'] + '.undo-demote')
+                            else:
+                                array.promote_pod(module.params['name'])
+                                module.warn('undo-demote pod remaining for {0}. Consider eradicating this.'.format(module.params['name']))
+                            changed = True
+                        else:
+                            array.promote_pod(module.params['name'])
+                            changed = True
+                    except Exception:
+                        module.fail_json(msg='Failed to promote pod {0}.'.format(module.params['name']))
+                elif current_config['promotion_status'] != 'demoted' and not module.params['promote']:
+                    try:
+                        if get_undo_pod(module, array):
+                            module.fail_json(msg='Cannot demote pod {0} due to associated undo-demote pod not being eradicated'.format(module.params['name']))
+                        if module.params['quiesce'] is None:
+                            module.params['quiesce'] = True
+                        if current_config['link_target_count'] == 0:
+                            array.demote_pod(module.params['name'])
+                            changed = True
+                        elif not module.params['quiesce']:
+                            array.demote_pod(module.params['name'], skip_quiesce=True)
+                            changed = True
+                        else:
+                            array.demote_pod(module.params['name'], quiesce=True)
+                            changed = True
+                    except Exception:
+                        module.fail_json(msg='Failed to demote pod {0}.'.format(module.params['name']))
     module.exit_json(changed=changed)
 
 
@@ -338,6 +406,9 @@ def main():
         target=dict(type='str'),
         mediator=dict(type='str', default='purestorage'),
         failover=dict(type='list'),
+        promote=dict(type='bool'),
+        undo=dict(type='bool'),
+        quiesce=dict(type='bool'),
         eradicate=dict(type='bool', default=False),
         state=dict(type='str', default='present', choices=['absent', 'present']),
     ))
