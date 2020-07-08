@@ -43,6 +43,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_pgsnap - manage protection group snapshots (local and remote) on the FlashArray
 - purefa_phonehome - manage the phonehome setting for the FlashArray
 - purefa_pod - manage ActiveCluster pods in FlashArrays
+- purefa_pod_replica - manage ActiveDR pod replica links in FlashArrays
 - purefa_proxy - manage the phonehome HTTPS proxy setting for the FlashArray
 - purefa_ra - manage the Remote Assist setting for the FlashArray
 - purefa_smtp - manage SMTP settings on the FlashArray
