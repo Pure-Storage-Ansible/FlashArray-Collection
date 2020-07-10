@@ -100,35 +100,6 @@ EXAMPLES = r'''
 '''
 
 RETURN = r'''
-volume:
-    description: A dictionary describing the changed volume.  Only some
-        attributes below will be returned with various actions.
-    type: dict
-    returned: success
-    contains:
-        source:
-            description: Volume name of source volume used for volume copy
-            type: str
-        serial:
-            description: Volume serial number
-            type: str
-            sample: '361019ECACE43D83000120A4'
-        created:
-            description: Volume creation time
-            type: str
-            sample: '2019-03-13T22:49:24Z'
-        name:
-            description: Volume name
-            type: str
-        size:
-            description: Volume size in bytes
-            type: int
-        bandwidth_limit:
-            description: Volume bandwidth limit in bytes/sec
-            type: int
-        iops_limit:
-            description: Volume IOPs limit
-            type: int
 '''
 
 from ansible.module_utils.basic import AnsibleModule
