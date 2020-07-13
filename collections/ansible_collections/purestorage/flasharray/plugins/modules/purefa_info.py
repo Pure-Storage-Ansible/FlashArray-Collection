@@ -612,15 +612,16 @@ def generate_snap_dict(array):
             'tags': [],
         }
     if ACTIVE_DR_API in api_version:
-        snaptags = array.list_volumes(snap=True, tags=True)
+        snaptags = array.list_volumes(snap=True, tags=True, namespace="*")
         for snaptag in range(0, len(snaptags)):
-            snapname = snaptags[snaptag]['name']
-            tagdict = {
-                'key': snaptags[snaptag]['key'],
-                'value': snaptags[snaptag]['value'],
-                'namespace': snaptags[snaptag]['namespace']
-            }
-            snap_info[snapname]['tags'].append(tagdict)
+            if snaptags[snaptag]['namespace'] != "vasa-integration.purestorage.com":
+                snapname = snaptags[snaptag]['name']
+                tagdict = {
+                    'key': snaptags[snaptag]['key'],
+                    'value': snaptags[snaptag]['value'],
+                    'namespace': snaptags[snaptag]['namespace']
+                }
+                snap_info[snapname]['tags'].append(tagdict)
     return snap_info
 
 
@@ -638,15 +639,16 @@ def generate_del_snap_dict(array):
             'tags': [],
         }
     if ACTIVE_DR_API in api_version:
-        snaptags = array.list_volumes(snap=True, tags=True, pending_only=True)
+        snaptags = array.list_volumes(snap=True, tags=True, pending_only=True, namespace="*")
         for snaptag in range(0, len(snaptags)):
-            snapname = snaptags[snaptag]['name']
-            tagdict = {
-                'key': snaptags[snaptag]['key'],
-                'value': snaptags[snaptag]['value'],
-                'namespace': snaptags[snaptag]['namespace']
-            }
-            snap_info[snapname]['tags'].append(tagdict)
+            if snaptags[snaptag]['namespace'] != "vasa-integration.purestorage.com":
+                snapname = snaptags[snaptag]['name']
+                tagdict = {
+                    'key': snaptags[snaptag]['key'],
+                    'value': snaptags[snaptag]['value'],
+                    'namespace': snaptags[snaptag]['namespace']
+                }
+                snap_info[snapname]['tags'].append(tagdict)
     return snap_info
 
 
@@ -667,14 +669,15 @@ def generate_del_vol_dict(module, array):
     if ACTIVE_DR_API in api_version:
         voltags = array.list_volumes(tags=True, pending_only=True)
         for voltag in range(0, len(voltags)):
-            volume = voltags[voltag]['name']
-            tagdict = {
-                'key': voltags[voltag]['key'],
-                'value': voltags[voltag]['value'],
-                'copyable': voltags[voltag]['copyable'],
-                'namespace': voltags[voltag]['namespace']
-            }
-            volume_info[volume]['tags'].append(tagdict)
+            if voltags[voltag]['namespace'] != "vasa-integration.purestorage.com":
+                volume = voltags[voltag]['name']
+                tagdict = {
+                    'key': voltags[voltag]['key'],
+                    'value': voltags[voltag]['value'],
+                    'copyable': voltags[voltag]['copyable'],
+                    'namespace': voltags[voltag]['namespace']
+                }
+                volume_info[volume]['tags'].append(tagdict)
     return volume_info
 
 
@@ -730,14 +733,15 @@ def generate_vol_dict(module, array):
     if ACTIVE_DR_API in api_version:
         voltags = array.list_volumes(tags=True)
         for voltag in range(0, len(voltags)):
-            volume = voltags[voltag]['name']
-            tagdict = {
-                'key': voltags[voltag]['key'],
-                'value': voltags[voltag]['value'],
-                'copyable': voltags[voltag]['copyable'],
-                'namespace': voltags[voltag]['namespace']
-            }
-            volume_info[volume]['tags'].append(tagdict)
+            if voltags[voltag]['namespace'] != "vasa-integration.purestorage.com":
+                volume = voltags[voltag]['name']
+                tagdict = {
+                    'key': voltags[voltag]['key'],
+                    'value': voltags[voltag]['value'],
+                    'copyable': voltags[voltag]['copyable'],
+                    'namespace': voltags[voltag]['namespace']
+                }
+                volume_info[volume]['tags'].append(tagdict)
     return volume_info
 
 
