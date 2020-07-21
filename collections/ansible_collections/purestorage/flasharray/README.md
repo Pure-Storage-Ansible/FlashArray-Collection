@@ -47,6 +47,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_pod_replica - manage ActiveDR pod replica links in FlashArrays
 - purefa_proxy - manage the phonehome HTTPS proxy setting for the FlashArray
 - purefa_ra - manage the Remote Assist setting for the FlashArray
+- purefa_smis - manage SMI-S settings on the FlashArray
 - purefa_smtp - manage SMTP settings on the FlashArray
 - purefa_snap - manage local snapshots on the FlashArray
 - purefa_snmp - manage SNMP settings on the FlashArray

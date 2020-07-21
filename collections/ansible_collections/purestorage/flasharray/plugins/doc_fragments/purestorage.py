@@ -38,6 +38,7 @@ notes:
     if I(fa_url) and I(api_token) arguments are not passed to the module directly
 requirements:
   - python >= 2.7
-  - purestorage >= 1.16
+  - purestorage >= 1.19
+  - py-pure-client >= 1.6.0
   - netaddr
 '''
