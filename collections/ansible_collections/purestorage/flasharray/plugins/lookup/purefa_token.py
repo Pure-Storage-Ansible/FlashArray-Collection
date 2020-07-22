@@ -69,4 +69,3 @@ class LookupModule(LookupBase):
             raise AnsibleError("Unable to access apitoken API")
 
         return [resp.json()['api_token']]
-
