@@ -47,7 +47,7 @@ class LookupModule(LookupBase):
             fa_password = kwargs['fa_password']
         except:
             raise AnsibleError("fa_password was not provided.")
-        
+
         try:
             fa_api_version = kwargs['fa_api_version']
         except:
