@@ -17,6 +17,7 @@ DOCUMENTATION = '''
 ---
 module: purefa_pod_replica
 short_description:  Manage ActiveDR pod replica links between Pure Storage FlashArrays
+version_added: '1.0.0'
 description:
     - This module manages ActiveDR pod replica links between Pure Storage FlashArrays.
 author: Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>

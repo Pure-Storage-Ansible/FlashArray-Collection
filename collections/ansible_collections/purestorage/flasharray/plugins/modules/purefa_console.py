@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_console
-version_added: '2.9'
+version_added: '1.0.0'
 short_description: Enable or Disable Pure Storage FlashArray Console Lock
 description:
 - Enablke or Disable root lockout from the array at the physical console for a Pure Storage FlashArray.

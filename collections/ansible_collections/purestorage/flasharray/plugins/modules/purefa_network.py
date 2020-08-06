@@ -17,6 +17,7 @@ DOCUMENTATION = '''
 ---
 module: purefa_network
 short_description:  Manage network interfaces in a Pure Storage FlashArray
+version_added: '1.0.0'
 description:
     - This module manages the physical and virtual network interfaces on a Pure Storage FlashArray.
     - To manage VLAN interfaces use the I(purefa_vlan) module.

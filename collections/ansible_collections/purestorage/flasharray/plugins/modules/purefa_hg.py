@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_hg
-version_added: '2.4'
+version_added: '1.0.0'
 short_description: Manage hostgroups on Pure Storage FlashArrays
 description:
 - Create, delete or modifiy hostgroups on Pure Storage FlashArrays.
@@ -34,10 +34,12 @@ options:
     choices: [ absent, present ]
   host:
     type: list
+    elements: str
     description:
     - List of existing hosts to add to hostgroup.
   volume:
     type: list
+    elements: str
     description:
     - List of existing volumes to add to hostgroup.
   lun:
@@ -245,9 +247,9 @@ def main():
     argument_spec.update(dict(
         hostgroup=dict(type='str', required=True),
         state=dict(type='str', default='present', choices=['absent', 'present']),
-        host=dict(type='list'),
+        host=dict(type='list', elements='str'),
         lun=dict(type='int'),
-        volume=dict(type='list'),
+        volume=dict(type='list', elements='str'),
     ))
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)

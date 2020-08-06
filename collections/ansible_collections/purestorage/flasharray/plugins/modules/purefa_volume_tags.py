@@ -14,6 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_volume_tags
+version_added: '1.0.0'
 short_description:  Manage volume tags on Pure Storage FlashArrays
 description:
 - Manage volume tags for volumes on Pure Storage FlashArray.
@@ -44,6 +45,7 @@ options:
     - Maximum of 5 tags per volume
     - See examples for exact formatting requirements
     type: list
+    elements: str
     required: true
   state:
     description:
@@ -207,7 +209,7 @@ def main():
         copyable=dict(type='bool', default=True),
         namespace=dict(type='str', default='default'),
         state=dict(type='str', default='present', choices=['absent', 'present']),
-        kvp=dict(type='list', required=True),
+        kvp=dict(type='list', elements='str', required=True),
     ))
 
     module = AnsibleModule(argument_spec,

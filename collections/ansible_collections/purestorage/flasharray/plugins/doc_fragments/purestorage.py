@@ -26,12 +26,10 @@ options:
     description:
       - FlashArray management IPv4 address or Hostname.
     type: str
-    required: true
   api_token:
     description:
       - FlashArray API token for admin privileged user.
     type: str
-    required: true
 notes:
   - This module requires the C(purestorage) Python library
   - You must set C(PUREFA_URL) and C(PUREFA_API) environment variables

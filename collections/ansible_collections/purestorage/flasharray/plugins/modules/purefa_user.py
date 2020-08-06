@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_user
-version_added: '2.8'
+version_added: '1.0.0'
 short_description: Create, modify or delete FlashArray local user account
 description:
 - Create, modify or delete local users on a Pure Stoage FlashArray.
@@ -31,6 +31,7 @@ options:
     description:
     - The name of the local user account
     type: str
+    required: true
   role:
     description:
     - Sets the local user's access level to the array

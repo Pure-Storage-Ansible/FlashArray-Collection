@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_vg
-version_added: '2.9'
+version_added: '1.0.0'
 short_description: Manage volume groups on Pure Storage FlashArrays
 description:
 - Create, delete or modify volume groups on Pure Storage FlashArrays.

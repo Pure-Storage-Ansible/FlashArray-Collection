@@ -14,6 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_smis
+version_added: '1.0.0'
 short_description: Enable or disable FlashArray SMI-S features
 description:
 - Enable or disable FlashArray SMI-S Provider and/or SLP

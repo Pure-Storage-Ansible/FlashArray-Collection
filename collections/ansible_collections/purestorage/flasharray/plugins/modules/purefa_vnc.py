@@ -14,6 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_vnc
+version_added: '1.0.0'
 short_description: Enable or Disable VNC port for installed apps
 description:
 - Enablke or Disable VNC access for installed apps

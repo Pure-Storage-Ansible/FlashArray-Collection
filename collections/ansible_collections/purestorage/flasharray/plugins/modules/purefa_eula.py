@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_eula
-version_added: '2.9'
+version_added: '1.0.0'
 short_description: Sign Pure Storage FlashArray EULA
 description:
 - Sign the FlashArray EULA for Day 0 config, or change signatory.

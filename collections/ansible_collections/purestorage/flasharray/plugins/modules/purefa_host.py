@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_host
-version_added: '2.4'
+version_added: '1.0.0'
 short_description: Manage hosts on Pure Storage FlashArrays
 description:
 - Create, delete or modify hosts on Pure Storage FlashArrays.
@@ -44,17 +44,19 @@ options:
     choices: [ fc, iscsi, nvme, mixed ]
   wwns:
     type: list
+    elements: str
     description:
     - List of wwns of the host if protocol is fc or mixed.
   iqn:
     type: list
+    elements: str
     description:
     - List of IQNs of the host if protocol is iscsi or mixed.
   nqn:
     type: list
+    elements: str
     description:
     - List of NQNs of the host if protocol is nvme or mixed.
-    version_added: '2.8'
   volume:
     type: str
     description:
@@ -65,7 +67,6 @@ options:
     - If not provided the ID will be automatically assigned.
     - Range for LUN ID is 1 to 4095.
     type: int
-    version_added: '2.8'
   personality:
     type: str
     description:
@@ -73,13 +74,12 @@ options:
       ActiveCluster integration.
     default: ''
     choices: ['hpux', 'vms', 'aix', 'esxi', 'solaris', 'hitachi-vsp', 'oracle-vm-server', 'delete', '']
-    version_added: '2.7'
   preferred_array:
     type: list
+    elements: str
     description:
     - List of preferred arrays in an ActiveCluster environment.
     - To remove existing preferred arrays from the host, specify I(delete).
-    version_added: '2.9'
   target_user:
     type: str
     description:
@@ -550,9 +550,9 @@ def main():
         name=dict(type='str', required=True, aliases=['host']),
         state=dict(type='str', default='present', choices=['absent', 'present']),
         protocol=dict(type='str', default='iscsi', choices=['fc', 'iscsi', 'nvme', 'mixed']),
-        nqn=dict(type='list'),
-        iqn=dict(type='list'),
-        wwns=dict(type='list'),
+        nqn=dict(type='list', elements='str'),
+        iqn=dict(type='list', elements='str'),
+        wwns=dict(type='list', elements='str'),
         host_password=dict(type='str', no_log=True),
         host_user=dict(type='str'),
         target_password=dict(type='str', no_log=True),
@@ -562,7 +562,7 @@ def main():
         personality=dict(type='str', default='',
                          choices=['hpux', 'vms', 'aix', 'esxi', 'solaris',
                                   'hitachi-vsp', 'oracle-vm-server', 'delete', '']),
-        preferred_array=dict(type='list'),
+        preferred_array=dict(type='list', elements='str'),
     ))
 
     required_together = [['host_password', 'host_user'],

@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_syslog
-version_added: '2.9'
+version_added: '1.0.0'
 short_description: Configure Pure Storage FlashArray syslog settings
 description:
 - Configure syslog configuration for Pure Storage FlashArrays.

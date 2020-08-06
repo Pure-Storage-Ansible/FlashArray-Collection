@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_ra
-version_added: '2.8'
+version_added: '1.0.0'
 short_description: Enable or Disable Pure Storage FlashArray Remote Assist
 description:
 - Enablke or Disable Remote Assist for a Pure Storage FlashArray.

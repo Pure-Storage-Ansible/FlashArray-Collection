@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_snmp
-version_added: '2.9'
+version_added: '1.0.0'
 short_description: Configure FlashArray SNMP Managers
 description:
 - Manage SNMP managers on a Pure Storage FlashArray.
