@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_dns
-version_added: '2.8'
+version_added: '1.0.0'
 short_description: Configure FlashArray DNS settings
 description:
 - Set or erase configuration for the DNS settings.
@@ -37,6 +37,7 @@ options:
     - List of up to 3 unique DNS server IP addresses. These can be
       IPv4 or IPv6 - No validation is done of the addresses is performed.
     type: list
+    elements: str
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 '''
@@ -109,7 +110,7 @@ def main():
     argument_spec.update(dict(
         state=dict(type='str', default='present', choices=['absent', 'present']),
         domain=dict(type='str'),
-        nameservers=dict(type='list'),
+        nameservers=dict(type='list', elements='str'),
     ))
 
     required_if = [('state', 'present', ['domain', 'nameservers'])]

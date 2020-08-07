@@ -14,6 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_timeout
+version_added: '1.0.0'
 short_description: Configure Pure Storage FlashArray GUI idle timeout
 description:
 - Configure GUI idle timeout for Pure Storage FlashArrays.

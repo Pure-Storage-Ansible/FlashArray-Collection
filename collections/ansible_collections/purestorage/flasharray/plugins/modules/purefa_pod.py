@@ -15,6 +15,7 @@ DOCUMENTATION = r'''
 ---
 module: purefa_pod
 short_description:  Manage AC pods in Pure Storage FlashArrays
+version_added: '1.0.0'
 description:
 - Manage AC pods in a Pure Storage FlashArray.
 author:
@@ -40,6 +41,7 @@ options:
       contact with eachother.
     - Oprions are either array in the cluster, or I(auto)
     type: list
+    elements: str
   state:
     description:
     - Define whether the pod should exist or not.
@@ -405,7 +407,7 @@ def main():
         stretch=dict(type='str'),
         target=dict(type='str'),
         mediator=dict(type='str', default='purestorage'),
-        failover=dict(type='list'),
+        failover=dict(type='list', elements='str'),
         promote=dict(type='bool'),
         undo=dict(type='bool'),
         quiesce=dict(type='bool'),

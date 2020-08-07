@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_offload
-version_added: '2.8'
+version_added: '1.0.0'
 short_description: Create, modify and delete NFS, S3 or Azure offload targets
 description:
 - Create, modify and delete NFS, S3 or Azure offload targets.

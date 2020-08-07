@@ -15,6 +15,7 @@ DOCUMENTATION = r'''
 ---
 module: purefa_pgsched
 short_description: Manage protection groups replication schedules on Pure Storage FlashArrays
+version_added: '1.0.0'
 description:
 - Modify or delete protection groups replication schedules on Pure Storage FlashArrays.
 author:

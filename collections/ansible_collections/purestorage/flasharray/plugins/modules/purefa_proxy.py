@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_proxy
-version_added: '2.9'
+version_added: '1.0.0'
 author:
   - Pure Storage ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 short_description: Configure FlashArray phonehome HTTPs proxy settings

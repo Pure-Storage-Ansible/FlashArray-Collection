@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_pgsnap
-version_added: '2.6'
+version_added: '1.0.0'
 short_description: Manage protection group snapshots on Pure Storage FlashArrays
 description:
 - Create or delete protection group snapshots on Pure Storage FlashArray.
@@ -49,19 +49,16 @@ options:
     description:
     - Restore a specific volume from a protection group snapshot.
     type: str
-    version_added: 2.7
   overwrite:
     description:
     - Define whether to overwrite the target volume if it already exists.
     type: bool
     default: 'no'
-    version_added: 2.8
   target:
     description:
     - Volume to restore a specified volume to.
     - If not supplied this will default to the volume defined in I(restore)
     type: str
-    version_added: 2.8
   offload:
     description:
     - Name of offload target on which the snapshot exists.
@@ -72,19 +69,16 @@ options:
     - Whether to initiate a snapshot of the protection group immeadiately
     type: bool
     default: False
-    version_added: 2.9
   apply_retention:
     description:
     - Apply retention schedule settings to the snapshot
     type: bool
     default: False
-    version_added: 2.9
   remote:
     description:
     - Force immeadiate snapshot to remote targets
     type: bool
     default: False
-    version_added: 2.9
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 '''

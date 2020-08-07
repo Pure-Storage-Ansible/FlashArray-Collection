@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_pg
-version_added: '2.4'
+version_added: '1.0.0'
 short_description: Manage protection groups on Pure Storage FlashArrays
 description:
 - Create, delete or modify protection groups on Pure Storage FlashArrays.
@@ -39,14 +39,17 @@ options:
     description:
     - List of existing volumes to add to protection group.
     type: list
+    elements: str
   host:
     description:
     - List of existing hosts to add to protection group.
     type: list
+    elements: str
   hostgroup:
     description:
     - List of existing hostgroups to add to protection group.
     type: list
+    elements: str
   eradicate:
     description:
     - Define whether to eradicate the protection group on delete and leave in trash.
@@ -66,7 +69,7 @@ options:
     - Maximum number of targets per Portection Group is 4, assuming your
       configuration suppors this.
     type: list
-    version_added: '2.8'
+    elements: str
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 '''
@@ -448,10 +451,10 @@ def main():
     argument_spec.update(dict(
         pgroup=dict(type='str', required=True),
         state=dict(type='str', default='present', choices=['absent', 'present']),
-        volume=dict(type='list'),
-        host=dict(type='list'),
-        hostgroup=dict(type='list'),
-        target=dict(type='list'),
+        volume=dict(type='list', elements='str'),
+        host=dict(type='list', elements='str'),
+        hostgroup=dict(type='list', elements='str'),
+        target=dict(type='list', elements='str'),
         eradicate=dict(type='bool', default=False),
         enabled=dict(type='bool', default=True),
     ))

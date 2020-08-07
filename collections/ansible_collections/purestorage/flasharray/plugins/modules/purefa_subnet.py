@@ -16,6 +16,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = '''
 ---
 module: purefa_subnet
+version_added: '1.0.0'
 short_description:  Manage network subnets in a Pure Storage FlashArray
 description:
     - This module manages the network subnets on a Pure Storage FlashArray.

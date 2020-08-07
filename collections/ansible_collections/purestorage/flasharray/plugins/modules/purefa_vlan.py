@@ -16,6 +16,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = '''
 ---
 module: purefa_vlan
+version_added: '1.0.0'
 short_description:  Manage network VLAN interfaces in a Pure Storage FlashArray
 description:
     - This module manages the VLAN network interfaces on a Pure Storage FlashArray.

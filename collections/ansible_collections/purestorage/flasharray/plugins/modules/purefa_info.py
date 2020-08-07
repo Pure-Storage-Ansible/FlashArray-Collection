@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_info
-version_added: '2.9'
+version_added: '1.0.0'
 short_description: Collect information from Pure Storage FlashArray
 description:
   - Collect information from a Pure Storage Flasharray running the
@@ -33,6 +33,7 @@ options:
         admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
         arrays, certs and kmip.
     type: list
+    elements: str
     required: false
     default: minimum
 extends_documentation_fragment:
@@ -214,7 +215,7 @@ purefa_info:
                     "CT0.ETH4",
                     "CT1.ETH4"
                 ],
-                "wwn": []
+                "wwn": [],
             }
         },
         "interfaces": {
@@ -1113,7 +1114,7 @@ def generate_interfaces_dict(array):
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(dict(
-        gather_subset=dict(default='minimum', type='list',)
+        gather_subset=dict(default='minimum', type='list', elements='str')
     ))
 
     module = AnsibleModule(argument_spec, supports_check_mode=False)

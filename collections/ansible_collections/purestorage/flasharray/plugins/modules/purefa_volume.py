@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_volume
-version_added: '2.4'
+version_added: '1.0.0'
 short_description:  Manage volumes on Pure Storage FlashArrays
 description:
 - Create, delete or extend the capacity of a volume on Pure Storage FlashArray.
@@ -56,7 +56,6 @@ options:
       M will set MB/s
       G will set GB/s
       To clear an existing QoS setting use 0 (zero)
-    version_added: '2.8'
     type: str
     aliases: [ qos ]
   iops_qos:
@@ -65,7 +64,6 @@ options:
       K will mean 1000
       M will mean 1000000
       To clear an existing IOPs setting use 0 (zero)
-    version_added: '2.9'
     type: str
   move:
     description:

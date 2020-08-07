@@ -15,6 +15,7 @@ DOCUMENTATION = r'''
 ---
 module: purefa_inventory
 short_description: Collect information from Pure Storage FlashArray
+version_added: '1.0.0'
 description:
   - Collect hardware inventory information from a Pure Storage Flasharray
 author:

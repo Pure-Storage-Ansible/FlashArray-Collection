@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_ds
-version_added: '2.6'
+version_added: '1.0.0'
 short_description: Configure FlashArray Directory Service
 description:
 - Set or erase configuration for the directory service. There is no facility
@@ -38,6 +38,7 @@ options:
     type: bool
   uri:
     type: list
+    elements: str
     description:
     - A list of up to 30 URIs of the directory servers. Each URI must include
       the scheme ldap:// or ldaps:// (for LDAP over SSL), a hostname, and a
@@ -299,12 +300,12 @@ def create_ds(module, array):
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(dict(
-        uri=dict(type='list'),
+        uri=dict(type='list', elements='str'),
         state=dict(type='str', default='present', choices=['absent', 'present']),
         enable=dict(type='bool', default=False),
         bind_password=dict(type='str', no_log=True),
         bind_user=dict(type='str'),
-        base_dn=dict(type='str'),
+        base_dn=dict(type='str', required=True),
         group_base=dict(type='str'),
         ro_group=dict(type='str'),
         sa_group=dict(type='str'),

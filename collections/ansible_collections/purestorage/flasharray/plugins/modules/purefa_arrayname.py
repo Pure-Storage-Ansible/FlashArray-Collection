@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_arrayname
-version_added: '2.9'
+version_added: '1.0.0'
 short_description: Configure Pure Storage FlashArray array name
 description:
 - Configure name of array for Pure Storage FlashArrays.

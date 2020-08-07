@@ -15,6 +15,7 @@ DOCUMENTATION = r'''
 ---
 module: purefa_endpoint
 short_description:  Manage VMware protocol-endpoints on Pure Storage FlashArrays
+version_added: '1.0.0'
 description:
 - Create, delete or eradicate the an endpoint on a Pure Storage FlashArray.
 author:

@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_dsrole
-version_added: '2.8'
+version_added: '1.0.0'
 short_description: Configure FlashArray Directory Service Roles
 description:
 - Set or erase directory services role configurations.
@@ -32,6 +32,7 @@ options:
     description:
     - The directory service role to work on
     type: str
+    required: true
     choices: [ array_admin, ops_admin, readonly, storage_admin ]
   group_base:
     type: str

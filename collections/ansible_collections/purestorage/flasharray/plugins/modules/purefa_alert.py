@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: purefa_alert
-version_added: '2.9'
+version_added: '1.0.0'
 short_description: Configure Pure Storage FlashArray alert email settings
 description:
 - Configure alert email configuration for Pure Storage FlashArrays.
