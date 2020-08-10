@@ -17,7 +17,8 @@
 ##### ADDITIONAL INFORMATION
 <!--- Include additional information to help people understand the change here -->
 <!--- A step-by-step reproduction of the problem is helpful if there is no related issue -->
-
+- All new PRs must include a changelog fragment
+- Details of naming convention and format can be found [here](https://docs.ansible.com/ansible/latest/community/development_process.html#creating-a-changelog-fragment)
 <!--- Paste verbatim command output below, e.g. before and after your change -->
 ```paste below
 
