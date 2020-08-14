@@ -24,6 +24,8 @@ options:
   name:
     description:
     - The name of the volume.
+    - Volume could be created in a POD with this syntax POD_NAME::VOLUME_NAME.
+    - Volume could be created in a volume group with this syntax VG_NAME/VOLUME_NAME.
     type: str
     required: true
   target:
