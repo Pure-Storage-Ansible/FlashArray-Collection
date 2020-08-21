@@ -11,3 +11,6 @@ Ansible Collection for Pure Storage FlashArray
    :alt: Repository License
 .. |CLA-Assistant| image:: https://cla-assistant.io/readme/badge/Pure-Storage-Ansible/FlashArray-Collection
 .. |Pure-Storage-Ansible-CI| image:: https://github.com/Pure-Storage-Ansible/FlashArray-Collection/workflows/Pure%20Storage%20Ansible%20CI/badge.svg
+
+# FlashArray-Collection Modules
+View all available modules [here](collections/ansible_collections/purestorage/flasharray/plugins/modules).
