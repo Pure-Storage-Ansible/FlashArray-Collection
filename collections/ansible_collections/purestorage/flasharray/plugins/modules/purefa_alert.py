@@ -18,8 +18,6 @@ version_added: '1.0.0'
 short_description: Configure Pure Storage FlashArray alert email settings
 description:
 - Configure alert email configuration for Pure Storage FlashArrays.
-- Add or delete an individual syslog server to the existing
-  list of serves.
 author:
 - Simon Dodsley (@sdodsley)
 options:
