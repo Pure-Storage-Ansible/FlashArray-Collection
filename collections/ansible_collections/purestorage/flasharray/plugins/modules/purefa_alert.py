@@ -19,7 +19,7 @@ short_description: Configure Pure Storage FlashArray alert email settings
 description:
 - Configure alert email configuration for Pure Storage FlashArrays.
 author:
-- Simon Dodsley (@sdodsley)
+- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     type: str
