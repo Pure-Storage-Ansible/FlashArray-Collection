@@ -37,11 +37,15 @@ options:
     elements: str
     description:
     - List of existing hosts to add to hostgroup.
+    - Note that hostnames are case-sensitive however FlashArray hostnames are unique
+      and ignore case - you cannot have I(hosta) and I(hostA)
   volume:
     type: list
     elements: str
     description:
     - List of existing volumes to add to hostgroup.
+    - Note that volumes are case-sensitive however FlashArray volume names are unique
+      and ignore case - you cannot have I(volumea) and I(volumeA)
   lun:
     description:
     - LUN ID to assign to volume for hostgroup. Must be unique.
@@ -158,7 +162,9 @@ def update_hostgroup(module, array):
         volumes = array.list_hgroup_connections(module.params['hostgroup'])
         if module.params['state'] == "present":
             if module.params['host']:
-                new_hosts = list(set(module.params['host']).difference(hgroup['hosts']))
+                cased_hosts = [host.lower() for host in module.params['host']]
+                cased_hghosts = [host.lower() for host in hgroup['hosts']]
+                new_hosts = list(set(cased_hosts).difference(cased_hghosts))
                 if new_hosts:
                     try:
                         array.set_hgroup(module.params['hostgroup'], addhostlist=new_hosts)
@@ -168,7 +174,8 @@ def update_hostgroup(module, array):
             if module.params['volume']:
                 if volumes:
                     current_vols = [vol['vol'] for vol in volumes]
-                    new_volumes = list(set(module.params['volume']).difference(set(current_vols)))
+                    cased_vols = [vol.lower() for vol in module.params['volume']]
+                    new_volumes = list(set(cased_vols).difference(set(current_vols)))
                     if len(new_volumes) == 1 and module.params['lun']:
                         try:
                             array.connect_hgroup(module.params['hostgroup'], new_volumes[0], lun=module.params['lun'])
@@ -198,8 +205,9 @@ def update_hostgroup(module, array):
                                 module.fail_json(msg='Failed to connect volume {0} to hostgroup {1}.'.format(cvol, module.params['hostgroup']))
         else:
             if module.params['host']:
-                old_hosts = list(set(module.params['host']).intersection(hgroup['hosts']))
-                old_hosts = list(set(module.params['host']).intersection(hgroup['hosts']))
+                cased_old_hosts = [host.lower() for host in module.params['host']]
+                cased_hosts = [host.lower() for host in hgroup['hosts']]
+                old_hosts = list(set(cased_old_hosts).intersection(cased_hosts))
                 if old_hosts:
                     try:
                         array.set_hgroup(module.params['hostgroup'], remhostlist=old_hosts)
@@ -207,7 +215,8 @@ def update_hostgroup(module, array):
                     except Exception:
                         module.fail_json(msg='Failed to remove hosts {0} from hostgroup {1}'.format(old_hosts, module.params['hostgroup']))
             if module.params['volume']:
-                old_volumes = list(set(module.params['volume']).difference(set([vol['name'] for vol in volumes])))
+                cased_old_vols = [vol.lower() for vol in module.params['volume']]
+                old_volumes = list(set(cased_old_vols).difference(set([vol['name'].lower() for vol in volumes])))
                 for cvol in old_volumes:
                     try:
                         array.disconnect_hgroup(module.params['hostgroup'], cvol)
@@ -256,9 +265,6 @@ def main():
 
     state = module.params['state']
     array = get_system(module)
-    if module.params['host'] is not None:
-        new_hosts = [host.lower() for host in module.params['host']]
-        module.params['host'] = new_hosts
     hostgroup = get_hostgroup(module, array)
 
     if module.params['host']:

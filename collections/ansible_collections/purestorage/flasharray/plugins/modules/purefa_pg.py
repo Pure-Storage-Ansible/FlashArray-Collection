@@ -38,16 +38,22 @@ options:
   volume:
     description:
     - List of existing volumes to add to protection group.
+    - Note that volume are case-sensitive however FlashArray volume names are unique
+      and ignore case - you cannot have I(volumea) and I(volumeA)
     type: list
     elements: str
   host:
     description:
     - List of existing hosts to add to protection group.
+    - Note that hostnames are case-sensitive however FlashArray hostnames are unique
+      and ignore case - you cannot have I(hosta) and I(hostA)
     type: list
     elements: str
   hostgroup:
     description:
     - List of existing hostgroups to add to protection group.
+    - Note that hostgroups are case-sensitive however FlashArray hostgroup names are unique
+      and ignore case - you cannot have I(groupa) and I(groupA)
     type: list
     elements: str
   eradicate:
@@ -363,7 +369,9 @@ def update_pgroup(module, array):
                 except Exception:
                     module.fail_json(msg='Adding volumes to pgroup {0} failed.'.format(module.params['pgroup']))
             else:
-                if not all(x in get_pgroup(module, array)['volumes'] for x in module.params['volume']):
+                cased_vols = [vol.lower() for vol in module.params['volumes']]
+                cased_pgvols = [vol.lower() for vol in get_pgroup(module, array)['volumes']]
+                if not all(x in cased_pgvols for x in cased_vols):
                     try:
                         array.set_pgroup(module.params['pgroup'], vollist=module.params['volume'])
                         changed = True
@@ -373,31 +381,36 @@ def update_pgroup(module, array):
         if module.params['host'] and \
            get_pgroup(module, array)['volumes'] is None and \
            get_pgroup(module, array)['hgroups'] is None:
-            if not get_pgroup(module, array)['hosts'] is None:
+            if get_pgroup(module, array)['hosts'] is None:
                 try:
                     array.set_pgroup(module.params['pgroup'], hostlist=module.params['host'])
                     changed = True
                 except Exception:
                     module.fail_json(msg='Adding hosts to pgroup {0} failed.'.format(module.params['pgroup']))
             else:
-                if not all(x in get_pgroup(module, array)['hosts'] for x in module.params['host']):
+                cased_hosts = [host.lower() for host in module.params['host']]
+                cased_pghosts = [host.lower() for host in get_pgroup(module, array)['hosts']]
+                if not all(x in cased_pghosts for x in cased_hosts):
                     try:
                         array.set_pgroup(module.params['pgroup'], hostlist=module.params['host'])
                         changed = True
+                        module.warn('Hello')
                     except Exception:
                         module.fail_json(msg='Changing hosts in pgroup {0} failed.'.format(module.params['pgroup']))
 
         if module.params['hostgroup'] and \
            get_pgroup(module, array)['hosts'] is None and \
            get_pgroup(module, array)['volumes'] is None:
-            if not get_pgroup(module, array)['hgroups'] is None:
+            if get_pgroup(module, array)['hgroups'] is None:
                 try:
                     array.set_pgroup(module.params['pgroup'], hgrouplist=module.params['hostgroup'])
                     changed = True
                 except Exception:
                     module.fail_json(msg='Adding hostgroups to pgroup {0} failed.'.format(module.params['pgroup']))
             else:
-                if not all(x in get_pgroup(module, array)['hgroups'] for x in module.params['hostgroup']):
+                cased_hostg = [hostg.lower() for hostg in module.params['hostgroup']]
+                cased_pghostg = [hostg.lower() for hostg in get_pgroup(module, array)['hgroups']]
+                if not all(x in cased_pghostg for x in cased_hostg):
                     try:
                         array.set_pgroup(module.params['pgroup'], hgrouplist=module.params['hostgroup'])
                         changed = True
@@ -465,9 +478,6 @@ def main():
                            supports_check_mode=True)
 
     state = module.params['state']
-    if module.params['host'] is not None:
-        new_hosts = [host.lower() for host in module.params['host']]
-        module.params['host'] = new_hosts
     array = get_system(module)
     api_version = array._list_available_rest_versions()
     if ":" in module.params['pgroup'] and OFFLOAD_API_VERSION not in api_version:
