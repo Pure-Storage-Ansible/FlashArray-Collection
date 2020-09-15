@@ -693,8 +693,9 @@ def main():
         delete_volume(module, array)
     elif state == 'absent' and destroyed:
         eradicate_volume(module, array)
-    elif state == 'present' and not volume or not size:
-        module.fail_json(msg="Size must be specified to create a new volume")
+    elif state == 'present':
+        if not volume and not size:
+            module.fail_json(msg="Size must be specified to create a new volume")
     elif state == 'absent' and not volume:
         module.exit_json(changed=False)
 
