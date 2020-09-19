@@ -26,6 +26,8 @@ options:
   name:
     description:
     - The name of the host.
+    - Note that hostnames are case-sensitive however FlashArray hostnames are unique
+      and ignore case - you cannot have I(hosta) and I(hostA)
     type: str
     required: true
     aliases: [ host ]
@@ -113,21 +115,21 @@ extends_documentation_fragment:
 EXAMPLES = r'''
 - name: Create new AIX host
   purefa_host:
-    host: foo
+    name: foo
     personality: aix
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete host
   purefa_host:
-    host: foo
+    name: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
 
 - name: Make host bar with wwn ports
   purefa_host:
-    host: bar
+    name: bar
     protocol: fc
     wwns:
     - 00:00:00:00:00:00:00
@@ -137,7 +139,7 @@ EXAMPLES = r'''
 
 - name: Make host bar with iSCSI ports
   purefa_host:
-    host: bar
+    name: bar
     protocol: iscsi
     iqn:
     - iqn.1994-05.com.redhat:7d366003913
@@ -146,7 +148,7 @@ EXAMPLES = r'''
 
 - name: Make host bar with NVMe ports
   purefa_host:
-    host: bar
+    name: bar
     protocol: nvme
     nqn:
     - nqn.2014-08.com.vendor:nvme:nvm-subsystem-sn-d78432
@@ -155,7 +157,7 @@ EXAMPLES = r'''
 
 - name: Make mixed protocol host
   purefa_host:
-    host: bar
+    name: bar
     protocol: mixed
     nqn:
     - nqn.2014-08.com.vendor:nvme:nvm-subsystem-sn-d78432
@@ -169,7 +171,7 @@ EXAMPLES = r'''
 
 - name: Map host foo to volume bar as LUN ID 12
   purefa_host:
-    host: foo
+    name: foo
     volume: bar
     lun: 12
     fa_url: 10.10.10.2
@@ -177,7 +179,7 @@ EXAMPLES = r'''
 
 - name: Disconnect volume bar from host foo
   purefa_host:
-    host: foo
+    name: foo
     volume: bar
     state: absent
     fa_url: 10.10.10.2
@@ -185,7 +187,7 @@ EXAMPLES = r'''
 
 - name: Add preferred arrays to host foo
   purefa_host:
-    host: foo
+    name: foo
     preferred_array:
     - array1
     - array2
@@ -194,13 +196,13 @@ EXAMPLES = r'''
 
 - name: Delete preferred arrays from host foo
   purefa_host:
-    host: foo
+    name: foo
     preferred_array: delete
     fa_url: 10.10.10.2
 
 - name: Set CHAP target and host username/password pairs
   purefa_host:
-    host: foo
+    name: foo
     target_user: user1
     target_password: passwrodpassword
     host_user: user2
@@ -210,7 +212,7 @@ EXAMPLES = r'''
 
 - name: Delete CHAP target and host username/password pairs
   purefa_host:
-    host: foo
+    name: foo
     target_user: user
     target_password: clear
     host_user: user
@@ -465,7 +467,8 @@ def _update_preferred_array(module, array, answer=False):
 def get_host(module, array):
     host = None
     for hst in array.list_hosts():
-        if hst["name"] == module.params['name']:
+        if hst["name"].lower() == module.params['name'].lower():
+            module.params['name'] = hst["name"]
             host = hst
             break
     return host
@@ -536,6 +539,9 @@ def delete_host(module, array):
     changed = True
     if not module.check_mode:
         try:
+            hgroup = array.get_host(module.params['name'])['hgroup']
+            if hgroup is not None:
+                array.set_hgroup(hgroup, remhostlist=[module.params['name']])
             for vol in array.list_host_connections(module.params['name']):
                 array.disconnect_host(module.params['name'], vol["vol"])
             array.delete_host(module.params['name'])
