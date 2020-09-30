@@ -31,7 +31,7 @@ options:
         Possible values for this include all, minimum, config, performance,
         capacity, network, subnet, interfaces, hgroups, pgroups, hosts,
         admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
-        arrays, certs and kmip.
+        arrays, certs, kmip, clients, policies, dir_snaps and filesystems.
     type: list
     elements: str
     required: false
@@ -421,12 +421,22 @@ PREFERRED_API_VERSION = '1.15'
 P53_API_VERSION = '1.17'
 ACTIVE_DR_API = '1.19'
 V6_MINIMUM_API_VERSION = '2.2'
+FILES_API_VERSION = '2.3'
 
 
-def generate_default_dict(array):
+def generate_default_dict(module, array):
     default_info = {}
     defaults = array.get()
     api_version = array._list_available_rest_versions()
+    if FILES_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        default_info['snapshot_policies'] = len(arrayv6.get_policies_snapshot().items)
+        default_info['nfs_policies'] = len(arrayv6.get_policies_nfs().items)
+        default_info['smb_policies'] = len(arrayv6.get_policies_smb().items)
+        default_info['filesystems'] = len(arrayv6.get_file_systems().items)
+        default_info['directories'] = len(arrayv6.get_directories().items)
+        default_info['exports'] = len(arrayv6.get_directory_exports().items)
+        default_info['directory_snapshots'] = len(arrayv6.get_directory_snapshots().items)
     if AC_REQUIRED_API_VERSION in api_version:
         default_info['volume_groups'] = len(array.list_vgroups())
         default_info['connected_arrays'] = len(array.list_array_connections())
@@ -518,7 +528,107 @@ def generate_config_dict(module, array):
             'slp_enabled': smi_s.slp_enabled,
             'wbem_https_enabled': smi_s.wbem_https_enabled
         }
+    if FILES_API_VERSION in api_version:
+        try:
+            ad_accounts = list(array.get_active_directory().items)
+            for ad_account in range(0, len(ad_accounts)):
+                ad_name = ad_accounts[ad_account].name
+                config_info['active_directory'][ad_name] = ad_accounts[ad_account]
+        except Exception:
+            module.warn("FA-Files is not enabled on this array")
     return config_info
+
+
+def generate_filesystems_dict(array):
+    files_info = {}
+    filesystems = list(array.get_file_systems().items)
+    for filesystem in range(0, len(filesystems)):
+        fs_name = filesystems[filesystem].name
+        files_info[fs_name] = {
+            'destroyed': filesystems[filesystem].destroyed,
+            'directories': {},
+        }
+        directories = list(array.get_directories(file_system_names=[fs_name]).items)
+        for directory in range(0, len(directories)):
+            d_name = directories[directory].directory_name
+            files_info[fs_name]['directories'][d_name] = {
+                'path': directories[directory].path,
+                'data_reduction': directories[directory].space.data_reduction,
+                'snapshots_space': directories[directory].space.snapshots,
+                'total_physical_space': directories[directory].space.total_physical,
+                'unique_space': directories[directory].space.unique,
+                'virtual_space': directories[directory].space.virtual,
+                'destroyed': directories[directory].destroyed,
+                'full_name': directories[directory].name,
+                'exports': {}
+            }
+            exports = list(array.get_directory_exports(directory_names=[files_info[fs_name]['directories'][d_name]['full_name']]).items)
+            for export in range(0, len(exports)):
+                e_name = exports[export].export_name
+                files_info[fs_name]['directories'][d_name]['exports'][e_name] = {
+                    'enabled': exports[export].enabled,
+                    'policy': {
+                        'name': exports[export].policy.name,
+                        'type': exports[export].policy.resource_type
+                    }
+                }
+    return files_info
+
+
+def generate_dir_snaps_dict(array):
+    dir_snaps_info = {}
+    snapshots = list(array.get_directory_snapshots().items)
+    for snapshot in range(0, len(snapshots)):
+        s_name = snapshots[snapshot].name
+        dir_snaps_info[s_name] = {
+            'destroyed': snapshots[snapshot].destroyed,
+            'source': snapshots[snapshot].source.name,
+            'suffix': snapshots[snapshot].suffix,
+            'client_name': snapshots[snapshot].client_name,
+            'snapshot_space': snapshots[snapshot].space.snapshots,
+            'total_physical_space': snapshots[snapshot].space.total_physical,
+            'unique_space': snapshots[snapshot].space.unique,
+        }
+        try:
+            dir_snaps_info[s_name]['policy'] = snapshots[snapshot].policy.name
+        except Exception:
+            dir_snaps_info[s_name]['policy'] = ''
+        if dir_snaps_info[s_name]['destroyed']:
+            dir_snaps_info[s_name]['time_remaining'] = snapshots[snapshot].time_remaining
+    return dir_snaps_info
+
+
+def generate_policies_dict(array):
+    policy_info = {}
+    policies = list(array.get_policies().items)
+    for policy in range(0, len(policies)):
+        p_name = policies[policy].name
+        policy_info[p_name] = {
+            'type': policies[policy].policy_type,
+            'enabled': policies[policy].enabled,
+            'members': []
+        }
+        members = list(array.get_directories_policies(policy_names=[p_name]).items)
+        for member in range(0, len(members)):
+            m_name = members[member].member.name
+            policy_info[p_name]['members'].append(m_name)
+    return policy_info
+
+
+def generate_clients_dict(array):
+    clients_info = {}
+    clients = list(array.get_api_clients().items)
+    for client in range(0, len(clients)):
+        c_name = clients[client].name
+        clients_info[c_name] = {
+            'enabled': clients[client].enabled,
+            'TTL(seconds)': clients[client].access_token_ttl_in_ms / 1000,
+            'key_id': clients[client].key_id,
+            'client_id': clients[client].id,
+            'max_role': clients[client].max_role,
+            'public_key': clients[client].public_key
+        }
+    return clients_info
 
 
 def generate_admin_dict(array):
@@ -1119,12 +1229,14 @@ def main():
 
     module = AnsibleModule(argument_spec, supports_check_mode=False)
     array = get_system(module)
+    api_version = array._list_available_rest_versions()
 
     subset = [test.lower() for test in module.params['gather_subset']]
     valid_subsets = ('all', 'minimum', 'config', 'performance', 'capacity',
                      'network', 'subnet', 'interfaces', 'hgroups', 'pgroups',
                      'hosts', 'admins', 'volumes', 'snapshots', 'pods', 'replication',
-                     'vgroups', 'offload', 'apps', 'arrays', 'certs', 'kmip')
+                     'vgroups', 'offload', 'apps', 'arrays', 'certs', 'kmip',
+                     'clients', 'policies', 'dir_snaps', 'filesystems')
     subset_test = (test in valid_subsets for test in subset)
     if not all(subset_test):
         module.fail_json(msg="value must gather_subset must be one or more of: %s, got: %s"
@@ -1133,7 +1245,7 @@ def main():
     info = {}
 
     if 'minimum' in subset or 'all' in subset or 'apps' in subset:
-        info['default'] = generate_default_dict(array)
+        info['default'] = generate_default_dict(module, array)
     if 'performance' in subset or 'all' in subset:
         info['performance'] = generate_perf_dict(array)
     if 'config' in subset or 'all' in subset:
@@ -1181,6 +1293,16 @@ def main():
         info['certs'] = generate_certs_dict(array)
     if 'kmip' in subset or 'all' in subset:
         info['kmip'] = generate_kmip_dict(array)
+    if FILES_API_VERSION in api_version:
+        array_v6 = get_array(module)
+        if 'filesystems' in subset or 'all' in subset:
+            info['filesystems'] = generate_filesystems_dict(array_v6)
+        if 'policies' in subset or 'all' in subset:
+            info['policies'] = generate_policies_dict(array_v6)
+        if 'clients' in subset or 'all' in subset:
+            info['clients'] = generate_clients_dict(array_v6)
+        if 'dir_snaps' in subset or 'all' in subset:
+            info['dir_snaps'] = generate_dir_snaps_dict(array_v6)
 
     module.exit_json(changed=False, purefa_info=info)
 
