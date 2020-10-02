@@ -14,7 +14,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
     - some modules require higher versions of Purity
 - Some modules require specific Purity versions
 - purestorage >=v1.19
-- py-pure-client >=v1.6
+- py-pure-client >=v1.8
 - Python >=v2.7
 - netaddr
 
@@ -29,11 +29,14 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_banner - manage the CLI and GUI login banner of the FlashArray
 - purefa_connect - manage FlashArrays connecting for replication purposes
 - purefa_console - manage Console Lock setting for the FlashArray
+- purefa_directory - manage FlashArray managed fire system directories
 - purefa_dns - manage the DNS settings of the FlashArray
 - purefa_ds - manage the Directory Services of the FlashArray
 - purefa_dsrole - manage the Directory Service Roles of the FlashArray
 - purefa_endpoint - manage VMware protocol-endpoints on the FlashArray
+- purefa_export - manage FlashArrray managed file system exports
 - purefa_eula - sign, or resign, FlashArray EULA
+- purefa_fs - manage FlashArray managed file systems
 - purefa_hg - manage hostgroups on the FlashArray
 - purefa_host - manage hosts on the FlashArray
 - purefa_info - get information regarding the configuration of the Flasharray
