@@ -142,13 +142,15 @@ def create_export(module, array):
                 all_policies.append(module.params['smb_policy'])
         if all_policies:
             export = flasharray.DirectoryExportPost(export_name=module.params['name'])
-            if bool(array.post_directory_exports(directory_names=[module.params['filesystem'] + ":" + module.params['directory']],
-                                                 exports=export,
-                                                 policy_names=all_policies).status_code == 200):
+            res = array.post_directory_exports(directory_names=[module.params['filesystem'] + ":" + module.params['directory']],
+                                               exports=export,
+                                               policy_names=all_policies)
+            if res.sttaus_code == 200:
                 changed = True
             else:
-                module.fail_json(msg="Failed to create file system exports for {0}:{1}".format(module.params['filesystem'],
-                                                                                               module.params['directory']))
+                module.fail_json(msg="Failed to create file system exports for {0}:{1}. Error: {2}".format(module.params['filesystem'],
+                                                                                                           module.params['directory'],
+                                                                                                           res.errors[0].message))
     module.exit_json(changed=changed)
 
 
