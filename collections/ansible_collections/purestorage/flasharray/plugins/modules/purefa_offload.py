@@ -38,7 +38,7 @@ options:
     description:
     - Define which protocol the offload engine uses
     default: nfs
-    choices: [ nfs, s3, azure ]
+    choices: [ nfs, s3, azure, gcp ]
     type: str
   address:
     description:
@@ -58,7 +58,7 @@ options:
     type: str
   access_key:
     description:
-    - Access Key ID of the S3 target
+    - Access Key ID of the offload target
     type: str
   container:
     description:
@@ -67,7 +67,7 @@ options:
     type: str
   bucket:
     description:
-    - Name of the bucket for the S3 target
+    - Name of the bucket for the S3 or GCP target
     type: str
   account:
     description:
@@ -75,11 +75,11 @@ options:
     type: str
   secret:
     description:
-    - Secret Access Key for the S3 or Azure target
+    - Secret Access Key for the offload target
     type: str
   initialize:
     description:
-    - Define whether to initialize the S3 bucket
+    - Define whether to initialize the offload bucket
     type: bool
     default: true
   placement:
@@ -137,15 +137,23 @@ EXAMPLES = r'''
 RETURN = r'''
 '''
 
+
+HAS_PURESTORAGE = True
+try:
+    from pypureclient import flasharray
+except ImportError:
+    HAS_PURESTORAGE = False
+
 import re
 from distutils.version import LooseVersion
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_array, get_system, purefa_argument_spec
 
 MIN_REQUIRED_API_VERSION = '1.16'
 REGEX_TARGET_NAME = re.compile(r"^[a-zA-Z0-9\-]*$")
 P53_API_VERSION = '1.17'
+GCP_API_VERSION = '2.3'
 
 
 def get_target(module, array):
@@ -208,6 +216,16 @@ def create_offload(module, array):
             except Exception:
                 module.fail_json(msg='Failed to create Azure offload {0}. '
                                      'Please perform diagnostic checks.'.format(module.params['name']))
+        if module.params['protocol'] == 'gcp' and GCP_API_VERSION in api_version:
+            arrayv6 = get_array(module)
+            bucket = flasharray.OffloadGoogleCloud(access_key_id=module.params['access_key'],
+                                                   bucket=module.params['bucket'],
+                                                   secret_access_key=module.params['secret'])
+            offload = flasharray.OffloadPost(google_cloud=bucket)
+            res = arrayv6.post_offloads(offload=offload, initialize=module.params['initialize'], names=[module.params['name']])
+            if res.status_code != 200:
+                module.fail_json(msg='Failed to create GCP offload {0}. Error: {1}'
+                                     'Please perform diagnostic checks.'.format(module.params['name'], res.errors[0].message))
     module.exit_json(changed=changed)
 
 
@@ -244,7 +262,7 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(dict(
         state=dict(type='str', default='present', choices=['present', 'absent']),
-        protocol=dict(type='str', default='nfs', choices=['nfs', 's3', 'azure']),
+        protocol=dict(type='str', default='nfs', choices=['nfs', 's3', 'azure', 'gcp']),
         placement=dict(type='str', default='retention-based', choices=['retention-based', 'aws-standard-class']),
         name=dict(type='str', required=True),
         initialize=dict(default=True, type='bool'),
@@ -264,12 +282,16 @@ def main():
         required_if = [
             ('protocol', 'nfs', ['address', 'share']),
             ('protocol', 's3', ['access_key', 'secret', 'bucket']),
+            ['protocol', 'gcp', ['access_key', 'secret', 'bucket']],
             ('protocol', 'azure', ['account', 'secret'])
         ]
 
     module = AnsibleModule(argument_spec,
                            required_if=required_if,
                            supports_check_mode=True)
+
+    if not HAS_PURESTORAGE and module.params['protocol'] == 'gcp':
+        module.fail_json(msg='py-pure-client sdk is required for this module')
 
     array = get_system(module)
     api_version = array._list_available_rest_versions()
@@ -282,7 +304,7 @@ def main():
         module.fail_json(msg='Target name invalid. '
                              'Target name must be between 1 and 56 characters (alphanumeric and -) in length '
                              'and begin and end with a letter or number. The name must include at least one letter.')
-    if module.params['protocol'] == "s3":
+    if module.params['protocol'] in ['s3', 'gcp']:
         if not re.match(r"^[a-z0-9][a-z0-9.\-]*[a-z0-9]$", module.params['bucket']) or \
            len(module.params['bucket']) > 63:
             module.fail_json(msg='Bucket name invalid. '
