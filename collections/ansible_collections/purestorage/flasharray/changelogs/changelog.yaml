@@ -45,3 +45,46 @@ releases:
     fragments:
     - v1.4.0_summary.yaml
     release_date: '2020-08-06'
+  1.5.0:
+    changes:
+      bugfixes:
+      - purefa_host - Correctly remove host that is in a hostgroup
+      - purefa_volume - Fix failing idempotency on eradicate volume
+      minor_changes:
+      - purefa_apiclient - New module to support API Client management
+      - purefa_directory - Add support for managed directories
+      - purefa_export - Add support for filesystem exports
+      - purefa_fs - Add filesystem management support
+      - purefa_hg - Enforce case-sensitivity rules for hostgroup objects
+      - purefa_host - Enforce hostname case-sensitivity rules
+      - purefa_info - Add support for FA Files features
+      - purefa_offload - Add support for Google Cloud offload target
+      - purefa_pg - Enforce case-sensitivity rules for protection group objects
+      - purefa_policy - Add support for NFS, SMB and Snapshot policy management
+    fragments:
+    - 107_host_case_clarity.yaml
+    - 108_fix_eradicate_idempotency.yaml
+    - 109_fa_files_support_purefa_info.yaml
+    - 110_add_apiclient_support.yaml
+    - 111_add_filesystem_support.yaml
+    - 112_add_directory_support.yaml
+    - 113_add_exports_support.yaml
+    - 115_add_gcp_offload.yaml
+    - 116_add_policies.yaml
+    modules:
+    - description: Manage FlashArray API Clients
+      name: purefa_apiclient
+      namespace: ''
+    - description: Manage FlashArray File System Directories
+      name: purefa_directory
+      namespace: ''
+    - description: Manage FlashArray File System Exports
+      name: purefa_export
+      namespace: ''
+    - description: Manage FlashArray File Systems
+      name: purefa_fs
+      namespace: ''
+    - description: Manage FlashArray File System Policies
+      name: purefa_policy
+      namespace: ''
+    release_date: '2020-10-14'

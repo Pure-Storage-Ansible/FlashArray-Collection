@@ -5,6 +5,38 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.5.0
+======
+
+Minor Changes
+-------------
+
+- purefa_apiclient - New module to support API Client management
+- purefa_directory - Add support for managed directories
+- purefa_export - Add support for filesystem exports
+- purefa_fs - Add filesystem management support
+- purefa_hg - Enforce case-sensitivity rules for hostgroup objects
+- purefa_host - Enforce hostname case-sensitivity rules
+- purefa_info - Add support for FA Files features
+- purefa_offload - Add support for Google Cloud offload target
+- purefa_pg - Enforce case-sensitivity rules for protection group objects
+- purefa_policy - Add support for NFS, SMB and Snapshot policy management
+
+Bugfixes
+--------
+
+- purefa_host - Correctly remove host that is in a hostgroup
+- purefa_volume - Fix failing idempotency on eradicate volume
+
+New Modules
+-----------
+
+- purestorage.flasharray.purefa_apiclient - Manage FlashArray API Clients
+- purestorage.flasharray.purefa_directory - Manage FlashArray File System Directories
+- purestorage.flasharray.purefa_export - Manage FlashArray File System Exports
+- purestorage.flasharray.purefa_fs - Manage FlashArray File Systems
+- purestorage.flasharray.purefa_policy - Manage FlashArray File System Policies
+
 v1.4.0
 ======
 
