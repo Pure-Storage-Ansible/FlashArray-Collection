@@ -31,6 +31,12 @@ options:
     type: str
     required: true
     aliases: [ host ]
+  rename:
+    description:
+    - The name to rename to.
+    - Note that hostnames are case-sensitive however FlashArray hostnames are unique
+      and ignore case - you cannot have I(hosta) and I(hostA)
+    type: str
   state:
     description:
     - Define whether the host should exist or not.
@@ -117,6 +123,13 @@ EXAMPLES = r'''
   purefa_host:
     name: foo
     personality: aix
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Rename host foo to bar
+  purefa_host:
+    name: foo
+    rename: bar
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
@@ -474,6 +487,15 @@ def get_host(module, array):
     return host
 
 
+def rename_exists(module, array):
+    exists = False
+    for hst in array.list_hosts():
+        if hst["name"].lower() == module.params['rename'].lower():
+            exists = True
+            break
+    return exists
+
+
 def make_host(module, array):
     changed = True
     if not module.check_mode:
@@ -504,8 +526,20 @@ def make_host(module, array):
 
 def update_host(module, array):
     changed = True
+    renamed = False
     if not module.check_mode:
         if module.params['state'] == 'present':
+            if module.params['rename']:
+                if not rename_exists(module, array):
+                    try:
+                        array.rename_host(module.params['name'], module.params['rename'])
+                        module.params['name'] = module.params['rename']
+                        renamed = True
+                    except Exception:
+                        module.fail_json(msg='Rename to {0} failed.'.format(module.params['rename']))
+                else:
+                    module.warn('Rename failed. Target hostname {0} already exists. '
+                                'Continuing with any other changes...'.format(module.params['rename']))
             init_changed = vol_changed = pers_changed = pref_changed = chap_changed = False
             volumes = array.list_host_connections(module.params['name'])
             if module.params['iqn'] or module.params['wwns'] or module.params['nqn']:
@@ -523,7 +557,7 @@ def update_host(module, array):
                     pref_changed = _update_preferred_array(module, array)
             if module.params['target_user'] or module.params['host_user']:
                 chap_changed = _update_chap_security(module, array)
-            changed = init_changed or vol_changed or pers_changed or pref_changed or chap_changed
+            changed = init_changed or vol_changed or pers_changed or pref_changed or chap_changed or renamed
         else:
             if module.params['volume']:
                 volumes = array.list_host_connections(module.params['name'])
@@ -564,6 +598,7 @@ def main():
         target_password=dict(type='str', no_log=True),
         target_user=dict(type='str'),
         volume=dict(type='str'),
+        rename=dict(type='str'),
         lun=dict(type='int'),
         personality=dict(type='str', default='',
                          choices=['hpux', 'vms', 'aix', 'esxi', 'solaris',
@@ -579,6 +614,10 @@ def main():
     array = get_system(module)
     module.params['name'] = module.params['name'].lower()
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
+    if module.params['rename']:
+        module.params['rename'] = module.params['rename'].lower()
+        if not pattern.match(module.params['rename']):
+            module.fail_json(msg='Rename value {0} does not conform to naming convention'.format(module.params['rename']))
     if not pattern.match(module.params['name']):
         module.fail_json(msg='Host name {0} does not conform to naming convention'.format(module.params['name']))
     if _is_cbs(array):
@@ -619,8 +658,10 @@ def main():
         except Exception:
             module.fail_json(msg='Failed to get existing array connections.')
 
-    if host is None and state == 'present':
+    if host is None and state == 'present' and not module.params['rename']:
         make_host(module, array)
+    elif host is None and state == 'present' and module.params['rename']:
+        module.exit_json(changed=False)
     elif host and state == 'present':
         update_host(module, array)
     elif host and state == 'absent' and module.params['volume']:
@@ -629,6 +670,8 @@ def main():
         delete_host(module, array)
     elif host is None and state == 'absent':
         module.exit_json(changed=False)
+
+    module.exit_json(changed=False)
 
 
 if __name__ == '__main__':
