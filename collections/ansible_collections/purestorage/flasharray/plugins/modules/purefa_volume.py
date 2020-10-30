@@ -355,9 +355,7 @@ def create_volume(module, array):
         if module.params['bw_qos'] or module.params['iops_qos']:
             if module.params['bw_qos'] and QOS_API_VERSION in api_version:
                 if module.params['iops_qos'] and IOPS_API_VERSION in api_version:
-                    module.warn("here3")
                     if module.params['bw_qos'] and not module.params['iops_qos']:
-                        module.warn("here4")
                         if 549755813888 >= int(human_to_bytes(module.params['bw_qos'])) >= 1048576:
                             try:
                                 volfact = array.create_volume(module.params['name'],
@@ -368,7 +366,6 @@ def create_volume(module, array):
                         else:
                             module.fail_json(msg='Bandwidth QoS value {0} out of range.'.format(module.params['bw_qos']))
                     elif module.params['iops_qos'] and not module.params['bw_qos']:
-                        module.warn("here5")
                         if 100000000 >= int(human_to_real(module.params['iops_qos'])) >= 100:
                             try:
                                 volfact = array.create_volume(module.params['name'],
