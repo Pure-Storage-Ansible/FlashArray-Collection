@@ -26,6 +26,10 @@ options:
     - The name of the volume.
     - Volume could be created in a POD with this syntax POD_NAME::VOLUME_NAME.
     - Volume could be created in a volume group with this syntax VG_NAME/VOLUME_NAME.
+    - Multi-volume support available from Purity//FA 6.0.0
+      B(***NOTE***) Manual deletion or eradication of individual volumes created
+      using multi-volume will cause idempotency to fail
+    - Multi-volume support only exists for volume creation
     type: str
     required: true
   target:
@@ -51,6 +55,33 @@ options:
   size:
     description:
     - Volume size in M, G, T or P units.
+    type: str
+  count:
+    description:
+    - Number of volumes to be created in a multiple volume creation
+    - Only supported from Purity//FA v6.0.0 and higher
+    type: int
+  start:
+    description:
+    - Number at which to start the multiple volume creation index
+    - Only supported from Purity//FA v6.0.0 and higher
+    type: int
+    default: 0
+  digits:
+    description:
+    - Number of digits to use for multiple volume count. This
+      will pad the index number with zeros where necessary
+    - Only supported from Purity//FA v6.0.0 and higher
+    - Range is between 1 and 10
+    type: int
+    default: 1
+  suffix:
+    description:
+    - Suffix string, if required, for multiple volume create
+    - Volume names will be formed as I(<name>#I<suffix>), where
+      I(#) is a placeholder for the volume index
+      See associated descriptions
+    - Only supported from Purity//FA v6.0.0 and higher
     type: str
   bw_qos:
     description:
@@ -100,6 +131,18 @@ EXAMPLES = r'''
   purefa_volume:
     name: bar::foo
     size: 1T
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+    state: present
+
+- name: Create 10 volumes with index starting at 10 but padded with 3 digits
+  purefa_volume:
+    name: foo
+    size: 1T
+    suffix: bar
+    count: 10
+    start: 10
+    digits: 3
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: present
@@ -200,8 +243,15 @@ volume:
             type: int
 '''
 
+HAS_PURESTORAGE = True
+try:
+    from pypureclient import flasharray
+except ImportError:
+    HAS_PURESTORAGE = False
+
+import time
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_array, get_system, purefa_argument_spec
 
 
 QOS_API_VERSION = "1.14"
@@ -209,6 +259,7 @@ VGROUPS_API_VERSION = "1.13"
 POD_API_VERSION = "1.13"
 AC_QOS_VERSION = "1.16"
 IOPS_API_VERSION = "1.17"
+MULTI_VOLUME_VERSION = "2.2"
 
 
 def human_to_bytes(size):
@@ -217,7 +268,7 @@ def human_to_bytes(size):
        unexpected form.
     """
     bytes = size[:-1]
-    unit = size[-1]
+    unit = size[-1].upper()
     if bytes.isdigit():
         bytes = int(bytes)
         if unit == 'P':
@@ -243,8 +294,10 @@ def human_to_real(iops):
        unexpected form.
     """
     digit = iops[:-1]
-    unit = iops[-1]
-    if digit.isdigit():
+    unit = iops[-1].upper()
+    if unit.isdigit():
+        digit = iops
+    elif digit.isdigit():
         digit = int(digit)
         if unit == 'M':
             digit *= 1000000
@@ -255,6 +308,15 @@ def human_to_real(iops):
     else:
         digit = 0
     return digit
+
+
+def get_multi_volumes(module, destroyed=False):
+    """Return True is all volumes exist or None"""
+    names = []
+    array = get_array(module)
+    for vol_num in range(module.params['start'], module.params['count'] + module.params['start']):
+        names.append(module.params['name'] + str(vol_num).zfill(module.params['digits']) + module.params['suffix'])
+    return bool(array.get_volumes(names=names, destroyed=destroyed).status_code == 200)
 
 
 def get_volume(module, array):
@@ -356,7 +418,7 @@ def create_volume(module, array):
             if module.params['bw_qos'] and QOS_API_VERSION in api_version:
                 if module.params['iops_qos'] and IOPS_API_VERSION in api_version:
                     if module.params['bw_qos'] and not module.params['iops_qos']:
-                        if 549755813888 >= int(human_to_bytes(module.params['bw_qos'])) >= 1048576:
+                        if int(human_to_bytes(module.params['bw_qos'])) in range(1048576, 549755813888):
                             try:
                                 volfact = array.create_volume(module.params['name'],
                                                               module.params['size'],
@@ -377,7 +439,7 @@ def create_volume(module, array):
                             module.fail_json(msg='IOPs QoS value {0} out of range.'.format(module.params['iops_qos']))
                     else:
                         bw_qos_size = int(human_to_bytes(module.params['bw_qos']))
-                        if 100000000 >= int(human_to_real(module.params['iops_qos'])) >= 100 and 549755813888 >= bw_qos_size >= 1048576:
+                        if int(human_to_real(module.params['iops_qos'])) in range(100, 100000000) and bw_qos_size in range(1048576, 549755813888):
                             try:
                                 volfact = array.create_volume(module.params['name'],
                                                               module.params['size'],
@@ -389,7 +451,7 @@ def create_volume(module, array):
                             module.fail_json(msg='IOPs or Bandwidth QoS value out of range.')
                 else:
                     if module.params['bw_qos']:
-                        if 549755813888 >= int(human_to_bytes(module.params['bw_qos'])) >= 1048576:
+                        if int(human_to_bytes(module.params['bw_qos'])) in range(1048576, 549755813888):
                             try:
                                 volfact = array.create_volume(module.params['name'],
                                                               module.params['size'],
@@ -410,6 +472,71 @@ def create_volume(module, array):
                 module.fail_json(msg='Volume {0} creation failed.'.format(module.params['name']))
 
     module.exit_json(changed=changed, volume=volfact)
+
+
+def create_multi_volume(module, array):
+    """Create Volume"""
+    changed = True
+    volfact = {}
+    if not module.check_mode:
+        bw_qos_size = iops_qos_size = 0
+        names = []
+        if "/" in module.params['name'] and not check_vgroup(module, array):
+            module.fail_json(msg="Multi-volume create failed. Volume Group {0} does not exist.".format(module.params["name"].split('/')[0]))
+        if "::" in module.params['name']:
+            if not check_pod(module, array):
+                module.fail_json(msg="Multi-volume create failed. Pod {0} does not exist".format(module.params["name"].split(':')[0]))
+        array = get_array(module)
+        for vol_num in range(module.params['start'], module.params['count'] + module.params['start']):
+            names.append(module.params['name'] + str(vol_num).zfill(module.params['digits']) + module.params['suffix'])
+        if module.params['bw_qos']:
+            bw_qos = int(human_to_bytes(module.params['bw_qos']))
+            if bw_qos in range(1048576, 549755813888):
+                bw_qos_size = bw_qos
+            else:
+                module.fail_json(msg='Bandwidth QoS value out of range.')
+        if module.params['iops_qos']:
+            iops_qos = int(human_to_real(module.params['iops_qos']))
+            if iops_qos in range(100, 100000000):
+                iops_qos_size = iops_qos
+            else:
+                module.fail_json(msg='IOPs QoS value out of range.')
+        if bw_qos_size != 0 and iops_qos_size != 0:
+            vols = flasharray.VolumePost(provisioned=human_to_bytes(module.params['size']),
+                                         qos=flasharray.Qos(bandwidth_limit=bw_qos_size,
+                                                            iops_limit=iops_qos_size),
+                                         subtype='regular')
+        elif bw_qos_size == 0 and iops_qos_size == 0:
+            vols = flasharray.VolumePost(provisioned=human_to_bytes(module.params['size']),
+                                         subtype='regular')
+        elif bw_qos_size == 0 and iops_qos_size != 0:
+            vols = flasharray.VolumePost(provisioned=human_to_bytes(module.params['size']),
+                                         qos=flasharray.Qos(iops_limit=iops_qos_size),
+                                         subtype='regular')
+        elif bw_qos_size != 0 and iops_qos_size == 0:
+            vols = flasharray.VolumePost(provisioned=human_to_bytes(module.params['size']),
+                                         qos=flasharray.Qos(bandwidth_limit=bw_qos_size),
+                                         subtype='regular')
+        res = array.post_volumes(names=names, volume=vols)
+        if res.status_code != 200:
+            module.fail_json(msg='Multi-Volume {0}#{1} creation failed: {2}'.format(module.params['name'],
+                                                                                    module.params['suffix'],
+                                                                                    res.errors[0].message))
+        else:
+            temp = list(res.items)
+            for count in range(0, len(temp)):
+                vol_name = temp[count].name
+                volfact[vol_name] = {
+                    'size': temp[count].provisioned,
+                    'serial': temp[count].serial,
+                    'created': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(temp[count].created / 1000)),
+                }
+                if bw_qos_size != 0:
+                    volfact[vol_name]['bandwidth_limit'] = temp[count].qos.bandwidth_limit
+                if iops_qos_size != 0:
+                    volfact[vol_name]['iops_limit'] = temp[count].qos.iops_limit
+
+    module.exit_json(changed=changed, volfact=volfact)
 
 
 def copy_from_volume(module, array):
@@ -474,7 +601,7 @@ def update_volume(module, array):
                         change = True
                     except Exception:
                         module.fail_json(msg='Volume {0} Bandwidth QoS removal failed.'.format(module.params['name']))
-                elif 549755813888 >= int(human_to_bytes(module.params['bw_qos'])) >= 1048576:
+                elif int(human_to_bytes(module.params['bw_qos'])) in range(1048576, 549755813888):
                     try:
                         volfact = array.set_volume(module.params['name'],
                                                    bandwidth_limit=module.params['bw_qos'])
@@ -491,7 +618,7 @@ def update_volume(module, array):
                         change = True
                     except Exception:
                         module.fail_json(msg='Volume {0} IOPs QoS removal failed.'.format(module.params['name']))
-                elif 100000000 >= int(human_to_real(module.params['iops_qos'])) >= 100:
+                elif int(human_to_real(module.params['iops_qos'])) in range(100, 100000000):
                     try:
                         volfact = array.set_volume(module.params['name'],
                                                    iops_limit=module.params['iops_qos'])
@@ -680,6 +807,10 @@ def main():
         state=dict(type='str', default='present', choices=['absent', 'present']),
         bw_qos=dict(type='str', aliases=['qos']),
         iops_qos=dict(type='str'),
+        count=dict(type='int'),
+        start=dict(type='int', default=0),
+        digits=dict(type='int', default=1),
+        suffix=dict(type='str'),
         size=dict(type='str'),
     ))
 
@@ -698,6 +829,7 @@ def main():
     destroyed = False
     array = get_system(module)
     volume = get_volume(module, array)
+    api_version = array._list_available_rest_versions()
     endpoint = get_endpoint(module.params['name'], array)
 
     if endpoint:
@@ -706,32 +838,50 @@ def main():
     if not volume:
         destroyed = get_destroyed_volume(module.params['name'], array)
     target = get_target(module, array)
-
-    if state == 'present' and not volume and not destroyed and size:
-        create_volume(module, array)
-    elif state == 'present' and volume and (size or bw_qos or iops_qos):
-        update_volume(module, array)
-    elif state == 'present' and volume and module.params['move']:
-        move_volume(module, array)
-    elif state == 'present' and volume and module.params['rename']:
-        rename_volume(module, array)
-    elif state == 'present' and destroyed and not module.params['move'] and not module.params['rename']:
-        recover_volume(module, array)
-    elif state == 'present' and destroyed and module.params['move']:
-        module.fail_json(msg='Volume {0} exists, but in destroyed state'.format(module.params['name']))
-    elif state == 'present' and volume and target:
-        copy_from_volume(module, array)
-    elif state == 'present' and volume and not target:
-        copy_from_volume(module, array)
-    elif state == 'absent' and volume:
-        delete_volume(module, array)
-    elif state == 'absent' and destroyed:
-        eradicate_volume(module, array)
-    elif state == 'present':
-        if not volume and not size:
+    if module.params['count']:
+        if not HAS_PURESTORAGE:
+            module.fail_json(msg='py-pure-client sdk is required to support \'count\' parameter')
+        if MULTI_VOLUME_VERSION not in api_version:
+            module.fail_json(msg='\'count\' parameter is not supported until Purity//FA 6.0.0 or higher')
+        if module.params['digits'] and module.params['digits'] not in range(1, 10):
+            module.fail_json(msg='\'digits\' must be in the range of 1 to 10')
+        if module.params['start'] < 0:
+            module.fail_json(msg='\'start\' must be a positive number')
+        volume = get_multi_volumes(module)
+        if state == 'present' and not volume and size:
+            create_multi_volume(module, array)
+        elif state == 'present' and not volume and not size:
             module.fail_json(msg="Size must be specified to create a new volume")
-    elif state == 'absent' and not volume:
-        module.exit_json(changed=False)
+        elif state == 'absent' and not volume:
+            module.exit_json(changed=False)
+        else:
+            module.warn('Method not yet supported for multi-volume')
+    else:
+        if state == 'present' and not volume and not destroyed and size:
+            create_volume(module, array)
+        elif state == 'present' and volume and (size or bw_qos or iops_qos):
+            update_volume(module, array)
+        elif state == 'present' and volume and module.params['move']:
+            move_volume(module, array)
+        elif state == 'present' and volume and module.params['rename']:
+            rename_volume(module, array)
+        elif state == 'present' and destroyed and not module.params['move'] and not module.params['rename']:
+            recover_volume(module, array)
+        elif state == 'present' and destroyed and module.params['move']:
+            module.fail_json(msg='Volume {0} exists, but in destroyed state'.format(module.params['name']))
+        elif state == 'present' and volume and target:
+            copy_from_volume(module, array)
+        elif state == 'present' and volume and not target:
+            copy_from_volume(module, array)
+        elif state == 'absent' and volume:
+            delete_volume(module, array)
+        elif state == 'absent' and destroyed:
+            eradicate_volume(module, array)
+        elif state == 'present':
+            if not volume and not size:
+                module.fail_json(msg="Size must be specified to create a new volume")
+        elif state == 'absent' and not volume:
+            module.exit_json(changed=False)
 
     module.exit_json(changed=False)
 
