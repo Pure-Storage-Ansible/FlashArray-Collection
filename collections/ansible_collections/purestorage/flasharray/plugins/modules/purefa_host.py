@@ -28,6 +28,10 @@ options:
     - The name of the host.
     - Note that hostnames are case-sensitive however FlashArray hostnames are unique
       and ignore case - you cannot have I(hosta) and I(hostA)
+    - Multi-host support available from Purity//FA 6.0.0
+      B(***NOTE***) Manual deletion of individual hosts created
+      using multi-host will cause idempotency to fail
+    - Multi-host support only exists for host creation
     type: str
     required: true
     aliases: [ host ]
@@ -75,6 +79,33 @@ options:
     - If not provided the ID will be automatically assigned.
     - Range for LUN ID is 1 to 4095.
     type: int
+  count:
+    description:
+    - Number of hosts to be created in a multiple host creation
+    - Only supported from Purity//FA v6.0.0 and higher
+    type: int
+  start:
+    description:
+    - Number at which to start the multiple host creation index
+    - Only supported from Purity//FA v6.0.0 and higher
+    type: int
+    default: 0
+  digits:
+    description:
+    - Number of digits to use for multiple host count. This
+      will pad the index number with zeros where necessary
+    - Only supported from Purity//FA v6.0.0 and higher
+    - Range is between 1 and 10
+    type: int
+    default: 1
+  suffix:
+    description:
+    - Suffix string, if required, for multiple host create
+    - Host names will be formed as I(<name>#I<suffix>), where
+      I(#) is a placeholder for the host index
+      See associated descriptions
+    - Only supported from Purity//FA v6.0.0 and higher
+    type: str
   personality:
     type: str
     description:
@@ -125,6 +156,18 @@ EXAMPLES = r'''
     personality: aix
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Create 10 hosts with index starting at 10 but padded with 3 digits
+  purefa_host:
+    name: foo
+    personality: vms
+    suffix: bar
+    count: 10
+    start: 10
+    digits: 3
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+    state: present
 
 - name: Rename host foo to bar
   purefa_host:
@@ -237,14 +280,21 @@ EXAMPLES = r'''
 RETURN = r'''
 '''
 
+HAS_PURESTORAGE = True
+try:
+    from pypureclient import flasharray
+except ImportError:
+    HAS_PURESTORAGE = False
+
 import re
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_array, get_system, purefa_argument_spec
 
 
 AC_REQUIRED_API_VERSION = '1.14'
 PREFERRED_ARRAY_API_VERSION = '1.15'
 NVME_API_VERSION = '1.16'
+MULTI_HOST_VERSION = '2.2'
 
 
 def _is_cbs(array, is_cbs=False):
@@ -477,7 +527,17 @@ def _update_preferred_array(module, array, answer=False):
     return answer
 
 
+def get_multi_hosts(module):
+    """Return True is all hosts exist"""
+    hosts = []
+    array = get_array(module)
+    for host_num in range(module.params['start'], module.params['count'] + module.params['start']):
+        hosts.append(module.params['name'] + str(host_num).zfill(module.params['digits']) + module.params['suffix'])
+    return bool(array.get_hosts(names=hosts).status_code == 200)
+
+
 def get_host(module, array):
+    """Return host or None"""
     host = None
     for hst in array.list_hosts():
         if hst["name"].lower() == module.params['name'].lower():
@@ -488,6 +548,7 @@ def get_host(module, array):
 
 
 def rename_exists(module, array):
+    """Determine if rename target already exists"""
     exists = False
     for hst in array.list_hosts():
         if hst["name"].lower() == module.params['rename'].lower():
@@ -496,7 +557,28 @@ def rename_exists(module, array):
     return exists
 
 
+def make_multi_hosts(module):
+    """Create multiple hosts"""
+    changed = True
+    if not module.check_mode:
+        hosts = []
+        array = get_array(module)
+        for host_num in range(module.params['start'], module.params['count'] + module.params['start']):
+            hosts.append(module.params['name'] + str(host_num).zfill(module.params['digits']) + module.params['suffix'])
+        if module.params['personality']:
+            host = flasharray.HostPost(personality=module.params['personality'])
+        else:
+            host = flasharray.HostPost()
+        res = array.post_hosts(names=hosts, host=host)
+        if res.status_code != 200:
+            module.fail_json(msg='Multi-Host {0}#{1} creation failed: {2}'.format(module.params['name'],
+                                                                                  module.params['suffix'],
+                                                                                  res.errors[0].message))
+    module.exit_json(changed=changed)
+
+
 def make_host(module, array):
+    """Create a new host"""
     changed = True
     if not module.check_mode:
         try:
@@ -525,6 +607,7 @@ def make_host(module, array):
 
 
 def update_host(module, array):
+    """Modify a host"""
     changed = True
     renamed = False
     if not module.check_mode:
@@ -570,6 +653,7 @@ def update_host(module, array):
 
 
 def delete_host(module, array):
+    """Delete a host"""
     changed = True
     if not module.check_mode:
         try:
@@ -600,6 +684,10 @@ def main():
         volume=dict(type='str'),
         rename=dict(type='str'),
         lun=dict(type='int'),
+        count=dict(type='int'),
+        start=dict(type='int', default=0),
+        digits=dict(type='int', default=1),
+        suffix=dict(type='str'),
         personality=dict(type='str', default='',
                          choices=['hpux', 'vms', 'aix', 'esxi', 'solaris',
                                   'hitachi-vsp', 'oracle-vm-server', 'delete', '']),
@@ -627,49 +715,70 @@ def main():
     if module.params['nqn'] is not None and NVME_API_VERSION not in api_version:
         module.fail_json(msg='NVMe protocol not supported. Please upgrade your array.')
     state = module.params['state']
-    host = get_host(module, array)
-    if module.params['lun'] and not 1 <= module.params['lun'] <= 4095:
-        module.fail_json(msg='LUN ID of {0} is out of range (1 to 4095)'.format(module.params['lun']))
-    if module.params['volume']:
-        try:
-            array.get_volume(module.params['volume'])
-        except Exception:
-            module.fail_json(msg='Volume {0} not found'.format(module.params['volume']))
-    if module.params['preferred_array']:
-        try:
-            if module.params['preferred_array'] != ['delete']:
-                all_connected_arrays = array.list_array_connections()
-                if not all_connected_arrays:
-                    module.fail_json(msg='No target arrays connected to source array - preferred arrays not possible.')
-                else:
-                    current_arrays = [array.get()['array_name']]
-                    api_version = array._list_available_rest_versions()
-                    if NVME_API_VERSION in api_version:
-                        for current_array in range(0, len(all_connected_arrays)):
-                            if all_connected_arrays[current_array]['type'] == "sync-replication":
-                                current_arrays.append(all_connected_arrays[current_array]['array_name'])
+    if module.params['count']:
+        if not HAS_PURESTORAGE:
+            module.fail_json(msg='py-pure-client sdk is required to support \'count\' parameter')
+        if MULTI_HOST_VERSION not in api_version:
+            module.fail_json(msg='\'count\' parameter is not supported until Purity//FA 6.0.0 or higher')
+        if module.params['digits'] and module.params['digits'] not in range(1, 10):
+            module.fail_json(msg='\'digits\' must be in the range of 1 to 10')
+        if module.params['start'] < 0:
+            module.fail_json(msg='\'start\' must be a positive number')
+        if not pattern.match(module.params['name'] + module.params['suffix']):
+            module.fail_json(msg='Host name pattern {0} does not conform to naming convention'.format(module.params['name'] +
+                                                                                                      '#' +
+                                                                                                      module.params['suffix']))
+        elif len(module.params['name']) + \
+                max(len(str(module.params['count'] + module.params['start'])), module.params['digits']) + \
+                len(module.params['suffix']) > 63:
+            module.fail_json(msg='Host name length exceeds maximum allowed')
+        host = get_multi_hosts(module)
+        if not host and state == 'present':
+            make_multi_hosts(module)
+    else:
+        host = get_host(module, array)
+        if module.params['lun'] and not 1 <= module.params['lun'] <= 4095:
+            module.fail_json(msg='LUN ID of {0} is out of range (1 to 4095)'.format(module.params['lun']))
+        if module.params['volume']:
+            try:
+                array.get_volume(module.params['volume'])
+            except Exception:
+                module.fail_json(msg='Volume {0} not found'.format(module.params['volume']))
+        if module.params['preferred_array']:
+            try:
+                if module.params['preferred_array'] != ['delete']:
+                    all_connected_arrays = array.list_array_connections()
+                    if not all_connected_arrays:
+                        module.fail_json(msg='No target arrays connected to source array - preferred arrays not possible.')
                     else:
-                        for current_array in range(0, len(all_connected_arrays)):
-                            if all_connected_arrays[current_array]['type'] == ["sync-replication"]:
-                                current_arrays.append(all_connected_arrays[current_array]['array_name'])
-                for array_to_connect in range(0, len(module.params['preferred_array'])):
-                    if module.params['preferred_array'][array_to_connect] not in current_arrays:
-                        module.fail_json(msg='Array {0} is not a synchronously connected array.'.format(module.params['preferred_array'][array_to_connect]))
-        except Exception:
-            module.fail_json(msg='Failed to get existing array connections.')
+                        current_arrays = [array.get()['array_name']]
+                        api_version = array._list_available_rest_versions()
+                        if NVME_API_VERSION in api_version:
+                            for current_array in range(0, len(all_connected_arrays)):
+                                if all_connected_arrays[current_array]['type'] == "sync-replication":
+                                    current_arrays.append(all_connected_arrays[current_array]['array_name'])
+                        else:
+                            for current_array in range(0, len(all_connected_arrays)):
+                                if all_connected_arrays[current_array]['type'] == ["sync-replication"]:
+                                    current_arrays.append(all_connected_arrays[current_array]['array_name'])
+                    for array_to_connect in range(0, len(module.params['preferred_array'])):
+                        if module.params['preferred_array'][array_to_connect] not in current_arrays:
+                            module.fail_json(msg='Array {0} is not a synchronously connected array.'.format(module.params['preferred_array'][array_to_connect]))
+            except Exception:
+                module.fail_json(msg='Failed to get existing array connections.')
 
-    if host is None and state == 'present' and not module.params['rename']:
-        make_host(module, array)
-    elif host is None and state == 'present' and module.params['rename']:
-        module.exit_json(changed=False)
-    elif host and state == 'present':
-        update_host(module, array)
-    elif host and state == 'absent' and module.params['volume']:
-        update_host(module, array)
-    elif host and state == 'absent':
-        delete_host(module, array)
-    elif host is None and state == 'absent':
-        module.exit_json(changed=False)
+        if host is None and state == 'present' and not module.params['rename']:
+            make_host(module, array)
+        elif host is None and state == 'present' and module.params['rename']:
+            module.exit_json(changed=False)
+        elif host and state == 'present':
+            update_host(module, array)
+        elif host and state == 'absent' and module.params['volume']:
+            update_host(module, array)
+        elif host and state == 'absent':
+            delete_host(module, array)
+        elif host is None and state == 'absent':
+            module.exit_json(changed=False)
 
     module.exit_json(changed=False)
 
