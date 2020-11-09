@@ -24,6 +24,10 @@ options:
   name:
     description:
     - The name of the volume group.
+    - Multi-volume-group support available from Purity//FA 6.0.0
+      B(***NOTE***) Manual deletion or eradication of individual volume groups created
+      using multi-volume-group will cause idempotency to fail
+    - Multi-volume-group support only exists for volume group creation
     type: str
     required: true
   state:
@@ -51,6 +55,33 @@ options:
       M will mean 1000000
       To clear an existing IOPs setting use 0 (zero)
     type: str
+  count:
+    description:
+    - Number of volume groups to be created in a multiple volume group creation
+    - Only supported from Purity//FA v6.0.0 and higher
+    type: int
+  start:
+    description:
+    - Number at which to start the multiple volume group creation index
+    - Only supported from Purity//FA v6.0.0 and higher
+    type: int
+    default: 0
+  digits:
+    description:
+    - Number of digits to use for multiple volume group count. This
+      will pad the index number with zeros where necessary
+    - Only supported from Purity//FA v6.0.0 and higher
+    - Range is between 1 and 10
+    type: int
+    default: 1
+  suffix:
+    description:
+    - Suffix string, if required, for multiple volume group create
+    - Volume group names will be formed as I(<name>#I<suffix>), where
+      I(#) is a placeholder for the volume index
+      See associated descriptions
+    - Only supported from Purity//FA v6.0.0 and higher
+    type: str
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 '''
@@ -63,6 +94,19 @@ EXAMPLES = r'''
     iops_qos: 100
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Create 10 volune groups of pattern foo#bar with QoS
+  purefa_vg:
+    name: foo
+    suffix: bar
+    count: 10
+    start: 10
+    digits: 3
+    bw_qos: 50M
+    iops_qos: 100
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
 - name: Update volune group QoS limits
   purefa_vg:
     name: foo
@@ -70,17 +114,20 @@ EXAMPLES = r'''
     iops_qos: 5555
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
 - name: Destroy volume group
   purefa_vg:
     name: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
+
 - name: Recover deleted volune group
   purefa_vg:
     name: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
 - name: Destroy and Eradicate volume group
   purefa_vg:
     name: foo
@@ -93,12 +140,19 @@ EXAMPLES = r'''
 RETURN = r'''
 '''
 
+HAS_PURESTORAGE = True
+try:
+    from pypureclient import flasharray
+except ImportError:
+    HAS_PURESTORAGE = False
+
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_array, get_system, purefa_argument_spec
 
 
 VGROUP_API_VERSION = '1.13'
 VG_IOPS_VERSION = '1.17'
+MULTI_VG_VERSION = '2.2'
 
 
 def human_to_bytes(size):
@@ -107,7 +161,7 @@ def human_to_bytes(size):
        unexpected form.
     """
     bytes = size[:-1]
-    unit = size[-1]
+    unit = size[-1].upper()
     if bytes.isdigit():
         bytes = int(bytes)
         if unit == 'P':
@@ -133,8 +187,10 @@ def human_to_real(iops):
        unexpected form.
     """
     digit = iops[:-1]
-    unit = iops[-1]
-    if digit.isdigit():
+    unit = iops[-1].upper()
+    if unit.isdigit():
+        digit = iops
+    elif digit.isdigit():
         digit = int(digit)
         if unit == 'M':
             digit *= 1000000
@@ -145,6 +201,15 @@ def human_to_real(iops):
     else:
         digit = 0
     return digit
+
+
+def get_multi_vgroups(module, destroyed=False):
+    """Return True is all volume groups exist or None"""
+    names = []
+    array = get_array(module)
+    for vg_num in range(module.params['start'], module.params['count'] + module.params['start']):
+        names.append(module.params['name'] + str(vg_num).zfill(module.params['digits']) + module.params['suffix'])
+    return bool(array.get_volume_groups(names=names, destroyed=destroyed).status_code == 200)
 
 
 def get_pending_vgroup(module, array):
@@ -176,7 +241,7 @@ def make_vgroup(module, array):
         api_version = array._list_available_rest_versions()
         if module.params['bw_qos'] or module.params['iops_qos'] and VG_IOPS_VERSION in api_version:
             if module.params['bw_qos'] and not module.params['iops_qos']:
-                if 549755813888 >= int(human_to_bytes(module.params['bw_qos'])) >= 1048576:
+                if int(human_to_bytes(module.params['bw_qos'])) in range(1048576, 549755813888):
                     try:
                         array.create_vgroup(module.params['name'],
                                             bandwidth_limit=module.params['bw_qos'])
@@ -185,7 +250,7 @@ def make_vgroup(module, array):
                 else:
                     module.fail_json(msg='Bandwidth QoS value {0} out of range.'.format(module.params['bw_qos']))
             elif module.params['iops_qos'] and not module.params['bw_qos']:
-                if 100000000 >= int(human_to_real(module.params['iops_qos'])) >= 100:
+                if int(human_to_real(module.params['iops_qos'])) in range(100, 100000000):
                     try:
                         array.create_vgroup(module.params['name'],
                                             iops_limit=module.params['iops_qos'])
@@ -195,7 +260,7 @@ def make_vgroup(module, array):
                     module.fail_json(msg='IOPs QoS value {0} out of range.'.format(module.params['iops_qos']))
             else:
                 bw_qos_size = int(human_to_bytes(module.params['bw_qos']))
-                if 100000000 >= int(human_to_real(module.params['iops_qos'])) >= 100 and 549755813888 >= bw_qos_size >= 1048576:
+                if int(human_to_real(module.params['iops_qos'])) in range(100, 100000000) and bw_qos_size in range(1048576, 549755813888):
                     try:
                         array.create_vgroup(module.params['name'],
                                             iops_limit=module.params['iops_qos'],
@@ -210,6 +275,44 @@ def make_vgroup(module, array):
             except Exception:
                 module.fail_json(msg='creation of volume group {0} failed.'.format(module.params['name']))
 
+    module.exit_json(changed=changed)
+
+
+def make_multi_vgroups(module):
+    """Create multiple Volume Groups"""
+    changed = True
+    if not module.check_mode:
+        bw_qos_size = iops_qos_size = 0
+        names = []
+        array = get_array(module)
+        for vg_num in range(module.params['start'], module.params['count'] + module.params['start']):
+            names.append(module.params['name'] + str(vg_num).zfill(module.params['digits']) + module.params['suffix'])
+        if module.params['bw_qos']:
+            bw_qos = int(human_to_bytes(module.params['bw_qos']))
+            if bw_qos in range(1048576, 549755813888):
+                bw_qos_size = bw_qos
+            else:
+                module.fail_json(msg='Bandwidth QoS value out of range.')
+        if module.params['iops_qos']:
+            iops_qos = int(human_to_real(module.params['iops_qos']))
+            if iops_qos in range(100, 100000000):
+                iops_qos_size = iops_qos
+            else:
+                module.fail_json(msg='IOPs QoS value out of range.')
+        if bw_qos_size != 0 and iops_qos_size != 0:
+            volume_group = flasharray.VolumeGroupPost(qos=flasharray.Qos(bandwidth_limit=bw_qos_size,
+                                                                         iops_limit=iops_qos_size))
+        elif bw_qos_size == 0 and iops_qos_size == 0:
+            volume_group = flasharray.VolumeGroupPost()
+        elif bw_qos_size == 0 and iops_qos_size != 0:
+            volume_group = flasharray.VolumeGroupPost(qos=flasharray.Qos(iops_limit=iops_qos_size))
+        elif bw_qos_size != 0 and iops_qos_size == 0:
+            volume_group = flasharray.VolumeGroupPost(qos=flasharray.Qos(bandwidth_limit=bw_qos_size))
+        res = array.post_volume_groups(names=names, volume_group=volume_group)
+        if res.status_code != 200:
+            module.fail_json(msg='Multi-Vgroup {0}#{1} creation failed: {2}'.format(module.params['name'],
+                                                                                    module.params['suffix'],
+                                                                                    res.errors[0].message))
     module.exit_json(changed=changed)
 
 
@@ -235,7 +338,7 @@ def update_vgroup(module, array):
                         array.set_volume(module.params['name'], bandwidth_limit='')
                     except Exception:
                         module.fail_json(msg='Vgroup {0} Bandwidth QoS removal failed.'.format(module.params['name']))
-                elif 549755813888 >= int(human_to_bytes(module.params['bw_qos'])) >= 1048576:
+                elif int(human_to_bytes(module.params['bw_qos'])) in range(1048576, 549755813888):
                     try:
                         array.set_volume(module.params['name'], bandwidth_limit=module.params['bw_qos'])
                     except Exception:
@@ -249,7 +352,7 @@ def update_vgroup(module, array):
                         array.set_volume(module.params['name'], iops_limit='')
                     except Exception:
                         module.fail_json(msg='Vgroup {0} IOPs QoS removal failed.'.format(module.params['name']))
-                elif 100000000 >= int(human_to_real(module.params['iops_qos'])) >= 100:
+                elif int(human_to_real(module.params['iops_qos'])) in range(100, 100000000):
                     try:
                         array.set_volume(module.params['name'], iops_limit=module.params['iops_qos'])
                     except Exception:
@@ -304,6 +407,10 @@ def main():
         state=dict(type='str', default='present', choices=['absent', 'present']),
         bw_qos=dict(type='str'),
         iops_qos=dict(type='str'),
+        count=dict(type='int'),
+        start=dict(type='int', default=0),
+        digits=dict(type='int', default=1),
+        suffix=dict(type='str'),
         eradicate=dict(type='bool', default=False),
     ))
 
@@ -319,18 +426,35 @@ def main():
     vgroup = get_vgroup(module, array)
     xvgroup = get_pending_vgroup(module, array)
 
-    if xvgroup and state == 'present':
-        recover_vgroup(module, array)
-    elif vgroup and state == 'absent':
-        delete_vgroup(module, array)
-    elif xvgroup and state == 'absent' and module.params['eradicate']:
-        eradicate_vgroup(module, array)
-    elif not vgroup and not xvgroup and state == 'present':
-        make_vgroup(module, array)
-    elif vgroup and state == 'present':
-        update_vgroup(module, array)
-    elif vgroup is None and state == 'absent':
-        module.exit_json(changed=False)
+    if module.params['count']:
+        if not HAS_PURESTORAGE:
+            module.fail_json(msg='py-pure-client sdk is required to support \'count\' parameter')
+        if MULTI_VG_VERSION not in api_version:
+            module.fail_json(msg='\'count\' parameter is not supported until Purity//FA 6.0.0 or higher')
+        if module.params['digits'] and module.params['digits'] not in range(1, 10):
+            module.fail_json(msg='\'digits\' must be in the range of 1 to 10')
+        if module.params['start'] < 0:
+            module.fail_json(msg='\'start\' must be a positive number')
+        vgroup = get_multi_vgroups(module)
+        if state == 'present' and not vgroup:
+            make_multi_vgroups(module)
+        elif state == 'absent' and not vgroup:
+            module.exit_json(changed=False)
+        else:
+            module.warn('Method not yet supported for multi-vgroup')
+    else:
+        if xvgroup and state == 'present':
+            recover_vgroup(module, array)
+        elif vgroup and state == 'absent':
+            delete_vgroup(module, array)
+        elif xvgroup and state == 'absent' and module.params['eradicate']:
+            eradicate_vgroup(module, array)
+        elif not vgroup and not xvgroup and state == 'present':
+            make_vgroup(module, array)
+        elif vgroup and state == 'present':
+            update_vgroup(module, array)
+        elif vgroup is None and state == 'absent':
+            module.exit_json(changed=False)
 
     module.exit_json(changed=False)
 
