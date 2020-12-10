@@ -20,7 +20,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install purestorage pycodestyle flake8 py-pure-client
+        pip install purestorage pycodestyle flake8 py-pure-client requests
         pip install ansible-base
     - name: Run pycodestyle
       run: |

@@ -39,4 +39,5 @@ requirements:
   - purestorage >= 1.19
   - py-pure-client >= 1.6.0
   - netaddr
+  - requests
 '''
