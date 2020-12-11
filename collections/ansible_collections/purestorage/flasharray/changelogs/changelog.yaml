@@ -88,3 +88,23 @@ releases:
       name: purefa_policy
       namespace: ''
     release_date: '2020-10-14'
+  1.5.1:
+    changes:
+      bugfixes:
+      - purefa.py - Resolve issue when pypureclient doesn't handshake array correctly
+      - purefa_dns - Fix idempotency
+      - purefa_volume - Alert when volume selected for move does not exist
+      minor_changes:
+      - purefa_host - Add support for multi-host creation
+      - purefa_host - Add host rename function
+      - purefa_vg - Add support for multiple vgroup creation
+      - purefa_volume - Add support for multi-volume creation
+    fragments:
+    - 118_rename_host.yaml
+    - 121_add_multi_volume_creation.yaml
+    - 122_add_multi_host_creation.yaml
+    - 123_add_multi_vgroup_creation.yaml
+    - 124_sdk_handshake.yaml
+    - 125_dns_idempotency.yaml
+    - 126_fix_volume_move.yaml
+    release_date: '2020-12-11'

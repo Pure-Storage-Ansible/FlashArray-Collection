@@ -5,6 +5,24 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.5.1
+======
+
+Minor Changes
+-------------
+
+- purefa_host - Add support for multi-host creation
+- purefa_host - Add host rename function
+- purefa_vg - Add support for multiple vgroup creation
+- purefa_volume - Add support for multi-volume creation
+
+Bugfixes
+--------
+
+- purefa.py - Resolve issue when pypureclient doesn't handshake array correctly
+- purefa_dns - Fix idempotency
+- purefa_volume - Alert when volume selected for move does not exist
+
 v1.5.0
 ======
 
