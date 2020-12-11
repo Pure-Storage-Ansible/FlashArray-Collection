@@ -43,6 +43,12 @@ try:
 except ImportError:
     HAS_PYPURECLIENT = False
 
+HAS_REQUESTS = True
+try:
+    import requests
+except ImportError:
+    HAS_REQUESTS = False
+
 from os import environ
 import platform
 
@@ -89,9 +95,12 @@ def get_array(module):
     }
     array_name = module.params['fa_url']
     api = module.params['api_token']
-    if HAS_PYPURECLIENT:
+    if HAS_PYPURECLIENT and HAS_REQUESTS:
+        versions = requests.get("https://" + array_name + "/api/api_version", verify=False)
+        api_version = versions.json()['version'][-1]
         if array_name and api:
-            system = flasharray.Client(target=array_name, api_token=api, user_agent=user_agent)
+            system = flasharray.Client(target=array_name, api_token=api,
+                                       user_agent=user_agent, version=api_version)
         elif environ.get('PUREFA_URL') and environ.get('PUREFA_API'):
             system = flasharray.Client(target=(environ.get('PUREFA_URL')),
                                        api_token=(environ.get('PUREFA_API')),
@@ -104,7 +113,7 @@ def get_array(module):
         except Exception:
             module.fail_json(msg="Pure Storage FlashArray authentication failed. Check your credentials")
     else:
-        module.fail_json(msg="py-pure-client SDK is not installed.")
+        module.fail_json(msg="py-pure-client and/or requests are not installed.")
     return system
 
 

@@ -724,7 +724,7 @@ def move_volume(module, array):
             except Exception:
                 vgroup_exists = False
             if target_exists:
-               module.fail_json(msg='Volume of same name already exists in move location')
+                module.fail_json(msg='Volume of same name already exists in move location')
             if pod_exists and vgroup_exists:
                 module.fail_json(msg='Move location {0} matches both a pod and a vgroup. Please rename one of these.'.format(module.params['move']))
             if not pod_exists and not vgroup_exists:

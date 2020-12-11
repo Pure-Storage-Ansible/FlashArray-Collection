@@ -17,6 +17,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - py-pure-client >=v1.8
 - Python >=v2.7
 - netaddr
+- requests
 
 ## Idempotency
 
