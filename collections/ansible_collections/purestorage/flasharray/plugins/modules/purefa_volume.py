@@ -715,22 +715,16 @@ def move_volume(module, array):
                 pod_exists = array.get_pod(module.params['move'])
                 if len(pod_exists['arrays']) > 1:
                     module.fail_json(msg='Volume cannot be moved into a stretched pod')
-                try:
-                    target_exists = array.get_volume(module.params['move'] + "::" + volume_name, pending=True)
-                    module.exit_json(changed=changed)
-                except Exception:
-                    target_exists = False
+                target_exists = bool(array.get_volume(module.params['move'] + "::" + volume_name, pending=True))
             except Exception:
                 pod_exists = False
             try:
                 vgroup_exists = bool(array.get_vgroup(module.params['move']))
-                try:
-                    target_exists = array.get_volume(module.params['move'] + "/" + volume_name, pending=True)
-                    module.exit_json(changed=changed)
-                except Exception:
-                    target_exists = False
+                target_exists = bool(array.get_volume(module.params['move'] + "/" + volume_name, pending=True))
             except Exception:
                 vgroup_exists = False
+            if target_exists:
+               module.fail_json(msg='Volume of same name already exists in move location')
             if pod_exists and vgroup_exists:
                 module.fail_json(msg='Move location {0} matches both a pod and a vgroup. Please rename one of these.'.format(module.params['move']))
             if not pod_exists and not vgroup_exists:
@@ -861,6 +855,8 @@ def main():
             create_volume(module, array)
         elif state == 'present' and volume and (size or bw_qos or iops_qos):
             update_volume(module, array)
+        elif state == 'present' and not volume and module.params['move']:
+            module.fail_json(msg='Volume {0} cannot be moved - does not exist (maybe deleted)'.format(module.params['name']))
         elif state == 'present' and volume and module.params['move']:
             move_volume(module, array)
         elif state == 'present' and volume and module.params['rename']:
