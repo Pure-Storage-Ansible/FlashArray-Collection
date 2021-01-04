@@ -445,6 +445,7 @@ def generate_default_dict(module, array):
     hosts = array.list_hosts()
     admins = array.list_admins()
     snaps = array.list_volumes(snap=True, pending=True)
+    volumes = array.list_volumes(pending=True)
     pgroups = array.list_pgroups(pending=True)
     hgroups = array.list_hgroups()
     default_info['array_model'] = array.get(controllers=True)[0]['model']
@@ -452,6 +453,7 @@ def generate_default_dict(module, array):
     default_info['purity_version'] = defaults['version']
     default_info['hosts'] = len(hosts)
     default_info['snapshots'] = len(snaps)
+    default_info['volumes'] = len(volumes)
     default_info['protection_groups'] = len(pgroups)
     default_info['hostgroups'] = len(hgroups)
     default_info['admins'] = len(admins)
