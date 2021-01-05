@@ -42,6 +42,12 @@ options:
     type: str
     choices: [ sync, async ]
     default: async
+  transport:
+    description:
+    - Type of transport protocol to use for replication
+    type: str
+    choices: [ ip, fc ]
+    default: ip
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 '''
@@ -72,12 +78,19 @@ try:
 except ImportError:
     HAS_PURESTORAGE = False
 
+HAS_PYPURECLIENT = True
+try:
+    from pypureclient import flasharray
+except ImportError:
+    HAS_PYPURECLIENT = False
+
 import platform
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_array, get_system, purefa_argument_spec
 
 
 P53_API_VERSION = '1.17'
+FC_REPL_VERSION = '2.4'
 
 
 def _check_connected(module, array):
@@ -126,7 +139,21 @@ def create_connection(module, array):
                                        user_agent=user_agent)
             connection_key = remote_system.get(connection_key=True)['connection_key']
             remote_array = remote_system.get()['array_name']
-            array.connect_array(module.params['target_url'], connection_key, [module.params['connection']])
+            api_version = array._list_available_rest_versions()
+            # TODO: Refactor when FC async is supported
+            if FC_REPL_VERSION in api_version and module.params['transport'].lower() == 'fc':
+                if module.params['connection'].lower() == "async":
+                    module.fail_json(msg='Asynchronous replication not supported using FC transport')
+                array_connection = flasharray.ArrayConnectionPost(type='sync-replication',
+                                                                  management_address=module.params['target_url'],
+                                                                  replication_transport='fc',
+                                                                  connection_key=connection_key)
+                array = get_array(module)
+                res = array.post_array_connections(array_connection=array_connection)
+                if res.status_code != 200:
+                    module.fail_json(msg='Array Connection failed. Error: {0}'.format(res.errors[0].message))
+            else:
+                array.connect_array(module.params['target_url'], connection_key, [module.params['connection']])
         except Exception:
             module.fail_json(msg="Failed to connect to remote array {0}.".format(remote_array))
     module.exit_json(changed=changed)
@@ -137,6 +164,7 @@ def main():
     argument_spec.update(dict(
         state=dict(type='str', default='present', choices=['absent', 'present']),
         connection=dict(type='str', default='async', choices=['async', 'sync']),
+        transport=dict(type='str', default='ip', choices=['ip', 'fc']),
         target_url=dict(type='str', required=True),
         target_api=dict(type='str'),
     ))
@@ -149,6 +177,9 @@ def main():
 
     if not HAS_PURESTORAGE:
         module.fail_json(msg='purestorage sdk is required for this module')
+
+    if module.params['transport'] == 'fc' and not HAS_PYPURECLIENT:
+        module.fail_json(msg='pypureclient sdk is required for this module')
 
     state = module.params['state']
     array = get_system(module)
