@@ -106,14 +106,29 @@ purefa_info:
         },
         "config": {
             "directory_service": {
-                "base_dn": null,
-                "bind_password": null,
-                "bind_user": null,
-                "check_peer": false,
-                "enabled": false,
-                "uri": [],
-                "user_login_attribute": null,
-                "user_object_class": null
+                "data": {
+                    "base_dn": "dc=example,dc=lab",
+                    "bind_user": "CN=user,OU=Users,OU=Example Lab,DC=example,DC=lab",
+                    "enabled": true,
+                    "services": [
+                        "data"
+                    ],
+                    "uris": [
+                        "ldap://1.2.3.11"
+                    ]
+                },
+                "management": {
+                    "base_dn": "DC=example,DC=lab",
+                    "bind_user": "svc.ldap",
+                    "enabled": true,
+                    "services": [
+                        "management"
+                    ],
+                    "uris": [
+                        "ldap://1.2.3.10",
+                        "ldap://1.2.3.11"
+                    ]
+                }
             },
             "directory_service_roles": {
                 "array_admin": {
@@ -497,21 +512,50 @@ def generate_config_dict(module, array):
     config_info['smtp'] = array.list_alert_recipients()
     config_info['snmp'] = array.list_snmp_managers()
     config_info['snmp_v3_engine_id'] = array.get_snmp_engine_id()['engine_id']
-    try:
-        config_info['directory_service'] = array.get_directory_service()
-    except Exception:
-        config_info['directory_service'] = ['Array and Data Configurations found']
-    if S3_REQUIRED_API_VERSION in api_version:
-        config_info['directory_service_roles'] = {}
-        roles = array.list_directory_service_roles()
-        for role in range(0, len(roles)):
-            role_name = roles[role]['name']
-            config_info['directory_service_roles'][role_name] = {
-                'group': roles[role]['group'],
-                'group_base': roles[role]['group_base'],
+    if V6_MINIMUM_API_VERSION in api_version:
+        config_info['directory_service'] = {}
+        arrayv6 = get_array(module)
+        services = list(arrayv6.get_directory_services().items)
+        for service in range(0, len(services)):
+            service_type = services[service].name
+            config_info['directory_service'][service_type] = {
+                'base_dn': services[service].base_dn,
+                'bind_user': services[service].bind_user,
+                'enabled': services[service].enabled,
+                'services': services[service].services,
+                'uris': services[service].uris,
             }
+        config_info['directory_service_roles'] = {}
+        roles = list(arrayv6.get_directory_services_roles().items)
+        for role in range(0, len(roles)):
+            role_name = roles[role].role.name
+            try:
+                config_info['directory_service_roles'][role_name] = {
+                    'group': roles[role].group,
+                    'group_base': roles[role].group_base,
+                }
+            except Exception:
+                pass
     else:
-        config_info['directory_service'].update(array.get_directory_service(groups=True))
+        config_info['directory_service'] = {}
+        # TODO: Remove for 1.7.0 release from here...
+        config_info['directory_service'] = array.get_directory_service()
+        module.warn("Deprecation Notice: The 'directory_services' dictionary moves previous entries")
+        module.warn("down into a 'management' sub-dictionary. Please amend your playbooks as necessary")
+        module.warn('The old dictionary entries will be removed in Collections 1.7.0')
+        # to here.
+        config_info['directory_service']['management'] = array.get_directory_service()
+        if S3_REQUIRED_API_VERSION in api_version:
+            config_info['directory_service_roles'] = {}
+            roles = array.list_directory_service_roles()
+            for role in range(0, len(roles)):
+                role_name = roles[role]['name']
+                config_info['directory_service_roles'][role_name] = {
+                    'group': roles[role]['group'],
+                    'group_base': roles[role]['group_base'],
+                }
+        else:
+            config_info['directory_service'].update(array.get_directory_service(groups=True))
     config_info['ntp'] = array.get(ntpserver=True)['ntpserver']
     config_info['syslog'] = array.get(syslogserver=True)['syslogserver']
     config_info['phonehome'] = array.get(phonehome=True)['phonehome']
