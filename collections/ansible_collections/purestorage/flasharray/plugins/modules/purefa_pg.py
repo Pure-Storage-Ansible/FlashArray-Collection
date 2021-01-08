@@ -87,6 +87,12 @@ EXAMPLES = r'''
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
+- name: Create new protection group called bar in pod called foo
+  purefa_pg:
+    pgroup: "foo::bar"
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
 - name: Create new replicated protection group
   purefa_pg:
     pgroup: foo
@@ -167,6 +173,16 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 OFFLOAD_API_VERSION = '1.16'
 P53_API_VERSION = '1.17'
+AC_PG_API_VERSION = '1.13'
+
+
+def get_pod(module, array):
+    """Get ActiveCluster Pod"""
+    pod_name = module.params['pgroup'].split("::")[0]
+    try:
+        return array.get_pod(pod=pod_name)
+    except Exception:
+        return None
 
 
 def get_targets(array):
@@ -202,10 +218,16 @@ def get_pending_pgroup(module, array):
     """ Get Protection Group"""
     pgroup = None
     if ":" in module.params['pgroup']:
-        for pgrp in array.list_pgroups(pending=True, on="*"):
-            if pgrp["name"] == module.params['pgroup'] and pgrp['time_remaining']:
-                pgroup = pgrp
-                break
+        if "::" not in module.params['pgroup']:
+            for pgrp in array.list_pgroups(pending=True, on="*"):
+                if pgrp["name"] == module.params['pgroup'] and pgrp['time_remaining']:
+                    pgroup = pgrp
+                    break
+        else:
+            for pgrp in array.list_pgroups(pending=True):
+                if pgrp["name"] == module.params['pgroup'] and pgrp['time_remaining']:
+                    pgroup = pgrp
+                    break
     else:
         for pgrp in array.list_pgroups(pending=True):
             if pgrp["name"] == module.params['pgroup'] and pgrp['time_remaining']:
@@ -219,10 +241,16 @@ def get_pgroup(module, array):
     """ Get Protection Group"""
     pgroup = None
     if ":" in module.params['pgroup']:
-        for pgrp in array.list_pgroups(on="*"):
-            if pgrp["name"] == module.params['pgroup']:
-                pgroup = pgrp
-                break
+        if "::" not in module.params['pgroup']:
+            for pgrp in array.list_pgroups(on="*"):
+                if pgrp["name"] == module.params['pgroup']:
+                    pgroup = pgrp
+                    break
+        else:
+            for pgrp in array.list_pgroups():
+                if pgrp["name"] == module.params['pgroup']:
+                    pgroup = pgrp
+                    break
     else:
         for pgrp in array.list_pgroups():
             if pgrp["name"] == module.params['pgroup']:
@@ -425,11 +453,17 @@ def eradicate_pgroup(module, array):
     changed = True
     if not module.check_mode:
         if ":" in module.params['pgroup']:
-            try:
-                target = ''.join(module.params['target'])
-                array.destroy_pgroup(module.params['pgroup'], on=target, eradicate=True)
-            except Exception:
-                module.fail_json(msg='Eradicating pgroup {0} failed.'.format(module.params['pgroup']))
+            if "::" not in module.params['pgroup']:
+                try:
+                    target = ''.join(module.params['target'])
+                    array.destroy_pgroup(module.params['pgroup'], on=target, eradicate=True)
+                except Exception:
+                    module.fail_json(msg='Eradicating pgroup {0} failed.'.format(module.params['pgroup']))
+            else:
+                try:
+                    array.destroy_pgroup(module.params['pgroup'], eradicate=True)
+                except Exception:
+                    module.fail_json(msg='Eradicating pgroup {0} failed.'.format(module.params['pgroup']))
         else:
             try:
                 array.destroy_pgroup(module.params['pgroup'], eradicate=True)
@@ -443,11 +477,17 @@ def delete_pgroup(module, array):
     changed = True
     if not module.check_mode:
         if ":" in module.params['pgroup']:
-            try:
-                target = ''.join(module.params['target'])
-                array.destroy_pgroup(module.params['pgroup'], on=target)
-            except Exception:
-                module.fail_json(msg='Deleting pgroup {0} failed.'.format(module.params['pgroup']))
+            if "::" not in module.params['pgroup']:
+                try:
+                    target = ''.join(module.params['target'])
+                    array.destroy_pgroup(module.params['pgroup'], on=target)
+                except Exception:
+                    module.fail_json(msg='Deleting pgroup {0} failed.'.format(module.params['pgroup']))
+            else:
+                try:
+                    array.destroy_pgroup(module.params['pgroup'])
+                except Exception:
+                    module.fail_json(msg='Deleting pgroup {0} failed.'.format(module.params['pgroup']))
         else:
             try:
                 array.destroy_pgroup(module.params['pgroup'])
@@ -482,9 +522,14 @@ def main():
     api_version = array._list_available_rest_versions()
     if ":" in module.params['pgroup'] and OFFLOAD_API_VERSION not in api_version:
         module.fail_json(msg='API version does not support offload protection groups.')
+    if "::" in module.params['pgroup'] and AC_PG_API_VERSION not in api_version:
+        module.fail_json(msg='API version does not support ActiveCluster protection groups.')
 
     pgroup = get_pgroup(module, array)
     xpgroup = get_pending_pgroup(module, array)
+    if "::" in module.params['pgroup']:
+        if not get_pod(module, array):
+            module.fail_json(msg='Pod {0} does not exist.'.format(module.params['pgroup'].split('::')[0]))
 
     if module.params['host']:
         try:
