@@ -225,7 +225,7 @@ def main():
         suffix = "snap-" + str((datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0, 0)).total_seconds())
         module.params['suffix'] = suffix.replace(".", "")
     else:
-        pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$")
+        pattern = re.compile("^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$")
         if not pattern.match(module.params['suffix']):
             module.fail_json(msg='Suffix name {0} does not conform to suffix name rules'.format(module.params['suffix']))
 

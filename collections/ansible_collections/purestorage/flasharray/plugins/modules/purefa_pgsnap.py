@@ -146,6 +146,7 @@ EXAMPLES = r'''
 RETURN = r'''
 '''
 
+import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
 
@@ -321,10 +322,13 @@ def main():
     module = AnsibleModule(argument_spec,
                            required_if=required_if,
                            supports_check_mode=True)
-
+    pattern = re.compile("^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$")
     if module.params['suffix'] is None:
         suffix = "snap-" + str((datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0, 0)).total_seconds())
         module.params['suffix'] = suffix.replace(".", "")
+    else:
+        if not pattern.match(module.params['suffix']):
+            module.fail_json(msg='Suffix name {0} does not conform to suffix name rules'.format(module.params['suffix']))
 
     if not module.params['target'] and module.params['restore']:
         module.params['target'] = module.params['restore']
