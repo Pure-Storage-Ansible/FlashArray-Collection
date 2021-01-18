@@ -397,7 +397,7 @@ def update_pgroup(module, array):
                 except Exception:
                     module.fail_json(msg='Adding volumes to pgroup {0} failed.'.format(module.params['pgroup']))
             else:
-                cased_vols = [vol.lower() for vol in module.params['volumes']]
+                cased_vols = [vol.lower() for vol in module.params['volume']]
                 cased_pgvols = [vol.lower() for vol in get_pgroup(module, array)['volumes']]
                 if not all(x in cased_pgvols for x in cased_vols):
                     try:

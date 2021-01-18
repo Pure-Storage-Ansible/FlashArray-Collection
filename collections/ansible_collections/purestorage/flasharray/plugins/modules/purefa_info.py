@@ -757,7 +757,7 @@ def generate_capacity_dict(array):
     return capacity_info
 
 
-def generate_snap_dict(array):
+def generate_snap_dict(module, array):
     snap_info = {}
     api_version = array._list_available_rest_versions()
     snaps = array.list_volumes(snap=True)
@@ -768,7 +768,33 @@ def generate_snap_dict(array):
             'source': snaps[snap]['source'],
             'created': snaps[snap]['created'],
             'tags': [],
+            'remote': [],
         }
+    if FC_REPL_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        offloads = list(arrayv6.get_offloads().items)
+        for offload in range(0, len(offloads)):
+            offload_name = offloads[offload].name
+            remote_snaps = list(arrayv6.get_remote_volume_snapshots(on=offload_name, destroyed=False).items)
+            for remote_snap in range(0, len(remote_snaps)):
+                remote_snap_name = remote_snaps[remote_snap].name.split(':')[1]
+                remote_transfer = list(arrayv6.get_remote_volume_snapshots_transfer(on=offload_name,
+                                                                                    names=[remote_snaps[remote_snap].name]).items)[0]
+                remote_dict = {
+                    'source': remote_snaps[remote_snap].source.name,
+                    'suffix': remote_snaps[remote_snap].suffix,
+                    'size': remote_snaps[remote_snap].provisioned,
+                    'data_transferred': remote_transfer.data_transferred,
+                    'completed': time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(remote_transfer.completed / 1000)) + " UTC",
+                    'physical_bytes_written': remote_transfer.physical_bytes_written,
+                    'progress': remote_transfer.progress,
+                    'created': time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(remote_snaps[remote_snap].created / 1000)) + " UTC",
+                }
+                try:
+                    snap_info[remote_snap_name]['remote'].append(remote_dict)
+                except KeyError:
+                    snap_info[remote_snap_name] = {'remote': []}
+                    snap_info[remote_snap_name]['remote'].append(remote_dict)
     if ACTIVE_DR_API in api_version:
         snaptags = array.list_volumes(snap=True, tags=True, namespace="*")
         for snaptag in range(0, len(snaptags)):
@@ -783,7 +809,7 @@ def generate_snap_dict(array):
     return snap_info
 
 
-def generate_del_snap_dict(array):
+def generate_del_snap_dict(module, array):
     snap_info = {}
     api_version = array._list_available_rest_versions()
     snaps = array.list_volumes(snap=True, pending_only=True)
@@ -795,7 +821,33 @@ def generate_del_snap_dict(array):
             'created': snaps[snap]['created'],
             'time_remaining': snaps[snap]['time_remaining'],
             'tags': [],
+            'remote': [],
         }
+    if FC_REPL_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        offloads = list(arrayv6.get_offloads().items)
+        for offload in range(0, len(offloads)):
+            offload_name = offloads[offload].name
+            remote_snaps = list(arrayv6.get_remote_volume_snapshots(on=offload_name, destroyed=True).items)
+            for remote_snap in range(0, len(remote_snaps)):
+                remote_snap_name = remote_snaps[remote_snap].name.split(':')[1]
+                remote_transfer = list(arrayv6.get_remote_volume_snapshots_transfer(on=offload_name,
+                                                                                    names=[remote_snaps[remote_snap].name]).items)[0]
+                remote_dict = {
+                    'source': remote_snaps[remote_snap].source.name,
+                    'suffix': remote_snaps[remote_snap].suffix,
+                    'size': remote_snaps[remote_snap].provisioned,
+                    'data_transferred': remote_transfer.data_transferred,
+                    'completed': time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(remote_transfer.completed / 1000)) + " UTC",
+                    'physical_bytes_written': remote_transfer.physical_bytes_written,
+                    'progress': remote_transfer.progress,
+                    'created': time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(remote_snaps[remote_snap].created / 1000)) + " UTC",
+                }
+                try:
+                    snap_info[remote_snap_name]['remote'].append(remote_dict)
+                except KeyError:
+                    snap_info[remote_snap_name] = {'remote': []}
+                    snap_info[remote_snap_name]['remote'].append(remote_dict)
     if ACTIVE_DR_API in api_version:
         snaptags = array.list_volumes(snap=True, tags=True, pending_only=True, namespace="*")
         for snaptag in range(0, len(snaptags)):
@@ -1346,8 +1398,8 @@ def main():
         info['volumes'] = generate_vol_dict(array)
         info['deleted_volumes'] = generate_del_vol_dict(array)
     if 'snapshots' in subset or 'all' in subset:
-        info['snapshots'] = generate_snap_dict(array)
-        info['deleted_snapshots'] = generate_del_snap_dict(array)
+        info['snapshots'] = generate_snap_dict(module, array)
+        info['deleted_snapshots'] = generate_del_snap_dict(module, array)
     if 'hgroups' in subset or 'all' in subset:
         info['hgroups'] = generate_hgroups_dict(array)
     if 'pgroups' in subset or 'all' in subset:
