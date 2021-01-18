@@ -121,6 +121,16 @@ EXAMPLES = r'''
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: copy
 
+- name: Restore AC pod  protection group snapshot pod1::pgname.snap.data to pdo1::data2
+  purefa_pgsnap:
+    name: pod1::pgname
+    suffix: snap
+    restore: data
+    target: pod1::data2
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+    state: copy
+
 - name: Create snapshot of existing pgroup foo with suffix and force immeadiate copy to remote targets
   purefa_pgsnap:
     name: pgname
@@ -177,8 +187,12 @@ def get_pgroupvolume(module, array):
     """Return Protection Group Volume or None"""
     try:
         pgroup = array.get_pgroup(module.params['name'])
+        if "::" in module.params['name']:
+            restore_volume = module.params['name'].split("::")[0] + "::" + module.params['restore']
+        else:
+            restore_volume = module.params['restore']
         for volume in pgroup['volumes']:
-            if volume == module.params['restore']:
+            if volume == restore_volume:
                 return volume
     except Exception:
         return None
@@ -246,7 +260,7 @@ def restore_pgsnapvolume(module, array):
             all_snaps = array.get_pgroup(module.params['name'], snap=True)
             latest_snap = all_snaps[len(all_snaps) - 1]['name']
             module.params['suffix'] = latest_snap.split('.')[1]
-        if ":" in module.params['name']:
+        if ":" in module.params['name'] and "::" not in module.params['name']:
             if get_rpgsnapshot(module, array) is None:
                 module.fail_json(msg="Selected restore snapshot {0} does not exist in the Protection Group".format(module.params['restore']))
         else:

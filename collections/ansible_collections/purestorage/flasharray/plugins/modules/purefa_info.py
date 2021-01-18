@@ -437,6 +437,7 @@ P53_API_VERSION = '1.17'
 ACTIVE_DR_API = '1.19'
 V6_MINIMUM_API_VERSION = '2.2'
 FILES_API_VERSION = '2.3'
+FC_REPL_API_VERSION = '2.4'
 
 
 def generate_default_dict(module, array):
@@ -756,7 +757,7 @@ def generate_capacity_dict(array):
     return capacity_info
 
 
-def generate_snap_dict(array):
+def generate_snap_dict(module, array):
     snap_info = {}
     api_version = array._list_available_rest_versions()
     snaps = array.list_volumes(snap=True)
@@ -767,7 +768,33 @@ def generate_snap_dict(array):
             'source': snaps[snap]['source'],
             'created': snaps[snap]['created'],
             'tags': [],
+            'remote': [],
         }
+    if FC_REPL_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        offloads = list(arrayv6.get_offloads().items)
+        for offload in range(0, len(offloads)):
+            offload_name = offloads[offload].name
+            remote_snaps = list(arrayv6.get_remote_volume_snapshots(on=offload_name, destroyed=False).items)
+            for remote_snap in range(0, len(remote_snaps)):
+                remote_snap_name = remote_snaps[remote_snap].name.split(':')[1]
+                remote_transfer = list(arrayv6.get_remote_volume_snapshots_transfer(on=offload_name,
+                                                                                    names=[remote_snaps[remote_snap].name]).items)[0]
+                remote_dict = {
+                    'source': remote_snaps[remote_snap].source.name,
+                    'suffix': remote_snaps[remote_snap].suffix,
+                    'size': remote_snaps[remote_snap].provisioned,
+                    'data_transferred': remote_transfer.data_transferred,
+                    'completed': time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(remote_transfer.completed / 1000)) + " UTC",
+                    'physical_bytes_written': remote_transfer.physical_bytes_written,
+                    'progress': remote_transfer.progress,
+                    'created': time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(remote_snaps[remote_snap].created / 1000)) + " UTC",
+                }
+                try:
+                    snap_info[remote_snap_name]['remote'].append(remote_dict)
+                except KeyError:
+                    snap_info[remote_snap_name] = {'remote': []}
+                    snap_info[remote_snap_name]['remote'].append(remote_dict)
     if ACTIVE_DR_API in api_version:
         snaptags = array.list_volumes(snap=True, tags=True, namespace="*")
         for snaptag in range(0, len(snaptags)):
@@ -782,7 +809,7 @@ def generate_snap_dict(array):
     return snap_info
 
 
-def generate_del_snap_dict(array):
+def generate_del_snap_dict(module, array):
     snap_info = {}
     api_version = array._list_available_rest_versions()
     snaps = array.list_volumes(snap=True, pending_only=True)
@@ -794,7 +821,33 @@ def generate_del_snap_dict(array):
             'created': snaps[snap]['created'],
             'time_remaining': snaps[snap]['time_remaining'],
             'tags': [],
+            'remote': [],
         }
+    if FC_REPL_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        offloads = list(arrayv6.get_offloads().items)
+        for offload in range(0, len(offloads)):
+            offload_name = offloads[offload].name
+            remote_snaps = list(arrayv6.get_remote_volume_snapshots(on=offload_name, destroyed=True).items)
+            for remote_snap in range(0, len(remote_snaps)):
+                remote_snap_name = remote_snaps[remote_snap].name.split(':')[1]
+                remote_transfer = list(arrayv6.get_remote_volume_snapshots_transfer(on=offload_name,
+                                                                                    names=[remote_snaps[remote_snap].name]).items)[0]
+                remote_dict = {
+                    'source': remote_snaps[remote_snap].source.name,
+                    'suffix': remote_snaps[remote_snap].suffix,
+                    'size': remote_snaps[remote_snap].provisioned,
+                    'data_transferred': remote_transfer.data_transferred,
+                    'completed': time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(remote_transfer.completed / 1000)) + " UTC",
+                    'physical_bytes_written': remote_transfer.physical_bytes_written,
+                    'progress': remote_transfer.progress,
+                    'created': time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(remote_snaps[remote_snap].created / 1000)) + " UTC",
+                }
+                try:
+                    snap_info[remote_snap_name]['remote'].append(remote_dict)
+                except KeyError:
+                    snap_info[remote_snap_name] = {'remote': []}
+                    snap_info[remote_snap_name]['remote'].append(remote_dict)
     if ACTIVE_DR_API in api_version:
         snaptags = array.list_volumes(snap=True, tags=True, pending_only=True, namespace="*")
         for snaptag in range(0, len(snaptags)):
@@ -809,7 +862,7 @@ def generate_del_snap_dict(array):
     return snap_info
 
 
-def generate_del_vol_dict(module, array):
+def generate_del_vol_dict(array):
     volume_info = {}
     api_version = array._list_available_rest_versions()
     vols = array.list_volumes(pending_only=True)
@@ -838,7 +891,7 @@ def generate_del_vol_dict(module, array):
     return volume_info
 
 
-def generate_vol_dict(module, array):
+def generate_vol_dict(array):
     volume_info = {}
     vols = array.list_volumes()
     for vol in range(0, len(vols)):
@@ -1071,33 +1124,68 @@ def generate_pods_dict(array):
     return pods_info
 
 
-def generate_conn_array_dict(array):
+def generate_conn_array_dict(module, array):
     conn_array_info = {}
     api_version = array._list_available_rest_versions()
-    carrays = array.list_array_connections()
-    for carray in range(0, len(carrays)):
-        arrayname = carrays[carray]['array_name']
-        conn_array_info[arrayname] = {
-            'array_id': carrays[carray]['id'],
-            'throttled': carrays[carray]['throttled'],
-            'version': carrays[carray]['version'],
-            'type': carrays[carray]['type'],
-            'mgmt_ip': carrays[carray]['management_address'],
-            'repl_ip': carrays[carray]['replication_address'],
-        }
-        if P53_API_VERSION in api_version:
-            conn_array_info[arrayname]['status'] = carrays[carray]['status']
-        else:
-            conn_array_info[arrayname]['connected'] = carrays[carray]['connected']
-    throttles = array.list_array_connections(throttle=True)
-    for throttle in range(0, len(throttles)):
-        arrayname = throttles[throttle]['array_name']
-        if conn_array_info[arrayname]['throttled']:
-            conn_array_info[arrayname]['throttling'] = {
-                'default_limit': throttles[throttle]['default_limit'],
-                'window_limit': throttles[throttle]['window_limit'],
-                'window': throttles[throttle]['window'],
+    if FC_REPL_API_VERSION not in api_version:
+        carrays = array.list_array_connections()
+        for carray in range(0, len(carrays)):
+            arrayname = carrays[carray]['array_name']
+            conn_array_info[arrayname] = {
+                'array_id': carrays[carray]['id'],
+                'throttled': carrays[carray]['throttled'],
+                'version': carrays[carray]['version'],
+                'type': carrays[carray]['type'],
+                'mgmt_ip': carrays[carray]['management_address'],
+                'repl_ip': carrays[carray]['replication_address'],
             }
+            if P53_API_VERSION in api_version:
+                conn_array_info[arrayname]['status'] = carrays[carray]['status']
+            else:
+                conn_array_info[arrayname]['connected'] = carrays[carray]['connected']
+        throttles = array.list_array_connections(throttle=True)
+        for throttle in range(0, len(throttles)):
+            arrayname = throttles[throttle]['array_name']
+            if conn_array_info[arrayname]['throttled']:
+                conn_array_info[arrayname]['throttling'] = {
+                    'default_limit': throttles[throttle]['default_limit'],
+                    'window_limit': throttles[throttle]['window_limit'],
+                    'window': throttles[throttle]['window'],
+                }
+    else:
+        arrayv6 = get_array(module)
+        carrays = list(arrayv6.get_array_connections().items)
+        for carray in range(0, len(carrays)):
+            arrayname = carrays[carray].name
+            conn_array_info[arrayname] = {
+                'array_id': carrays[carray].id,
+                'version': carrays[carray].version,
+                'type': carrays[carray].type,
+                'mgmt_ip': carrays[carray].management_address,
+                'repl_ip': carrays[carray].replication_addresses,
+                'transport': carrays[carray].replication_transport,
+            }
+
+            if bool(carrays[carray].throttle.to_dict()):
+                conn_array_info[arrayname]['throttled'] = True
+                conn_array_info[arrayname]['throttling'] = {}
+                try:
+                    if bool(carrays[carray].throttle.window):
+                        conn_array_info[arrayname]['throttling']['window'] = carrays[carray].throttle.window.to_dict()
+                except AttributeError:
+                    pass
+                try:
+                    if bool(carrays[carray].throttle.default_limit):
+                        conn_array_info[arrayname]['throttling']['default_limit'] = carrays[carray].throttle.default_limit
+                except AttributeError:
+                    pass
+                try:
+                    if bool(carrays[carray].throttle.window_limit):
+                        conn_array_info[arrayname]['throttling']['window_limit'] = carrays[carray].throttle.window_limit
+                except AttributeError:
+                    pass
+            else:
+                conn_array_info[arrayname]['throttled'] = False
     return conn_array_info
 
 
@@ -1307,11 +1395,11 @@ def main():
     if 'hosts' in subset or 'all' in subset:
         info['hosts'] = generate_host_dict(array)
     if 'volumes' in subset or 'all' in subset:
-        info['volumes'] = generate_vol_dict(module, array)
-        info['deleted_volumes'] = generate_del_vol_dict(module, array)
+        info['volumes'] = generate_vol_dict(array)
+        info['deleted_volumes'] = generate_del_vol_dict(array)
     if 'snapshots' in subset or 'all' in subset:
-        info['snapshots'] = generate_snap_dict(array)
-        info['deleted_snapshots'] = generate_del_snap_dict(array)
+        info['snapshots'] = generate_snap_dict(module, array)
+        info['deleted_snapshots'] = generate_del_snap_dict(module, array)
     if 'hgroups' in subset or 'all' in subset:
         info['hgroups'] = generate_hgroups_dict(array)
     if 'pgroups' in subset or 'all' in subset:
@@ -1334,7 +1422,7 @@ def main():
         else:
             info['apps'] = {}
     if 'arrays' in subset or 'all' in subset:
-        info['arrays'] = generate_conn_array_dict(array)
+        info['arrays'] = generate_conn_array_dict(module, array)
     if 'certs' in subset or 'all' in subset:
         info['certs'] = generate_certs_dict(array)
     if 'kmip' in subset or 'all' in subset:

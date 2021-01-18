@@ -67,6 +67,13 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
 
 
+def _is_cbs(array, is_cbs=False):
+    """Is the selected array a Cloud Block Store"""
+    model = array.get(controllers=True)[0]['model']
+    is_cbs = bool('CBS' in model)
+    return is_cbs
+
+
 def remove(duplicate):
     final_list = []
     for num in duplicate:
@@ -114,6 +121,9 @@ def main():
                            supports_check_mode=True)
 
     array = get_system(module)
+    if _is_cbs(array):
+        module.warn('NTP settings are not necessary for a CBS array - ignoring...')
+        module.exit_json(changed=False)
 
     if module.params['state'] == 'absent':
         delete_ntp(module, array)
