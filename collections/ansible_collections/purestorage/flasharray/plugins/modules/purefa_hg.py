@@ -173,7 +173,7 @@ def update_hostgroup(module, array):
                         module.fail_json(msg='Failed to add host(s) to hostgroup')
             if module.params['volume']:
                 if volumes:
-                    current_vols = [vol['vol'] for vol in volumes]
+                    current_vols = [vol['vol'].lower() for vol in volumes]
                     cased_vols = [vol.lower() for vol in module.params['volume']]
                     new_volumes = list(set(cased_vols).difference(set(current_vols)))
                     if len(new_volumes) == 1 and module.params['lun']:
