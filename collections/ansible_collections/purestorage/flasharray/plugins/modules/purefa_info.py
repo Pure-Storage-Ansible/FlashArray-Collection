@@ -862,7 +862,7 @@ def generate_del_snap_dict(module, array):
     return snap_info
 
 
-def generate_del_vol_dict(module, array):
+def generate_del_vol_dict(array):
     volume_info = {}
     api_version = array._list_available_rest_versions()
     vols = array.list_volumes(pending_only=True)
@@ -891,7 +891,7 @@ def generate_del_vol_dict(module, array):
     return volume_info
 
 
-def generate_vol_dict(module, array):
+def generate_vol_dict(array):
     volume_info = {}
     vols = array.list_volumes()
     for vol in range(0, len(vols)):
@@ -1124,33 +1124,68 @@ def generate_pods_dict(array):
     return pods_info
 
 
-def generate_conn_array_dict(array):
+def generate_conn_array_dict(module, array):
     conn_array_info = {}
     api_version = array._list_available_rest_versions()
-    carrays = array.list_array_connections()
-    for carray in range(0, len(carrays)):
-        arrayname = carrays[carray]['array_name']
-        conn_array_info[arrayname] = {
-            'array_id': carrays[carray]['id'],
-            'throttled': carrays[carray]['throttled'],
-            'version': carrays[carray]['version'],
-            'type': carrays[carray]['type'],
-            'mgmt_ip': carrays[carray]['management_address'],
-            'repl_ip': carrays[carray]['replication_address'],
-        }
-        if P53_API_VERSION in api_version:
-            conn_array_info[arrayname]['status'] = carrays[carray]['status']
-        else:
-            conn_array_info[arrayname]['connected'] = carrays[carray]['connected']
-    throttles = array.list_array_connections(throttle=True)
-    for throttle in range(0, len(throttles)):
-        arrayname = throttles[throttle]['array_name']
-        if conn_array_info[arrayname]['throttled']:
-            conn_array_info[arrayname]['throttling'] = {
-                'default_limit': throttles[throttle]['default_limit'],
-                'window_limit': throttles[throttle]['window_limit'],
-                'window': throttles[throttle]['window'],
+    if FC_REPL_API_VERSION not in api_version:
+        carrays = array.list_array_connections()
+        for carray in range(0, len(carrays)):
+            arrayname = carrays[carray]['array_name']
+            conn_array_info[arrayname] = {
+                'array_id': carrays[carray]['id'],
+                'throttled': carrays[carray]['throttled'],
+                'version': carrays[carray]['version'],
+                'type': carrays[carray]['type'],
+                'mgmt_ip': carrays[carray]['management_address'],
+                'repl_ip': carrays[carray]['replication_address'],
             }
+            if P53_API_VERSION in api_version:
+                conn_array_info[arrayname]['status'] = carrays[carray]['status']
+            else:
+                conn_array_info[arrayname]['connected'] = carrays[carray]['connected']
+        throttles = array.list_array_connections(throttle=True)
+        for throttle in range(0, len(throttles)):
+            arrayname = throttles[throttle]['array_name']
+            if conn_array_info[arrayname]['throttled']:
+                conn_array_info[arrayname]['throttling'] = {
+                    'default_limit': throttles[throttle]['default_limit'],
+                    'window_limit': throttles[throttle]['window_limit'],
+                    'window': throttles[throttle]['window'],
+                }
+    else:
+        arrayv6 = get_array(module)
+        carrays = list(arrayv6.get_array_connections().items)
+        for carray in range(0, len(carrays)):
+            arrayname = carrays[carray].name
+            conn_array_info[arrayname] = {
+                'array_id': carrays[carray].id,
+                'version': carrays[carray].version,
+                'type': carrays[carray].type,
+                'mgmt_ip': carrays[carray].management_address,
+                'repl_ip': carrays[carray].replication_addresses,
+                'transport': carrays[carray].replication_transport,
+            }
+
+            if bool(carrays[carray].throttle.to_dict()):
+                conn_array_info[arrayname]['throttled'] = True
+                conn_array_info[arrayname]['throttling'] = {}
+                try:
+                    if bool(carrays[carray].throttle.window):
+                        conn_array_info[arrayname]['throttling']['window'] = carrays[carray].throttle.window.to_dict()
+                except AttributeError:
+                    pass
+                try:
+                    if bool(carrays[carray].throttle.default_limit):
+                        conn_array_info[arrayname]['throttling']['default_limit'] = carrays[carray].throttle.default_limit
+                except AttributeError:
+                    pass
+                try:
+                    if bool(carrays[carray].throttle.window_limit):
+                        conn_array_info[arrayname]['throttling']['window_limit'] = carrays[carray].throttle.window_limit
+                except AttributeError:
+                    pass
+            else:
+                conn_array_info[arrayname]['throttled'] = False
     return conn_array_info
 
 
@@ -1360,8 +1395,8 @@ def main():
     if 'hosts' in subset or 'all' in subset:
         info['hosts'] = generate_host_dict(array)
     if 'volumes' in subset or 'all' in subset:
-        info['volumes'] = generate_vol_dict(module, array)
-        info['deleted_volumes'] = generate_del_vol_dict(module, array)
+        info['volumes'] = generate_vol_dict(array)
+        info['deleted_volumes'] = generate_del_vol_dict(array)
     if 'snapshots' in subset or 'all' in subset:
         info['snapshots'] = generate_snap_dict(module, array)
         info['deleted_snapshots'] = generate_del_snap_dict(module, array)
@@ -1387,7 +1422,7 @@ def main():
         else:
             info['apps'] = {}
     if 'arrays' in subset or 'all' in subset:
-        info['arrays'] = generate_conn_array_dict(array)
+        info['arrays'] = generate_conn_array_dict(module, array)
     if 'certs' in subset or 'all' in subset:
         info['certs'] = generate_certs_dict(array)
     if 'kmip' in subset or 'all' in subset:
