@@ -90,7 +90,7 @@ options:
       G will set GB/s
       To clear an existing QoS setting use 0 (zero)
     type: str
-    aliases: [ qos ]
+    aliases: ['qos']
   iops_qos:
     description:
     - IOPs limit for volume - use value or K or M
