@@ -34,7 +34,7 @@ options:
     - Multi-host support only exists for host creation
     type: str
     required: true
-    aliases: ['host']
+    aliases: [ host ]
   rename:
     description:
     - The name to rename to.
