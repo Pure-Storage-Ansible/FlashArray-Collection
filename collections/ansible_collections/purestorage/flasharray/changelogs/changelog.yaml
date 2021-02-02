@@ -95,8 +95,8 @@ releases:
       - purefa_dns - Fix idempotency
       - purefa_volume - Alert when volume selected for move does not exist
       minor_changes:
-      - purefa_host - Add support for multi-host creation
       - purefa_host - Add host rename function
+      - purefa_host - Add support for multi-host creation
       - purefa_vg - Add support for multiple vgroup creation
       - purefa_volume - Add support for multi-volume creation
     fragments:
@@ -108,3 +108,38 @@ releases:
     - 125_dns_idempotency.yaml
     - 126_fix_volume_move.yaml
     release_date: '2020-12-11'
+  1.6.0:
+    changes:
+      bugfixes:
+      - purefa_hg - Ensure all hostname chacks are lowercase for consistency
+      - purefa_pgsnap - Add check to ensure suffix name meets naming conventions
+      - purefa_pgsnap - Ensure pgsnap restores work for AC PGs
+      - purefa_pod - Ensure all pod names are lowercase for consistency
+      - purefa_snap - Update suffix regex pattern
+      - purefa_volume - Add missing variable initialization
+      minor_changes:
+      - purefa_connect - Add support for FC-based array replication
+      - purefa_ds - Add Purity v6 support for Directory Services, including Data DS
+        and updating services
+      - purefa_info - Add support for FC Replication
+      - purefa_info - Add support for Remote Volume Snapshots
+      - purefa_info - Update directory_services dictionary to cater for FA-Files data
+        DS. Change DS dict forward. Add deprecation warning.
+      - purefa_ntp - Ignore NTP configuration for CBS-based arrays
+      - purefa_pg - Add support for Protection Groups in AC pods
+      - purefa_snap - Add support for remote snapshot of individual volumes to offload
+        targets
+    fragments:
+    - 130_info_ds_update.yaml
+    - 131_add_v6_ds_update.yaml
+    - 132_fc_replication.yaml
+    - 133_purefa_info_v6_replication.yaml
+    - 134_ac_pg_support.yaml
+    - 135_no_cbs_ntp.yaml
+    - 136_add_vol_get_send_info.yaml
+    - 137_pgsnap_regex.yaml
+    - 139_pgsnap_ac_support.yaml
+    - 140_pod_case.yaml
+    - 141_add_remote_snapshot.yaml
+    - 145_fix_missing_move_variable.yaml
+    release_date: '2021-02-02'

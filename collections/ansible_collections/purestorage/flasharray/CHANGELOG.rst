@@ -5,14 +5,39 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.6.0
+======
+
+Minor Changes
+-------------
+
+- purefa_connect - Add support for FC-based array replication
+- purefa_ds - Add Purity v6 support for Directory Services, including Data DS and updating services
+- purefa_info - Add support for FC Replication
+- purefa_info - Add support for Remote Volume Snapshots
+- purefa_info - Update directory_services dictionary to cater for FA-Files data DS. Change DS dict forward. Add deprecation warning.
+- purefa_ntp - Ignore NTP configuration for CBS-based arrays
+- purefa_pg - Add support for Protection Groups in AC pods
+- purefa_snap - Add support for remote snapshot of individual volumes to offload targets
+
+Bugfixes
+--------
+
+- purefa_hg - Ensure all hostname chacks are lowercase for consistency
+- purefa_pgsnap - Add check to ensure suffix name meets naming conventions
+- purefa_pgsnap - Ensure pgsnap restores work for AC PGs
+- purefa_pod - Ensure all pod names are lowercase for consistency
+- purefa_snap - Update suffix regex pattern
+- purefa_volume - Add missing variable initialization
+
 v1.5.1
 ======
 
 Minor Changes
 -------------
 
-- purefa_host - Add support for multi-host creation
 - purefa_host - Add host rename function
+- purefa_host - Add support for multi-host creation
 - purefa_vg - Add support for multiple vgroup creation
 - purefa_volume - Add support for multi-volume creation
 
