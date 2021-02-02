@@ -689,6 +689,7 @@ def move_volume(module, array):
     if not module.check_mode:
         changed = False
         vgroup_exists = False
+        target_exists = False
         pod_exists = False
         pod_name = ''
         vgroup_name = ''
