@@ -428,7 +428,7 @@ def main():
         arrayv6 = None
         if module.params['offload']:
             module.fail_json(msg="Purity 6.1, or higher, is required to support single volume offload snapshots")
-        if module.params['rename']:
+        if state == 'rename':
             module.fail_json(msg="Purity 6.1, or higher, is required to support snapshot rename")
     else:
         if not HAS_PURESTORAGE:
