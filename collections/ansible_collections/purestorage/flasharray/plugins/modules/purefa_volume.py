@@ -408,6 +408,9 @@ def create_volume(module, array):
         if "::" in module.params['name']:
             if not check_pod(module, array):
                 module.fail_json(msg="Failed to create volume {0}. Pod does not exist".format(module.params["name"]))
+            pod_name = module.params["name"].split("::")[0]
+            if array.get_pod(pod_name)['promotion_status'] == 'demoted':
+                module.fail_json(msg='Volume cannot be created in a demoted pod')
             if module.params['bw_qos'] or module.params['iops_qos']:
                 if AC_QOS_VERSION not in api_version:
                     module.warn("Pods cannot cannot contain volumes with QoS settings. Ignoring...")
@@ -486,6 +489,9 @@ def create_multi_volume(module, array):
         if "::" in module.params['name']:
             if not check_pod(module, array):
                 module.fail_json(msg="Multi-volume create failed. Pod {0} does not exist".format(module.params["name"].split(':')[0]))
+            pod_name = module.params["name"].split("::")[0]
+            if array.get_pod(pod_name)['promotion_status'] == 'demoted':
+                module.fail_json(msg='Volume cannot be created in a demoted pod')
         array = get_array(module)
         for vol_num in range(module.params['start'], module.params['count'] + module.params['start']):
             names.append(module.params['name'] + str(vol_num).zfill(module.params['digits']) + module.params['suffix'])
@@ -716,14 +722,27 @@ def move_volume(module, array):
                 pod_exists = array.get_pod(module.params['move'])
                 if len(pod_exists['arrays']) > 1:
                     module.fail_json(msg='Volume cannot be moved into a stretched pod')
-                target_exists = bool(array.get_volume(module.params['move'] + "::" + volume_name, pending=True))
+                if pod_exists['link_target_count'] != 0:
+                    module.fail_json(msg='Volume cannot be moved into a linked source pod')
+                if pod_exists['promotion_status'] == 'demoted':
+                    module.fail_json(msg='Volume cannot be moved into a demoted pod')
+                pod_exists = bool(pod_exists)
             except Exception:
                 pod_exists = False
+            if pod_exists:
+                try:
+                    target_exists = bool(array.get_volume(module.params['move'] + "::" + volume_name, pending=True))
+                except Exception:
+                    target_exists = False
             try:
                 vgroup_exists = bool(array.get_vgroup(module.params['move']))
-                target_exists = bool(array.get_volume(module.params['move'] + "/" + volume_name, pending=True))
             except Exception:
                 vgroup_exists = False
+            if vgroup_exists:
+                try:
+                    target_exists = bool(array.get_volume(module.params['move'] + "/" + volume_name, pending=True))
+                except Exception:
+                    target_exists = False
             if target_exists:
                 module.fail_json(msg='Volume of same name already exists in move location')
             if pod_exists and vgroup_exists:
@@ -731,8 +750,13 @@ def move_volume(module, array):
             if not pod_exists and not vgroup_exists:
                 module.fail_json(msg='Move location {0} does not exist.'.format(module.params['move']))
             if "::" in module.params['name']:
-                if len(array.get_pod(module.params['move'])['arrays']) > 1:
+                pod = array.get_pod(module.params['move'])
+                if len(pod['arrays']) > 1:
                     module.fail_json(msg='Volume cannot be moved out of a stretched pod')
+                if pod['linked_target_count'] != 0:
+                    module.fail_json(msg='Volume cannot be moved out of a linked source pod')
+                if pod['promotion_status'] == 'demoted':
+                    module.fail_json(msg='Volume cannot be out of a demoted pod')
             if "/" in module.params['name']:
                 if vgroup_name == module.params['move'] or pod_name == module.params['move']:
                     module.fail_json(msg='Source and destination cannot be the same')
@@ -743,6 +767,8 @@ def move_volume(module, array):
             volfact = array.move_volume(module.params['name'], target_location)
             changed = True
         except Exception:
+            if target_location == '':
+                target_location = '[local]'
             module.fail_json(msg='Move of volume {0} to {1} failed.'.format(module.params['name'],
                                                                             target_location))
     module.exit_json(changed=changed, volume=volfact)
