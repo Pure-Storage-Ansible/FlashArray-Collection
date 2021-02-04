@@ -5,6 +5,14 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.6.2
+======
+
+Bugfixes
+--------
+
+- purefa_volume - Fix issues with moving volumes into demoted or linked pods
+
 v1.6.0
 ======
 

@@ -143,3 +143,10 @@ releases:
     - 141_add_remote_snapshot.yaml
     - 145_fix_missing_move_variable.yaml
     release_date: '2021-02-02'
+  1.6.2:
+    changes:
+      bugfixes:
+      - purefa_volume - Fix issues with moving volumes into demoted or linked pods
+    fragments:
+    - 149_volumes_demoted_pods_fix.yaml
+    release_date: '2021-02-04'
