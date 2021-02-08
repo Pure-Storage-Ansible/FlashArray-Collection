@@ -4,23 +4,24 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
 
 class ModuleDocFragment(object):
 
     # Standard Pure Storage documentation fragment
-    DOCUMENTATION = r'''
+    DOCUMENTATION = r"""
 options:
   - See separate platform section for more details
 requirements:
   - See separate platform section for more details
 notes:
   - Ansible modules are available for the following Pure Storage products: FlashArray, FlashBlade
-'''
+"""
 
     # Documentation fragment for FlashArray
-    FA = r'''
+    FA = r"""
 options:
   fa_url:
     description:
@@ -40,4 +41,4 @@ requirements:
   - py-pure-client >= 1.6.0
   - netaddr
   - requests
-'''
+"""

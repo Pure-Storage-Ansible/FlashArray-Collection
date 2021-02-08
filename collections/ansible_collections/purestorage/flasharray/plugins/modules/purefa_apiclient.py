@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_apiclient
 version_added: '1.5.0'
@@ -60,9 +63,9 @@ options:
     default: true
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: Create API token ansible-token
   purefa_apiclient:
     name: ansible-token
@@ -93,10 +96,10 @@ EXAMPLES = r'''
     name: ansible-token
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-'''
+"""
 
-RETURN = r'''
-'''
+RETURN = r"""
+"""
 
 HAS_PURESTORAGE = True
 try:
@@ -105,18 +108,24 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, get_array, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_system,
+    get_array,
+    purefa_argument_spec,
+)
 
-MIN_REQUIRED_API_VERSION = '2.1'
+MIN_REQUIRED_API_VERSION = "2.1"
 
 
 def delete_client(module, array):
     changed = True
     if not module.check_mode:
         try:
-            array.delete_api_clients(names=[module.params['name']])
+            array.delete_api_clients(names=[module.params["name"]])
         except Exception:
-            module.fail_json(msg="Failed to delete API Client {0}".format(module.params['name']))
+            module.fail_json(
+                msg="Failed to delete API Client {0}".format(module.params["name"])
+            )
     module.exit_json(changed=changed)
 
 
@@ -125,13 +134,19 @@ def update_client(module, array, client):
     changed = True
     if not module.check_mode:
         changed = False
-        if client.enabled != module.params['enabled']:
+        if client.enabled != module.params["enabled"]:
             try:
-                array.patch_api_clients(names=[module.params['name']],
-                                        api_clients=flasharray.ApiClientPatch(enabled=module.params['enabled']))
+                array.patch_api_clients(
+                    names=[module.params["name"]],
+                    api_clients=flasharray.ApiClientPatch(
+                        enabled=module.params["enabled"]
+                    ),
+                )
                 changed = True
             except Exception:
-                module.fail_json(msg='Failed to update API Client {0}'.format(module.params['name']))
+                module.fail_json(
+                    msg="Failed to update API Client {0}".format(module.params["name"])
+                )
     module.exit_json(changed=changed)
 
 
@@ -140,76 +155,99 @@ def create_client(module, array):
     changed = True
     if not module.check_mode:
         changed = False
-        if not 1 <= module.params['token_ttl'] <= 86400:
+        if not 1 <= module.params["token_ttl"] <= 86400:
             module.fail_json(msg="token_ttl parameter is out of range (1 to 86400)")
         else:
-            token_ttl = module.params['token_ttl'] * 1000
-        if not module.params['issuer']:
-            module.params['issuer'] = module.params['name']
+            token_ttl = module.params["token_ttl"] * 1000
+        if not module.params["issuer"]:
+            module.params["issuer"] = module.params["name"]
         try:
-            client = flasharray.ApiClientPost(max_role=module.params['role'],
-                                              issuer=module.params['issuer'],
-                                              access_token_ttl_in_ms=token_ttl,
-                                              public_key=module.params['public_key'])
-            res = array.post_api_clients(names=[module.params['name']], api_clients=client)
+            client = flasharray.ApiClientPost(
+                max_role=module.params["role"],
+                issuer=module.params["issuer"],
+                access_token_ttl_in_ms=token_ttl,
+                public_key=module.params["public_key"],
+            )
+            res = array.post_api_clients(
+                names=[module.params["name"]], api_clients=client
+            )
             if res.status_code != 200:
-                module.fail_json(msg="Failed to create API CLient {0}. Error message: {1}".format(module.params['name'],
-                                                                                                  res.errors[0].message))
-            if module.params['enabled']:
+                module.fail_json(
+                    msg="Failed to create API CLient {0}. Error message: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
+            if module.params["enabled"]:
                 try:
-                    array.patch_api_clients(names=[module.params['name']],
-                                            api_clients=flasharray.ApiClientPatch(enabled=module.params['enabled']))
+                    array.patch_api_clients(
+                        names=[module.params["name"]],
+                        api_clients=flasharray.ApiClientPatch(
+                            enabled=module.params["enabled"]
+                        ),
+                    )
                 except Exception:
-                    array.delete_api_clients(names=[module.params['name']])
-                    module.fail_json(msg="Failed to create API Client {0}".format(module.params['name']))
+                    array.delete_api_clients(names=[module.params["name"]])
+                    module.fail_json(
+                        msg="Failed to create API Client {0}".format(
+                            module.params["name"]
+                        )
+                    )
             changed = True
         except Exception:
-            module.fail_json(msg="Failed to create API Client {0}".format(module.params['name']))
+            module.fail_json(
+                msg="Failed to create API Client {0}".format(module.params["name"])
+            )
     module.exit_json(changed=changed)
 
 
 def main():
     argument_spec = purefa_argument_spec()
-    argument_spec.update(dict(
-        state=dict(type='str', default='present', choices=['absent', 'present']),
-        enabled=dict(type='bool', default=True),
-        name=dict(type='str', required=True),
-        role=dict(type='str', choices=['readonly', 'ops_admin', 'storage_admin', 'array_admin']),
-        public_key=dict(type='str', no_log=True),
-        token_ttl=dict(type='int', default=86400),
-        issuer=dict(type='str')
-    ))
+    argument_spec.update(
+        dict(
+            state=dict(type="str", default="present", choices=["absent", "present"]),
+            enabled=dict(type="bool", default=True),
+            name=dict(type="str", required=True),
+            role=dict(
+                type="str",
+                choices=["readonly", "ops_admin", "storage_admin", "array_admin"],
+            ),
+            public_key=dict(type="str", no_log=True),
+            token_ttl=dict(type="int", default=86400),
+            issuer=dict(type="str"),
+        )
+    )
 
-    module = AnsibleModule(argument_spec,
-                           supports_check_mode=True)
+    module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     if not HAS_PURESTORAGE:
-        module.fail_json(msg='py-pure-client sdk is required for this module')
+        module.fail_json(msg="py-pure-client sdk is required for this module")
 
     array = get_system(module)
     api_version = array._list_available_rest_versions()
 
     if MIN_REQUIRED_API_VERSION not in api_version:
-        module.fail_json(msg='FlashArray REST version not supported. '
-                             'Minimum version required: {0}'.format(MIN_REQUIRED_API_VERSION))
+        module.fail_json(
+            msg="FlashArray REST version not supported. "
+            "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
+        )
     array = get_array(module)
-    state = module.params['state']
+    state = module.params["state"]
 
     try:
-        client = list(array.get_api_clients(names=[module.params['name']]).items)[0]
+        client = list(array.get_api_clients(names=[module.params["name"]]).items)[0]
         exists = True
     except Exception:
         exists = False
 
-    if not exists and state == 'present':
+    if not exists and state == "present":
         create_client(module, array)
-    elif exists and state == 'present':
+    elif exists and state == "present":
         update_client(module, array, client)
-    elif exists and state == 'absent':
+    elif exists and state == "absent":
         delete_client(module, array)
 
     module.exit_json(changed=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

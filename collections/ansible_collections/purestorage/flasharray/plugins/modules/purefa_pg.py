@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_pg
 version_added: '1.0.0'
@@ -78,9 +81,9 @@ options:
     elements: str
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: Create new local protection group
   purefa_pg:
     pgroup: foo
@@ -162,23 +165,26 @@ EXAMPLES = r'''
     target: arrayb
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-'''
+"""
 
-RETURN = r'''
-'''
+RETURN = r"""
+"""
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_system,
+    purefa_argument_spec,
+)
 
 
-OFFLOAD_API_VERSION = '1.16'
-P53_API_VERSION = '1.17'
-AC_PG_API_VERSION = '1.13'
+OFFLOAD_API_VERSION = "1.16"
+P53_API_VERSION = "1.17"
+AC_PG_API_VERSION = "1.13"
 
 
 def get_pod(module, array):
     """Get ActiveCluster Pod"""
-    pod_name = module.params['pgroup'].split("::")[0]
+    pod_name = module.params["pgroup"].split("::")[0]
     try:
         return array.get_pod(pod=pod_name)
     except Exception:
@@ -194,8 +200,8 @@ def get_targets(array):
         return None
 
     for targetcnt in range(0, len(target_details)):
-        if target_details[targetcnt]['status'] == "connected":
-            targets.append(target_details[targetcnt]['name'])
+        if target_details[targetcnt]["status"] == "connected":
+            targets.append(target_details[targetcnt]["name"])
     return targets
 
 
@@ -206,31 +212,31 @@ def get_arrays(array):
     api_version = array._list_available_rest_versions()
     for arraycnt in range(0, len(array_details)):
         if P53_API_VERSION in api_version:
-            if array_details[arraycnt]['status'] == "connected":
-                arrays.append(array_details[arraycnt]['array_name'])
+            if array_details[arraycnt]["status"] == "connected":
+                arrays.append(array_details[arraycnt]["array_name"])
         else:
-            if array_details[arraycnt]['connected']:
-                arrays.append(array_details[arraycnt]['array_name'])
+            if array_details[arraycnt]["connected"]:
+                arrays.append(array_details[arraycnt]["array_name"])
     return arrays
 
 
 def get_pending_pgroup(module, array):
     """ Get Protection Group"""
     pgroup = None
-    if ":" in module.params['pgroup']:
-        if "::" not in module.params['pgroup']:
+    if ":" in module.params["pgroup"]:
+        if "::" not in module.params["pgroup"]:
             for pgrp in array.list_pgroups(pending=True, on="*"):
-                if pgrp["name"] == module.params['pgroup'] and pgrp['time_remaining']:
+                if pgrp["name"] == module.params["pgroup"] and pgrp["time_remaining"]:
                     pgroup = pgrp
                     break
         else:
             for pgrp in array.list_pgroups(pending=True):
-                if pgrp["name"] == module.params['pgroup'] and pgrp['time_remaining']:
+                if pgrp["name"] == module.params["pgroup"] and pgrp["time_remaining"]:
                     pgroup = pgrp
                     break
     else:
         for pgrp in array.list_pgroups(pending=True):
-            if pgrp["name"] == module.params['pgroup'] and pgrp['time_remaining']:
+            if pgrp["name"] == module.params["pgroup"] and pgrp["time_remaining"]:
                 pgroup = pgrp
                 break
 
@@ -240,20 +246,20 @@ def get_pending_pgroup(module, array):
 def get_pgroup(module, array):
     """ Get Protection Group"""
     pgroup = None
-    if ":" in module.params['pgroup']:
-        if "::" not in module.params['pgroup']:
+    if ":" in module.params["pgroup"]:
+        if "::" not in module.params["pgroup"]:
             for pgrp in array.list_pgroups(on="*"):
-                if pgrp["name"] == module.params['pgroup']:
+                if pgrp["name"] == module.params["pgroup"]:
                     pgroup = pgrp
                     break
         else:
             for pgrp in array.list_pgroups():
-                if pgrp["name"] == module.params['pgroup']:
+                if pgrp["name"] == module.params["pgroup"]:
                     pgroup = pgrp
                     break
     else:
         for pgrp in array.list_pgroups():
-            if pgrp["name"] == module.params['pgroup']:
+            if pgrp["name"] == module.params["pgroup"]:
                 pgroup = pgrp
                 break
 
@@ -265,7 +271,7 @@ def get_pgroup_sched(module, array):
     pgroup = None
 
     for pgrp in array.list_pgroups(schedule=True):
-        if pgrp["name"] == module.params['pgroup']:
+        if pgrp["name"] == module.params["pgroup"]:
             pgroup = pgrp
             break
 
@@ -274,13 +280,13 @@ def get_pgroup_sched(module, array):
 
 def check_pg_on_offload(module, array):
     """ Check if PG already exists on offload target """
-    array_name = array.get()['array_name']
-    remote_pg = array_name + ":" + module.params['pgroup']
+    array_name = array.get()["array_name"]
+    remote_pg = array_name + ":" + module.params["pgroup"]
     targets = get_targets(array)
     for target in targets:
         remote_pgs = array.list_pgroups(pending=True, on=target)
         for rpg in range(0, len(remote_pgs)):
-            if remote_pg == remote_pgs[rpg]['name']:
+            if remote_pg == remote_pgs[rpg]["name"]:
                 return target
     return None
 
@@ -289,53 +295,91 @@ def make_pgroup(module, array):
     """ Create Protection Group"""
     changed = True
     if not module.check_mode:
-        if module.params['target']:
+        if module.params["target"]:
             api_version = array._list_available_rest_versions()
             connected_targets = []
             connected_arrays = get_arrays(array)
             if OFFLOAD_API_VERSION in api_version:
                 connected_targets = get_targets(array)
                 offload_name = check_pg_on_offload(module, array)
-                if offload_name and offload_name in module.params['target'][0:4]:
-                    module.fail_json(msg='Protection Group {0} already exists on offload target {1}.'.format(module.params['pgroup'], offload_name))
+                if offload_name and offload_name in module.params["target"][0:4]:
+                    module.fail_json(
+                        msg="Protection Group {0} already exists on offload target {1}.".format(
+                            module.params["pgroup"], offload_name
+                        )
+                    )
 
             connected_arrays = connected_arrays + connected_targets
             if connected_arrays == []:
-                module.fail_json(msg='No connected targets on source array.')
-            if set(module.params['target'][0:4]).issubset(connected_arrays):
+                module.fail_json(msg="No connected targets on source array.")
+            if set(module.params["target"][0:4]).issubset(connected_arrays):
                 try:
-                    array.create_pgroup(module.params['pgroup'], targetlist=module.params['target'][0:4])
+                    array.create_pgroup(
+                        module.params["pgroup"], targetlist=module.params["target"][0:4]
+                    )
                 except Exception:
-                    module.fail_json(msg='Creation of replicated pgroup {0} failed. {1}'.format(module.params['pgroup'], module.params['target'][0:4]))
+                    module.fail_json(
+                        msg="Creation of replicated pgroup {0} failed. {1}".format(
+                            module.params["pgroup"], module.params["target"][0:4]
+                        )
+                    )
             else:
-                module.fail_json(msg='Check all selected targets are connected to the source array.')
+                module.fail_json(
+                    msg="Check all selected targets are connected to the source array."
+                )
         else:
             try:
-                array.create_pgroup(module.params['pgroup'])
+                array.create_pgroup(module.params["pgroup"])
             except Exception:
-                module.fail_json(msg='Creation of pgroup {0} failed.'.format(module.params['pgroup']))
+                module.fail_json(
+                    msg="Creation of pgroup {0} failed.".format(module.params["pgroup"])
+                )
         try:
-            if module.params['target']:
-                array.set_pgroup(module.params['pgroup'], replicate_enabled=module.params['enabled'])
+            if module.params["target"]:
+                array.set_pgroup(
+                    module.params["pgroup"], replicate_enabled=module.params["enabled"]
+                )
             else:
-                array.set_pgroup(module.params['pgroup'], snap_enabled=module.params['enabled'])
+                array.set_pgroup(
+                    module.params["pgroup"], snap_enabled=module.params["enabled"]
+                )
         except Exception:
-            module.fail_json(msg='Enabling pgroup {0} failed.'.format(module.params['pgroup']))
-        if module.params['volume']:
+            module.fail_json(
+                msg="Enabling pgroup {0} failed.".format(module.params["pgroup"])
+            )
+        if module.params["volume"]:
             try:
-                array.set_pgroup(module.params['pgroup'], vollist=module.params['volume'])
+                array.set_pgroup(
+                    module.params["pgroup"], vollist=module.params["volume"]
+                )
             except Exception:
-                module.fail_json(msg='Adding volumes to pgroup {0} failed.'.format(module.params['pgroup']))
-        if module.params['host']:
+                module.fail_json(
+                    msg="Adding volumes to pgroup {0} failed.".format(
+                        module.params["pgroup"]
+                    )
+                )
+        if module.params["host"]:
             try:
-                array.set_pgroup(module.params['pgroup'], hostlist=module.params['host'])
+                array.set_pgroup(
+                    module.params["pgroup"], hostlist=module.params["host"]
+                )
             except Exception:
-                module.fail_json(msg='Adding hosts to pgroup {0} failed.'.format(module.params['pgroup']))
-        if module.params['hostgroup']:
+                module.fail_json(
+                    msg="Adding hosts to pgroup {0} failed.".format(
+                        module.params["pgroup"]
+                    )
+                )
+        if module.params["hostgroup"]:
             try:
-                array.set_pgroup(module.params['pgroup'], hgrouplist=module.params['hostgroup'])
+                array.set_pgroup(
+                    module.params["pgroup"], hgrouplist=module.params["hostgroup"]
+                )
             except Exception:
-                module.fail_json(msg='Adding hostgroups to pgroup {0} failed.'.format(module.params['pgroup']))
+                module.fail_json(
+                    msg="Adding hostgroups to pgroup {0} failed.".format(
+                        module.params["pgroup"]
+                    )
+                )
     module.exit_json(changed=changed)
 
 
@@ -344,7 +388,7 @@ def update_pgroup(module, array):
     changed = True
     if not module.check_mode:
         changed = False
-        if module.params['target']:
+        if module.params["target"]:
             api_version = array._list_available_rest_versions()
             connected_targets = []
             connected_arrays = get_arrays(array)
@@ -352,98 +396,179 @@ def update_pgroup(module, array):
             if OFFLOAD_API_VERSION in api_version:
                 connected_targets = get_targets(array)
                 offload_name = check_pg_on_offload(module, array)
-                if offload_name and offload_name in module.params['target'][0:4]:
-                    module.fail_json(msg='Protection Group {0} already exists on offload target {1}.'.format(module.params['pgroup'], offload_name))
+                if offload_name and offload_name in module.params["target"][0:4]:
+                    module.fail_json(
+                        msg="Protection Group {0} already exists on offload target {1}.".format(
+                            module.params["pgroup"], offload_name
+                        )
+                    )
 
             connected_arrays = connected_arrays + connected_targets
             if connected_arrays == []:
-                module.fail_json(msg='No targets connected to source array.')
-            current_connects = array.get_pgroup(module.params['pgroup'])['targets']
+                module.fail_json(msg="No targets connected to source array.")
+            current_connects = array.get_pgroup(module.params["pgroup"])["targets"]
             current_targets = []
 
             if current_connects:
                 for targetcnt in range(0, len(current_connects)):
-                    current_targets.append(current_connects[targetcnt]['name'])
+                    current_targets.append(current_connects[targetcnt]["name"])
 
-            if set(module.params['target'][0:4]) != set(current_targets):
-                if not set(module.params['target'][0:4]).issubset(connected_arrays):
-                    module.fail_json(msg='Check all selected targets are connected to the source array.')
+            if set(module.params["target"][0:4]) != set(current_targets):
+                if not set(module.params["target"][0:4]).issubset(connected_arrays):
+                    module.fail_json(
+                        msg="Check all selected targets are connected to the source array."
+                    )
                 try:
-                    array.set_pgroup(module.params['pgroup'], targetlist=module.params['target'][0:4])
+                    array.set_pgroup(
+                        module.params["pgroup"], targetlist=module.params["target"][0:4]
+                    )
                     changed = True
                 except Exception:
-                    module.fail_json(msg='Changing targets for pgroup {0} failed.'.format(module.params['pgroup']))
+                    module.fail_json(
+                        msg="Changing targets for pgroup {0} failed.".format(
+                            module.params["pgroup"]
+                        )
+                    )
 
-        if module.params['target'] and module.params['enabled'] != get_pgroup_sched(module, array)['replicate_enabled']:
+        if (
+            module.params["target"]
+            and module.params["enabled"]
+            != get_pgroup_sched(module, array)["replicate_enabled"]
+        ):
             try:
-                array.set_pgroup(module.params['pgroup'], replicate_enabled=module.params['enabled'])
+                array.set_pgroup(
+                    module.params["pgroup"], replicate_enabled=module.params["enabled"]
+                )
                 changed = True
             except Exception:
-                module.fail_json(msg='Changing enabled status of pgroup {0} failed.'.format(module.params['pgroup']))
-        elif not module.params['target'] and module.params['enabled'] != get_pgroup_sched(module, array)['snap_enabled']:
+                module.fail_json(
+                    msg="Changing enabled status of pgroup {0} failed.".format(
+                        module.params["pgroup"]
+                    )
+                )
+        elif (
+            not module.params["target"]
+            and module.params["enabled"]
+            != get_pgroup_sched(module, array)["snap_enabled"]
+        ):
             try:
-                array.set_pgroup(module.params['pgroup'], snap_enabled=module.params['enabled'])
+                array.set_pgroup(
+                    module.params["pgroup"], snap_enabled=module.params["enabled"]
+                )
                 changed = True
             except Exception:
-                module.fail_json(msg='Changing enabled status of pgroup {0} failed.'.format(module.params['pgroup']))
+                module.fail_json(
+                    msg="Changing enabled status of pgroup {0} failed.".format(
+                        module.params["pgroup"]
+                    )
+                )
 
-        if module.params['volume'] and \
-           get_pgroup(module, array)['hosts'] is None and \
-           get_pgroup(module, array)['hgroups'] is None:
-            if get_pgroup(module, array)['volumes'] is None:
+        if (
+            module.params["volume"]
+            and get_pgroup(module, array)["hosts"] is None
+            and get_pgroup(module, array)["hgroups"] is None
+        ):
+            if get_pgroup(module, array)["volumes"] is None:
                 try:
-                    array.set_pgroup(module.params['pgroup'], vollist=module.params['volume'])
+                    array.set_pgroup(
+                        module.params["pgroup"], vollist=module.params["volume"]
+                    )
                     changed = True
                 except Exception:
-                    module.fail_json(msg='Adding volumes to pgroup {0} failed.'.format(module.params['pgroup']))
+                    module.fail_json(
+                        msg="Adding volumes to pgroup {0} failed.".format(
+                            module.params["pgroup"]
+                        )
+                    )
             else:
-                cased_vols = [vol.lower() for vol in module.params['volume']]
-                cased_pgvols = [vol.lower() for vol in get_pgroup(module, array)['volumes']]
+                cased_vols = [vol.lower() for vol in module.params["volume"]]
+                cased_pgvols = [
+                    vol.lower() for vol in get_pgroup(module, array)["volumes"]
+                ]
                 if not all(x in cased_pgvols for x in cased_vols):
                     try:
-                        array.set_pgroup(module.params['pgroup'], vollist=module.params['volume'])
+                        array.set_pgroup(
+                            module.params["pgroup"], vollist=module.params["volume"]
+                        )
                         changed = True
                     except Exception:
-                        module.fail_json(msg='Changing volumes in pgroup {0} failed.'.format(module.params['pgroup']))
+                        module.fail_json(
+                            msg="Changing volumes in pgroup {0} failed.".format(
+                                module.params["pgroup"]
+                            )
+                        )
 
-        if module.params['host'] and \
-           get_pgroup(module, array)['volumes'] is None and \
-           get_pgroup(module, array)['hgroups'] is None:
-            if get_pgroup(module, array)['hosts'] is None:
+        if (
+            module.params["host"]
+            and get_pgroup(module, array)["volumes"] is None
+            and get_pgroup(module, array)["hgroups"] is None
+        ):
+            if get_pgroup(module, array)["hosts"] is None:
                 try:
-                    array.set_pgroup(module.params['pgroup'], hostlist=module.params['host'])
+                    array.set_pgroup(
+                        module.params["pgroup"], hostlist=module.params["host"]
+                    )
                     changed = True
                 except Exception:
-                    module.fail_json(msg='Adding hosts to pgroup {0} failed.'.format(module.params['pgroup']))
+                    module.fail_json(
+                        msg="Adding hosts to pgroup {0} failed.".format(
+                            module.params["pgroup"]
+                        )
+                    )
             else:
-                cased_hosts = [host.lower() for host in module.params['host']]
-                cased_pghosts = [host.lower() for host in get_pgroup(module, array)['hosts']]
+                cased_hosts = [host.lower() for host in module.params["host"]]
+                cased_pghosts = [
+                    host.lower() for host in get_pgroup(module, array)["hosts"]
+                ]
                 if not all(x in cased_pghosts for x in cased_hosts):
                     try:
-                        array.set_pgroup(module.params['pgroup'], hostlist=module.params['host'])
+                        array.set_pgroup(
+                            module.params["pgroup"], hostlist=module.params["host"]
+                        )
                         changed = True
-                        module.warn('Hello')
+                        module.warn("Hello")
                     except Exception:
-                        module.fail_json(msg='Changing hosts in pgroup {0} failed.'.format(module.params['pgroup']))
+                        module.fail_json(
+                            msg="Changing hosts in pgroup {0} failed.".format(
+                                module.params["pgroup"]
+                            )
+                        )
 
-        if module.params['hostgroup'] and \
-           get_pgroup(module, array)['hosts'] is None and \
-           get_pgroup(module, array)['volumes'] is None:
-            if get_pgroup(module, array)['hgroups'] is None:
+        if (
+            module.params["hostgroup"]
+            and get_pgroup(module, array)["hosts"] is None
+            and get_pgroup(module, array)["volumes"] is None
+        ):
+            if get_pgroup(module, array)["hgroups"] is None:
                 try:
-                    array.set_pgroup(module.params['pgroup'], hgrouplist=module.params['hostgroup'])
+                    array.set_pgroup(
+                        module.params["pgroup"], hgrouplist=module.params["hostgroup"]
+                    )
                     changed = True
                 except Exception:
-                    module.fail_json(msg='Adding hostgroups to pgroup {0} failed.'.format(module.params['pgroup']))
+                    module.fail_json(
+                        msg="Adding hostgroups to pgroup {0} failed.".format(
+                            module.params["pgroup"]
+                        )
+                    )
             else:
-                cased_hostg = [hostg.lower() for hostg in module.params['hostgroup']]
-                cased_pghostg = [hostg.lower() for hostg in get_pgroup(module, array)['hgroups']]
+                cased_hostg = [hostg.lower() for hostg in module.params["hostgroup"]]
+                cased_pghostg = [
+                    hostg.lower() for hostg in get_pgroup(module, array)["hgroups"]
+                ]
                 if not all(x in cased_pghostg for x in cased_hostg):
                     try:
-                        array.set_pgroup(module.params['pgroup'], hgrouplist=module.params['hostgroup'])
+                        array.set_pgroup(
+                            module.params["pgroup"],
+                            hgrouplist=module.params["hostgroup"],
+                        )
                         changed = True
                     except Exception:
-                        module.fail_json(msg='Changing hostgroups in pgroup {0} failed.'.format(module.params['pgroup']))
+                        module.fail_json(
+                            msg="Changing hostgroups in pgroup {0} failed.".format(
+                                module.params["pgroup"]
+                            )
+                        )
 
     module.exit_json(changed=changed)
 
@@ -452,23 +577,35 @@ def eradicate_pgroup(module, array):
     """ Eradicate Protection Group"""
     changed = True
     if not module.check_mode:
-        if ":" in module.params['pgroup']:
-            if "::" not in module.params['pgroup']:
+        if ":" in module.params["pgroup"]:
+            if "::" not in module.params["pgroup"]:
                 try:
-                    target = ''.join(module.params['target'])
-                    array.destroy_pgroup(module.params['pgroup'], on=target, eradicate=True)
+                    target = "".join(module.params["target"])
+                    array.destroy_pgroup(
+                        module.params["pgroup"], on=target, eradicate=True
+                    )
                 except Exception:
-                    module.fail_json(msg='Eradicating pgroup {0} failed.'.format(module.params['pgroup']))
+                    module.fail_json(
+                        msg="Eradicating pgroup {0} failed.".format(
+                            module.params["pgroup"]
+                        )
+                    )
             else:
                 try:
-                    array.destroy_pgroup(module.params['pgroup'], eradicate=True)
+                    array.destroy_pgroup(module.params["pgroup"], eradicate=True)
                 except Exception:
-                    module.fail_json(msg='Eradicating pgroup {0} failed.'.format(module.params['pgroup']))
+                    module.fail_json(
+                        msg="Eradicating pgroup {0} failed.".format(
+                            module.params["pgroup"]
+                        )
+                    )
         else:
             try:
-                array.destroy_pgroup(module.params['pgroup'], eradicate=True)
+                array.destroy_pgroup(module.params["pgroup"], eradicate=True)
             except Exception:
-                module.fail_json(msg='Eradicating pgroup {0} failed.'.format(module.params['pgroup']))
+                module.fail_json(
+                    msg="Eradicating pgroup {0} failed.".format(module.params["pgroup"])
+                )
     module.exit_json(changed=changed)
 
 
@@ -476,24 +613,34 @@ def delete_pgroup(module, array):
     """ Delete Protection Group"""
     changed = True
     if not module.check_mode:
-        if ":" in module.params['pgroup']:
-            if "::" not in module.params['pgroup']:
+        if ":" in module.params["pgroup"]:
+            if "::" not in module.params["pgroup"]:
                 try:
-                    target = ''.join(module.params['target'])
-                    array.destroy_pgroup(module.params['pgroup'], on=target)
+                    target = "".join(module.params["target"])
+                    array.destroy_pgroup(module.params["pgroup"], on=target)
                 except Exception:
-                    module.fail_json(msg='Deleting pgroup {0} failed.'.format(module.params['pgroup']))
+                    module.fail_json(
+                        msg="Deleting pgroup {0} failed.".format(
+                            module.params["pgroup"]
+                        )
+                    )
             else:
                 try:
-                    array.destroy_pgroup(module.params['pgroup'])
+                    array.destroy_pgroup(module.params["pgroup"])
                 except Exception:
-                    module.fail_json(msg='Deleting pgroup {0} failed.'.format(module.params['pgroup']))
+                    module.fail_json(
+                        msg="Deleting pgroup {0} failed.".format(
+                            module.params["pgroup"]
+                        )
+                    )
         else:
             try:
-                array.destroy_pgroup(module.params['pgroup'])
+                array.destroy_pgroup(module.params["pgroup"])
             except Exception:
-                module.fail_json(msg='Deleting pgroup {0} failed.'.format(module.params['pgroup']))
-        if module.params['eradicate']:
+                module.fail_json(
+                    msg="Deleting pgroup {0} failed.".format(module.params["pgroup"])
+                )
+        if module.params["eradicate"]:
             eradicate_pgroup(module, array)
 
     module.exit_json(changed=changed)
@@ -501,63 +648,71 @@ def delete_pgroup(module, array):
 
 def main():
     argument_spec = purefa_argument_spec()
-    argument_spec.update(dict(
-        pgroup=dict(type='str', required=True),
-        state=dict(type='str', default='present', choices=['absent', 'present']),
-        volume=dict(type='list', elements='str'),
-        host=dict(type='list', elements='str'),
-        hostgroup=dict(type='list', elements='str'),
-        target=dict(type='list', elements='str'),
-        eradicate=dict(type='bool', default=False),
-        enabled=dict(type='bool', default=True),
-    ))
+    argument_spec.update(
+        dict(
+            pgroup=dict(type="str", required=True),
+            state=dict(type="str", default="present", choices=["absent", "present"]),
+            volume=dict(type="list", elements="str"),
+            host=dict(type="list", elements="str"),
+            hostgroup=dict(type="list", elements="str"),
+            target=dict(type="list", elements="str"),
+            eradicate=dict(type="bool", default=False),
+            enabled=dict(type="bool", default=True),
+        )
+    )
 
-    mutually_exclusive = [['volume', 'host', 'hostgroup']]
-    module = AnsibleModule(argument_spec,
-                           mutually_exclusive=mutually_exclusive,
-                           supports_check_mode=True)
+    mutually_exclusive = [["volume", "host", "hostgroup"]]
+    module = AnsibleModule(
+        argument_spec, mutually_exclusive=mutually_exclusive, supports_check_mode=True
+    )
 
-    state = module.params['state']
+    state = module.params["state"]
     array = get_system(module)
     api_version = array._list_available_rest_versions()
-    if ":" in module.params['pgroup'] and OFFLOAD_API_VERSION not in api_version:
-        module.fail_json(msg='API version does not support offload protection groups.')
-    if "::" in module.params['pgroup'] and AC_PG_API_VERSION not in api_version:
-        module.fail_json(msg='API version does not support ActiveCluster protection groups.')
+    if ":" in module.params["pgroup"] and OFFLOAD_API_VERSION not in api_version:
+        module.fail_json(msg="API version does not support offload protection groups.")
+    if "::" in module.params["pgroup"] and AC_PG_API_VERSION not in api_version:
+        module.fail_json(
+            msg="API version does not support ActiveCluster protection groups."
+        )
 
     pgroup = get_pgroup(module, array)
     xpgroup = get_pending_pgroup(module, array)
-    if "::" in module.params['pgroup']:
+    if "::" in module.params["pgroup"]:
         if not get_pod(module, array):
-            module.fail_json(msg='Pod {0} does not exist.'.format(module.params['pgroup'].split('::')[0]))
+            module.fail_json(
+                msg="Pod {0} does not exist.".format(
+                    module.params["pgroup"].split("::")[0]
+                )
+            )
 
-    if module.params['host']:
+    if module.params["host"]:
         try:
-            for hst in module.params['host']:
+            for hst in module.params["host"]:
                 array.get_host(hst)
         except Exception:
-            module.fail_json(msg='Host {0} not found'.format(hst))
+            module.fail_json(msg="Host {0} not found".format(hst))
 
-    if module.params['hostgroup']:
+    if module.params["hostgroup"]:
         try:
-            for hstg in module.params['hostgroup']:
+            for hstg in module.params["hostgroup"]:
                 array.get_hgroup(hstg)
         except Exception:
-            module.fail_json(msg='Hostgroup {0} not found'.format(hstg))
+            module.fail_json(msg="Hostgroup {0} not found".format(hstg))
 
-    if pgroup and state == 'present':
+    if pgroup and state == "present":
         update_pgroup(module, array)
-    elif pgroup and state == 'absent':
+    elif pgroup and state == "absent":
         delete_pgroup(module, array)
-    elif xpgroup and state == 'absent' and module.params['eradicate']:
+    elif xpgroup and state == "absent" and module.params["eradicate"]:
         eradicate_pgroup(module, array)
-    elif not pgroup and not xpgroup and state == 'present':
+    elif not pgroup and not xpgroup and state == "present":
         make_pgroup(module, array)
-    elif pgroup is None and state == 'absent':
+    elif pgroup is None and state == "absent":
         module.exit_json(changed=False)
 
     module.exit_json(changed=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

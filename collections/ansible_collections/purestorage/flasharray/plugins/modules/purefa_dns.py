@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_dns
 version_added: '1.0.0'
@@ -40,9 +43,9 @@ options:
     elements: str
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: Delete exisitng DNS settings
   purefa_dns:
     state: absent
@@ -58,13 +61,16 @@ EXAMPLES = r'''
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-'''
+"""
 
-RETURN = r'''
-'''
+RETURN = r"""
+"""
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_system,
+    purefa_argument_spec,
+)
 
 
 def remove(duplicate):
@@ -80,13 +86,13 @@ def delete_dns(module, array):
     changed = True
     if not module.check_mode:
         current_dns = array.get_dns()
-        if current_dns['domain'] == '' and current_dns['nameservers'] == ['']:
+        if current_dns["domain"] == "" and current_dns["nameservers"] == [""]:
             module.exit_json(changed=changed)
         else:
             try:
-                array.set_dns(domain='', nameservers=[])
+                array.set_dns(domain="", nameservers=[])
             except Exception:
-                module.fail_json(msg='Delete DNS settigs failed')
+                module.fail_json(msg="Delete DNS settigs failed")
     module.exit_json(changed=changed)
 
 
@@ -96,42 +102,47 @@ def create_dns(module, array):
     if not module.check_mode:
         changed = False
         current_dns = array.get_dns()
-        if current_dns['domain'] != module.params['domain'] or \
-           sorted(module.params['nameservers']) != sorted(current_dns['nameservers']):
+        if current_dns["domain"] != module.params["domain"] or sorted(
+            module.params["nameservers"]
+        ) != sorted(current_dns["nameservers"]):
             try:
-                array.set_dns(domain=module.params['domain'],
-                              nameservers=module.params['nameservers'][0:3])
+                array.set_dns(
+                    domain=module.params["domain"],
+                    nameservers=module.params["nameservers"][0:3],
+                )
                 changed = True
             except Exception:
-                module.fail_json(msg='Set DNS settings failed: Check configuration')
+                module.fail_json(msg="Set DNS settings failed: Check configuration")
     module.exit_json(changed=changed)
 
 
 def main():
     argument_spec = purefa_argument_spec()
-    argument_spec.update(dict(
-        state=dict(type='str', default='present', choices=['absent', 'present']),
-        domain=dict(type='str'),
-        nameservers=dict(type='list', elements='str'),
-    ))
+    argument_spec.update(
+        dict(
+            state=dict(type="str", default="present", choices=["absent", "present"]),
+            domain=dict(type="str"),
+            nameservers=dict(type="list", elements="str"),
+        )
+    )
 
-    required_if = [('state', 'present', ['domain', 'nameservers'])]
+    required_if = [("state", "present", ["domain", "nameservers"])]
 
-    module = AnsibleModule(argument_spec,
-                           required_if=required_if,
-                           supports_check_mode=True)
+    module = AnsibleModule(
+        argument_spec, required_if=required_if, supports_check_mode=True
+    )
 
-    state = module.params['state']
+    state = module.params["state"]
     array = get_system(module)
 
-    if state == 'absent':
+    if state == "absent":
         delete_dns(module, array)
-    elif state == 'present':
-        module.params['nameservers'] = remove(module.params['nameservers'])
+    elif state == "present":
+        module.params["nameservers"] = remove(module.params["nameservers"])
         create_dns(module, array)
     else:
         module.exit_json(changed=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

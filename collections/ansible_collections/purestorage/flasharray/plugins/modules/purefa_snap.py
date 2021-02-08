@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_snap
 version_added: '1.0.0'
@@ -70,9 +73,9 @@ options:
     default: false
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: Create snapshot foo.ansible
   purefa_snap:
     name: foo
@@ -143,10 +146,10 @@ EXAMPLES = r'''
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-'''
+"""
 
-RETURN = r'''
-'''
+RETURN = r"""
+"""
 
 HAS_PURESTORAGE = True
 try:
@@ -156,15 +159,19 @@ except ImportError:
 
 import re
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_array, get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_array,
+    get_system,
+    purefa_argument_spec,
+)
 from datetime import datetime
 
-GET_SEND_API = '2.4'
+GET_SEND_API = "2.4"
 
 
 def _check_offload(module, array):
     try:
-        offload = list(array.get_offloads(names=[module.params['offload']]).items)[0]
+        offload = list(array.get_offloads(names=[module.params["offload"]]).items)[0]
         if offload.status == "connected":
             return True
         return False
@@ -174,7 +181,9 @@ def _check_offload(module, array):
 
 def _check_target(module, array):
     try:
-        target = list(array.get_array_connections(names=[module.params['offload']]).items)[0]
+        target = list(
+            array.get_array_connections(names=[module.params["offload"]]).items
+        )[0]
         if target.status == "connected":
             return True
         return False
@@ -185,11 +194,13 @@ def _check_target(module, array):
 def _check_offload_snapshot(module, array):
     """Return Remote Snapshot (active or deleted) or None"""
     source_array = list(array.get_arrays().items)[0].name
-    snapname = source_array + ":" + module.params['name'] + "." + module.params['suffix']
+    snapname = (
+        source_array + ":" + module.params["name"] + "." + module.params["suffix"]
+    )
     if _check_offload(module, array):
-        res = array.get_remote_volume_snapshots(on=module.params['offload'],
-                                                names=[snapname],
-                                                destroyed=False)
+        res = array.get_remote_volume_snapshots(
+            on=module.params["offload"], names=[snapname], destroyed=False
+        )
     else:
         res = array.get_volume_snapshots(names=[snapname], destroyed=False)
     if res.status_code != 200:
@@ -200,7 +211,7 @@ def _check_offload_snapshot(module, array):
 def get_volume(module, array):
     """Return Volume or None"""
     try:
-        return array.get_volume(module.params['name'])
+        return array.get_volume(module.params["name"])
     except Exception:
         return None
 
@@ -208,32 +219,34 @@ def get_volume(module, array):
 def get_target(module, array):
     """Return Volume or None"""
     try:
-        return array.get_volume(module.params['target'])
+        return array.get_volume(module.params["target"])
     except Exception:
         return None
 
 
 def get_deleted_snapshot(module, array, arrayv6):
     """Return Deleted Snapshot"""
-    snapname = module.params['name'] + "." + module.params['suffix']
-    if module.params['offload']:
+    snapname = module.params["name"] + "." + module.params["suffix"]
+    if module.params["offload"]:
         source_array = list(arrayv6.get_arrays().items)[0].name
-        snapname = module.params['name'] + "." + module.params['suffix']
+        snapname = module.params["name"] + "." + module.params["suffix"]
         full_snapname = source_array + ":" + snapname
         if _check_offload(module, arrayv6):
-            res = arrayv6.get_remote_volume_snapshots(on=module.params['offload'],
-                                                      names=[full_snapname],
-                                                      destroyed=True)
+            res = arrayv6.get_remote_volume_snapshots(
+                on=module.params["offload"], names=[full_snapname], destroyed=True
+            )
         else:
-            res = arrayv6.get_volume_snapshots(names=[snapname],
-                                               destroyed=True)
+            res = arrayv6.get_volume_snapshots(names=[snapname], destroyed=True)
         if res.status_code == 200:
             return list(res.items)[0].destroyed
         else:
             return False
     else:
         try:
-            return bool(array.get_volume(snapname, snap=True, pending=True)[0]['time_remaining'] != '')
+            return bool(
+                array.get_volume(snapname, snap=True, pending=True)[0]["time_remaining"]
+                != ""
+            )
         except Exception:
             return False
 
@@ -241,9 +254,9 @@ def get_deleted_snapshot(module, array, arrayv6):
 def get_snapshot(module, array):
     """Return Snapshot or None"""
     try:
-        snapname = module.params['name'] + "." + module.params['suffix']
-        for snaps in array.get_volume(module.params['name'], snap=True, pending=False):
-            if snaps['name'] == snapname:
+        snapname = module.params["name"] + "." + module.params["suffix"]
+        for snaps in array.get_volume(module.params["name"], snap=True, pending=False):
+            if snaps["name"] == snapname:
                 return True
     except Exception:
         return False
@@ -253,17 +266,26 @@ def create_snapshot(module, array, arrayv6):
     """Create Snapshot"""
     changed = True
     if not module.check_mode:
-        if module.params['offload']:
-            if module.params['suffix']:
-                module.warn('Suffix not supported for Remote Volume Offload Snapshot. Using next incremental integer')
-                module.params['suffix'] = None
-            res = arrayv6.post_remote_volume_snapshots(source_names=[module.params['name']], on=module.params['offload'])
+        if module.params["offload"]:
+            if module.params["suffix"]:
+                module.warn(
+                    "Suffix not supported for Remote Volume Offload Snapshot. Using next incremental integer"
+                )
+                module.params["suffix"] = None
+            res = arrayv6.post_remote_volume_snapshots(
+                source_names=[module.params["name"]], on=module.params["offload"]
+            )
             if res.status_code != 200:
-                module.fail_json(msg='Failed to crete remote snapshot for volume {0}. Error: {1}'.format(module.params['name'],
-                                                                                                         res.errors[0].message))
+                module.fail_json(
+                    msg="Failed to crete remote snapshot for volume {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
         else:
             try:
-                array.create_snapshot(module.params['name'], suffix=module.params['suffix'])
+                array.create_snapshot(
+                    module.params["name"], suffix=module.params["suffix"]
+                )
             except Exception:
                 changed = False
     module.exit_json(changed=changed)
@@ -271,19 +293,19 @@ def create_snapshot(module, array, arrayv6):
 
 def create_from_snapshot(module, array):
     """Create Volume from Snapshot"""
-    source = module.params['name'] + "." + module.params['suffix']
+    source = module.params["name"] + "." + module.params["suffix"]
     tgt = get_target(module, array)
     if tgt is None:
         changed = True
         if not module.check_mode:
-            array.copy_volume(source, module.params['target'])
-    elif tgt is not None and module.params['overwrite']:
+            array.copy_volume(source, module.params["target"])
+    elif tgt is not None and module.params["overwrite"]:
         changed = True
         if not module.check_mode:
-            array.copy_volume(source,
-                              module.params['target'],
-                              overwrite=module.params['overwrite'])
-    elif tgt is not None and not module.params['overwrite']:
+            array.copy_volume(
+                source, module.params["target"], overwrite=module.params["overwrite"]
+            )
+    elif tgt is not None and not module.params["overwrite"]:
         changed = False
     module.exit_json(changed=changed)
 
@@ -291,22 +313,27 @@ def create_from_snapshot(module, array):
 def recover_snapshot(module, array, arrayv6):
     """Recover Snapshot"""
     changed = False
-    snapname = module.params['name'] + "." + module.params['suffix']
+    snapname = module.params["name"] + "." + module.params["suffix"]
     if not module.check_mode:
-        if module.params['offload'] and _check_offload(module, arrayv6):
+        if module.params["offload"] and _check_offload(module, arrayv6):
             source_array = list(array.get_arrays().items)[0].name
-            snapname = source_array + module.params['name'] + "." + module.params['suffix']
-            res = arrayv6.patch_remote_volume_snapshots(names=[snapname], on=module.params['offload'],
-                                                        remote_volume_snapshot=flasharray.DestroyedPatchPost(destroyed=False))
+            snapname = (
+                source_array + module.params["name"] + "." + module.params["suffix"]
+            )
+            res = arrayv6.patch_remote_volume_snapshots(
+                names=[snapname],
+                on=module.params["offload"],
+                remote_volume_snapshot=flasharray.DestroyedPatchPost(destroyed=False),
+            )
             changed = True
             if res.status_code != 200:
-                module.fail_json(msg='Failed to recover remote snapshot '.format())
+                module.fail_json(msg="Failed to recover remote snapshot ".format())
         else:
             try:
                 array.recover_volume(snapname)
                 changed = True
             except Exception:
-                module.fail_json(msg='Recovery of snapshot {0} failed'.format(snapname))
+                module.fail_json(msg="Recovery of snapshot {0} failed".format(snapname))
     module.exit_json(changed=changed)
 
 
@@ -314,48 +341,79 @@ def update_snapshot(module, array):
     """Update Snapshot - basically just rename..."""
     changed = True
     if not module.check_mode:
-        current_name = module.params['name'] + "." + module.params['suffix']
-        new_name = module.params['name'] + "." + module.params['target']
-        res = array.patch_volume_snapshots(names=[current_name], volume_snapshot=flasharray.VolumeSnapshotPatch(name=new_name))
+        current_name = module.params["name"] + "." + module.params["suffix"]
+        new_name = module.params["name"] + "." + module.params["target"]
+        res = array.patch_volume_snapshots(
+            names=[current_name],
+            volume_snapshot=flasharray.VolumeSnapshotPatch(name=new_name),
+        )
         if res.status_code != 200:
-            module.fail_json(msg='Failed to rename {0} to {1}. Error: {2}'.format(current_name, new_name,
-                                                                                  res.errors[0].message))
+            module.fail_json(
+                msg="Failed to rename {0} to {1}. Error: {2}".format(
+                    current_name, new_name, res.errors[0].message
+                )
+            )
     module.exit_json(changed=changed)
 
 
 def delete_snapshot(module, array, arrayv6):
     """Delete Snapshot"""
     changed = True
-    snapname = module.params['name'] + "." + module.params['suffix']
+    snapname = module.params["name"] + "." + module.params["suffix"]
     if not module.check_mode:
-        if module.params['offload'] and _check_offload(module, arrayv6):
+        if module.params["offload"] and _check_offload(module, arrayv6):
             source_array = list(arrayv6.get_arrays().items)[0].name
             full_snapname = source_array + ":" + snapname
-            res = arrayv6.patch_remote_volume_snapshots(names=[full_snapname], on=module.params['offload'],
-                                                        volume_snapshot=flasharray.VolumeSnapshotPatch(destroyed=True),
-                                                        replication_snapshot=module.params['ignore_repl'])
+            res = arrayv6.patch_remote_volume_snapshots(
+                names=[full_snapname],
+                on=module.params["offload"],
+                volume_snapshot=flasharray.VolumeSnapshotPatch(destroyed=True),
+                replication_snapshot=module.params["ignore_repl"],
+            )
             if res.status_code != 200:
-                module.fail_json(msg='Failed to delete remote snapshot {0}. Error: {1}'.format(snapname, res.errors[0].message))
-            if module.params['eradicate']:
-                res = arrayv6.delete_remote_volume_snapshots(names=[full_snapname], on=module.params['offload'],
-                                                             replication_snapshot=module.params['ignore_repl'])
+                module.fail_json(
+                    msg="Failed to delete remote snapshot {0}. Error: {1}".format(
+                        snapname, res.errors[0].message
+                    )
+                )
+            if module.params["eradicate"]:
+                res = arrayv6.delete_remote_volume_snapshots(
+                    names=[full_snapname],
+                    on=module.params["offload"],
+                    replication_snapshot=module.params["ignore_repl"],
+                )
                 if res.status_code != 200:
-                    module.fail_json(msg='Failed to eradicate remote snapshot {0}. Error: {1}'.format(snapname, res.errors[0].message))
-        elif module.params['offload'] and _check_target(module, arrayv6):
-            res = arrayv6.patch_volume_snapshots(names=[snapname],
-                                                 volume_snapshot=flasharray.DestroyedPatchPost(destroyed=True),
-                                                 replication_snapshot=module.params['ignore_repl'])
+                    module.fail_json(
+                        msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
+                            snapname, res.errors[0].message
+                        )
+                    )
+        elif module.params["offload"] and _check_target(module, arrayv6):
+            res = arrayv6.patch_volume_snapshots(
+                names=[snapname],
+                volume_snapshot=flasharray.DestroyedPatchPost(destroyed=True),
+                replication_snapshot=module.params["ignore_repl"],
+            )
             if res.status_code != 200:
-                module.fail_json(msg='Failed to delete remote snapshot {0}. Error: {1}'.format(snapname, res.errors[0].message))
-            if module.params['eradicate']:
-                res = arrayv6.delete_volume_snapshots(names=[snapname],
-                                                      replication_snapshot=module.params['ignore_repl'])
+                module.fail_json(
+                    msg="Failed to delete remote snapshot {0}. Error: {1}".format(
+                        snapname, res.errors[0].message
+                    )
+                )
+            if module.params["eradicate"]:
+                res = arrayv6.delete_volume_snapshots(
+                    names=[snapname], replication_snapshot=module.params["ignore_repl"]
+                )
                 if res.status_code != 200:
-                    module.fail_json(msg='Failed to eradicate remote snapshot {0}. Error: {1}'.format(snapname, res.errors[0].message))
+                    module.fail_json(
+                        msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
+                            snapname, res.errors[0].message
+                        )
+                    )
         else:
             try:
                 array.destroy_volume(snapname)
-                if module.params['eradicate']:
+                if module.params["eradicate"]:
                     try:
                         array.eradicate_volume(snapname)
                     except Exception:
@@ -368,20 +426,32 @@ def delete_snapshot(module, array, arrayv6):
 def eradicate_snapshot(module, array, arrayv6):
     """Eradicate snapshot"""
     changed = True
-    snapname = module.params['name'] + "." + module.params['suffix']
+    snapname = module.params["name"] + "." + module.params["suffix"]
     if not module.check_mode:
-        if module.params['offload'] and _check_offload(module, arrayv6):
+        if module.params["offload"] and _check_offload(module, arrayv6):
             source_array = list(arrayv6.get_arrays().items)[0].name
             full_snapname = source_array + ":" + snapname
-            res = arrayv6.delete_remote_volume_snapshots(names=[full_snapname], on=module.params['offload'],
-                                                         replication_snapshot=module.params['ignore_repl'])
+            res = arrayv6.delete_remote_volume_snapshots(
+                names=[full_snapname],
+                on=module.params["offload"],
+                replication_snapshot=module.params["ignore_repl"],
+            )
             if res.status_code != 200:
-                module.fail_json(msg='Failed to eradicate remote snapshot {0}. Error: {1}'.format(snapname, res.errors[0].message))
-        elif module.params['offload'] and _check_target(module, arrayv6):
-            res = arrayv6.delete_volume_snapshots(names=[snapname],
-                                                  replication_snapshot=module.params['ignore_repl'])
+                module.fail_json(
+                    msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
+                        snapname, res.errors[0].message
+                    )
+                )
+        elif module.params["offload"] and _check_target(module, arrayv6):
+            res = arrayv6.delete_volume_snapshots(
+                names=[snapname], replication_snapshot=module.params["ignore_repl"]
+            )
             if res.status_code != 200:
-                module.fail_json(msg='Failed to eradicate remote snapshot {0}. Error: {1}'.format(snapname, res.errors[0].message))
+                module.fail_json(
+                    msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
+                        snapname, res.errors[0].message
+                    )
+                )
         else:
             try:
                 array.eradicate_volume(snapname)
@@ -392,57 +462,92 @@ def eradicate_snapshot(module, array, arrayv6):
 
 def main():
     argument_spec = purefa_argument_spec()
-    argument_spec.update(dict(
-        name=dict(type='str', required=True),
-        suffix=dict(type='str'),
-        target=dict(type='str'),
-        offload=dict(type='str'),
-        ignore_repl=dict(type='bool', default=False),
-        overwrite=dict(type='bool', default=False),
-        eradicate=dict(type='bool', default=False),
-        state=dict(type='str', default='present', choices=['absent', 'copy', 'present', 'rename']),
-    ))
+    argument_spec.update(
+        dict(
+            name=dict(type="str", required=True),
+            suffix=dict(type="str"),
+            target=dict(type="str"),
+            offload=dict(type="str"),
+            ignore_repl=dict(type="bool", default=False),
+            overwrite=dict(type="bool", default=False),
+            eradicate=dict(type="bool", default=False),
+            state=dict(
+                type="str",
+                default="present",
+                choices=["absent", "copy", "present", "rename"],
+            ),
+        )
+    )
 
-    required_if = [('state', 'copy', ['target', 'suffix'])]
+    required_if = [("state", "copy", ["target", "suffix"])]
 
-    module = AnsibleModule(argument_spec,
-                           required_if=required_if,
-                           supports_check_mode=True)
+    module = AnsibleModule(
+        argument_spec, required_if=required_if, supports_check_mode=True
+    )
     pattern = re.compile("^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$")
 
-    state = module.params['state']
-    if module.params['suffix'] is None:
-        suffix = "snap-" + str((datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0, 0)).total_seconds())
-        module.params['suffix'] = suffix.replace(".", "")
+    state = module.params["state"]
+    if module.params["suffix"] is None:
+        suffix = "snap-" + str(
+            (datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0, 0)).total_seconds()
+        )
+        module.params["suffix"] = suffix.replace(".", "")
     else:
-        if not module.params['offload']:
-            if not pattern.match(module.params['suffix']) and state not in ['absent', 'rename']:
-                module.fail_json(msg='Suffix name {0} does not conform to suffix name rules'.format(module.params['suffix']))
-    if state == 'rename' and module.params['target'] is not None:
-        if not pattern.match(module.params['target']):
-            module.fail_json(msg='Suffix target {0} does not conform to suffix name rules'.format(module.params['target']))
+        if not module.params["offload"]:
+            if not pattern.match(module.params["suffix"]) and state not in [
+                "absent",
+                "rename",
+            ]:
+                module.fail_json(
+                    msg="Suffix name {0} does not conform to suffix name rules".format(
+                        module.params["suffix"]
+                    )
+                )
+    if state == "rename" and module.params["target"] is not None:
+        if not pattern.match(module.params["target"]):
+            module.fail_json(
+                msg="Suffix target {0} does not conform to suffix name rules".format(
+                    module.params["target"]
+                )
+            )
 
     array = get_system(module)
     api_version = array._list_available_rest_versions()
     if GET_SEND_API not in api_version:
         arrayv6 = None
-        if module.params['offload']:
-            module.fail_json(msg="Purity 6.1, or higher, is required to support single volume offload snapshots")
-        if state == 'rename':
-            module.fail_json(msg="Purity 6.1, or higher, is required to support snapshot rename")
+        if module.params["offload"]:
+            module.fail_json(
+                msg="Purity 6.1, or higher, is required to support single volume offload snapshots"
+            )
+        if state == "rename":
+            module.fail_json(
+                msg="Purity 6.1, or higher, is required to support snapshot rename"
+            )
     else:
         if not HAS_PURESTORAGE:
-            module.fail_json(msg='py-pure-client sdk is required for this module')
+            module.fail_json(msg="py-pure-client sdk is required for this module")
         arrayv6 = get_array(module)
-        if module.params['offload']:
-            if not _check_offload(module, arrayv6) and not _check_target(module, arrayv6):
-                module.fail_json(msg='Selected offload {0} not connected.'.format(module.params['offload']))
-    if state == 'copy' and module.params['offload'] and not _check_target(module, arrayv6):
-        module.fail_json(msg="Snapshot copy is not supported when an offload target is defined")
+        if module.params["offload"]:
+            if not _check_offload(module, arrayv6) and not _check_target(
+                module, arrayv6
+            ):
+                module.fail_json(
+                    msg="Selected offload {0} not connected.".format(
+                        module.params["offload"]
+                    )
+                )
+    if (
+        state == "copy"
+        and module.params["offload"]
+        and not _check_target(module, arrayv6)
+    ):
+        module.fail_json(
+            msg="Snapshot copy is not supported when an offload target is defined"
+        )
     destroyed = False
     array_snap = offload_snap = False
     volume = get_volume(module, array)
-    if module.params['offload'] and not _check_target(module, arrayv6):
+    if module.params["offload"] and not _check_target(module, arrayv6):
         offload_snap = _check_offload_snapshot(module, arrayv6)
         if offload_snap is None:
             offload_snap = False
@@ -453,23 +558,23 @@ def main():
     snap = array_snap or offload_snap
     if not snap:
         destroyed = get_deleted_snapshot(module, array, arrayv6)
-    if state == 'present' and volume and not destroyed:
+    if state == "present" and volume and not destroyed:
         create_snapshot(module, array, arrayv6)
-    elif state == 'present' and volume and destroyed:
+    elif state == "present" and volume and destroyed:
         recover_snapshot(module, array, arrayv6)
-    elif state == 'rename' and volume and snap:
+    elif state == "rename" and volume and snap:
         update_snapshot(module, arrayv6)
-    elif state == 'copy' and snap:
+    elif state == "copy" and snap:
         create_from_snapshot(module, array)
-    elif state == 'absent' and snap and not destroyed:
+    elif state == "absent" and snap and not destroyed:
         delete_snapshot(module, array, arrayv6)
-    elif state == 'absent' and destroyed and module.params['eradicate']:
+    elif state == "absent" and destroyed and module.params["eradicate"]:
         eradicate_snapshot(module, array, arrayv6)
-    elif state == 'absent' and not snap:
+    elif state == "absent" and not snap:
         module.exit_json(changed=False)
 
     module.exit_json(changed=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

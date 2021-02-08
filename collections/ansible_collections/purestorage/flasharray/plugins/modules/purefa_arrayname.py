@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_arrayname
 version_added: '1.0.0'
@@ -35,23 +38,26 @@ options:
     required: true
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: Set new array name
   purefa_arrayname:
     name: new-array-name
     state: present
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-'''
+"""
 
-RETURN = r'''
-'''
+RETURN = r"""
+"""
 
 import re
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_system,
+    purefa_argument_spec,
+)
 
 
 def update_name(module, array):
@@ -60,32 +66,39 @@ def update_name(module, array):
     if not module.check_mode:
 
         try:
-            array.set(name=module.params['name'])
+            array.set(name=module.params["name"])
         except Exception:
-            module.fail_json(msg='Failed to change array name to {0}'.format(module.params['name']))
+            module.fail_json(
+                msg="Failed to change array name to {0}".format(module.params["name"])
+            )
 
     module.exit_json(changed=changed)
 
 
 def main():
     argument_spec = purefa_argument_spec()
-    argument_spec.update(dict(
-        name=dict(type='str', required=True),
-        state=dict(type='str', default='present', choices=['present']),
-    ))
+    argument_spec.update(
+        dict(
+            name=dict(type="str", required=True),
+            state=dict(type="str", default="present", choices=["present"]),
+        )
+    )
 
-    module = AnsibleModule(argument_spec,
-                           supports_check_mode=True)
+    module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     array = get_system(module)
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,54}[a-zA-Z0-9])?$")
-    if not pattern.match(module.params['name']):
-        module.fail_json(msg='Array name {0} does not conform to array name rules'.format(module.params['name']))
-    if module.params['name'] != array.get()['array_name']:
+    if not pattern.match(module.params["name"]):
+        module.fail_json(
+            msg="Array name {0} does not conform to array name rules".format(
+                module.params["name"]
+            )
+        )
+    if module.params["name"] != array.get()["array_name"]:
         update_name(module, array)
 
     module.exit_json(changed=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

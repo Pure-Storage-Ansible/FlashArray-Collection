@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_smtp
 version_added: '1.0.0'
@@ -48,9 +51,9 @@ options:
     type: str
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: Delete exisitng SMTP settings
   purefa_smtp:
     state: absent
@@ -64,13 +67,16 @@ EXAMPLES = r'''
     relay_host: 10.2.56.78:2345
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-'''
+"""
 
-RETURN = r'''
-'''
+RETURN = r"""
+"""
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_system,
+    purefa_argument_spec,
+)
 
 
 def delete_smtp(module, array):
@@ -78,9 +84,9 @@ def delete_smtp(module, array):
     changed = True
     if not module.check_mode:
         try:
-            array.set_smtp(sender_domain='', username='', password='', relay_host='')
+            array.set_smtp(sender_domain="", username="", password="", relay_host="")
         except Exception:
-            module.fail_json(msg='Delete SMTP settigs failed')
+            module.fail_json(msg="Delete SMTP settigs failed")
     module.exit_json(changed=changed)
 
 
@@ -89,28 +95,36 @@ def create_smtp(module, array):
     changed = True
     current_smtp = array.get_smtp()
     if not module.check_mode:
-        if module.params['sender_domain'] and current_smtp['sender_domain'] != module.params['sender_domain']:
+        if (
+            module.params["sender_domain"]
+            and current_smtp["sender_domain"] != module.params["sender_domain"]
+        ):
             try:
-                array.set_smtp(sender_domain=module.params['sender_domain'])
+                array.set_smtp(sender_domain=module.params["sender_domain"])
                 changed_sender = True
             except Exception:
-                module.fail_json(msg='Set SMTP sender domain failed.')
+                module.fail_json(msg="Set SMTP sender domain failed.")
         else:
             changed_sender = False
-        if module.params['relay_host'] and current_smtp['relay_host'] != module.params['relay_host']:
+        if (
+            module.params["relay_host"]
+            and current_smtp["relay_host"] != module.params["relay_host"]
+        ):
             try:
-                array.set_smtp(relay_host=module.params['relay_host'])
+                array.set_smtp(relay_host=module.params["relay_host"])
                 changed_relay = True
             except Exception:
-                module.fail_json(msg='Set SMTP relay host failed.')
+                module.fail_json(msg="Set SMTP relay host failed.")
         else:
             changed_relay = False
-        if module.params['user']:
+        if module.params["user"]:
             try:
-                array.set_smtp(user_name=module.params['user'], password=module.params['password'])
+                array.set_smtp(
+                    user_name=module.params["user"], password=module.params["password"]
+                )
                 changed_creds = True
             except Exception:
-                module.fail_json(msg='Set SMTP username/password failed.')
+                module.fail_json(msg="Set SMTP username/password failed.")
         else:
             changed_creds = False
         changed = bool(changed_sender or changed_relay or changed_creds)
@@ -120,30 +134,32 @@ def create_smtp(module, array):
 
 def main():
     argument_spec = purefa_argument_spec()
-    argument_spec.update(dict(
-        state=dict(type='str', default='present', choices=['absent', 'present']),
-        sender_domain=dict(type='str'),
-        password=dict(type='str', no_log=True),
-        user=dict(type='str'),
-        relay_host=dict(type='str'),
-    ))
+    argument_spec.update(
+        dict(
+            state=dict(type="str", default="present", choices=["absent", "present"]),
+            sender_domain=dict(type="str"),
+            password=dict(type="str", no_log=True),
+            user=dict(type="str"),
+            relay_host=dict(type="str"),
+        )
+    )
 
-    required_together = [['user', 'password']]
+    required_together = [["user", "password"]]
 
-    module = AnsibleModule(argument_spec,
-                           required_together=required_together,
-                           supports_check_mode=True)
+    module = AnsibleModule(
+        argument_spec, required_together=required_together, supports_check_mode=True
+    )
 
-    state = module.params['state']
+    state = module.params["state"]
     array = get_system(module)
 
-    if state == 'absent':
+    if state == "absent":
         delete_smtp(module, array)
-    elif state == 'present':
+    elif state == "present":
         create_smtp(module, array)
     else:
         module.exit_json(changed=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
