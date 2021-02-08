@@ -1,4 +1,4 @@
-|License| |CLA-Assistant| |Pure-Storage-Ansible-CIA| |Code-style-black|
+|License| |CLA-Assistant| |Pure-Storage-Ansible-CI| |Code-style-black|
 
 =====================
 FlashArray-Collection
