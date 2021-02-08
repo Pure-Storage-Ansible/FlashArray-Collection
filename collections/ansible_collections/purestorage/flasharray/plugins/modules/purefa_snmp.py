@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_snmp
 version_added: '1.0.0'
@@ -82,9 +85,9 @@ options:
     choices: [ AES, DES ]
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: Delete exisitng SNMP manager
   purefa_snmp:
     name: manager1
@@ -113,14 +116,17 @@ EXAMPLES = r'''
     community: private
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-'''
+"""
 
-RETURN = r'''
-'''
+RETURN = r"""
+"""
 
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_system,
+    purefa_argument_spec,
+)
 
 
 def update_manager(module, array):
@@ -128,70 +134,108 @@ def update_manager(module, array):
     changed = True
     if not module.check_mode:
         try:
-            mgr = array.get_snmp_manager(module.params['name'])
+            mgr = array.get_snmp_manager(module.params["name"])
         except Exception:
-            module.fail_json(msg="Failed to get configuration for SNMP manager {0}.".format(module.params['name']))
-        if mgr['version'] != module.params['version']:
+            module.fail_json(
+                msg="Failed to get configuration for SNMP manager {0}.".format(
+                    module.params["name"]
+                )
+            )
+        if mgr["version"] != module.params["version"]:
             module.fail_json(msg="Changing an SNMP managers version is not supported.")
-        elif module.params['version'] == "v2c":
+        elif module.params["version"] == "v2c":
             try:
-                array.set_snmp_manager(module.params['name'],
-                                       community=module.params['community'],
-                                       notification=module.params['notification'],
-                                       host=module.params['host']
-                                       )
+                array.set_snmp_manager(
+                    module.params["name"],
+                    community=module.params["community"],
+                    notification=module.params["notification"],
+                    host=module.params["host"],
+                )
             except Exception:
-                module.fail_json(msg="Failed to update SNMP manager {0}.".format(module.params['name']))
+                module.fail_json(
+                    msg="Failed to update SNMP manager {0}.".format(
+                        module.params["name"]
+                    )
+                )
         else:
-            if module.params['auth_protocol'] and module.params['privacy_protocol']:
+            if module.params["auth_protocol"] and module.params["privacy_protocol"]:
                 try:
-                    array.set_snmp_manager(module.params['name'],
-                                           auth_passphrase=module.params['auth_passphrase'],
-                                           auth_protocol=module.params['auth_protocol'],
-                                           privacy_passphrase=module.params['privacy_passphrase'],
-                                           privacy_protocol=module.params['privacy_protocol'],
-                                           notification=module.params['notification'],
-                                           user=module.params['user'],
-                                           host=module.params['host']
-                                           )
+                    array.set_snmp_manager(
+                        module.params["name"],
+                        auth_passphrase=module.params["auth_passphrase"],
+                        auth_protocol=module.params["auth_protocol"],
+                        privacy_passphrase=module.params["privacy_passphrase"],
+                        privacy_protocol=module.params["privacy_protocol"],
+                        notification=module.params["notification"],
+                        user=module.params["user"],
+                        host=module.params["host"],
+                    )
                 except Exception:
-                    module.fail_json(msg="Failed to update SNMP manager {0}.".format(module.params['name']))
-            elif module.params['auth_protocol'] and not module.params['privacy_protocol']:
+                    module.fail_json(
+                        msg="Failed to update SNMP manager {0}.".format(
+                            module.params["name"]
+                        )
+                    )
+            elif (
+                module.params["auth_protocol"] and not module.params["privacy_protocol"]
+            ):
                 try:
-                    array.set_snmp_manager(module.params['name'],
-                                           version=module.params['version'],
-                                           auth_passphrase=module.params['auth_passphrase'],
-                                           auth_protocol=module.params['auth_protocol'],
-                                           notification=module.params['notification'],
-                                           user=module.params['user'],
-                                           host=module.params['host']
-                                           )
+                    array.set_snmp_manager(
+                        module.params["name"],
+                        version=module.params["version"],
+                        auth_passphrase=module.params["auth_passphrase"],
+                        auth_protocol=module.params["auth_protocol"],
+                        notification=module.params["notification"],
+                        user=module.params["user"],
+                        host=module.params["host"],
+                    )
                 except Exception:
-                    module.fail_json(msg="Failed to update SNMP manager {0}.".format(module.params['name']))
-            elif not module.params['auth_protocol'] and module.params['privacy_protocol']:
+                    module.fail_json(
+                        msg="Failed to update SNMP manager {0}.".format(
+                            module.params["name"]
+                        )
+                    )
+            elif (
+                not module.params["auth_protocol"] and module.params["privacy_protocol"]
+            ):
                 try:
-                    array.set_snmp_manager(module.params['name'],
-                                           version=module.params['version'],
-                                           privacy_passphrase=module.params['privacy_passphrase'],
-                                           privacy_protocol=module.params['privacy_protocol'],
-                                           notification=module.params['notification'],
-                                           user=module.params['user'],
-                                           host=module.params['host']
-                                           )
+                    array.set_snmp_manager(
+                        module.params["name"],
+                        version=module.params["version"],
+                        privacy_passphrase=module.params["privacy_passphrase"],
+                        privacy_protocol=module.params["privacy_protocol"],
+                        notification=module.params["notification"],
+                        user=module.params["user"],
+                        host=module.params["host"],
+                    )
                 except Exception:
-                    module.fail_json(msg="Failed to update SNMP manager {0}.".format(module.params['name']))
-            elif not module.params['auth_protocol'] and not module.params['privacy_protocol']:
+                    module.fail_json(
+                        msg="Failed to update SNMP manager {0}.".format(
+                            module.params["name"]
+                        )
+                    )
+            elif (
+                not module.params["auth_protocol"]
+                and not module.params["privacy_protocol"]
+            ):
                 try:
-                    array.set_snmp_manager(module.params['name'],
-                                           version=module.params['version'],
-                                           notification=module.params['notification'],
-                                           user=module.params['user'],
-                                           host=module.params['host']
-                                           )
+                    array.set_snmp_manager(
+                        module.params["name"],
+                        version=module.params["version"],
+                        notification=module.params["notification"],
+                        user=module.params["user"],
+                        host=module.params["host"],
+                    )
                 except Exception:
-                    module.fail_json(msg="Failed to update SNMP manager {0}.".format(module.params['name']))
+                    module.fail_json(
+                        msg="Failed to update SNMP manager {0}.".format(
+                            module.params["name"]
+                        )
+                    )
             else:
-                module.fail_json(msg="Invalid parameters selected in update. Please raise issue in Ansible GitHub")
+                module.fail_json(
+                    msg="Invalid parameters selected in update. Please raise issue in Ansible GitHub"
+                )
 
     module.exit_json(changed=changed)
 
@@ -201,9 +245,11 @@ def delete_manager(module, array):
     changed = True
     if not module.check_mode:
         try:
-            array.delete_snmp_manager(module.params['name'])
+            array.delete_snmp_manager(module.params["name"])
         except Exception:
-            module.fail_json(msg='Delete SNMP manager {0} failed'.format(module.params['name']))
+            module.fail_json(
+                msg="Delete SNMP manager {0} failed".format(module.params["name"])
+            )
     module.exit_json(changed=changed)
 
 
@@ -211,118 +257,165 @@ def create_manager(module, array):
     """Create SNMP Manager"""
     changed = True
     if not module.check_mode:
-        if module.params['version'] == "v2c":
+        if module.params["version"] == "v2c":
             try:
-                array.create_snmp_manager(module.params['name'],
-                                          version=module.params['version'],
-                                          community=module.params['community'],
-                                          notification=module.params['notification'],
-                                          host=module.params['host']
-                                          )
+                array.create_snmp_manager(
+                    module.params["name"],
+                    version=module.params["version"],
+                    community=module.params["community"],
+                    notification=module.params["notification"],
+                    host=module.params["host"],
+                )
             except Exception:
-                module.fail_json(msg="Failed to create SNMP manager {0}.".format(module.params['name']))
+                module.fail_json(
+                    msg="Failed to create SNMP manager {0}.".format(
+                        module.params["name"]
+                    )
+                )
         else:
-            if module.params['auth_protocol'] and module.params['privacy_protocol']:
+            if module.params["auth_protocol"] and module.params["privacy_protocol"]:
                 try:
-                    array.create_snmp_manager(module.params['name'],
-                                              version=module.params['version'],
-                                              auth_passphrase=module.params['auth_passphrase'],
-                                              auth_protocol=module.params['auth_protocol'],
-                                              privacy_passphrase=module.params['privacy_passphrase'],
-                                              privacy_protocol=module.params['privacy_protocol'],
-                                              notification=module.params['notification'],
-                                              user=module.params['user'],
-                                              host=module.params['host']
-                                              )
+                    array.create_snmp_manager(
+                        module.params["name"],
+                        version=module.params["version"],
+                        auth_passphrase=module.params["auth_passphrase"],
+                        auth_protocol=module.params["auth_protocol"],
+                        privacy_passphrase=module.params["privacy_passphrase"],
+                        privacy_protocol=module.params["privacy_protocol"],
+                        notification=module.params["notification"],
+                        user=module.params["user"],
+                        host=module.params["host"],
+                    )
                 except Exception:
-                    module.fail_json(msg="Failed to create SNMP manager {0}.".format(module.params['name']))
-            elif module.params['auth_protocol'] and not module.params['privacy_protocol']:
+                    module.fail_json(
+                        msg="Failed to create SNMP manager {0}.".format(
+                            module.params["name"]
+                        )
+                    )
+            elif (
+                module.params["auth_protocol"] and not module.params["privacy_protocol"]
+            ):
                 try:
-                    array.create_snmp_manager(module.params['name'],
-                                              version=module.params['version'],
-                                              auth_passphrase=module.params['auth_passphrase'],
-                                              auth_protocol=module.params['auth_protocol'],
-                                              notification=module.params['notification'],
-                                              user=module.params['user'],
-                                              host=module.params['host']
-                                              )
+                    array.create_snmp_manager(
+                        module.params["name"],
+                        version=module.params["version"],
+                        auth_passphrase=module.params["auth_passphrase"],
+                        auth_protocol=module.params["auth_protocol"],
+                        notification=module.params["notification"],
+                        user=module.params["user"],
+                        host=module.params["host"],
+                    )
                 except Exception:
-                    module.fail_json(msg="Failed to create SNMP manager {0}.".format(module.params['name']))
-            elif not module.params['auth_protocol'] and module.params['privacy_protocol']:
+                    module.fail_json(
+                        msg="Failed to create SNMP manager {0}.".format(
+                            module.params["name"]
+                        )
+                    )
+            elif (
+                not module.params["auth_protocol"] and module.params["privacy_protocol"]
+            ):
                 try:
-                    array.create_snmp_manager(module.params['name'],
-                                              version=module.params['version'],
-                                              privacy_passphrase=module.params['privacy_passphrase'],
-                                              privacy_protocol=module.params['privacy_protocol'],
-                                              notification=module.params['notification'],
-                                              user=module.params['user'],
-                                              host=module.params['host']
-                                              )
+                    array.create_snmp_manager(
+                        module.params["name"],
+                        version=module.params["version"],
+                        privacy_passphrase=module.params["privacy_passphrase"],
+                        privacy_protocol=module.params["privacy_protocol"],
+                        notification=module.params["notification"],
+                        user=module.params["user"],
+                        host=module.params["host"],
+                    )
                 except Exception:
-                    module.fail_json(msg="Failed to create SNMP manager {0}.".format(module.params['name']))
-            elif not module.params['auth_protocol'] and not module.params['privacy_protocol']:
+                    module.fail_json(
+                        msg="Failed to create SNMP manager {0}.".format(
+                            module.params["name"]
+                        )
+                    )
+            elif (
+                not module.params["auth_protocol"]
+                and not module.params["privacy_protocol"]
+            ):
                 try:
-                    array.create_snmp_manager(module.params['name'],
-                                              version=module.params['version'],
-                                              notification=module.params['notification'],
-                                              user=module.params['user'],
-                                              host=module.params['host']
-                                              )
+                    array.create_snmp_manager(
+                        module.params["name"],
+                        version=module.params["version"],
+                        notification=module.params["notification"],
+                        user=module.params["user"],
+                        host=module.params["host"],
+                    )
                 except Exception:
-                    module.fail_json(msg="Failed to create SNMP manager {0}.".format(module.params['name']))
+                    module.fail_json(
+                        msg="Failed to create SNMP manager {0}.".format(
+                            module.params["name"]
+                        )
+                    )
             else:
-                module.fail_json(msg="Invalid parameters selected in create. Please raise issue in Ansible GitHub")
+                module.fail_json(
+                    msg="Invalid parameters selected in create. Please raise issue in Ansible GitHub"
+                )
     module.exit_json(changed=changed)
 
 
 def main():
     argument_spec = purefa_argument_spec()
-    argument_spec.update(dict(
-        name=dict(type='str', required=True),
-        host=dict(type='str'),
-        state=dict(type='str', default='present', choices=['absent', 'present']),
-        user=dict(type='str'),
-        notification=dict(type='str', choices=['inform', 'trap'], default='trap'),
-        auth_passphrase=dict(type='str', no_log=True),
-        auth_protocol=dict(type='str', choices=['MD5', 'SHA']),
-        privacy_passphrase=dict(type='str', no_log=True),
-        privacy_protocol=dict(type='str', choices=['AES', 'DES']),
-        version=dict(type='str', default='v2c', choices=['v2c', 'v3']),
-        community=dict(type='str'),
-    ))
+    argument_spec.update(
+        dict(
+            name=dict(type="str", required=True),
+            host=dict(type="str"),
+            state=dict(type="str", default="present", choices=["absent", "present"]),
+            user=dict(type="str"),
+            notification=dict(type="str", choices=["inform", "trap"], default="trap"),
+            auth_passphrase=dict(type="str", no_log=True),
+            auth_protocol=dict(type="str", choices=["MD5", "SHA"]),
+            privacy_passphrase=dict(type="str", no_log=True),
+            privacy_protocol=dict(type="str", choices=["AES", "DES"]),
+            version=dict(type="str", default="v2c", choices=["v2c", "v3"]),
+            community=dict(type="str"),
+        )
+    )
 
-    required_together = [['auth_passphrase', 'auth_protocol'],
-                         ['privacy_passphrase', 'privacy_protocol']]
-    required_if = [['version', 'v2c', ['community', 'host']],
-                   ['version', 'v3', ['host', 'user']]]
+    required_together = [
+        ["auth_passphrase", "auth_protocol"],
+        ["privacy_passphrase", "privacy_protocol"],
+    ]
+    required_if = [
+        ["version", "v2c", ["community", "host"]],
+        ["version", "v3", ["host", "user"]],
+    ]
 
-    module = AnsibleModule(argument_spec,
-                           required_together=required_together,
-                           required_if=required_if,
-                           supports_check_mode=True)
+    module = AnsibleModule(
+        argument_spec,
+        required_together=required_together,
+        required_if=required_if,
+        supports_check_mode=True,
+    )
 
-    state = module.params['state']
+    state = module.params["state"]
     array = get_system(module)
     mgr_configured = False
     mgrs = array.list_snmp_managers()
     for mgr in range(0, len(mgrs)):
-        if mgrs[mgr]['name'] == module.params['name']:
+        if mgrs[mgr]["name"] == module.params["name"]:
             mgr_configured = True
             break
-    if module.params['version'] == "v3":
-        if module.params['auth_passphrase'] and (8 > len(module.params['auth_passphrase']) > 32):
+    if module.params["version"] == "v3":
+        if module.params["auth_passphrase"] and (
+            8 > len(module.params["auth_passphrase"]) > 32
+        ):
             module.fail_json(msg="auth_password must be between 8 and 32 characters")
-        if module.params['privacy_passphrase'] and 8 > len(module.params['privacy_passphrase']) > 63:
+        if (
+            module.params["privacy_passphrase"]
+            and 8 > len(module.params["privacy_passphrase"]) > 63
+        ):
             module.fail_json(msg="privacy_password must be between 8 and 63 characters")
-    if state == 'absent' and mgr_configured:
+    if state == "absent" and mgr_configured:
         delete_manager(module, array)
-    elif mgr_configured and state == 'present':
+    elif mgr_configured and state == "present":
         update_manager(module, array)
-    elif not mgr_configured and state == 'present':
+    elif not mgr_configured and state == "present":
         create_manager(module, array)
     else:
         module.exit_json(changed=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

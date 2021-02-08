@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_pgsched
 short_description: Manage protection groups replication schedules on Pure Storage FlashArrays
@@ -108,9 +111,9 @@ options:
     type: int
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: Update protection group snapshot schedule
   purefa_pgsched:
     name: foo
@@ -152,26 +155,29 @@ EXAMPLES = r'''
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-'''
+"""
 
-RETURN = r'''
-'''
+RETURN = r"""
+"""
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_system,
+    purefa_argument_spec,
+)
 
 
 def get_pending_pgroup(module, array):
     """ Get Protection Group"""
     pgroup = None
-    if ":" in module.params['name']:
+    if ":" in module.params["name"]:
         for pgrp in array.list_pgroups(pending=True, on="*"):
-            if pgrp["name"] == module.params['name'] and pgrp['time_remaining']:
+            if pgrp["name"] == module.params["name"] and pgrp["time_remaining"]:
                 pgroup = pgrp
                 break
     else:
         for pgrp in array.list_pgroups(pending=True):
-            if pgrp["name"] == module.params['name'] and pgrp['time_remaining']:
+            if pgrp["name"] == module.params["name"] and pgrp["time_remaining"]:
                 pgroup = pgrp
                 break
 
@@ -181,14 +187,14 @@ def get_pending_pgroup(module, array):
 def get_pgroup(module, array):
     """ Get Protection Group"""
     pgroup = None
-    if ":" in module.params['name']:
+    if ":" in module.params["name"]:
         for pgrp in array.list_pgroups(on="*"):
-            if pgrp["name"] == module.params['name']:
+            if pgrp["name"] == module.params["name"]:
                 pgroup = pgrp
                 break
     else:
         for pgrp in array.list_pgroups():
-            if pgrp["name"] == module.params['name']:
+            if pgrp["name"] == module.params["name"]:
                 pgroup = pgrp
                 break
 
@@ -211,165 +217,202 @@ def update_schedule(module, array):
     if not module.check_mode:
         changed = False
         try:
-            schedule = array.get_pgroup(module.params['name'], schedule=True)
-            retention = array.get_pgroup(module.params['name'], retention=True)
-            if not schedule['replicate_blackout']:
-                schedule['replicate_blackout'] = [{'start': 0, 'end': 0}]
+            schedule = array.get_pgroup(module.params["name"], schedule=True)
+            retention = array.get_pgroup(module.params["name"], retention=True)
+            if not schedule["replicate_blackout"]:
+                schedule["replicate_blackout"] = [{"start": 0, "end": 0}]
         except Exception:
-            module.fail_json(msg="Failed to get current schedule for pgroup {0}.".format(module.params['name']))
-        current_repl = {'replicate_frequency': schedule['replicate_frequency'],
-                        'replicate_enabled': schedule['replicate_enabled'],
-                        'target_days': retention['target_days'],
-                        'replicate_at': schedule['replicate_at'],
-                        'target_per_day': retention['target_per_day'],
-                        'target_all_for': retention['target_all_for'],
-                        'blackout_start': schedule['replicate_blackout'][0]['start'],
-                        'blackout_end': schedule['replicate_blackout'][0]['end']}
-        current_snap = {'days': retention['days'],
-                        'snap_frequency': schedule['snap_frequency'],
-                        'snap_enabled': schedule['snap_enabled'],
-                        'snap_at': schedule['snap_at'],
-                        'per_day': retention['per_day'],
-                        'all_for': retention['all_for']}
-        if module.params['schedule'] == 'snapshot':
-            if not module.params['snap_frequency']:
-                snap_frequency = current_snap['snap_frequency']
+            module.fail_json(
+                msg="Failed to get current schedule for pgroup {0}.".format(
+                    module.params["name"]
+                )
+            )
+        current_repl = {
+            "replicate_frequency": schedule["replicate_frequency"],
+            "replicate_enabled": schedule["replicate_enabled"],
+            "target_days": retention["target_days"],
+            "replicate_at": schedule["replicate_at"],
+            "target_per_day": retention["target_per_day"],
+            "target_all_for": retention["target_all_for"],
+            "blackout_start": schedule["replicate_blackout"][0]["start"],
+            "blackout_end": schedule["replicate_blackout"][0]["end"],
+        }
+        current_snap = {
+            "days": retention["days"],
+            "snap_frequency": schedule["snap_frequency"],
+            "snap_enabled": schedule["snap_enabled"],
+            "snap_at": schedule["snap_at"],
+            "per_day": retention["per_day"],
+            "all_for": retention["all_for"],
+        }
+        if module.params["schedule"] == "snapshot":
+            if not module.params["snap_frequency"]:
+                snap_frequency = current_snap["snap_frequency"]
             else:
-                if not 300 <= module.params['snap_frequency'] <= 34560000:
-                    module.fail_json(msg="Snap Frequency support is out of range (300 to 34560000)")
+                if not 300 <= module.params["snap_frequency"] <= 34560000:
+                    module.fail_json(
+                        msg="Snap Frequency support is out of range (300 to 34560000)"
+                    )
                 else:
-                    snap_frequency = module.params['snap_frequency']
+                    snap_frequency = module.params["snap_frequency"]
 
-            if not module.params['snap_at']:
-                snap_at = current_snap['snap_at']
+            if not module.params["snap_at"]:
+                snap_at = current_snap["snap_at"]
             else:
-                snap_at = module.params['snap_at']
+                snap_at = module.params["snap_at"]
 
-            if not module.params['days']:
-                days = current_snap['days']
+            if not module.params["days"]:
+                days = current_snap["days"]
             else:
-                if module.params['days'] > 4000:
+                if module.params["days"] > 4000:
                     module.fail_json(msg="Maximum value for days is 4000")
                 else:
-                    days = module.params['days']
+                    days = module.params["days"]
 
-            if not module.params['per_day']:
-                per_day = current_snap['per_day']
+            if not module.params["per_day"]:
+                per_day = current_snap["per_day"]
             else:
-                if module.params['per_day'] > 1440:
+                if module.params["per_day"] > 1440:
                     module.fail_json(msg="Maximum value for per_day is 1440")
                 else:
-                    per_day = module.params['per_day']
+                    per_day = module.params["per_day"]
 
-            if not module.params['all_for']:
-                all_for = current_snap['all_for']
+            if not module.params["all_for"]:
+                all_for = current_snap["all_for"]
             else:
-                if module.params['all_for'] > 34560000:
+                if module.params["all_for"] > 34560000:
                     module.fail_json(msg="Maximum all_for value is 34560000")
                 else:
-                    all_for = module.params['all_for']
-            new_snap = {'days': days,
-                        'snap_frequency': snap_frequency,
-                        'snap_enabled': module.params['enabled'],
-                        'snap_at': snap_at,
-                        'per_day': per_day,
-                        'all_for': all_for}
+                    all_for = module.params["all_for"]
+            new_snap = {
+                "days": days,
+                "snap_frequency": snap_frequency,
+                "snap_enabled": module.params["enabled"],
+                "snap_at": snap_at,
+                "per_day": per_day,
+                "all_for": all_for,
+            }
             if current_snap != new_snap:
                 try:
-                    array.set_pgroup(module.params['name'],
-                                     snap_enabled=module.params['enabled'])
-                    array.set_pgroup(module.params['name'],
-                                     snap_frequency=snap_frequency,
-                                     snap_at=snap_at)
-                    array.set_pgroup(module.params['name'],
-                                     days=days,
-                                     per_day=per_day,
-                                     all_for=all_for)
+                    array.set_pgroup(
+                        module.params["name"], snap_enabled=module.params["enabled"]
+                    )
+                    array.set_pgroup(
+                        module.params["name"],
+                        snap_frequency=snap_frequency,
+                        snap_at=snap_at,
+                    )
+                    array.set_pgroup(
+                        module.params["name"],
+                        days=days,
+                        per_day=per_day,
+                        all_for=all_for,
+                    )
                     changed = True
                 except Exception:
-                    module.fail_json(msg='Failed to change snapshot schedule for pgroup {0}.'.format(module.params['name']))
+                    module.fail_json(
+                        msg="Failed to change snapshot schedule for pgroup {0}.".format(
+                            module.params["name"]
+                        )
+                    )
         else:
-            if not module.params['replicate_frequency']:
-                replicate_frequency = current_repl['replicate_frequency']
+            if not module.params["replicate_frequency"]:
+                replicate_frequency = current_repl["replicate_frequency"]
             else:
-                model = array.get(controllers=True)[0]['model']
-                if '405' in model or '10' in model or 'CBS' in model:
-                    if not 900 <= module.params['replicate_frequency'] <= 34560000:
-                        module.fail_json(msg="Replication Frequency support is out of range (900 to 34560000)")
+                model = array.get(controllers=True)[0]["model"]
+                if "405" in model or "10" in model or "CBS" in model:
+                    if not 900 <= module.params["replicate_frequency"] <= 34560000:
+                        module.fail_json(
+                            msg="Replication Frequency support is out of range (900 to 34560000)"
+                        )
                     else:
-                        replicate_frequency = module.params['replicate_frequency']
+                        replicate_frequency = module.params["replicate_frequency"]
                 else:
-                    if not 300 <= module.params['replicate_frequency'] <= 34560000:
-                        module.fail_json(msg="Replication Frequency support is out of range (300 to 34560000)")
+                    if not 300 <= module.params["replicate_frequency"] <= 34560000:
+                        module.fail_json(
+                            msg="Replication Frequency support is out of range (300 to 34560000)"
+                        )
                     else:
-                        replicate_frequency = module.params['replicate_frequency']
+                        replicate_frequency = module.params["replicate_frequency"]
 
-            if not module.params['replicate_at']:
-                replicate_at = current_repl['replicate_at']
+            if not module.params["replicate_at"]:
+                replicate_at = current_repl["replicate_at"]
             else:
-                replicate_at = module.params['replicate_at']
+                replicate_at = module.params["replicate_at"]
 
-            if not module.params['target_days']:
-                target_days = current_repl['target_days']
+            if not module.params["target_days"]:
+                target_days = current_repl["target_days"]
             else:
-                if module.params['target_days'] > 4000:
+                if module.params["target_days"] > 4000:
                     module.fail_json(msg="Maximum value for target_days is 4000")
                 else:
-                    target_days = module.params['target_days']
+                    target_days = module.params["target_days"]
 
-            if not module.params['target_per_day']:
-                target_per_day = current_repl['target_per_day']
+            if not module.params["target_per_day"]:
+                target_per_day = current_repl["target_per_day"]
             else:
-                if module.params['target_per_day'] > 1440:
+                if module.params["target_per_day"] > 1440:
                     module.fail_json(msg="Maximum value for target_per_day is 1440")
                 else:
-                    target_per_day = module.params['target_per_day']
+                    target_per_day = module.params["target_per_day"]
 
-            if not module.params['target_all_for']:
-                target_all_for = current_repl['target_all_for']
+            if not module.params["target_all_for"]:
+                target_all_for = current_repl["target_all_for"]
             else:
-                if module.params['target_all_for'] > 34560000:
+                if module.params["target_all_for"] > 34560000:
                     module.fail_json(msg="Maximum target_all_for value is 34560000")
                 else:
-                    target_all_for = module.params['target_all_for']
-            if not module.params['blackout_end']:
-                blackout_end = current_repl['blackout_start']
+                    target_all_for = module.params["target_all_for"]
+            if not module.params["blackout_end"]:
+                blackout_end = current_repl["blackout_start"]
             else:
-                blackout_end = _convert_to_minutes(module.params['blackout_end'])
-            if not module.params['blackout_start']:
-                blackout_start = current_repl['blackout_start']
+                blackout_end = _convert_to_minutes(module.params["blackout_end"])
+            if not module.params["blackout_start"]:
+                blackout_start = current_repl["blackout_start"]
             else:
-                blackout_start = _convert_to_minutes(module.params['blackout_start'])
+                blackout_start = _convert_to_minutes(module.params["blackout_start"])
 
-            new_repl = {'replicate_frequency': replicate_frequency,
-                        'replicate_enabled': module.params['enabled'],
-                        'target_days': target_days,
-                        'replicate_at': replicate_at,
-                        'target_per_day': target_per_day,
-                        'target_all_for': target_all_for,
-                        'blackout_start': blackout_start,
-                        'blackout_end': blackout_end}
+            new_repl = {
+                "replicate_frequency": replicate_frequency,
+                "replicate_enabled": module.params["enabled"],
+                "target_days": target_days,
+                "replicate_at": replicate_at,
+                "target_per_day": target_per_day,
+                "target_all_for": target_all_for,
+                "blackout_start": blackout_start,
+                "blackout_end": blackout_end,
+            }
             if current_repl != new_repl:
-                blackout = {'start': blackout_start, 'end': blackout_end}
+                blackout = {"start": blackout_start, "end": blackout_end}
                 try:
-                    array.set_pgroup(module.params['name'],
-                                     replicate_enabled=module.params['enabled'])
-                    array.set_pgroup(module.params['name'],
-                                     replicate_frequency=replicate_frequency,
-                                     replicate_at=replicate_at)
+                    array.set_pgroup(
+                        module.params["name"],
+                        replicate_enabled=module.params["enabled"],
+                    )
+                    array.set_pgroup(
+                        module.params["name"],
+                        replicate_frequency=replicate_frequency,
+                        replicate_at=replicate_at,
+                    )
                     if blackout_start == 0:
-                        array.set_pgroup(module.params['name'],
-                                         replicate_blackout=None)
+                        array.set_pgroup(module.params["name"], replicate_blackout=None)
                     else:
-                        array.set_pgroup(module.params['name'],
-                                         replicate_blackout=blackout)
-                    array.set_pgroup(module.params['name'],
-                                     target_days=target_days,
-                                     target_per_day=target_per_day,
-                                     target_all_for=target_all_for)
+                        array.set_pgroup(
+                            module.params["name"], replicate_blackout=blackout
+                        )
+                    array.set_pgroup(
+                        module.params["name"],
+                        target_days=target_days,
+                        target_per_day=target_per_day,
+                        target_all_for=target_all_for,
+                    )
                     changed = True
                 except Exception:
-                    module.fail_json(msg='Failed to change replication schedule for pgroup {0}.'.format(module.params['name']))
+                    module.fail_json(
+                        msg="Failed to change replication schedule for pgroup {0}.".format(
+                            module.params["name"]
+                        )
+                    )
 
     module.exit_json(changed=changed)
 
@@ -379,70 +422,92 @@ def delete_schedule(module, array):
     changed = True
     if not module.check_mode:
         try:
-            current_state = array.get_pgroup(module.params['name'], schedule=True)
-            if module.params['schedule'] == "replication":
-                if current_state['replicate_enabled']:
-                    array.set_pgroup(module.params['name'], replicate_enabled=False)
-                    array.set_pgroup(module.params['name'], target_days=0, target_per_day=0,
-                                     target_all_for=1)
-                    array.set_pgroup(module.params['name'], replicate_frequency=14400,
-                                     replicate_blackout=None)
+            current_state = array.get_pgroup(module.params["name"], schedule=True)
+            if module.params["schedule"] == "replication":
+                if current_state["replicate_enabled"]:
+                    array.set_pgroup(module.params["name"], replicate_enabled=False)
+                    array.set_pgroup(
+                        module.params["name"],
+                        target_days=0,
+                        target_per_day=0,
+                        target_all_for=1,
+                    )
+                    array.set_pgroup(
+                        module.params["name"],
+                        replicate_frequency=14400,
+                        replicate_blackout=None,
+                    )
                 else:
                     changed = False
             else:
-                if current_state['snap_enabled']:
-                    array.set_pgroup(module.params['name'], snap_enabled=False)
-                    array.set_pgroup(module.params['name'], days=0, per_day=0, all_for=1)
-                    array.set_pgroup(module.params['name'], snap_frequency=300)
+                if current_state["snap_enabled"]:
+                    array.set_pgroup(module.params["name"], snap_enabled=False)
+                    array.set_pgroup(
+                        module.params["name"], days=0, per_day=0, all_for=1
+                    )
+                    array.set_pgroup(module.params["name"], snap_frequency=300)
                 else:
                     changed = False
         except Exception:
-            module.fail_json(msg='Deleting pgroup {0} {1} schedule failed.'.format(module.params['name'],
-                                                                                   module.params['schedule']))
+            module.fail_json(
+                msg="Deleting pgroup {0} {1} schedule failed.".format(
+                    module.params["name"], module.params["schedule"]
+                )
+            )
     module.exit_json(changed=changed)
 
 
 def main():
     argument_spec = purefa_argument_spec()
-    argument_spec.update(dict(
-        name=dict(type='str', required=True),
-        state=dict(type='str', default='present', choices=['absent', 'present']),
-        schedule=dict(type='str', required=True, choices=['replication', 'snapshot']),
-        blackout_start=dict(type='str'),
-        blackout_end=dict(type='str'),
-        snap_at=dict(type='int'),
-        replicate_at=dict(type='int'),
-        replicate_frequency=dict(type='int'),
-        snap_frequency=dict(type='int'),
-        all_for=dict(type='int'),
-        days=dict(type='int'),
-        per_day=dict(type='int'),
-        target_all_for=dict(type='int'),
-        target_per_day=dict(type='int'),
-        target_days=dict(type='int'),
-        enabled=dict(type='bool', default=True)
-    ))
+    argument_spec.update(
+        dict(
+            name=dict(type="str", required=True),
+            state=dict(type="str", default="present", choices=["absent", "present"]),
+            schedule=dict(
+                type="str", required=True, choices=["replication", "snapshot"]
+            ),
+            blackout_start=dict(type="str"),
+            blackout_end=dict(type="str"),
+            snap_at=dict(type="int"),
+            replicate_at=dict(type="int"),
+            replicate_frequency=dict(type="int"),
+            snap_frequency=dict(type="int"),
+            all_for=dict(type="int"),
+            days=dict(type="int"),
+            per_day=dict(type="int"),
+            target_all_for=dict(type="int"),
+            target_per_day=dict(type="int"),
+            target_days=dict(type="int"),
+            enabled=dict(type="bool", default=True),
+        )
+    )
 
-    required_together = [['blackout_start', 'blackout_end']]
+    required_together = [["blackout_start", "blackout_end"]]
 
-    module = AnsibleModule(argument_spec,
-                           required_together=required_together,
-                           supports_check_mode=True)
+    module = AnsibleModule(
+        argument_spec, required_together=required_together, supports_check_mode=True
+    )
 
-    state = module.params['state']
+    state = module.params["state"]
     array = get_system(module)
 
     pgroup = get_pgroup(module, array)
-    if module.params['snap_at'] and module.params['snap_frequency']:
-        if not module.params['snap_frequency'] % 86400 == 0:
-            module.fail_json(msg="snap_at not valid unless snapshot frequency is measured in days, ie. a multiple of 86400")
-    if pgroup and state == 'present':
+    if module.params["snap_at"] and module.params["snap_frequency"]:
+        if not module.params["snap_frequency"] % 86400 == 0:
+            module.fail_json(
+                msg="snap_at not valid unless snapshot frequency is measured in days, ie. a multiple of 86400"
+            )
+    if pgroup and state == "present":
         update_schedule(module, array)
-    elif pgroup and state == 'absent':
+    elif pgroup and state == "absent":
         delete_schedule(module, array)
     elif pgroup is None:
-        module.fail_json(msg="Specified protection group {0} does not exist.".format(module.params['pgroup']))
+        module.fail_json(
+            msg="Specified protection group {0} does not exist.".format(
+                module.params["pgroup"]
+            )
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

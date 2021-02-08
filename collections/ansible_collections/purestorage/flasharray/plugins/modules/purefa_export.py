@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_export
 version_added: '1.5.0'
@@ -53,9 +56,9 @@ options:
     type: str
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: Create NFS and SMB exports for directory foo in filesysten bar
   purefa_export:
     name: export1
@@ -75,10 +78,10 @@ EXAMPLES = r'''
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-'''
+"""
 
-RETURN = r'''
-'''
+RETURN = r"""
+"""
 
 HAS_PURESTORAGE = True
 try:
@@ -87,9 +90,13 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, get_array, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_system,
+    get_array,
+    purefa_argument_spec,
+)
 
-MIN_REQUIRED_API_VERSION = '2.3'
+MIN_REQUIRED_API_VERSION = "2.3"
 
 
 def delete_export(module, array):
@@ -97,26 +104,41 @@ def delete_export(module, array):
     changed = True
     if not module.check_mode:
         all_policies = []
-        directory = module.params['filesystem'] + ":" + module.params['directory']
-        if not module.params['nfs_policy'] and not module.params['smb_policy']:
+        directory = module.params["filesystem"] + ":" + module.params["directory"]
+        if not module.params["nfs_policy"] and not module.params["smb_policy"]:
             module.fail_json(msg="At least one policy must be provided")
-        if module.params['nfs_policy']:
-            policy_exists = bool(array.get_directory_exports(export_names=[module.params['name']],
-                                                             policy_names=[module.params['nfs_policy']],
-                                                             directory_names=[directory]).status_code == 200)
+        if module.params["nfs_policy"]:
+            policy_exists = bool(
+                array.get_directory_exports(
+                    export_names=[module.params["name"]],
+                    policy_names=[module.params["nfs_policy"]],
+                    directory_names=[directory],
+                ).status_code
+                == 200
+            )
             if policy_exists:
-                all_policies.append(module.params['nfs_policy'])
-        if module.params['smb_policy']:
-            policy_exists = bool(array.get_directory_exports(export_names=[module.params['name']],
-                                                             policy_names=[module.params['smb_policy']],
-                                                             directory_names=[directory]).status_code == 200)
+                all_policies.append(module.params["nfs_policy"])
+        if module.params["smb_policy"]:
+            policy_exists = bool(
+                array.get_directory_exports(
+                    export_names=[module.params["name"]],
+                    policy_names=[module.params["smb_policy"]],
+                    directory_names=[directory],
+                ).status_code
+                == 200
+            )
             if policy_exists:
-                all_policies.append(module.params['smb_policy'])
+                all_policies.append(module.params["smb_policy"])
         if all_policies:
-            res = array.delete_directory_exports(export_names=[module.params['name']], policy_names=all_policies)
+            res = array.delete_directory_exports(
+                export_names=[module.params["name"]], policy_names=all_policies
+            )
             if res.status_code != 200:
-                module.fail_json(msg="Failed to delete file system export {0}. {1}".format(module.params['name'],
-                                                                                           res.errors[0].message))
+                module.fail_json(
+                    msg="Failed to delete file system export {0}. {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
         else:
             changed = False
     module.exit_json(changed=changed)
@@ -127,69 +149,110 @@ def create_export(module, array):
     changed = True
     if not module.check_mode:
         changed = False
-        if not module.params['nfs_policy'] and not module.params['smb_policy']:
+        if not module.params["nfs_policy"] and not module.params["smb_policy"]:
             module.fail_json(msg="At least one policy must be provided")
         all_policies = []
-        if module.params['nfs_policy']:
-            if bool(array.get_policies_nfs(names=[module.params['nfs_policy']]).status_code != 200):
-                module.fail_json(msg="NFS Policy {0} does not exist.".format(module.params['nfs_policy']))
-            if bool(array.get_directory_exports(export_names=[module.params['name']], policy_names=[module.params['nfs_policy']]).status_code != 200):
-                all_policies.append(module.params['nfs_policy'])
-        if module.params['smb_policy']:
-            if bool(array.get_policies_smb(names=[module.params['smb_policy']]).status_code != 200):
-                module.fail_json(msg="SMB Policy {0} does not exist.".format(module.params['smb_policy']))
-            if bool(array.get_directory_exports(export_names=[module.params['name']], policy_names=[module.params['smb_policy']]).status_code != 200):
-                all_policies.append(module.params['smb_policy'])
+        if module.params["nfs_policy"]:
+            if bool(
+                array.get_policies_nfs(names=[module.params["nfs_policy"]]).status_code
+                != 200
+            ):
+                module.fail_json(
+                    msg="NFS Policy {0} does not exist.".format(
+                        module.params["nfs_policy"]
+                    )
+                )
+            if bool(
+                array.get_directory_exports(
+                    export_names=[module.params["name"]],
+                    policy_names=[module.params["nfs_policy"]],
+                ).status_code
+                != 200
+            ):
+                all_policies.append(module.params["nfs_policy"])
+        if module.params["smb_policy"]:
+            if bool(
+                array.get_policies_smb(names=[module.params["smb_policy"]]).status_code
+                != 200
+            ):
+                module.fail_json(
+                    msg="SMB Policy {0} does not exist.".format(
+                        module.params["smb_policy"]
+                    )
+                )
+            if bool(
+                array.get_directory_exports(
+                    export_names=[module.params["name"]],
+                    policy_names=[module.params["smb_policy"]],
+                ).status_code
+                != 200
+            ):
+                all_policies.append(module.params["smb_policy"])
         if all_policies:
-            export = flasharray.DirectoryExportPost(export_name=module.params['name'])
-            res = array.post_directory_exports(directory_names=[module.params['filesystem'] + ":" + module.params['directory']],
-                                               exports=export,
-                                               policy_names=all_policies)
+            export = flasharray.DirectoryExportPost(export_name=module.params["name"])
+            res = array.post_directory_exports(
+                directory_names=[
+                    module.params["filesystem"] + ":" + module.params["directory"]
+                ],
+                exports=export,
+                policy_names=all_policies,
+            )
             if res.sttaus_code == 200:
                 changed = True
             else:
-                module.fail_json(msg="Failed to create file system exports for {0}:{1}. Error: {2}".format(module.params['filesystem'],
-                                                                                                           module.params['directory'],
-                                                                                                           res.errors[0].message))
+                module.fail_json(
+                    msg="Failed to create file system exports for {0}:{1}. Error: {2}".format(
+                        module.params["filesystem"],
+                        module.params["directory"],
+                        res.errors[0].message,
+                    )
+                )
     module.exit_json(changed=changed)
 
 
 def main():
     argument_spec = purefa_argument_spec()
-    argument_spec.update(dict(
-        state=dict(type='str', default='present', choices=['absent', 'present']),
-        filesystem=dict(type='str', required=True),
-        directory=dict(type='str', required=True),
-        name=dict(type='str', required=True),
-        nfs_policy=dict(type='str'),
-        smb_policy=dict(type='str'),
-    ))
+    argument_spec.update(
+        dict(
+            state=dict(type="str", default="present", choices=["absent", "present"]),
+            filesystem=dict(type="str", required=True),
+            directory=dict(type="str", required=True),
+            name=dict(type="str", required=True),
+            nfs_policy=dict(type="str"),
+            smb_policy=dict(type="str"),
+        )
+    )
 
-    required_if = [['state', 'present', ['filesystem', 'directory']]]
-    module = AnsibleModule(argument_spec,
-                           required_if=required_if,
-                           supports_check_mode=True)
+    required_if = [["state", "present", ["filesystem", "directory"]]]
+    module = AnsibleModule(
+        argument_spec, required_if=required_if, supports_check_mode=True
+    )
 
     if not HAS_PURESTORAGE:
-        module.fail_json(msg='py-pure-client sdk is required for this module')
+        module.fail_json(msg="py-pure-client sdk is required for this module")
 
     array = get_system(module)
     api_version = array._list_available_rest_versions()
     if MIN_REQUIRED_API_VERSION not in api_version:
-        module.fail_json(msg='FlashArray REST version not supported. '
-                             'Minimum version required: {0}'.format(MIN_REQUIRED_API_VERSION))
+        module.fail_json(
+            msg="FlashArray REST version not supported. "
+            "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
+        )
     array = get_array(module)
-    state = module.params['state']
+    state = module.params["state"]
 
-    exists = bool(array.get_directory_exports(export_names=[module.params['name']]).status_code == 200)
+    exists = bool(
+        array.get_directory_exports(export_names=[module.params["name"]]).status_code
+        == 200
+    )
 
-    if state == 'present':
+    if state == "present":
         create_export(module, array)
-    elif state == 'absent' and exists:
+    elif state == "absent" and exists:
         delete_export(module, array)
 
     module.exit_json(changed=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

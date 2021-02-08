@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_ds
 version_added: '1.0.0'
@@ -125,9 +128,9 @@ options:
     - Supported from Purity 6.0 or higher.
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: Delete existing directory service
   purefa_ds:
     state: absent
@@ -193,10 +196,10 @@ EXAMPLES = r'''
     bind_password: password
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-'''
+"""
 
-RETURN = r'''
-'''
+RETURN = r"""
+"""
 
 HAS_PURESTORAGE = True
 try:
@@ -205,11 +208,15 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_array, get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_array,
+    get_system,
+    purefa_argument_spec,
+)
 
 
-DS_ROLE_REQUIRED_API_VERSION = '1.16'
-FAFILES_API_VERSION = '2.2'
+DS_ROLE_REQUIRED_API_VERSION = "1.16"
+FAFILES_API_VERSION = "2.2"
 
 
 def disable_ds(module, array):
@@ -219,7 +226,7 @@ def disable_ds(module, array):
         try:
             array.disable_directory_service()
         except Exception:
-            module.fail_json(msg='Disable Directory Service failed')
+            module.fail_json(msg="Disable Directory Service failed")
     module.exit_json(changed=changed)
 
 
@@ -238,14 +245,20 @@ def enable_ds(module, array):
                 if enough_roles:
                     array.enable_directory_service()
                 else:
-                    module.fail_json(msg='Cannot enable directory service - please create a directory service role')
+                    module.fail_json(
+                        msg="Cannot enable directory service - please create a directory service role"
+                    )
             except Exception:
-                module.fail_json(msg='Enable Directory Service failed: Check Configuration')
+                module.fail_json(
+                    msg="Enable Directory Service failed: Check Configuration"
+                )
         else:
             try:
                 array.enable_directory_service()
             except Exception:
-                module.fail_json(msg='Enable Directory Service failed: Check Configuration')
+                module.fail_json(
+                    msg="Enable Directory Service failed: Check Configuration"
+                )
     module.exit_json(changed=changed)
 
 
@@ -257,53 +270,62 @@ def delete_ds(module, array):
             api_version = array._list_available_rest_versions()
             array.set_directory_service(enabled=False)
             if DS_ROLE_REQUIRED_API_VERSION in api_version:
-                array.set_directory_service(uri=[''],
-                                            base_dn="",
-                                            bind_user="",
-                                            bind_password="",
-                                            certificate="")
+                array.set_directory_service(
+                    uri=[""], base_dn="", bind_user="", bind_password="", certificate=""
+                )
             else:
-                array.set_directory_service(uri=[''],
-                                            base_dn="",
-                                            group_base="",
-                                            bind_user="",
-                                            bind_password="",
-                                            readonly_group="",
-                                            storage_admin_group="",
-                                            array_admin_group="",
-                                            certificate="")
+                array.set_directory_service(
+                    uri=[""],
+                    base_dn="",
+                    group_base="",
+                    bind_user="",
+                    bind_password="",
+                    readonly_group="",
+                    storage_admin_group="",
+                    array_admin_group="",
+                    certificate="",
+                )
         except Exception:
-            module.fail_json(msg='Delete Directory Service failed')
+            module.fail_json(msg="Delete Directory Service failed")
     module.exit_json(changed=changed)
 
 
 def delete_ds_v6(module, array):
     """Delete Directory Service"""
     changed = False
-    if module.params('dstype') == 'management':
-        management = flasharray.DirectoryServiceManagement(user_login_attribute='',
-                                                           user_object_class='')
-        directory_service = flasharray.DirectoryService(uris=[''],
-                                                        base_dn='',
-                                                        bind_user='',
-                                                        bind_password='',
-                                                        enabled=False,
-                                                        services=module.params('dstype'),
-                                                        management=management)
+    if module.params("dstype") == "management":
+        management = flasharray.DirectoryServiceManagement(
+            user_login_attribute="", user_object_class=""
+        )
+        directory_service = flasharray.DirectoryService(
+            uris=[""],
+            base_dn="",
+            bind_user="",
+            bind_password="",
+            enabled=False,
+            services=module.params("dstype"),
+            management=management,
+        )
     else:
-        directory_service = flasharray.DirectoryService(uris=[''],
-                                                        base_dn='',
-                                                        bind_user='',
-                                                        bind_password='',
-                                                        enabled=False,
-                                                        services=module.params('dstype'))
+        directory_service = flasharray.DirectoryService(
+            uris=[""],
+            base_dn="",
+            bind_user="",
+            bind_password="",
+            enabled=False,
+            services=module.params("dstype"),
+        )
     if not module.check_mode:
-        res = array.patch_directory_services(names=[module.params['dstype']],
-                                             directory_service=directory_service)
+        res = array.patch_directory_services(
+            names=[module.params["dstype"]], directory_service=directory_service
+        )
         changed = True
         if res.status_code != 200:
-            module.fail_json(msg='Delete {0} Directory Service failed. Error message: {1}'.format(module.params['dstype'],
-                                                                                                  res.errors[0].message))
+            module.fail_json(
+                msg="Delete {0} Directory Service failed. Error message: {1}".format(
+                    module.params["dstype"], res.errors[0].message
+                )
+            )
     module.exit_json(changed=changed)
 
 
@@ -311,45 +333,64 @@ def create_ds(module, array):
     """Create Directory Service"""
     changed = True
     if not module.check_mode:
-        if None in (module.params['bind_password'], module.params['bind_user'], module.params['base_dn'], module.params['uri']):
-            module.fail_json(msg="Parameters \'bind_password\', \'bind_user\', \'base_dn\' and \'uri\' are all required")
+        if None in (
+            module.params["bind_password"],
+            module.params["bind_user"],
+            module.params["base_dn"],
+            module.params["uri"],
+        ):
+            module.fail_json(
+                msg="Parameters 'bind_password', 'bind_user', 'base_dn' and 'uri' are all required"
+            )
         api_version = array._list_available_rest_versions()
         if DS_ROLE_REQUIRED_API_VERSION in api_version:
             try:
-                array.set_directory_service(uri=module.params['uri'],
-                                            base_dn=module.params['base_dn'],
-                                            bind_user=module.params['bind_user'],
-                                            bind_password=module.params['bind_password'])
+                array.set_directory_service(
+                    uri=module.params["uri"],
+                    base_dn=module.params["base_dn"],
+                    bind_user=module.params["bind_user"],
+                    bind_password=module.params["bind_password"],
+                )
                 roles = array.list_directory_service_roles()
                 enough_roles = False
                 for role in range(0, len(roles)):
                     if roles[role]["group_base"]:
                         enough_roles = True
                 if enough_roles:
-                    array.set_directory_service(enabled=module.params['enable'])
+                    array.set_directory_service(enabled=module.params["enable"])
                 else:
-                    module.fail_json(msg='Cannot enable directory service - please create a directory service role')
+                    module.fail_json(
+                        msg="Cannot enable directory service - please create a directory service role"
+                    )
             except Exception:
-                module.fail_json(msg='Create Directory Service failed: Check configuration')
+                module.fail_json(
+                    msg="Create Directory Service failed: Check configuration"
+                )
         else:
-            groups_rule = [not module.params['ro_group'],
-                           not module.params['sa_group'],
-                           not module.params['aa_group']]
+            groups_rule = [
+                not module.params["ro_group"],
+                not module.params["sa_group"],
+                not module.params["aa_group"],
+            ]
 
             if all(groups_rule):
-                module.fail_json(msg='At least one group must be configured')
+                module.fail_json(msg="At least one group must be configured")
             try:
-                array.set_directory_service(uri=module.params['uri'],
-                                            base_dn=module.params['base_dn'],
-                                            group_base=module.params['group_base'],
-                                            bind_user=module.params['bind_user'],
-                                            bind_password=module.params['bind_password'],
-                                            readonly_group=module.params['ro_group'],
-                                            storage_admin_group=module.params['sa_group'],
-                                            array_admin_group=module.params['aa_group'])
-                array.set_directory_service(enabled=module.params['enable'])
+                array.set_directory_service(
+                    uri=module.params["uri"],
+                    base_dn=module.params["base_dn"],
+                    group_base=module.params["group_base"],
+                    bind_user=module.params["bind_user"],
+                    bind_password=module.params["bind_password"],
+                    readonly_group=module.params["ro_group"],
+                    storage_admin_group=module.params["sa_group"],
+                    array_admin_group=module.params["aa_group"],
+                )
+                array.set_directory_service(enabled=module.params["enable"])
             except Exception:
-                module.fail_json(msg='Create Directory Service failed: Check configuration')
+                module.fail_json(
+                    msg="Create Directory Service failed: Check configuration"
+                )
     module.exit_json(changed=changed)
 
 
@@ -358,156 +399,192 @@ def update_ds_v6(module, array):
     changed = False
     ds_change = False
     password_required = False
-    dirserv = list(array.get_directory_services(filter='name=\'' + module.params['dstype'] + '\'').items)[0]
+    dirserv = list(
+        array.get_directory_services(
+            filter="name='" + module.params["dstype"] + "'"
+        ).items
+    )[0]
     current_ds = dirserv
-    if current_ds.uris is None or module.params['bind_password'] is not None:
+    if current_ds.uris is None or module.params["bind_password"] is not None:
         password_required = True
-    if current_ds.uris != module.params['uri']:
-        uris = module.params['uri']
+    if current_ds.uris != module.params["uri"]:
+        uris = module.params["uri"]
         ds_change = True
     else:
         uris = current_ds.uris
     try:
         base_dn = current_ds.base_dn
     except AttributeError:
-        base_dn = ''
+        base_dn = ""
     try:
         bind_user = current_ds.bind_user
     except AttributeError:
-        bind_user = ''
-    if module.params['base_dn'] != '' and module.params['base_dn'] != base_dn:
-        base_dn = module.params['base_dn']
+        bind_user = ""
+    if module.params["base_dn"] != "" and module.params["base_dn"] != base_dn:
+        base_dn = module.params["base_dn"]
         ds_change = True
-    if module.params['bind_user'] != '' and module.params['bind_user'] != bind_user:
-        bind_user = module.params['bind_user']
+    if module.params["bind_user"] != "" and module.params["bind_user"] != bind_user:
+        bind_user = module.params["bind_user"]
         password_required = True
         ds_change = True
-    if module.params['bind_password'] is not None:
-        bind_password = module.params['bind_password']
+    if module.params["bind_password"] is not None:
+        bind_password = module.params["bind_password"]
         ds_change = True
-    if module.params['enable'] != current_ds.enabled:
+    if module.params["enable"] != current_ds.enabled:
         ds_change = True
-    if password_required and not module.params['bind_password']:
-        module.fail_json(msg='\'bind_password\' must be provided with new/changed \'bind_user\'')
-    if module.params['dstype'] == 'management':
+    if password_required and not module.params["bind_password"]:
+        module.fail_json(
+            msg="'bind_password' must be provided with new/changed 'bind_user'"
+        )
+    if module.params["dstype"] == "management":
         try:
             user_login = current_ds.management.user_login_attribute
         except AttributeError:
-            user_login = ''
+            user_login = ""
         try:
             user_object = current_ds.management.user_object_class
         except AttributeError:
-            user_object = ''
-        if module.params['user_object'] is not None and user_object != module.params['user_object']:
-            user_object = module.params['user_object']
+            user_object = ""
+        if (
+            module.params["user_object"] is not None
+            and user_object != module.params["user_object"]
+        ):
+            user_object = module.params["user_object"]
             ds_change = True
-        if module.params['user_login'] is not None and user_login != module.params['user_login']:
-            user_login = module.params['user_login']
+        if (
+            module.params["user_login"] is not None
+            and user_login != module.params["user_login"]
+        ):
+            user_login = module.params["user_login"]
             ds_change = True
-        management = flasharray.DirectoryServiceManagement(user_login_attribute=user_login,
-                                                           user_object_class=user_object)
+        management = flasharray.DirectoryServiceManagement(
+            user_login_attribute=user_login, user_object_class=user_object
+        )
         if password_required:
-            directory_service = flasharray.DirectoryService(uris=uris,
-                                                            base_dn=base_dn,
-                                                            bind_user=bind_user,
-                                                            bind_password=bind_password,
-                                                            enabled=module.params['enable'],
-                                                            services=module.params['dstype'],
-                                                            management=management)
+            directory_service = flasharray.DirectoryService(
+                uris=uris,
+                base_dn=base_dn,
+                bind_user=bind_user,
+                bind_password=bind_password,
+                enabled=module.params["enable"],
+                services=module.params["dstype"],
+                management=management,
+            )
         else:
-            directory_service = flasharray.DirectoryService(uris=uris,
-                                                            base_dn=base_dn,
-                                                            bind_user=bind_user,
-                                                            enabled=module.params['enable'],
-                                                            services=module.params['dstype'],
-                                                            management=management)
+            directory_service = flasharray.DirectoryService(
+                uris=uris,
+                base_dn=base_dn,
+                bind_user=bind_user,
+                enabled=module.params["enable"],
+                services=module.params["dstype"],
+                management=management,
+            )
     else:
         if password_required:
-            directory_service = flasharray.DirectoryService(uris=uris,
-                                                            base_dn=base_dn,
-                                                            bind_user=bind_user,
-                                                            bind_password=bind_password,
-                                                            enabled=module.params['enable'],
-                                                            services=module.params['dstype'])
+            directory_service = flasharray.DirectoryService(
+                uris=uris,
+                base_dn=base_dn,
+                bind_user=bind_user,
+                bind_password=bind_password,
+                enabled=module.params["enable"],
+                services=module.params["dstype"],
+            )
         else:
-            directory_service = flasharray.DirectoryService(uris=uris,
-                                                            base_dn=base_dn,
-                                                            bind_user=bind_user,
-                                                            enabled=module.params['enable'],
-                                                            services=module.params['dstype'])
+            directory_service = flasharray.DirectoryService(
+                uris=uris,
+                base_dn=base_dn,
+                bind_user=bind_user,
+                enabled=module.params["enable"],
+                services=module.params["dstype"],
+            )
     if ds_change:
         changed = True
         if not module.check_mode:
-            res = array.patch_directory_services(names=[module.params['dstype']],
-                                                 directory_service=directory_service)
+            res = array.patch_directory_services(
+                names=[module.params["dstype"]], directory_service=directory_service
+            )
             if res.status_code != 200:
-                module.fail_json(msg='{0} Directory Service failed. Error message: {1}'.format(module.params['dstype'].capitalize(),
-                                                                                               res.errors[0].message))
+                module.fail_json(
+                    msg="{0} Directory Service failed. Error message: {1}".format(
+                        module.params["dstype"].capitalize(), res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
 def main():
     argument_spec = purefa_argument_spec()
-    argument_spec.update(dict(
-        uri=dict(type='list', elements='str'),
-        state=dict(type='str', default='present', choices=['absent', 'present']),
-        enable=dict(type='bool', default=False),
-        bind_password=dict(type='str', no_log=True),
-        bind_user=dict(type='str'),
-        base_dn=dict(type='str'),
-        group_base=dict(type='str'),
-        user_login=dict(type='str'),
-        user_object=dict(type='str'),
-        ro_group=dict(type='str'),
-        sa_group=dict(type='str'),
-        aa_group=dict(type='str'),
-        dstype=dict(type='str', default='management', choices=['management', 'data']),
-    ))
+    argument_spec.update(
+        dict(
+            uri=dict(type="list", elements="str"),
+            state=dict(type="str", default="present", choices=["absent", "present"]),
+            enable=dict(type="bool", default=False),
+            bind_password=dict(type="str", no_log=True),
+            bind_user=dict(type="str"),
+            base_dn=dict(type="str"),
+            group_base=dict(type="str"),
+            user_login=dict(type="str"),
+            user_object=dict(type="str"),
+            ro_group=dict(type="str"),
+            sa_group=dict(type="str"),
+            aa_group=dict(type="str"),
+            dstype=dict(
+                type="str", default="management", choices=["management", "data"]
+            ),
+        )
+    )
 
-    module = AnsibleModule(argument_spec,
-                           supports_check_mode=True)
+    module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     array = get_system(module)
     api_version = array._list_available_rest_versions()
 
     if not HAS_PURESTORAGE:
-        module.fail_json(msg='py-pure-client sdk is required to for this module')
+        module.fail_json(msg="py-pure-client sdk is required to for this module")
 
     if FAFILES_API_VERSION in api_version:
         arrayv6 = get_array(module)
 
-    if module.params['dstype'] == 'data':
+    if module.params["dstype"] == "data":
         if FAFILES_API_VERSION in api_version:
             if len(list(arrayv6.get_directory_services().items)) == 1:
-                module.warn('FA-Files is not enabled  - ignoring')
+                module.warn("FA-Files is not enabled  - ignoring")
                 module.exit_json(changed=False)
         else:
-            module.fail_json(msg='\'data\' directory service requires Purity//FA 6.0.0 or higher')
+            module.fail_json(
+                msg="'data' directory service requires Purity//FA 6.0.0 or higher"
+            )
 
-    state = module.params['state']
+    state = module.params["state"]
     ds_exists = False
     if FAFILES_API_VERSION in api_version:
-        dirserv = list(arrayv6.get_directory_services(filter='name=\'' + module.params['dstype'] + '\'').items)[0]
-        if state == 'absent' and dirserv.uris != []:
+        dirserv = list(
+            arrayv6.get_directory_services(
+                filter="name='" + module.params["dstype"] + "'"
+            ).items
+        )[0]
+        if state == "absent" and dirserv.uris != []:
             delete_ds_v6(module, arrayv6)
         else:
             update_ds_v6(module, arrayv6)
     else:
         dirserv = array.get_directory_service()
-        ds_enabled = dirserv['enabled']
-        if dirserv['base_dn']:
+        ds_enabled = dirserv["enabled"]
+        if dirserv["base_dn"]:
             ds_exists = True
 
-        if state == 'absent' and ds_exists:
+        if state == "absent" and ds_exists:
             delete_ds(module, array)
-        elif ds_exists and module.params['enable'] and ds_enabled:
-            module.warn('To update an existing directory service configuration in Purity//Fa 5.x, please delete and recreate')
+        elif ds_exists and module.params["enable"] and ds_enabled:
+            module.warn(
+                "To update an existing directory service configuration in Purity//Fa 5.x, please delete and recreate"
+            )
             module.exit_json(changed=False)
-        elif ds_exists and not module.params['enable'] and ds_enabled:
+        elif ds_exists and not module.params["enable"] and ds_enabled:
             disable_ds(module, array)
-        elif ds_exists and module.params['enable'] and not ds_enabled:
+        elif ds_exists and module.params["enable"] and not ds_enabled:
             enable_ds(module, array)
-        elif not ds_exists and state == 'present':
+        elif not ds_exists and state == "present":
             create_ds(module, array)
         else:
             module.exit_json(changed=False)
@@ -515,5 +592,5 @@ def main():
     module.exit_json(changed=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

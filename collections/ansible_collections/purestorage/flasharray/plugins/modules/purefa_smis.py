@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_smis
 version_added: '1.0.0'
@@ -35,9 +38,9 @@ options:
     default: true
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: Enable SMI-S and SLP
   purefa_smis:
     fa_url: 10.10.10.2
@@ -49,10 +52,10 @@ EXAMPLES = r'''
     slp: false
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-'''
+"""
 
-RETURN = r'''
-'''
+RETURN = r"""
+"""
 
 HAS_PURESTORAGE = True
 try:
@@ -61,9 +64,13 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, get_array, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_system,
+    get_array,
+    purefa_argument_spec,
+)
 
-MIN_REQUIRED_API_VERSION = '2.2'
+MIN_REQUIRED_API_VERSION = "2.2"
 
 
 def update_smis(module, array):
@@ -75,48 +82,53 @@ def update_smis(module, array):
         try:
             current = list(array.get_smi_s().items)[0]
         except Exception:
-            module.fail_json(msg='Failed to get current SMI-S settings.')
+            module.fail_json(msg="Failed to get current SMI-S settings.")
         slp_enabled = current.slp_enabled
         wbem_enabled = current.wbem_https_enabled
-        if slp_enabled != module.params['slp']:
-            slp_enabled = module.params['slp']
+        if slp_enabled != module.params["slp"]:
+            slp_enabled = module.params["slp"]
             smis_changed = True
-        if wbem_enabled != module.params['smis']:
-            wbem_enabled = module.params['smis']
+        if wbem_enabled != module.params["smis"]:
+            wbem_enabled = module.params["smis"]
             smis_changed = True
         if smis_changed:
-            smi_s = flasharray.Smis(slp_enabled=slp_enabled, wbem_https_enabled=wbem_enabled)
+            smi_s = flasharray.Smis(
+                slp_enabled=slp_enabled, wbem_https_enabled=wbem_enabled
+            )
             try:
                 array.patch_smi_s(smi_s=smi_s)
                 changed = True
             except Exception:
-                module.fail_json(msg='Failed to change SMI-S settings.')
+                module.fail_json(msg="Failed to change SMI-S settings.")
     module.exit_json(changed=changed)
 
 
 def main():
     argument_spec = purefa_argument_spec()
-    argument_spec.update(dict(
-        smis=dict(type='bool', default=True),
-        slp=dict(type='bool', default=True),
-    ))
+    argument_spec.update(
+        dict(
+            smis=dict(type="bool", default=True),
+            slp=dict(type="bool", default=True),
+        )
+    )
 
-    module = AnsibleModule(argument_spec,
-                           supports_check_mode=True)
+    module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     if not HAS_PURESTORAGE:
-        module.fail_json(msg='py-pure-client sdk is required for this module')
+        module.fail_json(msg="py-pure-client sdk is required for this module")
 
     array = get_system(module)
     api_version = array._list_available_rest_versions()
 
     if MIN_REQUIRED_API_VERSION not in api_version:
-        module.fail_json(msg='FlashArray REST version not supported. '
-                             'Minimum version required: {0}'.format(MIN_REQUIRED_API_VERSION))
+        module.fail_json(
+            msg="FlashArray REST version not supported. "
+            "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
+        )
     array = get_array(module)
 
     update_smis(module, array)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

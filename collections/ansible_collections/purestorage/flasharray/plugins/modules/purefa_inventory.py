@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_inventory
 short_description: Collect information from Pure Storage FlashArray
@@ -22,9 +25,9 @@ author:
   - Pure Storage ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 extends_documentation_fragment:
   - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: collect FlashArray invenroty
   purefa_inventory:
     fa_url: 10.10.10.2
@@ -33,9 +36,9 @@ EXAMPLES = r'''
   debug:
     msg: "{{ array_info['purefa_info'] }}"
 
-'''
+"""
 
-RETURN = r'''
+RETURN = r"""
 purefa_inventory:
   description: Returns the inventory information for the FlashArray
   returned: always
@@ -134,77 +137,89 @@ purefa_inventory:
             }
         }
     }
-'''
+"""
 
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_system,
+    purefa_argument_spec,
+)
 
 
 def generate_hardware_dict(array):
-    hw_info = {'fans': {},
-               'controllers': {},
-               'temps': {},
-               'drives': {},
-               'interfaces': {},
-               'power': {},
-               }
+    hw_info = {
+        "fans": {},
+        "controllers": {},
+        "temps": {},
+        "drives": {},
+        "interfaces": {},
+        "power": {},
+    }
     components = array.list_hardware()
     for component in range(0, len(components)):
-        component_name = components[component]['name']
-        if 'FAN' in component_name:
+        component_name = components[component]["name"]
+        if "FAN" in component_name:
             fan_name = component_name
-            hw_info['fans'][fan_name] = {'status': components[component]['status']}
-        if 'PWR' in component_name:
+            hw_info["fans"][fan_name] = {"status": components[component]["status"]}
+        if "PWR" in component_name:
             pwr_name = component_name
-            hw_info['power'][pwr_name] = {'status': components[component]['status'],
-                                          'voltage': components[component]['voltage'],
-                                          'serial': components[component]['serial'],
-                                          'model': components[component]['model']
-                                          }
-        if 'IB' in component_name:
+            hw_info["power"][pwr_name] = {
+                "status": components[component]["status"],
+                "voltage": components[component]["voltage"],
+                "serial": components[component]["serial"],
+                "model": components[component]["model"],
+            }
+        if "IB" in component_name:
             ib_name = component_name
-            hw_info['interfaces'][ib_name] = {'status': components[component]['status'],
-                                              'speed': components[component]['speed']
-                                              }
-        if 'SAS' in component_name:
+            hw_info["interfaces"][ib_name] = {
+                "status": components[component]["status"],
+                "speed": components[component]["speed"],
+            }
+        if "SAS" in component_name:
             sas_name = component_name
-            hw_info['interfaces'][sas_name] = {'status': components[component]['status'],
-                                               'speed': components[component]['speed']
-                                               }
-        if 'ETH' in component_name:
+            hw_info["interfaces"][sas_name] = {
+                "status": components[component]["status"],
+                "speed": components[component]["speed"],
+            }
+        if "ETH" in component_name:
             eth_name = component_name
-            hw_info['interfaces'][eth_name] = {'status': components[component]['status'],
-                                               'speed': components[component]['speed']
-                                               }
-        if 'FC' in component_name:
+            hw_info["interfaces"][eth_name] = {
+                "status": components[component]["status"],
+                "speed": components[component]["speed"],
+            }
+        if "FC" in component_name:
             eth_name = component_name
-            hw_info['interfaces'][eth_name] = {'status': components[component]['status'],
-                                               'speed': components[component]['speed']
-                                               }
-        if 'TMP' in component_name:
+            hw_info["interfaces"][eth_name] = {
+                "status": components[component]["status"],
+                "speed": components[component]["speed"],
+            }
+        if "TMP" in component_name:
             tmp_name = component_name
-            hw_info['temps'][tmp_name] = {'status': components[component]['status'],
-                                          'temperature': components[component]['temperature']
-                                          }
-        if component_name in ['CT0', 'CT1']:
+            hw_info["temps"][tmp_name] = {
+                "status": components[component]["status"],
+                "temperature": components[component]["temperature"],
+            }
+        if component_name in ["CT0", "CT1"]:
             cont_name = component_name
-            hw_info['controllers'][cont_name] = {'status': components[component]['status'],
-                                                 'serial': components[component]['serial'],
-                                                 'model': components[component]['model']
-                                                 }
+            hw_info["controllers"][cont_name] = {
+                "status": components[component]["status"],
+                "serial": components[component]["serial"],
+                "model": components[component]["model"],
+            }
 
     drives = array.list_drives()
     for drive in range(0, len(drives)):
-        drive_name = drives[drive]['name']
-        hw_info['drives'][drive_name] = {'capacity': drives[drive]['capacity'],
-                                         'status': drives[drive]['status'],
-                                         'protocol': drives[drive]['protocol'],
-                                         'type': drives[drive]['type']
-                                         }
+        drive_name = drives[drive]["name"]
+        hw_info["drives"][drive_name] = {
+            "capacity": drives[drive]["capacity"],
+            "status": drives[drive]["status"],
+            "protocol": drives[drive]["protocol"],
+            "type": drives[drive]["type"],
+        }
         for disk in range(0, len(components)):
-            if components[disk]['name'] == drive_name:
-                hw_info['drives'][drive_name]['serial'] = components[disk]['serial']
+            if components[disk]["name"] == drive_name:
+                hw_info["drives"][drive_name]["serial"] = components[disk]["serial"]
 
     return hw_info
 
@@ -218,5 +233,5 @@ def main():
     module.exit_json(changed=False, purefa_info=generate_hardware_dict(array))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

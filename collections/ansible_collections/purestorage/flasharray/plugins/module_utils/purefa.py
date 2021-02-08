@@ -28,7 +28,8 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 # USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
 HAS_PURESTORAGE = True
@@ -53,33 +54,41 @@ from os import environ
 import platform
 
 VERSION = 1.4
-USER_AGENT_BASE = 'Ansible'
+USER_AGENT_BASE = "Ansible"
 
 
 def get_system(module):
     """Return System Object or Fail"""
-    user_agent = '%(base)s %(class)s/%(version)s (%(platform)s)' % {
-        'base': USER_AGENT_BASE,
-        'class': __name__,
-        'version': VERSION,
-        'platform': platform.platform()
+    user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+        "base": USER_AGENT_BASE,
+        "class": __name__,
+        "version": VERSION,
+        "platform": platform.platform(),
     }
-    array_name = module.params['fa_url']
-    api = module.params['api_token']
+    array_name = module.params["fa_url"]
+    api = module.params["api_token"]
     if HAS_PURESTORAGE:
         if array_name and api:
-            system = purestorage.FlashArray(array_name, api_token=api, user_agent=user_agent)
-        elif environ.get('PUREFA_URL') and environ.get('PUREFA_API'):
-            system = purestorage.FlashArray(environ.get('PUREFA_URL'),
-                                            api_token=(environ.get('PUREFA_API')),
-                                            user_agent=user_agent)
+            system = purestorage.FlashArray(
+                array_name, api_token=api, user_agent=user_agent
+            )
+        elif environ.get("PUREFA_URL") and environ.get("PUREFA_API"):
+            system = purestorage.FlashArray(
+                environ.get("PUREFA_URL"),
+                api_token=(environ.get("PUREFA_API")),
+                user_agent=user_agent,
+            )
         else:
-            module.fail_json(msg="You must set PUREFA_URL and PUREFA_API environment variables "
-                                 "or the fa_url and api_token module arguments")
+            module.fail_json(
+                msg="You must set PUREFA_URL and PUREFA_API environment variables "
+                "or the fa_url and api_token module arguments"
+            )
         try:
             system.get()
         except Exception:
-            module.fail_json(msg="Pure Storage FlashArray authentication failed. Check your credentials")
+            module.fail_json(
+                msg="Pure Storage FlashArray authentication failed. Check your credentials"
+            )
     else:
         module.fail_json(msg="purestorage SDK is not installed.")
     return system
@@ -87,31 +96,43 @@ def get_system(module):
 
 def get_array(module):
     """Return System Object or Fail"""
-    user_agent = '%(base)s %(class)s/%(version)s (%(platform)s)' % {
-        'base': USER_AGENT_BASE,
-        'class': __name__,
-        'version': VERSION,
-        'platform': platform.platform()
+    user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+        "base": USER_AGENT_BASE,
+        "class": __name__,
+        "version": VERSION,
+        "platform": platform.platform(),
     }
-    array_name = module.params['fa_url']
-    api = module.params['api_token']
+    array_name = module.params["fa_url"]
+    api = module.params["api_token"]
     if HAS_PYPURECLIENT and HAS_REQUESTS:
-        versions = requests.get("https://" + array_name + "/api/api_version", verify=False)
-        api_version = versions.json()['version'][-1]
+        versions = requests.get(
+            "https://" + array_name + "/api/api_version", verify=False
+        )
+        api_version = versions.json()["version"][-1]
         if array_name and api:
-            system = flasharray.Client(target=array_name, api_token=api,
-                                       user_agent=user_agent, version=api_version)
-        elif environ.get('PUREFA_URL') and environ.get('PUREFA_API'):
-            system = flasharray.Client(target=(environ.get('PUREFA_URL')),
-                                       api_token=(environ.get('PUREFA_API')),
-                                       user_agent=user_agent)
+            system = flasharray.Client(
+                target=array_name,
+                api_token=api,
+                user_agent=user_agent,
+                version=api_version,
+            )
+        elif environ.get("PUREFA_URL") and environ.get("PUREFA_API"):
+            system = flasharray.Client(
+                target=(environ.get("PUREFA_URL")),
+                api_token=(environ.get("PUREFA_API")),
+                user_agent=user_agent,
+            )
         else:
-            module.fail_json(msg="You must set PUREFA_URL and PUREFA_API environment variables "
-                                 "or the fa_url and api_token module arguments")
+            module.fail_json(
+                msg="You must set PUREFA_URL and PUREFA_API environment variables "
+                "or the fa_url and api_token module arguments"
+            )
         try:
             system.get_hardware()
         except Exception:
-            module.fail_json(msg="Pure Storage FlashArray authentication failed. Check your credentials")
+            module.fail_json(
+                msg="Pure Storage FlashArray authentication failed. Check your credentials"
+            )
     else:
         module.fail_json(msg="py-pure-client and/or requests are not installed.")
     return system
