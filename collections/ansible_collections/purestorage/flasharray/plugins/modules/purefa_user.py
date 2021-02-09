@@ -199,16 +199,21 @@ def create_user(module, array):
                             module.params["name"]
                         )
                     )
-            if module.params["role"] != user["role"]:
-                try:
-                    array.set_admin(module.params["name"], role=module.params["role"])
-                    role_changed = True
-                except Exception:
-                    module.fail_json(
-                        msg="Local User {0}: Role changed failed".format(
-                            module.params["name"]
+            if module.params["role"] and module.params["role"] != user["role"]:
+                if module.params["name"] != "pureuser":
+                    try:
+                        array.set_admin(
+                            module.params["name"], role=module.params["role"]
                         )
-                    )
+                        role_changed = True
+                    except Exception:
+                        module.fail_json(
+                            msg="Local User {0}: Role changed failed".format(
+                                module.params["name"]
+                            )
+                        )
+                else:
+                    module.warn("Role for 'pureuser' cannot be modified.")
             changed = bool(passwd_changed or role_changed or api_changed)
     module.exit_json(changed=changed, user_info=user_token)
 
