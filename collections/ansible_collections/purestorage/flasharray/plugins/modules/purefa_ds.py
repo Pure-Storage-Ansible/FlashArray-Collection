@@ -577,7 +577,7 @@ def main():
             delete_ds(module, array)
         elif ds_exists and module.params["enable"] and ds_enabled:
             module.warn(
-                "To update an existing directory service configuration in Purity//Fa 5.x, please delete and recreate"
+                "To update an existing directory service configuration in Purity//FA 5.x, please delete and recreate"
             )
             module.exit_json(changed=False)
         elif ds_exists and not module.params["enable"] and ds_enabled:
