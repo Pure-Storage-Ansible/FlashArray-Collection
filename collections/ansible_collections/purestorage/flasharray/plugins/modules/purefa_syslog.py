@@ -51,6 +51,12 @@ options:
       No validation is performed for FQDNs.
     type: str
     required: true
+  name:
+    description:
+    - A user-specified name.
+      The name must be locally unique and cannot be changed.
+    - Only applicable with FlashArrays running Purity//FA 6.0 or higher.
+    type: str
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -76,16 +82,28 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
+
+HAS_PURESTORAGE = True
+try:
+    from pypureclient import flasharray
+except ImportError:
+    HAS_PURESTORAGE = False
+
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_array,
     get_system,
     purefa_argument_spec,
 )
 
 
+SYSLOG_NAME_API = "2.4"
+
+
 def delete_syslog(module, array):
     """Delete Syslog Server"""
-    changed = True
+    changed = False
     if not module.check_mode:
         noport_address = module.params["protocol"] + "://" + module.params["address"]
 
@@ -102,6 +120,7 @@ def delete_syslog(module, array):
                     del address_list[address]
                     try:
                         array.set(syslogserver=address_list)
+                        changed = True
                         break
                     except Exception:
                         module.fail_json(
@@ -113,7 +132,7 @@ def delete_syslog(module, array):
     module.exit_json(changed=changed)
 
 
-def add_syslog(module, array):
+def add_syslog(module, array, arrayv6):
     """Add Syslog Server"""
     changed = True
     if not module.check_mode:
@@ -134,14 +153,30 @@ def add_syslog(module, array):
                     exists = True
                     break
         if not exists:
-            try:
-                address_list.append(full_address)
-                array.set(syslogserver=address_list)
-                changed = True
-            except Exception:
-                module.fail_json(
-                    msg="Failed to add syslog server: {0}".format(full_address)
+            if arrayv6 and module.params["name"]:
+                res = arrayv6.post_syslog_servers(
+                    names=[module.params["name"]],
+                    syslog_server=flasharray.SyslogServer(
+                        name=module.params["name"], uri=full_address
+                    ),
                 )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Adding syslog server {0} failed. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+                else:
+                    changed = True
+            else:
+                try:
+                    address_list.append(full_address)
+                    array.set(syslogserver=address_list)
+                    changed = True
+                except Exception:
+                    module.fail_json(
+                        msg="Failed to add syslog server: {0}".format(full_address)
+                    )
 
     module.exit_json(changed=changed)
 
@@ -153,6 +188,7 @@ def main():
             address=dict(type="str", required=True),
             protocol=dict(type="str", choices=["tcp", "tls", "udp"], required=True),
             port=dict(type="str"),
+            name=dict(type="str"),
             state=dict(type="str", default="present", choices=["absent", "present"]),
         )
     )
@@ -161,10 +197,20 @@ def main():
 
     array = get_system(module)
 
+    if module.params["name"] and not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this module")
+
+    api_version = array._list_available_rest_versions()
+
+    if SYSLOG_NAME_API in api_version and module.params["name"]:
+        arrayv6 = get_array(module)
+    else:
+        arrayv6 = None
+
     if module.params["state"] == "absent":
         delete_syslog(module, array)
     else:
-        add_syslog(module, array)
+        add_syslog(module, array, arrayv6)
 
     module.exit_json(changed=False)
 
