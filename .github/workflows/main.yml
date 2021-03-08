@@ -33,6 +33,13 @@ jobs:
         python${{ matrix.python }} -m pip install --upgrade pip
         python${{ matrix.python }} -m pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
 
+        python -m pip install --upgrade pip
+        pip install purestorage pycodestyle flake8 py-pure-client requests
+        # pip install ansible-base
+        pip install git+https://github.com/ansible/ansible.git@devel
+    - name: Run pycodestyle
+      run: |
+        pycodestyle --max-line-length=160 --ignore=E305,E402,W503,W504,E722,E741 ./
     - name: Run sanity tests
       run: |
         pwd
