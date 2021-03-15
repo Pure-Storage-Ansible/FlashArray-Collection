@@ -22,6 +22,7 @@ short_description: Manage protection group snapshots on Pure Storage FlashArrays
 description:
 - Create or delete protection group snapshots on Pure Storage FlashArray.
 - Recovery of replicated snapshots on the replica target array is enabled.
+- Support for ActiveCluster and Volume Group protection groups is supported.
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
@@ -51,6 +52,8 @@ options:
   restore:
     description:
     - Restore a specific volume from a protection group snapshot.
+    - The protection group name is not required. Only provide the name of the
+      volume to be restored.
     type: str
   overwrite:
     description:
