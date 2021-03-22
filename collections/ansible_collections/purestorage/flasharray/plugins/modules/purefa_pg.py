@@ -79,6 +79,12 @@ options:
       configuration suppors this.
     type: list
     elements: str
+  rename:
+    description:
+    - Rename a protection group
+    - If the source protection group is in a Pod or Volume Group 'container'
+      you only need to provide the new protection group name in the same 'container'
+    type: str
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -138,6 +144,13 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
 
+- name: Rename protection group foo in pod arrayA to bar
+  purefa_pg:
+    pgroup: "arrayA::foo"
+    rename: bar
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
 - name: Create protection group for hostgroups
   purefa_pg:
     pgroup: bar
@@ -170,6 +183,7 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
+import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_system,
@@ -383,9 +397,26 @@ def make_pgroup(module, array):
     module.exit_json(changed=changed)
 
 
+def rename_exists(module, array):
+    """ Determine if rename target already exists """
+    exists = False
+    new_name = module.params["rename"]
+    if ":" in module.params["pgroup"]:
+        container = module.params["pgroup"].split(":")[0]
+        new_name = container + ":" + module.params["rename"]
+        if "::" in module.params["pgroup"]:
+            new_name = container + "::" + module.params["rename"]
+    for pgroup in array.list_pgroups(pending=True):
+        if pgroup["name"].lower() == new_name.lower():
+            exists = True
+            break
+    return exists
+
+
 def update_pgroup(module, array):
     """ Update Protection Group"""
     changed = True
+    renamed = False
     if not module.check_mode:
         changed = False
         if module.params["target"]:
@@ -569,7 +600,29 @@ def update_pgroup(module, array):
                                 module.params["pgroup"]
                             )
                         )
-
+        if module.params["rename"]:
+            if not rename_exists(module, array):
+                if ":" in module.params["pgroup"]:
+                    container = module.params["pgroup"].split(":")[0]
+                    if "::" in module.params["pgroup"]:
+                        rename = container + "::" + module.params["rename"]
+                    else:
+                        rename = container + ":" + module.params["rename"]
+                else:
+                    rename = module.params["rename"]
+                try:
+                    array.rename_pgroup(module.params["pgroup"], rename)
+                    module.params["pgroup"] = rename
+                    renamed = True
+                except Exception:
+                    module.fail_json(msg="Rename to {0} failed.".format(rename))
+            else:
+                module.warn(
+                    "Rename failed. Protection group {0} already exists in container. Continuing with other changes...".format(
+                        module.params["rename"]
+                    )
+                )
+        changed = changed or renamed
     module.exit_json(changed=changed)
 
 
@@ -658,6 +711,7 @@ def main():
             target=dict(type="list", elements="str"),
             eradicate=dict(type="bool", default=False),
             enabled=dict(type="bool", default=True),
+            rename=dict(type="str"),
         )
     )
 
@@ -668,6 +722,21 @@ def main():
 
     state = module.params["state"]
     array = get_system(module)
+    pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
+    if module.params["rename"]:
+        module.params["rename"] = module.params["rename"].lower()
+        if not pattern.match(module.params["rename"]):
+            module.fail_json(
+                msg="Rename value {0} does not conform to naming convention".format(
+                    module.params["rename"]
+                )
+            )
+        if not pattern.match(module.params["pgroup"].split(":")[-1]):
+            module.fail_json(
+                msg="Protection Group name {0} does not conform to naming convention".format(
+                    module.params["pgroup"]
+                )
+            )
     api_version = array._list_available_rest_versions()
     if ":" in module.params["pgroup"] and OFFLOAD_API_VERSION not in api_version:
         module.fail_json(msg="API version does not support offload protection groups.")
@@ -706,8 +775,15 @@ def main():
         delete_pgroup(module, array)
     elif xpgroup and state == "absent" and module.params["eradicate"]:
         eradicate_pgroup(module, array)
-    elif not pgroup and not xpgroup and state == "present":
+    elif (
+        not pgroup
+        and not xpgroup
+        and state == "present"
+        and not module.params["rename"]
+    ):
         make_pgroup(module, array)
+    elif not pgroup and state == "present" and module.params["rename"]:
+        module.exit_json(changed=False)
     elif pgroup is None and state == "absent":
         module.exit_json(changed=False)
 
