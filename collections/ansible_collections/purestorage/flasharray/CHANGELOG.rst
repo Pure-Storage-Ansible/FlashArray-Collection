@@ -5,6 +5,30 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.7.0
+======
+
+Minor Changes
+-------------
+
+- purefa_maintenance - New module to set maintenance windows
+- purefa_pg - Add support to rename protection groups
+- purefa_syslog - Add support for naming SYSLOG servers for Purity//FA 6.1 or higher
+
+Bugfixes
+--------
+
+- purefa_info - Fix missing protection group snapshot info for local snapshots
+- purefa_info - Resolve crash when an offload target is offline
+- purefa_pgsnap - Ensure suffix rules only implemented for state=present
+- purefa_user - Do not allow role changed for breakglass user (pureuser)
+- purefa_user - Do not change role for existing user unless requested
+
+New Modules
+-----------
+
+- purestorage.flasharray.purefa_maintenance - Configure Pure Storage FlashArray Maintence Windows
+
 v1.6.2
 ======
 

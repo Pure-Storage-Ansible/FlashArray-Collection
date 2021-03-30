@@ -150,3 +150,29 @@ releases:
     fragments:
     - 149_volumes_demoted_pods_fix.yaml
     release_date: '2021-02-04'
+  1.7.0:
+    changes:
+      bugfixes:
+      - purefa_info - Fix missing protection group snapshot info for local snapshots
+      - purefa_info - Resolve crash when an offload target is offline
+      - purefa_pgsnap - Ensure suffix rules only implemented for state=present
+      - purefa_user - Do not allow role changed for breakglass user (pureuser)
+      - purefa_user - Do not change role for existing user unless requested
+      minor_changes:
+      - purefa_maintenance - New module to set maintenance windows
+      - purefa_pg - Add support to rename protection groups
+      - purefa_syslog - Add support for naming SYSLOG servers for Purity//FA 6.1 or
+        higher
+    fragments:
+    - 152_fix_user.yaml
+    - 153_syslog_update.yaml
+    - 156_snap_suffix_fix.yaml
+    - 160_rename_pg.yaml
+    - 161_offline_offload_fix.yaml
+    - 162_pgsnap_info_fix.yaml
+    - 163_add_maintenance_windows.yaml
+    modules:
+    - description: Configure Pure Storage FlashArray Maintence Windows
+      name: purefa_maintenance
+      namespace: ''
+    release_date: '2021-03-30'
