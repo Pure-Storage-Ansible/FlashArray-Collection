@@ -212,7 +212,7 @@ def main():
                 choices=["readonly", "ops_admin", "storage_admin", "array_admin"],
             ),
             public_key=dict(type="str", no_log=True),
-            token_ttl=dict(type="int", default=86400),
+            token_ttl=dict(type="int", default=86400, no_log=False),
             issuer=dict(type="str"),
         )
     )

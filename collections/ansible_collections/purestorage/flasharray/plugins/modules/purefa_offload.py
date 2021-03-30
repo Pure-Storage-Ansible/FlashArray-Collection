@@ -324,7 +324,7 @@ def main():
             ),
             name=dict(type="str", required=True),
             initialize=dict(default=True, type="bool"),
-            access_key=dict(type="str"),
+            access_key=dict(type="str", no_log=False),
             secret=dict(type="str", no_log=True),
             bucket=dict(type="str"),
             container=dict(type="str", default="offload"),
