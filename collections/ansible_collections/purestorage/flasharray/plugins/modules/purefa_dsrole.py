@@ -140,20 +140,22 @@ def delete_role(module, array):
 
 def create_role(module, array):
     """Create Directory Service Role"""
-    changed = True
-    if not module.check_mode:
-        try:
-            array.set_directory_service_roles(
-                names=[module.params["role"]],
-                group_base=module.params["group_base"],
-                group=module.params["group"],
-            )
-        except Exception:
-            module.fail_json(
-                msg="Create Directory Service Role {0} failed".format(
-                    module.params["role"]
+    changed = False
+    if not module.params["group"] == "" or not module.params["group_base"] == "":
+        changed = True
+        if not module.check_mode:
+            try:
+                array.set_directory_service_roles(
+                    names=[module.params["role"]],
+                    group_base=module.params["group_base"],
+                    group=module.params["group"],
                 )
-            )
+            except Exception:
+                module.fail_json(
+                    msg="Create Directory Service Role {0} failed".format(
+                        module.params["role"]
+                    )
+                )
     module.exit_json(changed=changed)
 
 
