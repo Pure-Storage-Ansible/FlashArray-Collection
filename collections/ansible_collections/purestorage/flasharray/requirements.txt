@@ -3,3 +3,4 @@ py-pure-client >= '1.11'
 netaddr
 requests
 python >= '3.3'
+pycountry
