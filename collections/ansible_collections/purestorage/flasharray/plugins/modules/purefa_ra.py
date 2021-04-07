@@ -65,16 +65,18 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 def enable_ra(module, array):
     """Enable Remote Assist"""
-    changed = True
+    changed = False
     ra_facts = {}
-    if not module.check_mode:
-        if array.get_remote_assist_status()["status"] != "enabled":
+    if not array.get_remote_assist_status()["status"] in ["connected", "enabled"]:
+        changed = True
+        if not module.check_mode:
             try:
                 ra_data = array.enable_remote_assist()
                 ra_facts["fa_ra"] = {"name": ra_data["name"], "port": ra_data["port"]}
             except Exception:
                 module.fail_json(msg="Enabling Remote Assist failed")
-        else:
+    else:
+        if not module.check_mode:
             try:
                 ra_data = array.get_remote_assist_status()
                 ra_facts["fa_ra"] = {"name": ra_data["name"], "port": ra_data["port"]}
@@ -85,9 +87,10 @@ def enable_ra(module, array):
 
 def disable_ra(module, array):
     """Disable Remote Assist"""
-    changed = True
-    if not module.check_mode:
-        if array.get_remote_assist_status()["status"] == "enabled":
+    changed = False
+    if not array.get_remote_assist_status()["status"] in ["connected", "enabled"]:
+        changed = True
+        if not module.check_mode:
             try:
                 array.disable_remote_assist()
             except Exception:
