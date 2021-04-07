@@ -42,14 +42,14 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Set GUI idle timeout to 25 minutes
-  purefa_gui:
+  purefa_timeout:
     timeout: 25
     state: present
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Disable idle timeout
-  purefa_gui:
+  purefa_timeout:
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
