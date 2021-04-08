@@ -310,7 +310,7 @@ def restore_pgsnapvolume(module, array):
         )
         if "::" in module.params["target"]:
             pod_name = module.params["target"].split(":")[0]
-            if len(array.get_pod(pod_name, mediator=True)["arrays"] > 1):
+            if len(array.get_pod(pod_name, mediator=True)["arrays"]) > 1:
                 module.fail_json(msg="Volume cannot be restored to a stretched pod")
         try:
             array.copy_volume(
