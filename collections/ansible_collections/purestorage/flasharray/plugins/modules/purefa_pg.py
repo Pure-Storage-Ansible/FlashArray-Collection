@@ -744,6 +744,24 @@ def main():
         module.fail_json(
             msg="API version does not support ActiveCluster protection groups."
         )
+    if ":" in module.params["pgroup"]:
+        if "::" in module.params["pgroup"]:
+            pgname = module.params["pgroup"].split("::")[1]
+        else:
+            pgname = module.params["pgroup"].split(":")[1]
+        if not pattern.match(pgname):
+            module.fail_json(
+                msg="Protection Group name {0} does not conform to naming convention".format(
+                    pgname
+                )
+            )
+    else:
+        if not pattern.match(module.params["pgroup"]):
+            module.fail_json(
+                msg="Protection Group name {0} does not conform to naming convention".format(
+                    pgname
+                )
+            )
 
     pgroup = get_pgroup(module, array)
     xpgroup = get_pending_pgroup(module, array)
