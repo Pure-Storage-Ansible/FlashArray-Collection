@@ -145,15 +145,16 @@ def update_interface(module, array, interface):
         if not module.params["address"]:
             address = interface["address"]
         else:
-            if module.params["gateway"] and module.params["gateway"] not in IPNetwork(
-                module.params["address"]
-            ):
-                module.fail_json(msg="Gateway and subnet are not compatible.")
-            elif not module.params["gateway"] and interface["gateway"] not in [
-                None,
-                IPNetwork(module.params["address"]),
-            ]:
-                module.fail_json(msg="Gateway and subnet are not compatible.")
+            if module.params["gateway"]:
+                if module.params["gateway"] and module.params[
+                    "gateway"
+                ] not in IPNetwork(module.params["address"]):
+                    module.fail_json(msg="Gateway and subnet are not compatible.")
+                elif not module.params["gateway"] and interface["gateway"] not in [
+                    None,
+                    IPNetwork(module.params["address"]),
+                ]:
+                    module.fail_json(msg="Gateway and subnet are not compatible.")
             address = str(module.params["address"].split("/", 1)[0])
         if not module.params["mtu"]:
             mtu = interface["mtu"]
