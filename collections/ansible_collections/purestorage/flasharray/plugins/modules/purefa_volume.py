@@ -267,6 +267,7 @@ POD_API_VERSION = "1.13"
 AC_QOS_VERSION = "1.16"
 IOPS_API_VERSION = "1.17"
 MULTI_VOLUME_VERSION = "2.2"
+PROMOTE_API_VERSION = "2.0"
 
 
 def human_to_bytes(size):
@@ -439,8 +440,9 @@ def create_volume(module, array):
                     )
                 )
             pod_name = module.params["name"].split("::")[0]
-            if array.get_pod(pod_name)["promotion_status"] == "demoted":
-                module.fail_json(msg="Volume cannot be created in a demoted pod")
+            if PROMOTE_API_VERSION in api_version:
+                if array.get_pod(pod_name)["promotion_status"] == "demoted":
+                    module.fail_json(msg="Volume cannot be created in a demoted pod")
             if module.params["bw_qos"] or module.params["iops_qos"]:
                 if AC_QOS_VERSION not in api_version:
                     module.warn(
@@ -572,6 +574,7 @@ def create_multi_volume(module, array):
     changed = True
     volfact = {}
     if not module.check_mode:
+        api_version = array._list_available_rest_versions()
         bw_qos_size = iops_qos_size = 0
         names = []
         if "/" in module.params["name"] and not check_vgroup(module, array):
@@ -588,8 +591,9 @@ def create_multi_volume(module, array):
                     )
                 )
             pod_name = module.params["name"].split("::")[0]
-            if array.get_pod(pod_name)["promotion_status"] == "demoted":
-                module.fail_json(msg="Volume cannot be created in a demoted pod")
+            if PROMOTE_API_VERSION in api_version:
+                if array.get_pod(pod_name)["promotion_status"] == "demoted":
+                    module.fail_json(msg="Volume cannot be created in a demoted pod")
         array = get_array(module)
         for vol_num in range(
             module.params["start"], module.params["count"] + module.params["start"]
@@ -877,6 +881,7 @@ def move_volume(module, array):
     changed = True
     volfact = []
     if not module.check_mode:
+        api_version = array._list_available_rest_versions()
         changed = False
         vgroup_exists = False
         target_exists = False
@@ -914,8 +919,11 @@ def move_volume(module, array):
                     module.fail_json(
                         msg="Volume cannot be moved into a linked source pod"
                     )
-                if pod_exists["promotion_status"] == "demoted":
-                    module.fail_json(msg="Volume cannot be moved into a demoted pod")
+                if PROMOTE_API_VERSION in api_version:
+                    if pod_exists["promotion_status"] == "demoted":
+                        module.fail_json(
+                            msg="Volume cannot be moved into a demoted pod"
+                        )
                 pod_exists = bool(pod_exists)
             except Exception:
                 pod_exists = False
@@ -967,8 +975,11 @@ def move_volume(module, array):
                     module.fail_json(
                         msg="Volume cannot be moved out of a linked source pod"
                     )
-                if pod["promotion_status"] == "demoted":
-                    module.fail_json(msg="Volume cannot be out of a demoted pod")
+                if PROMOTE_API_VERSION in api_version:
+                    if pod["promotion_status"] == "demoted":
+                        module.fail_json(
+                            msg="Volume cannot be moved out of a demoted pod"
+                        )
             if "/" in module.params["name"]:
                 if (
                     vgroup_name == module.params["move"]
