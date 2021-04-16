@@ -115,6 +115,12 @@ options:
     - Rename only applies to the container the current volumes is in.
     - There is no requirement to specify the pod or vgroup name as this is implied.
     type: str
+  pgroup:
+    description:
+    - Name of exisitng, not deleted, protection group to add volume to
+    - Only application for volume(s) creation
+    type: str
+    version_added: 1.8.0
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -130,9 +136,10 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: present
 
-- name: Create new volume named foo in pod bar
+- name: Create new volume named foo in pod bar in protection group pg1
   purefa_volume:
     name: bar::foo
+    prgoup: pg1
     size: 1T
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
@@ -265,9 +272,56 @@ QOS_API_VERSION = "1.14"
 VGROUPS_API_VERSION = "1.13"
 POD_API_VERSION = "1.13"
 AC_QOS_VERSION = "1.16"
+OFFLOAD_API_VERSION = "1.16"
 IOPS_API_VERSION = "1.17"
 MULTI_VOLUME_VERSION = "2.2"
 PROMOTE_API_VERSION = "2.0"
+
+
+def get_pending_pgroup(module, array):
+    """ Get Protection Group"""
+    pgroup = None
+    if ":" in module.params["pgroup"]:
+        if "::" not in module.params["pgroup"]:
+            for pgrp in array.list_pgroups(pending=True, on="*"):
+                if pgrp["name"] == module.params["pgroup"] and pgrp["time_remaining"]:
+                    pgroup = pgrp
+                    break
+        else:
+            for pgrp in array.list_pgroups(pending=True):
+                if pgrp["name"] == module.params["pgroup"] and pgrp["time_remaining"]:
+                    pgroup = pgrp
+                    break
+    else:
+        for pgrp in array.list_pgroups(pending=True):
+            if pgrp["name"] == module.params["pgroup"] and pgrp["time_remaining"]:
+                pgroup = pgrp
+                break
+
+    return pgroup
+
+
+def get_pgroup(module, array):
+    """ Get Protection Group"""
+    pgroup = None
+    if ":" in module.params["pgroup"]:
+        if "::" not in module.params["pgroup"]:
+            for pgrp in array.list_pgroups(on="*"):
+                if pgrp["name"] == module.params["pgroup"]:
+                    pgroup = pgrp
+                    break
+        else:
+            for pgrp in array.list_pgroups():
+                if pgrp["name"] == module.params["pgroup"]:
+                    pgroup = pgrp
+                    break
+    else:
+        for pgrp in array.list_pgroups():
+            if pgrp["name"] == module.params["pgroup"]:
+                pgroup = pgrp
+                break
+
+    return pgroup
 
 
 def human_to_bytes(size):
@@ -566,6 +620,18 @@ def create_volume(module, array):
                     msg="Volume {0} creation failed.".format(module.params["name"])
                 )
 
+        if module.params["pgroup"]:
+            try:
+                array.set_pgroup(
+                    module.params["pgroup"], addvollist=[module.params["name"]]
+                )
+            except Exception:
+                module.warn_json(
+                    "Failed to add {0} to protection group {1}.".format(
+                        module.params["name"], module.params["pgroup"]
+                    )
+                )
+
     module.exit_json(changed=changed, volume=volfact)
 
 
@@ -665,6 +731,17 @@ def create_multi_volume(module, array):
                     ].qos.bandwidth_limit
                 if iops_qos_size != 0:
                     volfact[vol_name]["iops_limit"] = temp[count].qos.iops_limit
+
+        if module.params["pgroup"]:
+            res = array.post_protection_groups_volumes(
+                group_names=[module.params["pgroup"]], member_names=names
+            )
+            if res.status_code != 200:
+                module.warn_json(
+                    "Failed to add {0} to protection group {1}.".format(
+                        module.params["name"], module.params["pgroup"]
+                    )
+                )
 
     module.exit_json(changed=changed, volfact=volfact)
 
@@ -1071,6 +1148,7 @@ def main():
             state=dict(type="str", default="present", choices=["absent", "present"]),
             bw_qos=dict(type="str", aliases=["qos"]),
             iops_qos=dict(type="str"),
+            pgroup=dict(type="str"),
             count=dict(type="int"),
             start=dict(type="int", default=0),
             digits=dict(type="int", default=1),
@@ -1105,6 +1183,57 @@ def main():
                 module.params["name"]
             )
         )
+
+    if module.params["pgroup"]:
+        pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
+        if ":" in module.params["pgroup"] and OFFLOAD_API_VERSION not in api_version:
+            module.fail_json(
+                msg="API version does not support offload protection groups."
+            )
+        if "::" in module.params["pgroup"] and POD_API_VERSION not in api_version:
+            module.fail_json(
+                msg="API version does not support ActiveCluster protection groups."
+            )
+        if ":" in module.params["pgroup"]:
+            if "::" in module.params["pgroup"]:
+                pgname = module.params["pgroup"].split("::")[1]
+            else:
+                pgname = module.params["pgroup"].split(":")[1]
+            if not pattern.match(pgname):
+                module.fail_json(
+                    msg="Protection Group name {0} does not conform to naming convention".format(
+                        pgname
+                    )
+                )
+        else:
+            if not pattern.match(module.params["pgroup"]):
+                module.fail_json(
+                    msg="Protection Group name {0} does not conform to naming convention".format(
+                        pgname
+                    )
+                )
+        pgroup = get_pgroup(module, array)
+        xpgroup = get_pending_pgroup(module, array)
+        if "::" in module.params["pgroup"]:
+            if not get_pod(module, array):
+                module.fail_json(
+                    msg="Pod {0} does not exist.".format(
+                        module.params["pgroup"].split("::")[0]
+                    )
+                )
+        if not pgroup:
+            if xpgroup:
+                module.fail_json(
+                    msg="Protection Group {0} is currently deleted. Please restore to use.".format(
+                        module.params["pgroup"]
+                    )
+                )
+            else:
+                module.fail_json(
+                    msg="Protection Group {0} does not exist.".format(
+                        module.params["pgroup"]
+                    )
+                )
 
     if not volume:
         destroyed = get_destroyed_volume(module.params["name"], array)
