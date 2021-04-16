@@ -259,6 +259,7 @@ try:
 except ImportError:
     HAS_PURESTORAGE = False
 
+import re
 import time
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
