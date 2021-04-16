@@ -278,6 +278,14 @@ MULTI_VOLUME_VERSION = "2.2"
 PROMOTE_API_VERSION = "2.0"
 
 
+def get_pod(module, array):
+    """Get ActiveCluster Pod"""
+    pod_name = module.params["pgroup"].split("::")[0]
+    try:
+        return array.get_pod(pod=pod_name)
+    except Exception:
+        return None
+
 def get_pending_pgroup(module, array):
     """ Get Protection Group"""
     pgroup = None
@@ -737,7 +745,7 @@ def create_multi_volume(module, array):
                 group_names=[module.params["pgroup"]], member_names=names
             )
             if res.status_code != 200:
-                module.warn_json(
+                module.warn(
                     "Failed to add {0} to protection group {1}.".format(
                         module.params["name"], module.params["pgroup"]
                     )
