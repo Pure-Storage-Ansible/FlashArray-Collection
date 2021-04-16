@@ -286,6 +286,7 @@ def get_pod(module, array):
     except Exception:
         return None
 
+
 def get_pending_pgroup(module, array):
     """ Get Protection Group"""
     pgroup = None
