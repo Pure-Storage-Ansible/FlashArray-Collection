@@ -674,6 +674,7 @@ def copy_from_volume(module, array):
     changed = True
     volfact = []
     if not module.check_mode:
+        changed = False
         tgt = get_target(module, array)
 
         if tgt is None:
@@ -681,6 +682,7 @@ def copy_from_volume(module, array):
                 volfact = array.copy_volume(
                     module.params["name"], module.params["target"]
                 )
+                changed = True
             except Exception:
                 module.fail_json(
                     msg="Copy volume {0} to volume {1} failed.".format(
@@ -694,6 +696,7 @@ def copy_from_volume(module, array):
                     module.params["target"],
                     overwrite=module.params["overwrite"],
                 )
+                changed = True
             except Exception:
                 module.fail_json(
                     msg="Copy volume {0} to volume {1} failed.".format(
