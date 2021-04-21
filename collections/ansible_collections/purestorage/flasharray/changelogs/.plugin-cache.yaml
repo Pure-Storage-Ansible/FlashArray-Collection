@@ -28,6 +28,11 @@ plugins:
       name: purefa_banner
       namespace: ''
       version_added: 1.0.0
+    purefa_certs:
+      description: Manage FlashArray SSL Certificates
+      name: purefa_certs
+      namespace: ''
+      version_added: 1.8.0
     purefa_connect:
       description: Manage replication connections between two FlashArrays
       name: purefa_connect
@@ -233,4 +238,4 @@ plugins:
   shell: {}
   strategy: {}
   vars: {}
-version: 1.7.0
+version: 1.8.0
