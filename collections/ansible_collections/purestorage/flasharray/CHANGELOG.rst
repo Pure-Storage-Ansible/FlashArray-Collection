@@ -5,6 +5,29 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.8.0
+======
+
+Minor Changes
+-------------
+
+- purefa_certs - New module for managing SSL certificates
+- purefa_volume - New parameter pgroup to specify an existing protection group to put crwated volume(s) in.
+
+Bugfixes
+--------
+
+- purefa_dsrole - If using None for group or group_base incorrect change state applied
+- purefa_network - Allow gateway paremeter to be set as None - needed for non-routing iSCSI ports
+- purefa_pg - Check to ensure protection group name meets naming convention
+- purefa_pgsnap - Fail with warning if trying to restore to a stretched ActiveCluster pod
+- purefa_volume - Ensure REST version is high enough to support promotion_status
+
+New Modules
+-----------
+
+- purestorage.flasharray.purefa_certs - Manage FlashArray SSL Certificates
+
 v1.7.0
 ======
 

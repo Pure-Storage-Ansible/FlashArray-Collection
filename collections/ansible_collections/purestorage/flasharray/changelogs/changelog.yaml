@@ -176,3 +176,31 @@ releases:
       name: purefa_maintenance
       namespace: ''
     release_date: '2021-03-30'
+  1.8.0:
+    changes:
+      bugfixes:
+      - purefa_dsrole - If using None for group or group_base incorrect change state
+        applied
+      - purefa_network - Allow gateway paremeter to be set as None - needed for non-routing
+        iSCSI ports
+      - purefa_pg - Check to ensure protection group name meets naming convention
+      - purefa_pgsnap - Fail with warning if trying to restore to a stretched ActiveCluster
+        pod
+      - purefa_volume - Ensure REST version is high enough to support promotion_status
+      minor_changes:
+      - purefa_certs - New module for managing SSL certificates
+      - purefa_volume - New parameter pgroup to specify an existing protection group
+        to put crwated volume(s) in.
+    fragments:
+    - 168_dsrole_fix.yaml
+    - 169_add_certs.yaml
+    - 170_pgsnap_stretch_pod_fail.yaml
+    - 174_null_gateway.yaml
+    - 175_check_pgname.yaml
+    - 176_fix_promote_api_issue.yaml
+    - 182_allow_pgroup_with_create.yaml
+    modules:
+    - description: Manage FlashArray SSL Certificates
+      name: purefa_certs
+      namespace: ''
+    release_date: '2021-04-21'
