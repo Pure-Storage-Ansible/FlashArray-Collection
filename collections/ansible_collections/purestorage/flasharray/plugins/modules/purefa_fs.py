@@ -55,24 +55,18 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Delete file system foo
-  purefa_apiclient:
-    name: ansible-token
-    enabled: false
-    fa_url: 10.10.10.2
-    api_token: e31060a7-21fc-e277-6240-25983c6c4592
-
-- name: Enable API CLient
-  purefa_apiclient:
-    name: ansible-token
-    enabled: true
-    fa_url: 10.10.10.2
-    api_token: e31060a7-21fc-e277-6240-25983c6c4592
-
-- name: Delete API Client
-  purefa_apiclient:
+- name: Delete and eradicate file system foo
+  purefa_fs:
+    name: foo
+    eradicate: true
     state: absent
-    name: ansible-token
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Rename file system foo to bar
+  purefa_fs:
+    name: foo
+    rename: bar
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
@@ -122,7 +116,7 @@ def delete_fs(module, array):
 
 
 def recover_fs(module, array):
-    """Recover a file system"""
+    """Recover a deleted file system"""
     changed = True
     if not module.check_mode:
         try:
@@ -132,7 +126,7 @@ def recover_fs(module, array):
             )
         except Exception:
             module.fail_json(
-                msg="Failed to delete file system {0}".format(module.params["name"])
+                msg="Failed to recover file system {0}".format(module.params["name"])
             )
     module.exit_json(changed=changed)
 
@@ -151,7 +145,7 @@ def eradicate_fs(module, array):
 
 
 def rename_fs(module, array):
-    """Recover a file system"""
+    """Rename a file system"""
     changed = True
     if not module.check_mode:
         try:
@@ -168,7 +162,7 @@ def rename_fs(module, array):
                 )
             except Exception:
                 module.fail_json(
-                    msg="Failed to delete file system {0}".format(module.params["name"])
+                    msg="Failed to rename file system {0}".format(module.params["name"])
                 )
         else:
             module.fail_json(
