@@ -27,8 +27,10 @@ All modules are idempotent with the exception of modules that change or set pass
 ## Available Modules
 
 - purefa_alert - manage email alert settings on the FlashArray
+- purefa_apiclient - manageFlashArray API clients
 - purefa_arrayname - manage the name of the FlashArray
 - purefa_banner - manage the CLI and GUI login banner of the FlashArray
+- purefa_certs - manage FlashArray SSL certificates
 - purefa_connect - manage FlashArrays connecting for replication purposes
 - purefa_console - manage Console Lock setting for the FlashArray
 - purefa_directory - manage FlashArray managed file system directories
@@ -36,13 +38,14 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_ds - manage the Directory Services of the FlashArray
 - purefa_dsrole - manage the Directory Service Roles of the FlashArray
 - purefa_endpoint - manage VMware protocol-endpoints on the FlashArray
-- purefa_export - manage FlashArrray managed file system exports
 - purefa_eula - sign, or resign, FlashArray EULA
+- purefa_export - manage FlashArrray managed file system exports
 - purefa_fs - manage FlashArray managed file systems
 - purefa_hg - manage hostgroups on the FlashArray
 - purefa_host - manage hosts on the FlashArray
 - purefa_info - get information regarding the configuration of the Flasharray
 - purefa_inventory - get hardware inventory information from a FlashArray
+- purefa_maintenance - manage FlashArray maintenance windows
 - purefa_network - manage the physical and virtual network settings on the FlashArray
 - purefa_ntp - manage the NTP settings on the FlashArray
 - purefa_offload - manage the offload targets for a FlashArray
