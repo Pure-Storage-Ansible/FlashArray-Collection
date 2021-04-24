@@ -34,6 +34,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_connect - manage FlashArrays connecting for replication purposes
 - purefa_console - manage Console Lock setting for the FlashArray
 - purefa_directory - manage FlashArray managed file system directories
+- purefa_dirsnap - manage FlashArray managed file system directory snapshots
 - purefa_dns - manage the DNS settings of the FlashArray
 - purefa_ds - manage the Directory Services of the FlashArray
 - purefa_dsrole - manage the Directory Service Roles of the FlashArray
