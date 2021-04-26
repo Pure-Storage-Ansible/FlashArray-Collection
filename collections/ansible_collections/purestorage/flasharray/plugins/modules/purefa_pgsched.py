@@ -168,7 +168,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 
 def get_pending_pgroup(module, array):
-    """ Get Protection Group"""
+    """Get Protection Group"""
     pgroup = None
     if ":" in module.params["name"]:
         for pgrp in array.list_pgroups(pending=True, on="*"):
@@ -185,7 +185,7 @@ def get_pending_pgroup(module, array):
 
 
 def get_pgroup(module, array):
-    """ Get Protection Group"""
+    """Get Protection Group"""
     pgroup = None
     if ":" in module.params["name"]:
         for pgrp in array.list_pgroups(on="*"):
@@ -212,7 +212,7 @@ def _convert_to_minutes(hour):
 
 
 def update_schedule(module, array):
-    """ Update Protection Group Schedule"""
+    """Update Protection Group Schedule"""
     changed = True
     if not module.check_mode:
         changed = False
@@ -418,7 +418,7 @@ def update_schedule(module, array):
 
 
 def delete_schedule(module, array):
-    """ Delete, ie. disable, Protection Group Schedules"""
+    """Delete, ie. disable, Protection Group Schedules"""
     changed = True
     if not module.check_mode:
         try:

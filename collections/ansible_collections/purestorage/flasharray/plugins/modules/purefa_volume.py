@@ -289,7 +289,7 @@ def get_pod(module, array):
 
 
 def get_pending_pgroup(module, array):
-    """ Get Protection Group"""
+    """Get Protection Group"""
     pgroup = None
     if ":" in module.params["pgroup"]:
         if "::" not in module.params["pgroup"]:
@@ -312,7 +312,7 @@ def get_pending_pgroup(module, array):
 
 
 def get_pgroup(module, array):
-    """ Get Protection Group"""
+    """Get Protection Group"""
     pgroup = None
     if ":" in module.params["pgroup"]:
         if "::" not in module.params["pgroup"]:
@@ -1096,7 +1096,7 @@ def move_volume(module, array):
 
 
 def delete_volume(module, array):
-    """ Delete Volume"""
+    """Delete Volume"""
     changed = True
     volfact = []
     if not module.check_mode:
@@ -1117,7 +1117,7 @@ def delete_volume(module, array):
 
 
 def eradicate_volume(module, array):
-    """ Eradicate Deleted Volume"""
+    """Eradicate Deleted Volume"""
     changed = True
     if not module.check_mode:
         volfact = []
@@ -1132,7 +1132,7 @@ def eradicate_volume(module, array):
 
 
 def recover_volume(module, array):
-    """ Recover Deleted Volume"""
+    """Recover Deleted Volume"""
     changed = True
     volfact = []
     if not module.check_mode:

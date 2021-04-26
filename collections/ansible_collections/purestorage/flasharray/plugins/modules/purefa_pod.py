@@ -455,7 +455,7 @@ def stretch_pod(module, array):
 
 
 def delete_pod(module, array):
-    """ Delete Pod"""
+    """Delete Pod"""
     changed = True
     if not module.check_mode:
         try:
@@ -473,7 +473,7 @@ def delete_pod(module, array):
 
 
 def eradicate_pod(module, array):
-    """ Eradicate Deleted Pod"""
+    """Eradicate Deleted Pod"""
     changed = True
     if not module.check_mode:
         if module.params["eradicate"]:
@@ -487,7 +487,7 @@ def eradicate_pod(module, array):
 
 
 def recover_pod(module, array):
-    """ Recover Deleted Pod"""
+    """Recover Deleted Pod"""
     changed = True
     if not module.check_mode:
         try:

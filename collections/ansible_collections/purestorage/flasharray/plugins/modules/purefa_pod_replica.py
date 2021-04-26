@@ -116,7 +116,7 @@ def get_local_rl(module, array):
 
 
 def _get_arrays(array):
-    """ Get Connected Arrays"""
+    """Get Connected Arrays"""
     arrays = []
     array_details = array.list_array_connections()
     for arraycnt in range(0, len(array_details)):
@@ -212,7 +212,7 @@ def create_rl(module, array):
 
 
 def delete_rl(module, array, local_rl):
-    """ Delete Pod Replica Link"""
+    """Delete Pod Replica Link"""
     changed = True
     if not module.check_mode:
         changed = False

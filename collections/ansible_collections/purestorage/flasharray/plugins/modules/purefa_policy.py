@@ -497,7 +497,7 @@ def create_policy(module, array):
 
 
 def update_policy(module, array):
-    """ Update an existing policy including add/remove rules"""
+    """Update an existing policy including add/remove rules"""
     changed = True
     if not module.check_mode:
         changed = changed_rule = changed_enable = False

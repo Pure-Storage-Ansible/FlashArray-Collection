@@ -216,7 +216,7 @@ def update_tag(module, array, current_tags):
 
 
 def delete_tag(module, array, current_tags):
-    """ Delete Tag"""
+    """Delete Tag"""
     changed = True
     if not module.check_mode:
         changed = False
