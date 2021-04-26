@@ -26,6 +26,7 @@ All modules are idempotent with the exception of modules that change or set pass
 
 ## Available Modules
 
+- purefa_ad - manage FlashArray Active Directoy accounts
 - purefa_alert - manage email alert settings on the FlashArray
 - purefa_apiclient - manageFlashArray API clients
 - purefa_arrayname - manage the name of the FlashArray
