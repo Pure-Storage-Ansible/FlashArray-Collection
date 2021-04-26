@@ -331,7 +331,7 @@ def restore_pgsnapvolume(module, array):
 
 
 def delete_offload_snapshot(module, array):
-    """ Delete Offloaded Protection Group Snapshot"""
+    """Delete Offloaded Protection Group Snapshot"""
     changed = True
     if not module.check_mode:
         snapname = module.params["name"] + "." + module.params["suffix"]
@@ -365,7 +365,7 @@ def delete_offload_snapshot(module, array):
 
 
 def delete_pgsnapshot(module, array):
-    """ Delete Protection Group Snapshot"""
+    """Delete Protection Group Snapshot"""
     changed = True
     if not module.check_mode:
         snapname = module.params["name"] + "." + module.params["suffix"]

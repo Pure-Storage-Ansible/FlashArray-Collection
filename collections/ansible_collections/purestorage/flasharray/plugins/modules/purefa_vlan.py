@@ -210,7 +210,7 @@ def update_vif(module, array, interface, subnet):
 
 
 def delete_vif(module, array, subnet):
-    """ Delete VLAN Interface"""
+    """Delete VLAN Interface"""
     changed = True
     if not module.check_mode:
         vif_name = module.params["name"] + "." + str(subnet["vlan"])

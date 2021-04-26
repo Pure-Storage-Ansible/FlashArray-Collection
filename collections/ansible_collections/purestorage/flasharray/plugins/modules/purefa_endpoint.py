@@ -236,7 +236,7 @@ def rename_endpoint(module, array):
 
 
 def delete_endpoint(module, array):
-    """ Delete Endpoint"""
+    """Delete Endpoint"""
     changed = True
     volfact = []
     if not module.check_mode:
@@ -260,7 +260,7 @@ def delete_endpoint(module, array):
 
 
 def recover_endpoint(module, array):
-    """ Recover Deleted Endpoint"""
+    """Recover Deleted Endpoint"""
     changed = True
     volfact = []
     if not module.check_mode:
@@ -274,7 +274,7 @@ def recover_endpoint(module, array):
 
 
 def eradicate_endpoint(module, array):
-    """ Eradicate Deleted Endpoint"""
+    """Eradicate Deleted Endpoint"""
     changed = True
     volfact = []
     if not module.check_mode:

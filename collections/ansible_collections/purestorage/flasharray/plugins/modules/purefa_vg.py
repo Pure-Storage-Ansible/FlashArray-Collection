@@ -228,7 +228,7 @@ def get_multi_vgroups(module, destroyed=False):
 
 
 def get_pending_vgroup(module, array):
-    """ Get Deleted Volume Group"""
+    """Get Deleted Volume Group"""
     vgroup = None
     for vgrp in array.list_vgroups(pending=True):
         if vgrp["name"] == module.params["name"] and vgrp["time_remaining"]:
@@ -239,7 +239,7 @@ def get_pending_vgroup(module, array):
 
 
 def get_vgroup(module, array):
-    """ Get Volume Group"""
+    """Get Volume Group"""
     vgroup = None
     for vgrp in array.list_vgroups():
         if vgrp["name"] == module.params["name"]:
@@ -250,7 +250,7 @@ def get_vgroup(module, array):
 
 
 def make_vgroup(module, array):
-    """ Create Volume Group"""
+    """Create Volume Group"""
     changed = True
     if not module.check_mode:
         api_version = array._list_available_rest_versions()
@@ -388,7 +388,7 @@ def make_multi_vgroups(module):
 
 
 def update_vgroup(module, array):
-    """ Update Volume Group"""
+    """Update Volume Group"""
     changed = True
     if not module.check_mode:
         api_version = array._list_available_rest_versions()
@@ -472,7 +472,7 @@ def update_vgroup(module, array):
 
 
 def recover_vgroup(module, array):
-    """ Recover Volume Group"""
+    """Recover Volume Group"""
     changed = True
     if not module.check_mode:
         try:
@@ -486,7 +486,7 @@ def recover_vgroup(module, array):
 
 
 def eradicate_vgroup(module, array):
-    """ Eradicate Volume Group"""
+    """Eradicate Volume Group"""
     changed = True
     if not module.check_mode:
         try:
@@ -499,7 +499,7 @@ def eradicate_vgroup(module, array):
 
 
 def delete_vgroup(module, array):
-    """ Delete Volume Group"""
+    """Delete Volume Group"""
     changed = True
     if not module.check_mode:
         try:

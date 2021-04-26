@@ -220,7 +220,7 @@ def get_targets(array):
 
 
 def get_arrays(array):
-    """ Get Connected Arrays"""
+    """Get Connected Arrays"""
     arrays = []
     array_details = array.list_array_connections()
     api_version = array._list_available_rest_versions()
@@ -235,7 +235,7 @@ def get_arrays(array):
 
 
 def get_pending_pgroup(module, array):
-    """ Get Protection Group"""
+    """Get Protection Group"""
     pgroup = None
     if ":" in module.params["pgroup"]:
         if "::" not in module.params["pgroup"]:
@@ -258,7 +258,7 @@ def get_pending_pgroup(module, array):
 
 
 def get_pgroup(module, array):
-    """ Get Protection Group"""
+    """Get Protection Group"""
     pgroup = None
     if ":" in module.params["pgroup"]:
         if "::" not in module.params["pgroup"]:
@@ -281,7 +281,7 @@ def get_pgroup(module, array):
 
 
 def get_pgroup_sched(module, array):
-    """ Get Protection Group Schedule"""
+    """Get Protection Group Schedule"""
     pgroup = None
 
     for pgrp in array.list_pgroups(schedule=True):
@@ -293,7 +293,7 @@ def get_pgroup_sched(module, array):
 
 
 def check_pg_on_offload(module, array):
-    """ Check if PG already exists on offload target """
+    """Check if PG already exists on offload target"""
     array_name = array.get()["array_name"]
     remote_pg = array_name + ":" + module.params["pgroup"]
     targets = get_targets(array)
@@ -306,7 +306,7 @@ def check_pg_on_offload(module, array):
 
 
 def make_pgroup(module, array):
-    """ Create Protection Group"""
+    """Create Protection Group"""
     changed = True
     if not module.check_mode:
         if module.params["target"]:
@@ -398,7 +398,7 @@ def make_pgroup(module, array):
 
 
 def rename_exists(module, array):
-    """ Determine if rename target already exists """
+    """Determine if rename target already exists"""
     exists = False
     new_name = module.params["rename"]
     if ":" in module.params["pgroup"]:
@@ -414,7 +414,7 @@ def rename_exists(module, array):
 
 
 def update_pgroup(module, array):
-    """ Update Protection Group"""
+    """Update Protection Group"""
     changed = True
     renamed = False
     if not module.check_mode:
@@ -627,7 +627,7 @@ def update_pgroup(module, array):
 
 
 def eradicate_pgroup(module, array):
-    """ Eradicate Protection Group"""
+    """Eradicate Protection Group"""
     changed = True
     if not module.check_mode:
         if ":" in module.params["pgroup"]:
@@ -663,7 +663,7 @@ def eradicate_pgroup(module, array):
 
 
 def delete_pgroup(module, array):
-    """ Delete Protection Group"""
+    """Delete Protection Group"""
     changed = True
     if not module.check_mode:
         if ":" in module.params["pgroup"]:

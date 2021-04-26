@@ -209,7 +209,7 @@ def update_subnet(module, array, subnet):
 
 
 def create_subnet(module, array):
-    """ Create subnet"""
+    """Create subnet"""
     changed = True
     if not module.check_mode:
         if not module.params["prefix"]:
@@ -276,7 +276,7 @@ def create_subnet(module, array):
 
 
 def delete_subnet(module, array):
-    """ Delete subnet"""
+    """Delete subnet"""
     changed = True
     if not module.check_mode:
         try:
