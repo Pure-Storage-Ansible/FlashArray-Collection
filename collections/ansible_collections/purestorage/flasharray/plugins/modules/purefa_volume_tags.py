@@ -71,7 +71,6 @@ EXAMPLES = r"""
     - 'key2:value2'
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-    state: present
 
 - name: Remove an existing tag in namespace test for volume foo
   purefa_volume_tags:
@@ -81,7 +80,7 @@ EXAMPLES = r"""
     - 'key1:value1'
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-    state: present
+    state: absent
 
 - name: Update an existing tag in namespace test for volume foo
   purefa_volume_tags:
@@ -92,16 +91,6 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: present
-
-- name: Delete a tag in namespace test for volume foo
-  purefa_volume_tags:
-    name: foo
-    namespace: test
-    kvp:
-    - 'key1:value2'
-    fa_url: 10.10.10.2
-    api_token: e31060a7-21fc-e277-6240-25983c6c4592
-    state: absent
 """
 
 RETURN = r"""
@@ -176,11 +165,6 @@ def update_tag(module, array, current_tags):
                         != current_tags[current_tag]["value"]
                     ):
                         try:
-                            module.warn(
-                                "here {0} {1}".format(
-                                    current_tags[current_tag], module.params["kvp"][tag]
-                                )
-                            )
                             array.add_tag_to_volume(
                                 module.params["name"],
                                 namespace=module.params["namespace"],
