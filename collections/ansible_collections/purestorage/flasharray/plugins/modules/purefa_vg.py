@@ -410,7 +410,7 @@ def update_vgroup(module, array):
             if human_to_bytes(module.params["bw_qos"]) != vg_qos["bandwidth_limit"]:
                 if module.params["bw_qos"] == "0":
                     try:
-                        array.set_volume(module.params["name"], bandwidth_limit="")
+                        array.set_vgroup(module.params["name"], bandwidth_limit="")
                     except Exception:
                         module.fail_json(
                             msg="Vgroup {0} Bandwidth QoS removal failed.".format(
@@ -421,7 +421,7 @@ def update_vgroup(module, array):
                     1048576, 549755813888
                 ):
                     try:
-                        array.set_volume(
+                        array.set_vgroup(
                             module.params["name"],
                             bandwidth_limit=module.params["bw_qos"],
                         )
@@ -441,7 +441,7 @@ def update_vgroup(module, array):
             if human_to_real(module.params["iops_qos"]) != vg_qos["iops_limit"]:
                 if module.params["iops_qos"] == "0":
                     try:
-                        array.set_volume(module.params["name"], iops_limit="")
+                        array.set_vgroup(module.params["name"], iops_limit="")
                     except Exception:
                         module.fail_json(
                             msg="Vgroup {0} IOPs QoS removal failed.".format(
@@ -452,7 +452,7 @@ def update_vgroup(module, array):
                     100, 100000000
                 ):
                     try:
-                        array.set_volume(
+                        array.set_vgroup(
                             module.params["name"], iops_limit=module.params["iops_qos"]
                         )
                     except Exception:
