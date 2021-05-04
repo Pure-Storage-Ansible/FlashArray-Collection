@@ -318,18 +318,21 @@ def _set_host_initiators(module, array):
             try:
                 array.set_host(module.params["name"], nqnlist=module.params["nqn"])
             except Exception:
+                array.delete_host(module.params["name"])
                 module.fail_json(msg="Setting of NVMe NQN failed.")
     if module.params["protocol"] in ["iscsi", "mixed"]:
         if module.params["iqn"]:
             try:
                 array.set_host(module.params["name"], iqnlist=module.params["iqn"])
             except Exception:
+                array.delete_host(module.params["name"])
                 module.fail_json(msg="Setting of iSCSI IQN failed.")
     if module.params["protocol"] in ["fc", "mixed"]:
         if module.params["wwns"]:
             try:
                 array.set_host(module.params["name"], wwnlist=module.params["wwns"])
             except Exception:
+                array.delete_host(module.params["name"])
                 module.fail_json(msg="Setting of FC WWNs failed.")
 
 
