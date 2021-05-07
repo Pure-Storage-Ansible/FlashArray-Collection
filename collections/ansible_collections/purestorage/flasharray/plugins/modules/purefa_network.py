@@ -105,15 +105,36 @@ try:
 except ImportError:
     HAS_NETADDR = False
 
+try:
+    from pypureclient.flasharray import NetworkInterfacePatch
+
+    HAS_PYPURECLIENT = True
+except ImportError:
+    HAS_PYPURECLIENT = False
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_system,
+    get_array,
     purefa_argument_spec,
 )
 
+FC_ENABLE_API = "2.4"
+
+
+def _get_fc_interface(module, array):
+    """Return FC Interface or None"""
+    interface = {}
+    interface_list = array.get_network_interfaces(names=[module.params["name"]])
+    if interface_list.status_code == 200:
+        interface = list(interface_list.items)[0]
+        return interface
+    else:
+        return None
+
 
 def _get_interface(module, array):
-    """Return Interface or None"""
+    """Return Network Interface or None"""
     interface = {}
     if module.params["name"][0] == "v":
         try:
@@ -132,62 +153,89 @@ def _get_interface(module, array):
     return interface
 
 
+def update_fc_interface(module, array, interface):
+    """Modify FC Interface settings"""
+    changed = False
+    if not interface.enabled and module.params["state"] == "present":
+        changed = True
+        if not module.check_mode:
+            network = NetworkInterfacePatch(enabled=True, override_npiv_check=True)
+            res = array.patch_network_interfaces(
+                names=[module.params["name"]], network=network
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to enable interface {0}.".format(module.params["name"])
+                )
+    if interface.enabled and module.params["state"] == "absent":
+        changed = True
+        if not module.check_mode:
+            network = NetworkInterfacePatch(enabled=False, override_npiv_check=True)
+            res = array.patch_network_interfaces(
+                names=[module.params["name"]], network=network
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to disable interface {0}.".format(module.params["name"])
+                )
+    module.exit_json(changed=changed)
+
+
 def update_interface(module, array, interface):
     """Modify Interface settings"""
-    changed = True
-    if not module.check_mode:
-        current_state = {
-            "mtu": interface["mtu"],
-            "gateway": interface["gateway"],
-            "address": interface["address"],
-            "netmask": interface["netmask"],
-        }
-        if not module.params["address"]:
-            address = interface["address"]
-        else:
-            if module.params["gateway"]:
-                if module.params["gateway"] and module.params[
-                    "gateway"
-                ] not in IPNetwork(module.params["address"]):
-                    module.fail_json(msg="Gateway and subnet are not compatible.")
-                elif not module.params["gateway"] and interface["gateway"] not in [
-                    None,
-                    IPNetwork(module.params["address"]),
-                ]:
-                    module.fail_json(msg="Gateway and subnet are not compatible.")
-            address = str(module.params["address"].split("/", 1)[0])
-        if not module.params["mtu"]:
-            mtu = interface["mtu"]
-        else:
-            if not 1280 <= module.params["mtu"] <= 9216:
-                module.fail_json(
-                    msg="MTU {0} is out of range (1280 to 9216)".format(
-                        module.params["mtu"]
-                    )
-                )
-            else:
-                mtu = module.params["mtu"]
-        if module.params["address"]:
-            netmask = str(IPNetwork(module.params["address"]).netmask)
-        else:
-            netmask = interface["netmask"]
-        if not module.params["gateway"]:
-            gateway = interface["gateway"]
-        else:
-            cidr = str(IPAddress(netmask).netmask_bits())
-            full_addr = address + "/" + cidr
-            if module.params["gateway"] not in IPNetwork(full_addr):
+    changed = False
+    current_state = {
+        "mtu": interface["mtu"],
+        "gateway": interface["gateway"],
+        "address": interface["address"],
+        "netmask": interface["netmask"],
+    }
+    if not module.params["address"]:
+        address = interface["address"]
+    else:
+        if module.params["gateway"]:
+            if module.params["gateway"] and module.params["gateway"] not in IPNetwork(
+                module.params["address"]
+            ):
                 module.fail_json(msg="Gateway and subnet are not compatible.")
-            gateway = module.params["gateway"]
-        new_state = {
-            "address": address,
-            "mtu": mtu,
-            "gateway": gateway,
-            "netmask": netmask,
-        }
-        if new_state == current_state:
-            changed = False
+            elif not module.params["gateway"] and interface["gateway"] not in [
+                None,
+                IPNetwork(module.params["address"]),
+            ]:
+                module.fail_json(msg="Gateway and subnet are not compatible.")
+        address = str(module.params["address"].split("/", 1)[0])
+    if not module.params["mtu"]:
+        mtu = interface["mtu"]
+    else:
+        if not 1280 <= module.params["mtu"] <= 9216:
+            module.fail_json(
+                msg="MTU {0} is out of range (1280 to 9216)".format(
+                    module.params["mtu"]
+                )
+            )
         else:
+            mtu = module.params["mtu"]
+    if module.params["address"]:
+        netmask = str(IPNetwork(module.params["address"]).netmask)
+    else:
+        netmask = interface["netmask"]
+    if not module.params["gateway"]:
+        gateway = interface["gateway"]
+    else:
+        cidr = str(IPAddress(netmask).netmask_bits())
+        full_addr = address + "/" + cidr
+        if module.params["gateway"] not in IPNetwork(full_addr):
+            module.fail_json(msg="Gateway and subnet are not compatible.")
+        gateway = module.params["gateway"]
+    new_state = {
+        "address": address,
+        "mtu": mtu,
+        "gateway": gateway,
+        "netmask": netmask,
+    }
+    if new_state != current_state:
+        changed = True
+        if not module.check_mode:
             if (
                 "management" in interface["services"]
                 or "app" in interface["services"]
@@ -218,18 +266,20 @@ def update_interface(module, array, interface):
                         interface["name"]
                     )
                 )
-        if not interface["enabled"] and module.params["state"] == "present":
+    if not interface["enabled"] and module.params["state"] == "present":
+        changed = True
+        if not module.check_mode:
             try:
                 array.enable_network_interface(interface["name"])
-                changed = True
             except Exception:
                 module.fail_json(
                     msg="Failed to enable interface {0}.".format(interface["name"])
                 )
-        if interface["enabled"] and module.params["state"] == "absent":
+    if interface["enabled"] and module.params["state"] == "absent":
+        changed = True
+        if not module.check_mode:
             try:
                 array.disable_network_interface(interface["name"])
-                changed = True
             except Exception:
                 module.fail_json(
                     msg="Failed to disable interface {0}.".format(interface["name"])
@@ -256,13 +306,26 @@ def main():
         module.fail_json(msg="netaddr module is required")
 
     array = get_system(module)
-    interface = _get_interface(module, array)
-    if not interface:
-        module.fail_json(msg="Invalid network interface specified.")
+    api_version = array._list_available_rest_versions()
+    if module.params["name"].split(".")[1][0].lower() == "f":
+        if FC_ENABLE_API in api_version:
+            if not HAS_PYPURECLIENT:
+                module.fail_json(msg="pypureclient module is required")
+            array = get_array(module)
+            interface = _get_fc_interface(module, array)
+            if not interface:
+                module.fail_json(msg="Invalid network interface specified.")
+            else:
+                update_fc_interface(module, array, interface)
+        else:
+            module.warn("Purity version does not support enabling/disabling FC ports")
+    else:
+        interface = _get_interface(module, array)
+        if not interface:
+            module.fail_json(msg="Invalid network interface specified.")
+        else:
+            update_interface(module, array, interface)
 
-    update_interface(module, array, interface)
-
-    module.exit_json(changed=False)
     module.exit_json(changed=False)
 
 
