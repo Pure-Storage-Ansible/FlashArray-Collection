@@ -64,6 +64,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_smtp - manage SMTP settings on the FlashArray
 - purefa_snap - manage local snapshots on the FlashArray
 - purefa_snmp - manage SNMP settings on the FlashArray
+- purefa_sso - set Single Sign-On from Pure1 Manage state
 - purefa_subnet - manage network subnets on the FlashArray
 - purefa_syslog - manage the Syslog settings on the FlashArray
 - purefa_timeout - manage the GUI idle timeout on the FlashArray
