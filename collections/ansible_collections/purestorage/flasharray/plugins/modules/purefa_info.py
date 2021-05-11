@@ -432,6 +432,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 )
 import time
 
+SEC_TO_DAY = 86400000
 ADMIN_API_VERSION = "1.14"
 S3_REQUIRED_API_VERSION = "1.16"
 LATENCY_REQUIRED_API_VERSION = "1.16"
@@ -445,6 +446,7 @@ ACTIVE_DR_API = "1.19"
 V6_MINIMUM_API_VERSION = "2.2"
 FILES_API_VERSION = "2.3"
 FC_REPL_API_VERSION = "2.4"
+ENCRYPTION_STATUS_API_VERSION = "2.6"
 
 
 def generate_default_dict(module, array):
@@ -462,6 +464,16 @@ def generate_default_dict(module, array):
         default_info["directory_snapshots"] = len(
             arrayv6.get_directory_snapshots().items
         )
+        if ENCRYPTION_STATUS_API_VERSION in api_version:
+            array_data = list(arrayv6.get_arrays().items)[0]
+            encryption = array_data.encryption
+            default_info["encryption_enabled"] = encryption.data_at_rest.enabled
+            if default_info["encryption_enabled"]:
+                default_info["encryption_algorithm"] = encryption.data_at_rest.algorithm
+            eradication = array_data.eradication_config
+            default_info["eradication_days_timer"] = int(
+                eradication.eradication_delay / SEC_TO_DAY
+            )
     if AC_REQUIRED_API_VERSION in api_version:
         default_info["volume_groups"] = len(array.list_vgroups())
         default_info["connected_arrays"] = len(array.list_array_connections())
