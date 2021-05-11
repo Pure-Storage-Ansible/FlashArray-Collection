@@ -40,6 +40,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_ds - manage the Directory Services of the FlashArray
 - purefa_dsrole - manage the Directory Service Roles of the FlashArray
 - purefa_endpoint - manage VMware protocol-endpoints on the FlashArray
+- purefa_eradication - manage eradication timer for deleted items
 - purefa_eula - sign, or resign, FlashArray EULA
 - purefa_export - manage FlashArrray managed file system exports
 - purefa_fs - manage FlashArray managed file systems
