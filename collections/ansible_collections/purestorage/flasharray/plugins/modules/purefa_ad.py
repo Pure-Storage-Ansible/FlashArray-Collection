@@ -61,8 +61,8 @@ options:
     - All specified servers must be registered to the domain appropriately in the array
       configured DNS and are only communicated with over the secure LDAP (LDAPS) protocol.
       If not specified, servers are resolved for the domain in DNS
-    - The specified list can have a maximum length of 1. If more are provided only the first
-      is used.
+    - The specified list can have a maximum length of 1, or 3 for Purity 6.1.6 or higher.
+      If more are provided only the first allowed count used.
     type: list
     elements: str
   kerberos_servers:
@@ -72,8 +72,8 @@ options:
     - All specified servers must be registered to the domain appropriately in the array
       configured DNS and are only communicated with over the secure LDAP (LDAPS) protocol.
       If not specified, servers are resolved for the domain in DNS.
-    - The specified list can have a maximum length of 1. If more are provided only the first
-      is used.
+    - The specified list can have a maximum length of 1, or 3 for Purity 6.1.6 or higher.
+      If more are provided only the first allowed count used.
     type: list
     elements: str
   local_only:
@@ -131,6 +131,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 )
 
 MIN_REQUIRED_API_VERSION = "2.2"
+SERVER_API_VERSION = "2.6"
 
 
 def delete_account(module, array):
@@ -215,9 +216,15 @@ def main():
     if not module.params["computer"]:
         module.params["computer"] = module.params["name"].replace("_", "-")
     if module.params["kerberos_servers"]:
-        module.params["kerberos_servers"] = module.params["kerberos_servers"][0:1]
+        if SERVER_API_VERSION in api_version:
+            module.params["kerberos_servers"] = module.params["kerberos_servers"][0:3]
+        else:
+            module.params["kerberos_servers"] = module.params["kerberos_servers"][0:1]
     if module.params["directory_servers"]:
-        module.params["directory_servers"] = module.params["directory_servers"][0:1]
+        if SERVER_API_VERSION in api_version:
+            module.params["directory_servers"] = module.params["directory_servers"][0:3]
+        else:
+            module.params["directory_servers"] = module.params["directory_servers"][0:1]
 
     if not exists and state == "present":
         create_account(module, array)
