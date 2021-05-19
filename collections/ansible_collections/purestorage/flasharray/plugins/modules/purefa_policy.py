@@ -538,10 +538,10 @@ def update_policy(module, array):
                             rule_name = rules[rule].name
                             break
                     if not rule_name:
-                        rules = flasharray.PolicyrulesmbclientpostRules(
-                            anonymous_access_allowed=module.params["smb_anon_allowed"],
+                        rules = flasharray.PolicyrulenfsclientpostRules(
+                            access=module.params["nfs_access"],
                             client=module.params["client"],
-                            smb_encryption_required=module.params["smb_encrypt"],
+                            permission=module.params["nfs_permission"],
                         )
                         rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
                         rule_created = array.post_policies_nfs_client_rules(
@@ -557,10 +557,10 @@ def update_policy(module, array):
                         else:
                             changed_rule = True
                 else:
-                    rules = flasharray.PolicyrulesmbclientpostRules(
-                        anonymous_access_allowed=module.params["smb_anon_allowed"],
+                    rules = flasharray.PolicyrulenfsclientpostRules(
+                        access=module.params["nfs_access"],
                         client=module.params["client"],
-                        smb_encryption_required=module.params["smb_encrypt"],
+                        permission=module.params["nfs_permission"],
                     )
                     rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
                     rule_created = array.post_policies_nfs_client_rules(
@@ -612,9 +612,9 @@ def update_policy(module, array):
                             break
                     if not rule_name:
                         rules = flasharray.PolicyrulesmbclientpostRules(
-                            access=module.params["nfs_access"],
+                            anonymous_access_allowed=module.params["smb_anon_allowed"],
                             client=module.params["client"],
-                            permission=module.params["nfs_permission"],
+                            smb_encryption_required=module.params["smb_encrypt"],
                         )
                         rule = flasharray.PolicyRuleSmbClientPost(rules=[rules])
                         rule_created = array.post_policies_smb_client_rules(
@@ -631,9 +631,9 @@ def update_policy(module, array):
                             changed_rule = True
                 else:
                     rules = flasharray.PolicyrulesmbclientpostRules(
-                        access=module.params["nfs_access"],
+                        anonymous_access_allowed=module.params["smb_anon_allowed"],
                         client=module.params["client"],
-                        permission=module.params["nfs_permission"],
+                        smb_encryption_required=module.params["smb_encrypt"],
                     )
                     rule = flasharray.PolicyRuleSmbClientPost(rules=[rules])
                     rule_created = array.post_policies_smb_client_rules(
