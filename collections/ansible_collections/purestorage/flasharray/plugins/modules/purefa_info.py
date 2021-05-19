@@ -470,9 +470,7 @@ def generate_default_dict(module, array):
             default_info["encryption_enabled"] = encryption.data_at_rest.enabled
             if default_info["encryption_enabled"]:
                 default_info["encryption_algorithm"] = encryption.data_at_rest.algorithm
-                default_info[
-                    "encryption_module_version"
-                ] = encryption.module_version
+                default_info["encryption_module_version"] = encryption.module_version
             eradication = array_data.eradication_config
             default_info["eradication_days_timer"] = int(
                 eradication.eradication_delay / SEC_TO_DAY
