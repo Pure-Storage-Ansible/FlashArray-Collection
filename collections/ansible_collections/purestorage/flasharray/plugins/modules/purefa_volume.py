@@ -235,6 +235,10 @@ volume:
             description: Volume serial number
             type: str
             sample: '361019ECACE43D83000120A4'
+        page83_naa:
+            description: Volume NAA canonical name
+            type: str
+            sample: 'naa.624a9370361019ecace43db3000120a4'
         created:
             description: Volume creation time
             type: str
@@ -277,6 +281,7 @@ OFFLOAD_API_VERSION = "1.16"
 IOPS_API_VERSION = "1.17"
 MULTI_VOLUME_VERSION = "2.2"
 PROMOTE_API_VERSION = "1.19"
+PURE_OUI = "naa.624a9370"
 
 
 def get_pod(module, array):
@@ -528,6 +533,9 @@ def create_volume(module, array):
                                     module.params["size"],
                                     bandwidth_limit=module.params["bw_qos"],
                                 )
+                                volfact["page83_naa"] = (
+                                    PURE_OUI + volfact["serial"].lower()
+                                )
                             except Exception:
                                 module.fail_json(
                                     msg="Volume {0} creation failed.".format(
@@ -551,6 +559,9 @@ def create_volume(module, array):
                                     module.params["name"],
                                     module.params["size"],
                                     iops_limit=module.params["iops_qos"],
+                                )
+                                volfact["page83_naa"] = (
+                                    PURE_OUI + volfact["serial"].lower()
                                 )
                             except Exception:
                                 module.fail_json(
@@ -576,6 +587,9 @@ def create_volume(module, array):
                                     iops_limit=module.params["iops_qos"],
                                     bandwidth_limit=module.params["bw_qos"],
                                 )
+                                volfact["page83_naa"] = (
+                                    PURE_OUI + volfact["serial"].lower()
+                                )
                             except Exception:
                                 module.fail_json(
                                     msg="Volume {0} creation failed.".format(
@@ -597,6 +611,9 @@ def create_volume(module, array):
                                     module.params["size"],
                                     bandwidth_limit=module.params["bw_qos"],
                                 )
+                                volfact["page83_naa"] = (
+                                    PURE_OUI + volfact["serial"].lower()
+                                )
                             except Exception:
                                 module.fail_json(
                                     msg="Volume {0} creation failed.".format(
@@ -614,6 +631,7 @@ def create_volume(module, array):
                             volfact = array.create_volume(
                                 module.params["name"], module.params["size"]
                             )
+                            volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
                         except Exception:
                             module.fail_json(
                                 msg="Volume {0} creation failed.".format(
@@ -625,6 +643,7 @@ def create_volume(module, array):
                 volfact = array.create_volume(
                     module.params["name"], module.params["size"]
                 )
+                volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
             except Exception:
                 module.fail_json(
                     msg="Volume {0} creation failed.".format(module.params["name"])
@@ -734,6 +753,7 @@ def create_multi_volume(module, array):
                     "created": time.strftime(
                         "%Y-%m-%d %H:%M:%S", time.localtime(temp[count].created / 1000)
                     ),
+                    "page83_naa": PURE_OUI + temp[count].serial.lower(),
                 }
                 if bw_qos_size != 0:
                     volfact[vol_name]["bandwidth_limit"] = temp[
@@ -769,6 +789,7 @@ def copy_from_volume(module, array):
                 volfact = array.copy_volume(
                     module.params["name"], module.params["target"]
                 )
+                volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
                 changed = True
             except Exception:
                 module.fail_json(
@@ -783,6 +804,7 @@ def copy_from_volume(module, array):
                     module.params["target"],
                     overwrite=module.params["overwrite"],
                 )
+                volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
                 changed = True
             except Exception:
                 module.fail_json(
