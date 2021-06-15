@@ -447,6 +447,7 @@ V6_MINIMUM_API_VERSION = "2.2"
 FILES_API_VERSION = "2.3"
 FC_REPL_API_VERSION = "2.4"
 ENCRYPTION_STATUS_API_VERSION = "2.6"
+PURE_OUI = "naa.624a9370"
 
 
 def generate_default_dict(module, array):
@@ -951,6 +952,7 @@ def generate_del_vol_dict(array):
             "source": vols[vol]["source"],
             "created": vols[vol]["created"],
             "serial": vols[vol]["serial"],
+            "page83_naa": PURE_OUI + vols[vol]["serial"],
             "time_remaining": vols[vol]["time_remaining"],
             "tags": [],
         }
@@ -979,6 +981,7 @@ def generate_vol_dict(array):
             "source": vols[vol]["source"],
             "size": vols[vol]["size"],
             "serial": vols[vol]["serial"],
+            "page83_naa": PURE_OUI + vols[vol]["serial"],
             "tags": [],
             "hosts": [],
             "bandwidth": "",
@@ -1000,6 +1003,7 @@ def generate_vol_dict(array):
                 "protocol_endpoint": True,
                 "source": vvols[vvol]["source"],
                 "serial": vvols[vvol]["serial"],
+                "page83_naa": PURE_OUI + vvols[vvol]["serial"],
                 "tags": [],
                 "hosts": [],
             }
