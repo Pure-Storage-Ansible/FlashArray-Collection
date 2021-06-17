@@ -88,7 +88,7 @@ def enable_ra(module, array):
 def disable_ra(module, array):
     """Disable Remote Assist"""
     changed = False
-    if not array.get_remote_assist_status()["status"] in ["connected", "enabled"]:
+    if array.get_remote_assist_status()["status"] in ["connected", "enabled"]:
         changed = True
         if not module.check_mode:
             try:
