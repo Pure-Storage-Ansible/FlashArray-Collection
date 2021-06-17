@@ -14,9 +14,11 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
     - some modules require higher versions of Purity
 - Some modules require specific Purity versions
 - purestorage >=v1.19
-- py-pure-client >=v1.6
+- py-pure-client >=v1.14
 - Python >=v2.7
 - netaddr
+- requests
+- pycountry
 
 ## Idempotency
 
@@ -24,20 +26,29 @@ All modules are idempotent with the exception of modules that change or set pass
 
 ## Available Modules
 
+- purefa_ad - manage FlashArray Active Directoy accounts
 - purefa_alert - manage email alert settings on the FlashArray
+- purefa_apiclient - manageFlashArray API clients
 - purefa_arrayname - manage the name of the FlashArray
 - purefa_banner - manage the CLI and GUI login banner of the FlashArray
+- purefa_certs - manage FlashArray SSL certificates
 - purefa_connect - manage FlashArrays connecting for replication purposes
 - purefa_console - manage Console Lock setting for the FlashArray
+- purefa_directory - manage FlashArray managed file system directories
+- purefa_dirsnap - manage FlashArray managed file system directory snapshots
 - purefa_dns - manage the DNS settings of the FlashArray
 - purefa_ds - manage the Directory Services of the FlashArray
 - purefa_dsrole - manage the Directory Service Roles of the FlashArray
 - purefa_endpoint - manage VMware protocol-endpoints on the FlashArray
+- purefa_eradication - manage eradication timer for deleted items
 - purefa_eula - sign, or resign, FlashArray EULA
+- purefa_export - manage FlashArrray managed file system exports
+- purefa_fs - manage FlashArray managed file systems
 - purefa_hg - manage hostgroups on the FlashArray
 - purefa_host - manage hosts on the FlashArray
 - purefa_info - get information regarding the configuration of the Flasharray
 - purefa_inventory - get hardware inventory information from a FlashArray
+- purefa_maintenance - manage FlashArray maintenance windows
 - purefa_network - manage the physical and virtual network settings on the FlashArray
 - purefa_ntp - manage the NTP settings on the FlashArray
 - purefa_offload - manage the offload targets for a FlashArray
@@ -47,12 +58,14 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_phonehome - manage the phonehome setting for the FlashArray
 - purefa_pod - manage ActiveCluster pods in FlashArrays
 - purefa_pod_replica - manage ActiveDR pod replica links in FlashArrays
+- purefa_policy - manage FlashArray NFS, SMB and snapshot policies
 - purefa_proxy - manage the phonehome HTTPS proxy setting for the FlashArray
 - purefa_ra - manage the Remote Assist setting for the FlashArray
 - purefa_smis - manage SMI-S settings on the FlashArray
 - purefa_smtp - manage SMTP settings on the FlashArray
 - purefa_snap - manage local snapshots on the FlashArray
 - purefa_snmp - manage SNMP settings on the FlashArray
+- purefa_sso - set Single Sign-On from Pure1 Manage state
 - purefa_subnet - manage network subnets on the FlashArray
 - purefa_syslog - manage the Syslog settings on the FlashArray
 - purefa_timeout - manage the GUI idle timeout on the FlashArray

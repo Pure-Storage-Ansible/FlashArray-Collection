@@ -1,0 +1,2 @@
+plugins/modules/purefa_info.py validate-modules:return-syntax-error
+plugins/modules/purefa_inventory.py validate-modules:return-syntax-error

@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_info
 version_added: '1.0.0'
@@ -31,16 +34,16 @@ options:
         Possible values for this include all, minimum, config, performance,
         capacity, network, subnet, interfaces, hgroups, pgroups, hosts,
         admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
-        arrays, certs and kmip.
+        arrays, certs, kmip, clients, policies, dir_snaps and filesystems.
     type: list
     elements: str
     required: false
     default: minimum
 extends_documentation_fragment:
   - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: collect default set of information
   purefa_info:
     fa_url: 10.10.10.2
@@ -70,9 +73,9 @@ EXAMPLES = r'''
 - name: show all information
   debug:
     msg: "{{ array_info['purefa_info'] }}"
-'''
+"""
 
-RETURN = r'''
+RETURN = r"""
 purefa_info:
   description: Returns the information collected from the FlashArray
   returned: always
@@ -106,14 +109,29 @@ purefa_info:
         },
         "config": {
             "directory_service": {
-                "base_dn": null,
-                "bind_password": null,
-                "bind_user": null,
-                "check_peer": false,
-                "enabled": false,
-                "uri": [],
-                "user_login_attribute": null,
-                "user_object_class": null
+                "data": {
+                    "base_dn": "dc=example,dc=lab",
+                    "bind_user": "CN=user,OU=Users,OU=Example Lab,DC=example,DC=lab",
+                    "enabled": true,
+                    "services": [
+                        "data"
+                    ],
+                    "uris": [
+                        "ldap://1.2.3.11"
+                    ]
+                },
+                "management": {
+                    "base_dn": "DC=example,DC=lab",
+                    "bind_user": "svc.ldap",
+                    "enabled": true,
+                    "services": [
+                        "management"
+                    ],
+                    "uris": [
+                        "ldap://1.2.3.10",
+                        "ldap://1.2.3.11"
+                    ]
+                }
             },
             "directory_service_roles": {
                 "array_admin": {
@@ -403,51 +421,86 @@ purefa_info:
             }
         }
     }
-'''
+"""
 
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_array, get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_array,
+    get_system,
+    purefa_argument_spec,
+)
 import time
 
-ADMIN_API_VERSION = '1.14'
-S3_REQUIRED_API_VERSION = '1.16'
-LATENCY_REQUIRED_API_VERSION = '1.16'
-AC_REQUIRED_API_VERSION = '1.14'
-CAP_REQUIRED_API_VERSION = '1.6'
-SAN_REQUIRED_API_VERSION = '1.10'
-NVME_API_VERSION = '1.16'
-PREFERRED_API_VERSION = '1.15'
-P53_API_VERSION = '1.17'
-ACTIVE_DR_API = '1.19'
-V6_MINIMUM_API_VERSION = '2.2'
+SEC_TO_DAY = 86400000
+ADMIN_API_VERSION = "1.14"
+S3_REQUIRED_API_VERSION = "1.16"
+LATENCY_REQUIRED_API_VERSION = "1.16"
+AC_REQUIRED_API_VERSION = "1.14"
+CAP_REQUIRED_API_VERSION = "1.6"
+SAN_REQUIRED_API_VERSION = "1.10"
+NVME_API_VERSION = "1.16"
+PREFERRED_API_VERSION = "1.15"
+P53_API_VERSION = "1.17"
+ACTIVE_DR_API = "1.19"
+V6_MINIMUM_API_VERSION = "2.2"
+FILES_API_VERSION = "2.3"
+FC_REPL_API_VERSION = "2.4"
+ENCRYPTION_STATUS_API_VERSION = "2.6"
+PURE_OUI = "naa.624a9370"
 
 
-def generate_default_dict(array):
+def generate_default_dict(module, array):
     default_info = {}
     defaults = array.get()
     api_version = array._list_available_rest_versions()
+    if FILES_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        default_info["snapshot_policies"] = len(arrayv6.get_policies_snapshot().items)
+        default_info["nfs_policies"] = len(arrayv6.get_policies_nfs().items)
+        default_info["smb_policies"] = len(arrayv6.get_policies_smb().items)
+        default_info["filesystems"] = len(arrayv6.get_file_systems().items)
+        default_info["directories"] = len(arrayv6.get_directories().items)
+        default_info["exports"] = len(arrayv6.get_directory_exports().items)
+        default_info["directory_snapshots"] = len(
+            arrayv6.get_directory_snapshots().items
+        )
+        if ENCRYPTION_STATUS_API_VERSION in api_version:
+            array_data = list(arrayv6.get_arrays().items)[0]
+            encryption = array_data.encryption
+            default_info["encryption_enabled"] = encryption.data_at_rest.enabled
+            if default_info["encryption_enabled"]:
+                default_info["encryption_algorithm"] = encryption.data_at_rest.algorithm
+                default_info["encryption_module_version"] = encryption.module_version
+            eradication = array_data.eradication_config
+            default_info["eradication_days_timer"] = int(
+                eradication.eradication_delay / SEC_TO_DAY
+            )
     if AC_REQUIRED_API_VERSION in api_version:
-        default_info['volume_groups'] = len(array.list_vgroups())
-        default_info['connected_arrays'] = len(array.list_array_connections())
-        default_info['pods'] = len(array.list_pods())
-        default_info['connection_key'] = array.get(connection_key=True)['connection_key']
+        default_info["volume_groups"] = len(array.list_vgroups())
+        default_info["connected_arrays"] = len(array.list_array_connections())
+        default_info["pods"] = len(array.list_pods())
+        default_info["connection_key"] = array.get(connection_key=True)[
+            "connection_key"
+        ]
     hosts = array.list_hosts()
     admins = array.list_admins()
     snaps = array.list_volumes(snap=True, pending=True)
+    volumes = array.list_volumes(pending=True)
     pgroups = array.list_pgroups(pending=True)
     hgroups = array.list_hgroups()
-    default_info['array_model'] = array.get(controllers=True)[0]['model']
-    default_info['array_name'] = defaults['array_name']
-    default_info['purity_version'] = defaults['version']
-    default_info['hosts'] = len(hosts)
-    default_info['snapshots'] = len(snaps)
-    default_info['protection_groups'] = len(pgroups)
-    default_info['hostgroups'] = len(hgroups)
-    default_info['admins'] = len(admins)
-    default_info['remote_assist'] = array.get_remote_assist_status()['status']
+    default_info["array_model"] = array.get(controllers=True)[0]["model"]
+    default_info["array_name"] = defaults["array_name"]
+    default_info["purity_version"] = defaults["version"]
+    default_info["hosts"] = len(hosts)
+    default_info["snapshots"] = len(snaps)
+    default_info["volumes"] = len(volumes)
+    default_info["protection_groups"] = len(pgroups)
+    default_info["hostgroups"] = len(hgroups)
+    default_info["admins"] = len(admins)
+    default_info["remote_assist"] = array.get_remote_assist_status()["status"]
     if P53_API_VERSION in api_version:
-        default_info['maintenance_window'] = array.list_maintenance_windows()
+        default_info["maintenance_window"] = array.list_maintenance_windows()
     return default_info
 
 
@@ -455,70 +508,217 @@ def generate_perf_dict(array):
     perf_info = {}
     api_version = array._list_available_rest_versions()
     if LATENCY_REQUIRED_API_VERSION in api_version:
-        latency_info = array.get(action='monitor', latency=True)[0]
-    perf_info = array.get(action='monitor')[0]
-    perf_info['writes_per_sec'] = perf_info['writes_per_sec']
-    perf_info['reads_per_sec'] = perf_info['reads_per_sec']
+        latency_info = array.get(action="monitor", latency=True)[0]
+    perf_info = array.get(action="monitor")[0]
+    perf_info["writes_per_sec"] = perf_info["writes_per_sec"]
+    perf_info["reads_per_sec"] = perf_info["reads_per_sec"]
 
-    perf_info['input_per_sec'] = perf_info['input_per_sec']
-    perf_info['output_per_sec'] = perf_info['output_per_sec']
+    perf_info["input_per_sec"] = perf_info["input_per_sec"]
+    perf_info["output_per_sec"] = perf_info["output_per_sec"]
 
     if LATENCY_REQUIRED_API_VERSION in api_version:
-        perf_info['san_usec_per_read_op'] = latency_info['san_usec_per_read_op']
-        perf_info['san_usec_per_write_op'] = latency_info['san_usec_per_write_op']
-        perf_info['queue_usec_per_read_op'] = latency_info['queue_usec_per_read_op']
-        perf_info['queue_usec_per_write_op'] = latency_info['queue_usec_per_write_op']
-        perf_info['qos_rate_limit_usec_per_read_op'] = latency_info['qos_rate_limit_usec_per_read_op']
-        perf_info['qos_rate_limit_usec_per_write_op'] = latency_info['qos_rate_limit_usec_per_write_op']
-        perf_info['local_queue_usec_per_op'] = perf_info['local_queue_usec_per_op']
-    perf_info['usec_per_read_op'] = perf_info['usec_per_read_op']
-    perf_info['usec_per_write_op'] = perf_info['usec_per_write_op']
-    perf_info['queue_depth'] = perf_info['queue_depth']
+        perf_info["san_usec_per_read_op"] = latency_info["san_usec_per_read_op"]
+        perf_info["san_usec_per_write_op"] = latency_info["san_usec_per_write_op"]
+        perf_info["queue_usec_per_read_op"] = latency_info["queue_usec_per_read_op"]
+        perf_info["queue_usec_per_write_op"] = latency_info["queue_usec_per_write_op"]
+        perf_info["qos_rate_limit_usec_per_read_op"] = latency_info[
+            "qos_rate_limit_usec_per_read_op"
+        ]
+        perf_info["qos_rate_limit_usec_per_write_op"] = latency_info[
+            "qos_rate_limit_usec_per_write_op"
+        ]
+        perf_info["local_queue_usec_per_op"] = perf_info["local_queue_usec_per_op"]
+    perf_info["usec_per_read_op"] = perf_info["usec_per_read_op"]
+    perf_info["usec_per_write_op"] = perf_info["usec_per_write_op"]
+    perf_info["queue_depth"] = perf_info["queue_depth"]
     return perf_info
 
 
 def generate_config_dict(module, array):
     config_info = {}
     api_version = array._list_available_rest_versions()
-    config_info['console_lock'] = array.get_console_lock_status()['console_lock']
-    config_info['dns'] = array.get_dns()
-    config_info['smtp'] = array.list_alert_recipients()
-    config_info['snmp'] = array.list_snmp_managers()
-    config_info['snmp_v3_engine_id'] = array.get_snmp_engine_id()['engine_id']
-    try:
-        config_info['directory_service'] = array.get_directory_service()
-    except Exception:
-        config_info['directory_service'] = ['Array and Data Configurations found']
-    if S3_REQUIRED_API_VERSION in api_version:
-        config_info['directory_service_roles'] = {}
-        roles = array.list_directory_service_roles()
-        for role in range(0, len(roles)):
-            role_name = roles[role]['name']
-            config_info['directory_service_roles'][role_name] = {
-                'group': roles[role]['group'],
-                'group_base': roles[role]['group_base'],
+    config_info["console_lock"] = array.get_console_lock_status()["console_lock"]
+    config_info["dns"] = array.get_dns()
+    config_info["smtp"] = array.list_alert_recipients()
+    config_info["snmp"] = array.list_snmp_managers()
+    config_info["snmp_v3_engine_id"] = array.get_snmp_engine_id()["engine_id"]
+    if V6_MINIMUM_API_VERSION in api_version:
+        config_info["directory_service"] = {}
+        arrayv6 = get_array(module)
+        services = list(arrayv6.get_directory_services().items)
+        for service in range(0, len(services)):
+            service_type = services[service].name
+            config_info["directory_service"][service_type] = {
+                "base_dn": services[service].base_dn,
+                "bind_user": services[service].bind_user,
+                "enabled": services[service].enabled,
+                "services": services[service].services,
+                "uris": services[service].uris,
             }
+        config_info["directory_service_roles"] = {}
+        roles = list(arrayv6.get_directory_services_roles().items)
+        for role in range(0, len(roles)):
+            role_name = roles[role].role.name
+            try:
+                config_info["directory_service_roles"][role_name] = {
+                    "group": roles[role].group,
+                    "group_base": roles[role].group_base,
+                }
+            except Exception:
+                pass
     else:
-        config_info['directory_service'].update(array.get_directory_service(groups=True))
-    config_info['ntp'] = array.get(ntpserver=True)['ntpserver']
-    config_info['syslog'] = array.get(syslogserver=True)['syslogserver']
-    config_info['phonehome'] = array.get(phonehome=True)['phonehome']
-    config_info['proxy'] = array.get(proxy=True)['proxy']
-    config_info['relayhost'] = array.get(relayhost=True)['relayhost']
-    config_info['senderdomain'] = array.get(senderdomain=True)['senderdomain']
-    config_info['syslog'] = array.get(syslogserver=True)['syslogserver']
-    config_info['idle_timeout'] = array.get(idle_timeout=True)['idle_timeout']
-    config_info['scsi_timeout'] = array.get(scsi_timeout=True)['scsi_timeout']
+        config_info["directory_service"] = {}
+        # TODO: Remove for 1.7.0 release from here...
+        config_info["directory_service"] = array.get_directory_service()
+        module.warn(
+            "Deprecation Notice: The 'directory_services' dictionary moves previous entries"
+        )
+        module.warn(
+            "down into a 'management' sub-dictionary. Please amend your playbooks as necessary"
+        )
+        module.warn("The old dictionary entries will be removed in Collections 1.7.0")
+        # to here.
+        config_info["directory_service"]["management"] = array.get_directory_service()
+        if S3_REQUIRED_API_VERSION in api_version:
+            config_info["directory_service_roles"] = {}
+            roles = array.list_directory_service_roles()
+            for role in range(0, len(roles)):
+                role_name = roles[role]["name"]
+                config_info["directory_service_roles"][role_name] = {
+                    "group": roles[role]["group"],
+                    "group_base": roles[role]["group_base"],
+                }
+        else:
+            config_info["directory_service"].update(
+                array.get_directory_service(groups=True)
+            )
+    config_info["ntp"] = array.get(ntpserver=True)["ntpserver"]
+    config_info["syslog"] = array.get(syslogserver=True)["syslogserver"]
+    config_info["phonehome"] = array.get(phonehome=True)["phonehome"]
+    config_info["proxy"] = array.get(proxy=True)["proxy"]
+    config_info["relayhost"] = array.get(relayhost=True)["relayhost"]
+    config_info["senderdomain"] = array.get(senderdomain=True)["senderdomain"]
+    config_info["syslog"] = array.get(syslogserver=True)["syslogserver"]
+    config_info["idle_timeout"] = array.get(idle_timeout=True)["idle_timeout"]
+    config_info["scsi_timeout"] = array.get(scsi_timeout=True)["scsi_timeout"]
     if S3_REQUIRED_API_VERSION in api_version:
-        config_info['global_admin'] = array.get_global_admin_attributes()
+        config_info["global_admin"] = array.get_global_admin_attributes()
     if V6_MINIMUM_API_VERSION in api_version:
         array = get_array(module)
         smi_s = list(array.get_smi_s().items)[0]
-        config_info['smi-s'] = {
-            'slp_enabled': smi_s.slp_enabled,
-            'wbem_https_enabled': smi_s.wbem_https_enabled
+        config_info["smi-s"] = {
+            "slp_enabled": smi_s.slp_enabled,
+            "wbem_https_enabled": smi_s.wbem_https_enabled,
         }
+    if FILES_API_VERSION in api_version:
+        try:
+            ad_accounts = list(array.get_active_directory().items)
+            for ad_account in range(0, len(ad_accounts)):
+                ad_name = ad_accounts[ad_account].name
+                config_info["active_directory"][ad_name] = ad_accounts[ad_account]
+        except Exception:
+            module.warn("FA-Files is not enabled on this array")
     return config_info
+
+
+def generate_filesystems_dict(array):
+    files_info = {}
+    filesystems = list(array.get_file_systems().items)
+    for filesystem in range(0, len(filesystems)):
+        fs_name = filesystems[filesystem].name
+        files_info[fs_name] = {
+            "destroyed": filesystems[filesystem].destroyed,
+            "directories": {},
+        }
+        directories = list(array.get_directories(file_system_names=[fs_name]).items)
+        for directory in range(0, len(directories)):
+            d_name = directories[directory].directory_name
+            files_info[fs_name]["directories"][d_name] = {
+                "path": directories[directory].path,
+                "data_reduction": directories[directory].space.data_reduction,
+                "snapshots_space": directories[directory].space.snapshots,
+                "total_physical_space": directories[directory].space.total_physical,
+                "unique_space": directories[directory].space.unique,
+                "virtual_space": directories[directory].space.virtual,
+                "destroyed": directories[directory].destroyed,
+                "full_name": directories[directory].name,
+                "exports": {},
+            }
+            exports = list(
+                array.get_directory_exports(
+                    directory_names=[
+                        files_info[fs_name]["directories"][d_name]["full_name"]
+                    ]
+                ).items
+            )
+            for export in range(0, len(exports)):
+                e_name = exports[export].export_name
+                files_info[fs_name]["directories"][d_name]["exports"][e_name] = {
+                    "enabled": exports[export].enabled,
+                    "policy": {
+                        "name": exports[export].policy.name,
+                        "type": exports[export].policy.resource_type,
+                    },
+                }
+    return files_info
+
+
+def generate_dir_snaps_dict(array):
+    dir_snaps_info = {}
+    snapshots = list(array.get_directory_snapshots().items)
+    for snapshot in range(0, len(snapshots)):
+        s_name = snapshots[snapshot].name
+        dir_snaps_info[s_name] = {
+            "destroyed": snapshots[snapshot].destroyed,
+            "source": snapshots[snapshot].source.name,
+            "suffix": snapshots[snapshot].suffix,
+            "client_name": snapshots[snapshot].client_name,
+            "snapshot_space": snapshots[snapshot].space.snapshots,
+            "total_physical_space": snapshots[snapshot].space.total_physical,
+            "unique_space": snapshots[snapshot].space.unique,
+        }
+        try:
+            dir_snaps_info[s_name]["policy"] = snapshots[snapshot].policy.name
+        except Exception:
+            dir_snaps_info[s_name]["policy"] = ""
+        if dir_snaps_info[s_name]["destroyed"]:
+            dir_snaps_info[s_name]["time_remaining"] = snapshots[
+                snapshot
+            ].time_remaining
+    return dir_snaps_info
+
+
+def generate_policies_dict(array):
+    policy_info = {}
+    policies = list(array.get_policies().items)
+    for policy in range(0, len(policies)):
+        p_name = policies[policy].name
+        policy_info[p_name] = {
+            "type": policies[policy].policy_type,
+            "enabled": policies[policy].enabled,
+            "members": [],
+        }
+        members = list(array.get_directories_policies(policy_names=[p_name]).items)
+        for member in range(0, len(members)):
+            m_name = members[member].member.name
+            policy_info[p_name]["members"].append(m_name)
+    return policy_info
+
+
+def generate_clients_dict(array):
+    clients_info = {}
+    clients = list(array.get_api_clients().items)
+    for client in range(0, len(clients)):
+        c_name = clients[client].name
+        clients_info[c_name] = {
+            "enabled": clients[client].enabled,
+            "TTL(seconds)": clients[client].access_token_ttl_in_ms / 1000,
+            "key_id": clients[client].key_id,
+            "client_id": clients[client].id,
+            "max_role": clients[client].max_role,
+            "public_key": clients[client].public_key,
+        }
+    return clients_info
 
 
 def generate_admin_dict(array):
@@ -527,10 +727,10 @@ def generate_admin_dict(array):
     if ADMIN_API_VERSION in api_version:
         admins = array.list_admins()
         for admin in range(0, len(admins)):
-            admin_name = admins[admin]['name']
+            admin_name = admins[admin]["name"]
             admin_info[admin_name] = {
-                'type': admins[admin]['type'],
-                'role': admins[admin]['role'],
+                "type": admins[admin]["type"],
+                "role": admins[admin]["role"],
             }
     return admin_info
 
@@ -539,15 +739,15 @@ def generate_subnet_dict(array):
     sub_info = {}
     subnets = array.list_subnets()
     for sub in range(0, len(subnets)):
-        sub_name = subnets[sub]['name']
-        if subnets[sub]['enabled']:
+        sub_name = subnets[sub]["name"]
+        if subnets[sub]["enabled"]:
             sub_info[sub_name] = {
-                'gateway': subnets[sub]['gateway'],
-                'mtu': subnets[sub]['mtu'],
-                'vlan': subnets[sub]['vlan'],
-                'prefix': subnets[sub]['prefix'],
-                'interfaces': subnets[sub]['interfaces'],
-                'services': subnets[sub]['services'],
+                "gateway": subnets[sub]["gateway"],
+                "mtu": subnets[sub]["mtu"],
+                "vlan": subnets[sub]["vlan"],
+                "prefix": subnets[sub]["prefix"],
+                "interfaces": subnets[sub]["interfaces"],
+                "services": subnets[sub]["services"],
             }
     return sub_info
 
@@ -556,25 +756,25 @@ def generate_network_dict(array):
     net_info = {}
     ports = array.list_network_interfaces()
     for port in range(0, len(ports)):
-        int_name = ports[port]['name']
+        int_name = ports[port]["name"]
         net_info[int_name] = {
-            'hwaddr': ports[port]['hwaddr'],
-            'mtu': ports[port]['mtu'],
-            'enabled': ports[port]['enabled'],
-            'speed': ports[port]['speed'],
-            'address': ports[port]['address'],
-            'slaves': ports[port]['slaves'],
-            'services': ports[port]['services'],
-            'gateway': ports[port]['gateway'],
-            'netmask': ports[port]['netmask'],
+            "hwaddr": ports[port]["hwaddr"],
+            "mtu": ports[port]["mtu"],
+            "enabled": ports[port]["enabled"],
+            "speed": ports[port]["speed"],
+            "address": ports[port]["address"],
+            "slaves": ports[port]["slaves"],
+            "services": ports[port]["services"],
+            "gateway": ports[port]["gateway"],
+            "netmask": ports[port]["netmask"],
         }
-        if ports[port]['subnet']:
-            subnets = array.get_subnet(ports[port]['subnet'])
-            if subnets['enabled']:
-                net_info[int_name]['subnet'] = {
-                    'name': subnets['name'],
-                    'prefix': subnets['prefix'],
-                    'vlan': subnets['vlan'],
+        if ports[port]["subnet"]:
+            subnets = array.get_subnet(ports[port]["subnet"])
+            if subnets["enabled"]:
+                net_info[int_name]["subnet"] = {
+                    "name": subnets["name"],
+                    "prefix": subnets["prefix"],
+                    "vlan": subnets["vlan"],
                 }
     return net_info
 
@@ -584,165 +784,262 @@ def generate_capacity_dict(array):
     api_version = array._list_available_rest_versions()
     if CAP_REQUIRED_API_VERSION in api_version:
         volumes = array.list_volumes(pending=True)
-        capacity_info['provisioned_space'] = sum(item['size'] for item in volumes)
+        capacity_info["provisioned_space"] = sum(item["size"] for item in volumes)
         capacity = array.get(space=True)
-        total_capacity = capacity[0]['capacity']
+        total_capacity = capacity[0]["capacity"]
         used_space = capacity[0]["total"]
-        capacity_info['free_space'] = total_capacity - used_space
-        capacity_info['total_capacity'] = total_capacity
-        capacity_info['data_reduction'] = capacity[0]['data_reduction']
-        capacity_info['system_space'] = capacity[0]['system']
-        capacity_info['volume_space'] = capacity[0]['volumes']
-        capacity_info['shared_space'] = capacity[0]['shared_space']
-        capacity_info['snapshot_space'] = capacity[0]['snapshots']
-        capacity_info['thin_provisioning'] = capacity[0]['thin_provisioning']
-        capacity_info['total_reduction'] = capacity[0]['total_reduction']
+        capacity_info["free_space"] = total_capacity - used_space
+        capacity_info["total_capacity"] = total_capacity
+        capacity_info["data_reduction"] = capacity[0]["data_reduction"]
+        capacity_info["system_space"] = capacity[0]["system"]
+        capacity_info["volume_space"] = capacity[0]["volumes"]
+        capacity_info["shared_space"] = capacity[0]["shared_space"]
+        capacity_info["snapshot_space"] = capacity[0]["snapshots"]
+        capacity_info["thin_provisioning"] = capacity[0]["thin_provisioning"]
+        capacity_info["total_reduction"] = capacity[0]["total_reduction"]
     return capacity_info
 
 
-def generate_snap_dict(array):
+def generate_snap_dict(module, array):
     snap_info = {}
     api_version = array._list_available_rest_versions()
     snaps = array.list_volumes(snap=True)
     for snap in range(0, len(snaps)):
-        snapshot = snaps[snap]['name']
+        snapshot = snaps[snap]["name"]
         snap_info[snapshot] = {
-            'size': snaps[snap]['size'],
-            'source': snaps[snap]['source'],
-            'created': snaps[snap]['created'],
-            'tags': [],
+            "size": snaps[snap]["size"],
+            "source": snaps[snap]["source"],
+            "created": snaps[snap]["created"],
+            "tags": [],
+            "remote": [],
         }
+    if FC_REPL_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        offloads = list(arrayv6.get_offloads().items)
+        for offload in range(0, len(offloads)):
+            offload_name = offloads[offload].name
+            check_offload = arrayv6.get_remote_volume_snapshots(on=offload_name)
+            if check_offload.status_code == 200:
+                remote_snaps = list(
+                    arrayv6.get_remote_volume_snapshots(
+                        on=offload_name, destroyed=False
+                    ).items
+                )
+                for remote_snap in range(0, len(remote_snaps)):
+                    remote_snap_name = remote_snaps[remote_snap].name.split(":")[1]
+                    remote_transfer = list(
+                        arrayv6.get_remote_volume_snapshots_transfer(
+                            on=offload_name, names=[remote_snaps[remote_snap].name]
+                        ).items
+                    )[0]
+                    remote_dict = {
+                        "source": remote_snaps[remote_snap].source.name,
+                        "suffix": remote_snaps[remote_snap].suffix,
+                        "size": remote_snaps[remote_snap].provisioned,
+                        "data_transferred": remote_transfer.data_transferred,
+                        "completed": time.strftime(
+                            "%Y-%m-%d %H:%M:%S",
+                            time.gmtime(remote_transfer.completed / 1000),
+                        )
+                        + " UTC",
+                        "physical_bytes_written": remote_transfer.physical_bytes_written,
+                        "progress": remote_transfer.progress,
+                        "created": time.strftime(
+                            "%Y-%m-%d %H:%M:%S",
+                            time.gmtime(remote_snaps[remote_snap].created / 1000),
+                        )
+                        + " UTC",
+                    }
+                    try:
+                        snap_info[remote_snap_name]["remote"].append(remote_dict)
+                    except KeyError:
+                        snap_info[remote_snap_name] = {"remote": []}
+                        snap_info[remote_snap_name]["remote"].append(remote_dict)
     if ACTIVE_DR_API in api_version:
         snaptags = array.list_volumes(snap=True, tags=True, namespace="*")
         for snaptag in range(0, len(snaptags)):
-            if snaptags[snaptag]['namespace'] != "vasa-integration.purestorage.com":
-                snapname = snaptags[snaptag]['name']
+            if snaptags[snaptag]["namespace"] != "vasa-integration.purestorage.com":
+                snapname = snaptags[snaptag]["name"]
                 tagdict = {
-                    'key': snaptags[snaptag]['key'],
-                    'value': snaptags[snaptag]['value'],
-                    'namespace': snaptags[snaptag]['namespace']
+                    "key": snaptags[snaptag]["key"],
+                    "value": snaptags[snaptag]["value"],
+                    "namespace": snaptags[snaptag]["namespace"],
                 }
-                snap_info[snapname]['tags'].append(tagdict)
+                snap_info[snapname]["tags"].append(tagdict)
     return snap_info
 
 
-def generate_del_snap_dict(array):
+def generate_del_snap_dict(module, array):
     snap_info = {}
     api_version = array._list_available_rest_versions()
     snaps = array.list_volumes(snap=True, pending_only=True)
     for snap in range(0, len(snaps)):
-        snapshot = snaps[snap]['name']
+        snapshot = snaps[snap]["name"]
         snap_info[snapshot] = {
-            'size': snaps[snap]['size'],
-            'source': snaps[snap]['source'],
-            'created': snaps[snap]['created'],
-            'time_remaining': snaps[snap]['time_remaining'],
-            'tags': [],
+            "size": snaps[snap]["size"],
+            "source": snaps[snap]["source"],
+            "created": snaps[snap]["created"],
+            "time_remaining": snaps[snap]["time_remaining"],
+            "tags": [],
+            "remote": [],
         }
+    if FC_REPL_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        offloads = list(arrayv6.get_offloads().items)
+        for offload in range(0, len(offloads)):
+            offload_name = offloads[offload].name
+            check_offload = arrayv6.get_remote_volume_snapshots(on=offload_name)
+            if check_offload.status_code == 200:
+                remote_snaps = list(
+                    arrayv6.get_remote_volume_snapshots(
+                        on=offload_name, destroyed=True
+                    ).items
+                )
+                for remote_snap in range(0, len(remote_snaps)):
+                    remote_snap_name = remote_snaps[remote_snap].name.split(":")[1]
+                    remote_transfer = list(
+                        arrayv6.get_remote_volume_snapshots_transfer(
+                            on=offload_name, names=[remote_snaps[remote_snap].name]
+                        ).items
+                    )[0]
+                    remote_dict = {
+                        "source": remote_snaps[remote_snap].source.name,
+                        "suffix": remote_snaps[remote_snap].suffix,
+                        "size": remote_snaps[remote_snap].provisioned,
+                        "data_transferred": remote_transfer.data_transferred,
+                        "completed": time.strftime(
+                            "%Y-%m-%d %H:%M:%S",
+                            time.gmtime(remote_transfer.completed / 1000),
+                        )
+                        + " UTC",
+                        "physical_bytes_written": remote_transfer.physical_bytes_written,
+                        "progress": remote_transfer.progress,
+                        "created": time.strftime(
+                            "%Y-%m-%d %H:%M:%S",
+                            time.gmtime(remote_snaps[remote_snap].created / 1000),
+                        )
+                        + " UTC",
+                    }
+                    try:
+                        snap_info[remote_snap_name]["remote"].append(remote_dict)
+                    except KeyError:
+                        snap_info[remote_snap_name] = {"remote": []}
+                        snap_info[remote_snap_name]["remote"].append(remote_dict)
     if ACTIVE_DR_API in api_version:
-        snaptags = array.list_volumes(snap=True, tags=True, pending_only=True, namespace="*")
+        snaptags = array.list_volumes(
+            snap=True, tags=True, pending_only=True, namespace="*"
+        )
         for snaptag in range(0, len(snaptags)):
-            if snaptags[snaptag]['namespace'] != "vasa-integration.purestorage.com":
-                snapname = snaptags[snaptag]['name']
+            if snaptags[snaptag]["namespace"] != "vasa-integration.purestorage.com":
+                snapname = snaptags[snaptag]["name"]
                 tagdict = {
-                    'key': snaptags[snaptag]['key'],
-                    'value': snaptags[snaptag]['value'],
-                    'namespace': snaptags[snaptag]['namespace']
+                    "key": snaptags[snaptag]["key"],
+                    "value": snaptags[snaptag]["value"],
+                    "namespace": snaptags[snaptag]["namespace"],
                 }
-                snap_info[snapname]['tags'].append(tagdict)
+                snap_info[snapname]["tags"].append(tagdict)
     return snap_info
 
 
-def generate_del_vol_dict(module, array):
+def generate_del_vol_dict(array):
     volume_info = {}
     api_version = array._list_available_rest_versions()
     vols = array.list_volumes(pending_only=True)
     for vol in range(0, len(vols)):
-        volume = vols[vol]['name']
+        volume = vols[vol]["name"]
         volume_info[volume] = {
-            'size': vols[vol]['size'],
-            'source': vols[vol]['source'],
-            'created': vols[vol]['created'],
-            'serial': vols[vol]['serial'],
-            'time_remaining': vols[vol]['time_remaining'],
-            'tags': [],
+            "size": vols[vol]["size"],
+            "source": vols[vol]["source"],
+            "created": vols[vol]["created"],
+            "serial": vols[vol]["serial"],
+            "page83_naa": PURE_OUI + vols[vol]["serial"],
+            "time_remaining": vols[vol]["time_remaining"],
+            "tags": [],
         }
     if ACTIVE_DR_API in api_version:
         voltags = array.list_volumes(tags=True, pending_only=True)
         for voltag in range(0, len(voltags)):
-            if voltags[voltag]['namespace'] != "vasa-integration.purestorage.com":
-                volume = voltags[voltag]['name']
+            if voltags[voltag]["namespace"] != "vasa-integration.purestorage.com":
+                volume = voltags[voltag]["name"]
                 tagdict = {
-                    'key': voltags[voltag]['key'],
-                    'value': voltags[voltag]['value'],
-                    'copyable': voltags[voltag]['copyable'],
-                    'namespace': voltags[voltag]['namespace']
+                    "key": voltags[voltag]["key"],
+                    "value": voltags[voltag]["value"],
+                    "copyable": voltags[voltag]["copyable"],
+                    "namespace": voltags[voltag]["namespace"],
                 }
-                volume_info[volume]['tags'].append(tagdict)
+                volume_info[volume]["tags"].append(tagdict)
     return volume_info
 
 
-def generate_vol_dict(module, array):
+def generate_vol_dict(array):
     volume_info = {}
     vols = array.list_volumes()
     for vol in range(0, len(vols)):
-        volume = vols[vol]['name']
+        volume = vols[vol]["name"]
         volume_info[volume] = {
-            'protocol_endpoint': False,
-            'source': vols[vol]['source'],
-            'size': vols[vol]['size'],
-            'serial': vols[vol]['serial'],
-            'tags': [],
-            'hosts': [],
-            'bandwidth': ""
+            "protocol_endpoint": False,
+            "source": vols[vol]["source"],
+            "size": vols[vol]["size"],
+            "serial": vols[vol]["serial"],
+            "page83_naa": PURE_OUI + vols[vol]["serial"],
+            "tags": [],
+            "hosts": [],
+            "bandwidth": "",
         }
     api_version = array._list_available_rest_versions()
     if AC_REQUIRED_API_VERSION in api_version:
         qvols = array.list_volumes(qos=True)
         for qvol in range(0, len(qvols)):
-            volume = qvols[qvol]['name']
-            qos = qvols[qvol]['bandwidth_limit']
-            volume_info[volume]['bandwidth'] = qos
+            volume = qvols[qvol]["name"]
+            qos = qvols[qvol]["bandwidth_limit"]
+            volume_info[volume]["bandwidth"] = qos
             if P53_API_VERSION in api_version:
-                iops = qvols[qvol]['iops_limit']
-                volume_info[volume]['iops_limit'] = iops
+                iops = qvols[qvol]["iops_limit"]
+                volume_info[volume]["iops_limit"] = iops
         vvols = array.list_volumes(protocol_endpoint=True)
         for vvol in range(0, len(vvols)):
-            volume = vvols[vvol]['name']
+            volume = vvols[vvol]["name"]
             volume_info[volume] = {
-                'protocol_endpoint': True,
-                'source': vvols[vvol]['source'],
-                'serial': vvols[vvol]['serial'],
-                'tags': [],
-                'hosts': [],
+                "protocol_endpoint": True,
+                "source": vvols[vvol]["source"],
+                "serial": vvols[vvol]["serial"],
+                "page83_naa": PURE_OUI + vvols[vvol]["serial"],
+                "tags": [],
+                "hosts": [],
             }
         if P53_API_VERSION in array._list_available_rest_versions():
-            pe_e2ees = array.list_volumes(protocol_endpoint=True, host_encryption_key=True)
+            pe_e2ees = array.list_volumes(
+                protocol_endpoint=True, host_encryption_key=True
+            )
             for pe_e2ee in range(0, len(pe_e2ees)):
-                volume = pe_e2ees[pe_e2ee]['name']
-                volume_info[volume]['host_encryption_key_status'] = pe_e2ees[pe_e2ee]['host_encryption_key_status']
+                volume = pe_e2ees[pe_e2ee]["name"]
+                volume_info[volume]["host_encryption_key_status"] = pe_e2ees[pe_e2ee][
+                    "host_encryption_key_status"
+                ]
         if P53_API_VERSION in array._list_available_rest_versions():
             e2ees = array.list_volumes(host_encryption_key=True)
             for e2ee in range(0, len(e2ees)):
-                volume = e2ees[e2ee]['name']
-                volume_info[volume]['host_encryption_key_status'] = e2ees[e2ee]['host_encryption_key_status']
+                volume = e2ees[e2ee]["name"]
+                volume_info[volume]["host_encryption_key_status"] = e2ees[e2ee][
+                    "host_encryption_key_status"
+                ]
     cvols = array.list_volumes(connect=True)
     for cvol in range(0, len(cvols)):
-        volume = cvols[cvol]['name']
-        voldict = {'host': cvols[cvol]['host'], 'lun': cvols[cvol]['lun']}
-        volume_info[volume]['hosts'].append(voldict)
+        volume = cvols[cvol]["name"]
+        voldict = {"host": cvols[cvol]["host"], "lun": cvols[cvol]["lun"]}
+        volume_info[volume]["hosts"].append(voldict)
     if ACTIVE_DR_API in api_version:
         voltags = array.list_volumes(tags=True)
         for voltag in range(0, len(voltags)):
-            if voltags[voltag]['namespace'] != "vasa-integration.purestorage.com":
-                volume = voltags[voltag]['name']
+            if voltags[voltag]["namespace"] != "vasa-integration.purestorage.com":
+                volume = voltags[voltag]["name"]
                 tagdict = {
-                    'key': voltags[voltag]['key'],
-                    'value': voltags[voltag]['value'],
-                    'copyable': voltags[voltag]['copyable'],
-                    'namespace': voltags[voltag]['namespace']
+                    "key": voltags[voltag]["key"],
+                    "value": voltags[voltag]["value"],
+                    "copyable": voltags[voltag]["copyable"],
+                    "namespace": voltags[voltag]["namespace"],
                 }
-                volume_info[volume]['tags'].append(tagdict)
+                volume_info[volume]["tags"].append(tagdict)
     return volume_info
 
 
@@ -751,39 +1048,38 @@ def generate_host_dict(array):
     host_info = {}
     hosts = array.list_hosts()
     for host in range(0, len(hosts)):
-        hostname = hosts[host]['name']
+        hostname = hosts[host]["name"]
         tports = []
         host_all_info = array.get_host(hostname, all=True)
         if host_all_info:
-            tports = host_all_info[0]['target_port']
+            tports = host_all_info[0]["target_port"]
         host_info[hostname] = {
-            'hgroup': hosts[host]['hgroup'],
-            'iqn': hosts[host]['iqn'],
-            'wwn': hosts[host]['wwn'],
-            'personality': array.get_host(hostname,
-                                          personality=True)['personality'],
-            'target_port': tports,
-            'volumes': []
+            "hgroup": hosts[host]["hgroup"],
+            "iqn": hosts[host]["iqn"],
+            "wwn": hosts[host]["wwn"],
+            "personality": array.get_host(hostname, personality=True)["personality"],
+            "target_port": tports,
+            "volumes": [],
         }
         host_connections = array.list_host_connections(hostname)
         for connection in range(0, len(host_connections)):
             connection_dict = {
-                'hostgroup': host_connections[connection]['hgroup'],
-                'volume': host_connections[connection]['vol'],
-                'lun': host_connections[connection]['lun']
+                "hostgroup": host_connections[connection]["hgroup"],
+                "volume": host_connections[connection]["vol"],
+                "lun": host_connections[connection]["lun"],
             }
-            host_info[hostname]['volumes'].append(connection_dict)
-        if host_info[hostname]['iqn']:
+            host_info[hostname]["volumes"].append(connection_dict)
+        if host_info[hostname]["iqn"]:
             chap_data = array.get_host(hostname, chap=True)
-            host_info[hostname]['target_user'] = chap_data['target_user']
-            host_info[hostname]['host_user'] = chap_data['host_user']
+            host_info[hostname]["target_user"] = chap_data["target_user"]
+            host_info[hostname]["host_user"] = chap_data["host_user"]
         if NVME_API_VERSION in api_version:
-            host_info[hostname]['nqn'] = hosts[host]['nqn']
+            host_info[hostname]["nqn"] = hosts[host]["nqn"]
     if PREFERRED_API_VERSION in api_version:
         hosts = array.list_hosts(preferred_array=True)
         for host in range(0, len(hosts)):
-            hostname = hosts[host]['name']
-            host_info[hostname]['preferred_array'] = hosts[host]['preferred_array']
+            hostname = hosts[host]["name"]
+            host_info[hostname]["preferred_array"] = hosts[host]["preferred_array"]
     return host_info
 
 
@@ -791,43 +1087,53 @@ def generate_pgroups_dict(array):
     pgroups_info = {}
     pgroups = array.list_pgroups()
     for pgroup in range(0, len(pgroups)):
-        protgroup = pgroups[pgroup]['name']
+        protgroup = pgroups[pgroup]["name"]
         pgroups_info[protgroup] = {
-            'hgroups': pgroups[pgroup]['hgroups'],
-            'hosts': pgroups[pgroup]['hosts'],
-            'source': pgroups[pgroup]['source'],
-            'targets': pgroups[pgroup]['targets'],
-            'volumes': pgroups[pgroup]['volumes'],
+            "hgroups": pgroups[pgroup]["hgroups"],
+            "hosts": pgroups[pgroup]["hosts"],
+            "source": pgroups[pgroup]["source"],
+            "targets": pgroups[pgroup]["targets"],
+            "volumes": pgroups[pgroup]["volumes"],
         }
         prot_sched = array.get_pgroup(protgroup, schedule=True)
         prot_reten = array.get_pgroup(protgroup, retention=True)
-        if prot_sched['snap_enabled'] or prot_sched['replicate_enabled']:
-            pgroups_info[protgroup]['snap_freqyency'] = prot_sched['snap_frequency']
-            pgroups_info[protgroup]['replicate_freqyency'] = prot_sched['replicate_frequency']
-            pgroups_info[protgroup]['snap_enabled'] = prot_sched['snap_enabled']
-            pgroups_info[protgroup]['replicate_enabled'] = prot_sched['replicate_enabled']
-            pgroups_info[protgroup]['snap_at'] = prot_sched['snap_at']
-            pgroups_info[protgroup]['replicate_at'] = prot_sched['replicate_at']
-            pgroups_info[protgroup]['replicate_blackout'] = prot_sched['replicate_blackout']
-            pgroups_info[protgroup]['per_day'] = prot_reten['per_day']
-            pgroups_info[protgroup]['target_per_day'] = prot_reten['target_per_day']
-            pgroups_info[protgroup]['target_days'] = prot_reten['target_days']
-            pgroups_info[protgroup]['days'] = prot_reten['days']
-            pgroups_info[protgroup]['all_for'] = prot_reten['all_for']
-            pgroups_info[protgroup]['target_all_for'] = prot_reten['target_all_for']
-        if ":" in protgroup:
-            snap_transfers = array.get_pgroup(protgroup, snap=True, transfer=True)
-            pgroups_info[protgroup]['snaps'] = {}
-            for snap_transfer in range(0, len(snap_transfers)):
-                snap = snap_transfers[snap_transfer]['name']
-                pgroups_info[protgroup]['snaps'][snap] = {
-                    'created': snap_transfers[snap_transfer]['created'],
-                    'started': snap_transfers[snap_transfer]['started'],
-                    'completed': snap_transfers[snap_transfer]['completed'],
-                    'physical_bytes_written': snap_transfers[snap_transfer]['physical_bytes_written'],
-                    'data_transferred': snap_transfers[snap_transfer]['data_transferred'],
-                    'progress': snap_transfers[snap_transfer]['progress'],
-                }
+        if prot_sched["snap_enabled"] or prot_sched["replicate_enabled"]:
+            pgroups_info[protgroup]["snap_freqyency"] = prot_sched["snap_frequency"]
+            pgroups_info[protgroup]["replicate_freqyency"] = prot_sched[
+                "replicate_frequency"
+            ]
+            pgroups_info[protgroup]["snap_enabled"] = prot_sched["snap_enabled"]
+            pgroups_info[protgroup]["replicate_enabled"] = prot_sched[
+                "replicate_enabled"
+            ]
+            pgroups_info[protgroup]["snap_at"] = prot_sched["snap_at"]
+            pgroups_info[protgroup]["replicate_at"] = prot_sched["replicate_at"]
+            pgroups_info[protgroup]["replicate_blackout"] = prot_sched[
+                "replicate_blackout"
+            ]
+            pgroups_info[protgroup]["per_day"] = prot_reten["per_day"]
+            pgroups_info[protgroup]["target_per_day"] = prot_reten["target_per_day"]
+            pgroups_info[protgroup]["target_days"] = prot_reten["target_days"]
+            pgroups_info[protgroup]["days"] = prot_reten["days"]
+            pgroups_info[protgroup]["all_for"] = prot_reten["all_for"]
+            pgroups_info[protgroup]["target_all_for"] = prot_reten["target_all_for"]
+        snap_transfers = array.get_pgroup(
+            protgroup, snap=True, transfer=True, pending=True
+        )
+        pgroups_info[protgroup]["snaps"] = {}
+        for snap_transfer in range(0, len(snap_transfers)):
+            snap = snap_transfers[snap_transfer]["name"]
+            pgroups_info[protgroup]["snaps"][snap] = {
+                "time_remaining": snap_transfers[snap_transfer]["time_remaining"],
+                "created": snap_transfers[snap_transfer]["created"],
+                "started": snap_transfers[snap_transfer]["started"],
+                "completed": snap_transfers[snap_transfer]["completed"],
+                "physical_bytes_written": snap_transfers[snap_transfer][
+                    "physical_bytes_written"
+                ],
+                "data_transferred": snap_transfers[snap_transfer]["data_transferred"],
+                "progress": snap_transfers[snap_transfer]["progress"],
+            }
     return pgroups_info
 
 
@@ -838,19 +1144,21 @@ def generate_rl_dict(module, array):
         try:
             rlinks = array.list_pod_replica_links()
             for rlink in range(0, len(rlinks)):
-                link_name = rlinks[rlink]['local_pod_name']
-                since_epoch = rlinks[rlink]['recovery_point'] / 1000
-                recovery_datatime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(since_epoch))
+                link_name = rlinks[rlink]["local_pod_name"]
+                since_epoch = rlinks[rlink]["recovery_point"] / 1000
+                recovery_datatime = time.strftime(
+                    "%Y-%m-%d %H:%M:%S", time.localtime(since_epoch)
+                )
                 rl_info[link_name] = {
-                    'status': rlinks[rlink]['status'],
-                    'direction': rlinks[rlink]['direction'],
-                    'lag': str(rlinks[rlink]['lag'] / 1000) + 's',
-                    'remote_pod_name': rlinks[rlink]['remote_pod_name'],
-                    'remote_names': rlinks[rlink]['remote_names'],
-                    'recovery_point': recovery_datatime,
+                    "status": rlinks[rlink]["status"],
+                    "direction": rlinks[rlink]["direction"],
+                    "lag": str(rlinks[rlink]["lag"] / 1000) + "s",
+                    "remote_pod_name": rlinks[rlink]["remote_pod_name"],
+                    "remote_names": rlinks[rlink]["remote_names"],
+                    "recovery_point": recovery_datatime,
                 }
         except Exception:
-            module.warn('Replica Links info requires purestorage SDK 1.19 or hisher')
+            module.warn("Replica Links info requires purestorage SDK 1.19 or hisher")
     return rl_info
 
 
@@ -860,28 +1168,34 @@ def generate_del_pods_dict(array):
     if AC_REQUIRED_API_VERSION in api_version:
         pods = array.list_pods(mediator=True, pending_only=True)
         for pod in range(0, len(pods)):
-            acpod = pods[pod]['name']
+            acpod = pods[pod]["name"]
             pods_info[acpod] = {
-                'source': pods[pod]['source'],
-                'arrays': pods[pod]['arrays'],
-                'mediator': pods[pod]['mediator'],
-                'mediator_version': pods[pod]['mediator_version'],
-                'time_remaining': pods[pod]['time_remaining'],
+                "source": pods[pod]["source"],
+                "arrays": pods[pod]["arrays"],
+                "mediator": pods[pod]["mediator"],
+                "mediator_version": pods[pod]["mediator_version"],
+                "time_remaining": pods[pod]["time_remaining"],
             }
             if ACTIVE_DR_API in api_version:
-                if pods_info[acpod]['arrays'][0]['frozen_at']:
-                    frozen_time = pods_info[acpod]['arrays'][0]['frozen_at'] / 1000
-                    frozen_datetime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(frozen_time))
-                    pods_info[acpod]['arrays'][0]['frozen_at'] = frozen_datetime
-                pods_info[acpod]['link_source_count'] = pods[pod]['link_source_count']
-                pods_info[acpod]['link_target_count'] = pods[pod]['link_target_count']
-                pods_info[acpod]['promotion_status'] = pods[pod]['promotion_status']
-                pods_info[acpod]['requested_promotion_state'] = pods[pod]['requested_promotion_state']
+                if pods_info[acpod]["arrays"][0]["frozen_at"]:
+                    frozen_time = pods_info[acpod]["arrays"][0]["frozen_at"] / 1000
+                    frozen_datetime = time.strftime(
+                        "%Y-%m-%d %H:%M:%S", time.localtime(frozen_time)
+                    )
+                    pods_info[acpod]["arrays"][0]["frozen_at"] = frozen_datetime
+                pods_info[acpod]["link_source_count"] = pods[pod]["link_source_count"]
+                pods_info[acpod]["link_target_count"] = pods[pod]["link_target_count"]
+                pods_info[acpod]["promotion_status"] = pods[pod]["promotion_status"]
+                pods_info[acpod]["requested_promotion_state"] = pods[pod][
+                    "requested_promotion_state"
+                ]
         if PREFERRED_API_VERSION in api_version:
             pods_fp = array.list_pods(failover_preference=True, pending_only=True)
             for pod in range(0, len(pods_fp)):
-                acpod = pods_fp[pod]['name']
-                pods_info[acpod]['failover_preference'] = pods_fp[pod]['failover_preference']
+                acpod = pods_fp[pod]["name"]
+                pods_info[acpod]["failover_preference"] = pods_fp[pod][
+                    "failover_preference"
+                ]
     return pods_info
 
 
@@ -891,57 +1205,104 @@ def generate_pods_dict(array):
     if AC_REQUIRED_API_VERSION in api_version:
         pods = array.list_pods(mediator=True)
         for pod in range(0, len(pods)):
-            acpod = pods[pod]['name']
+            acpod = pods[pod]["name"]
             pods_info[acpod] = {
-                'source': pods[pod]['source'],
-                'arrays': pods[pod]['arrays'],
-                'mediator': pods[pod]['mediator'],
-                'mediator_version': pods[pod]['mediator_version'],
+                "source": pods[pod]["source"],
+                "arrays": pods[pod]["arrays"],
+                "mediator": pods[pod]["mediator"],
+                "mediator_version": pods[pod]["mediator_version"],
             }
             if ACTIVE_DR_API in api_version:
-                if pods_info[acpod]['arrays'][0]['frozen_at']:
-                    frozen_time = pods_info[acpod]['arrays'][0]['frozen_at'] / 1000
-                    frozen_datetime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(frozen_time))
-                    pods_info[acpod]['arrays'][0]['frozen_at'] = frozen_datetime
-                pods_info[acpod]['link_source_count'] = pods[pod]['link_source_count']
-                pods_info[acpod]['link_target_count'] = pods[pod]['link_target_count']
-                pods_info[acpod]['promotion_status'] = pods[pod]['promotion_status']
-                pods_info[acpod]['requested_promotion_state'] = pods[pod]['requested_promotion_state']
+                if pods_info[acpod]["arrays"][0]["frozen_at"]:
+                    frozen_time = pods_info[acpod]["arrays"][0]["frozen_at"] / 1000
+                    frozen_datetime = time.strftime(
+                        "%Y-%m-%d %H:%M:%S", time.localtime(frozen_time)
+                    )
+                    pods_info[acpod]["arrays"][0]["frozen_at"] = frozen_datetime
+                pods_info[acpod]["link_source_count"] = pods[pod]["link_source_count"]
+                pods_info[acpod]["link_target_count"] = pods[pod]["link_target_count"]
+                pods_info[acpod]["promotion_status"] = pods[pod]["promotion_status"]
+                pods_info[acpod]["requested_promotion_state"] = pods[pod][
+                    "requested_promotion_state"
+                ]
         if PREFERRED_API_VERSION in api_version:
             pods_fp = array.list_pods(failover_preference=True)
             for pod in range(0, len(pods_fp)):
-                acpod = pods_fp[pod]['name']
-                pods_info[acpod]['failover_preference'] = pods_fp[pod]['failover_preference']
+                acpod = pods_fp[pod]["name"]
+                pods_info[acpod]["failover_preference"] = pods_fp[pod][
+                    "failover_preference"
+                ]
     return pods_info
 
 
-def generate_conn_array_dict(array):
+def generate_conn_array_dict(module, array):
     conn_array_info = {}
     api_version = array._list_available_rest_versions()
-    carrays = array.list_array_connections()
-    for carray in range(0, len(carrays)):
-        arrayname = carrays[carray]['array_name']
-        conn_array_info[arrayname] = {
-            'array_id': carrays[carray]['id'],
-            'throttled': carrays[carray]['throttled'],
-            'version': carrays[carray]['version'],
-            'type': carrays[carray]['type'],
-            'mgmt_ip': carrays[carray]['management_address'],
-            'repl_ip': carrays[carray]['replication_address'],
-        }
-        if P53_API_VERSION in api_version:
-            conn_array_info[arrayname]['status'] = carrays[carray]['status']
-        else:
-            conn_array_info[arrayname]['connected'] = carrays[carray]['connected']
-    throttles = array.list_array_connections(throttle=True)
-    for throttle in range(0, len(throttles)):
-        arrayname = throttles[throttle]['array_name']
-        if conn_array_info[arrayname]['throttled']:
-            conn_array_info[arrayname]['throttling'] = {
-                'default_limit': throttles[throttle]['default_limit'],
-                'window_limit': throttles[throttle]['window_limit'],
-                'window': throttles[throttle]['window'],
+    if FC_REPL_API_VERSION not in api_version:
+        carrays = array.list_array_connections()
+        for carray in range(0, len(carrays)):
+            arrayname = carrays[carray]["array_name"]
+            conn_array_info[arrayname] = {
+                "array_id": carrays[carray]["id"],
+                "throttled": carrays[carray]["throttled"],
+                "version": carrays[carray]["version"],
+                "type": carrays[carray]["type"],
+                "mgmt_ip": carrays[carray]["management_address"],
+                "repl_ip": carrays[carray]["replication_address"],
             }
+            if P53_API_VERSION in api_version:
+                conn_array_info[arrayname]["status"] = carrays[carray]["status"]
+            else:
+                conn_array_info[arrayname]["connected"] = carrays[carray]["connected"]
+        throttles = array.list_array_connections(throttle=True)
+        for throttle in range(0, len(throttles)):
+            arrayname = throttles[throttle]["array_name"]
+            if conn_array_info[arrayname]["throttled"]:
+                conn_array_info[arrayname]["throttling"] = {
+                    "default_limit": throttles[throttle]["default_limit"],
+                    "window_limit": throttles[throttle]["window_limit"],
+                    "window": throttles[throttle]["window"],
+                }
+    else:
+        arrayv6 = get_array(module)
+        carrays = list(arrayv6.get_array_connections().items)
+        for carray in range(0, len(carrays)):
+            arrayname = carrays[carray].name
+            conn_array_info[arrayname] = {
+                "array_id": carrays[carray].id,
+                "version": carrays[carray].version,
+                "type": carrays[carray].type,
+                "mgmt_ip": carrays[carray].management_address,
+                "repl_ip": carrays[carray].replication_addresses,
+                "transport": carrays[carray].replication_transport,
+            }
+
+            if bool(carrays[carray].throttle.to_dict()):
+                conn_array_info[arrayname]["throttled"] = True
+                conn_array_info[arrayname]["throttling"] = {}
+                try:
+                    if bool(carrays[carray].throttle.window):
+                        conn_array_info[arrayname]["throttling"]["window"] = carrays[
+                            carray
+                        ].throttle.window.to_dict()
+                except AttributeError:
+                    pass
+                try:
+                    if bool(carrays[carray].throttle.default_limit):
+                        conn_array_info[arrayname]["throttling"][
+                            "default_limit"
+                        ] = carrays[carray].throttle.default_limit
+                except AttributeError:
+                    pass
+                try:
+                    if bool(carrays[carray].throttle.window_limit):
+                        conn_array_info[arrayname]["throttling"][
+                            "window_limit"
+                        ] = carrays[carray].throttle.window_limit
+                except AttributeError:
+                    pass
+            else:
+                conn_array_info[arrayname]["throttled"] = False
     return conn_array_info
 
 
@@ -951,18 +1312,18 @@ def generate_apps_dict(array):
     if SAN_REQUIRED_API_VERSION in api_version:
         apps = array.list_apps()
         for app in range(0, len(apps)):
-            appname = apps[app]['name']
+            appname = apps[app]["name"]
             apps_info[appname] = {
-                'version': apps[app]['version'],
-                'status': apps[app]['status'],
-                'description': apps[app]['description'],
+                "version": apps[app]["version"],
+                "status": apps[app]["status"],
+                "description": apps[app]["description"],
             }
     if P53_API_VERSION in api_version:
         app_nodes = array.list_app_nodes()
         for app in range(0, len(app_nodes)):
-            appname = app_nodes[app]['name']
-            apps_info[appname]['index'] = app_nodes[app]['index']
-            apps_info[appname]['vnc'] = app_nodes[app]['vnc']
+            appname = app_nodes[app]["name"]
+            apps_info[appname]["index"] = app_nodes[app]["index"]
+            apps_info[appname]["vnc"] = app_nodes[app]["vnc"]
     return apps_info
 
 
@@ -972,9 +1333,9 @@ def generate_vgroups_dict(array):
     if AC_REQUIRED_API_VERSION in api_version:
         vgroups = array.list_vgroups()
         for vgroup in range(0, len(vgroups)):
-            virtgroup = vgroups[vgroup]['name']
+            virtgroup = vgroups[vgroup]["name"]
             vgroups_info[virtgroup] = {
-                'volumes': vgroups[vgroup]['volumes'],
+                "volumes": vgroups[vgroup]["volumes"],
             }
     return vgroups_info
 
@@ -985,23 +1346,29 @@ def generate_certs_dict(array):
     if P53_API_VERSION in api_version:
         certs = array.list_certificates()
         for cert in range(0, len(certs)):
-            certificate = certs[cert]['name']
-            valid_from = time.strftime("%a, %d %b %Y %H:%M:%S %Z", time.localtime(certs[cert]['valid_from'] / 1000))
-            valid_to = time.strftime("%a, %d %b %Y %H:%M:%S %Z", time.localtime(certs[cert]['valid_to'] / 1000))
+            certificate = certs[cert]["name"]
+            valid_from = time.strftime(
+                "%a, %d %b %Y %H:%M:%S %Z",
+                time.localtime(certs[cert]["valid_from"] / 1000),
+            )
+            valid_to = time.strftime(
+                "%a, %d %b %Y %H:%M:%S %Z",
+                time.localtime(certs[cert]["valid_to"] / 1000),
+            )
             certs_info[certificate] = {
-                'status': certs[cert]['status'],
-                'issued_to': certs[cert]['issued_to'],
-                'valid_from': valid_from,
-                'locality': certs[cert]['locality'],
-                'country': certs[cert]['country'],
-                'issued_by': certs[cert]['issued_by'],
-                'valid_to': valid_to,
-                'state': certs[cert]['state'],
-                'key_size': certs[cert]['key_size'],
-                'org_unit': certs[cert]['organizational_unit'],
-                'common_name': certs[cert]['common_name'],
-                'organization': certs[cert]['organization'],
-                'email': certs[cert]['email'],
+                "status": certs[cert]["status"],
+                "issued_to": certs[cert]["issued_to"],
+                "valid_from": valid_from,
+                "locality": certs[cert]["locality"],
+                "country": certs[cert]["country"],
+                "issued_by": certs[cert]["issued_by"],
+                "valid_to": valid_to,
+                "state": certs[cert]["state"],
+                "key_size": certs[cert]["key_size"],
+                "org_unit": certs[cert]["organizational_unit"],
+                "common_name": certs[cert]["common_name"],
+                "organization": certs[cert]["organization"],
+                "email": certs[cert]["email"],
             }
     return certs_info
 
@@ -1012,11 +1379,11 @@ def generate_kmip_dict(array):
     if P53_API_VERSION in api_version:
         kmips = array.list_kmip()
         for kmip in range(0, len(kmips)):
-            key = kmips[kmip]['name']
+            key = kmips[kmip]["name"]
             kmip_info[key] = {
-                'certificate': kmips[kmip]['certificate'],
-                'ca_cert_configured': kmips[kmip]['ca_certificate_configured'],
-                'uri': kmips[kmip]['uri'],
+                "certificate": kmips[kmip]["certificate"],
+                "ca_cert_configured": kmips[kmip]["ca_certificate_configured"],
+                "uri": kmips[kmip]["uri"],
             }
     return kmip_info
 
@@ -1027,13 +1394,13 @@ def generate_nfs_offload_dict(array):
     if AC_REQUIRED_API_VERSION in api_version:
         offload = array.list_nfs_offload()
         for target in range(0, len(offload)):
-            offloadt = offload[target]['name']
+            offloadt = offload[target]["name"]
             offload_info[offloadt] = {
-                'status': offload[target]['status'],
-                'mount_point': offload[target]['mount_point'],
-                'protocol': offload[target]['protocol'],
-                'mount_options': offload[target]['mount_options'],
-                'address': offload[target]['address'],
+                "status": offload[target]["status"],
+                "mount_point": offload[target]["mount_point"],
+                "protocol": offload[target]["protocol"],
+                "mount_options": offload[target]["mount_options"],
+                "address": offload[target]["address"],
             }
     return offload_info
 
@@ -1044,15 +1411,17 @@ def generate_s3_offload_dict(array):
     if S3_REQUIRED_API_VERSION in api_version:
         offload = array.list_s3_offload()
         for target in range(0, len(offload)):
-            offloadt = offload[target]['name']
+            offloadt = offload[target]["name"]
             offload_info[offloadt] = {
-                'status': offload[target]['status'],
-                'bucket': offload[target]['bucket'],
-                'protocol': offload[target]['protocol'],
-                'access_key_id': offload[target]['access_key_id'],
+                "status": offload[target]["status"],
+                "bucket": offload[target]["bucket"],
+                "protocol": offload[target]["protocol"],
+                "access_key_id": offload[target]["access_key_id"],
             }
             if P53_API_VERSION in api_version:
-                offload_info[offloadt]['placement_strategy'] = offload[target]['placement_strategy']
+                offload_info[offloadt]["placement_strategy"] = offload[target][
+                    "placement_strategy"
+                ]
     return offload_info
 
 
@@ -1062,13 +1431,13 @@ def generate_azure_offload_dict(array):
     if P53_API_VERSION in api_version:
         offload = array.list_azure_offload()
         for target in range(0, len(offload)):
-            offloadt = offload[target]['name']
+            offloadt = offload[target]["name"]
             offload_info[offloadt] = {
-                'status': offload[target]['status'],
-                'account_name': offload[target]['account_name'],
-                'protocol': offload[target]['protocol'],
-                'secret_access_key': offload[target]['secret_access_key'],
-                'container_name': offload[target]['container_name'],
+                "status": offload[target]["status"],
+                "account_name": offload[target]["account_name"],
+                "protocol": offload[target]["protocol"],
+                "secret_access_key": offload[target]["secret_access_key"],
+                "container_name": offload[target]["container_name"],
             }
     return offload_info
 
@@ -1077,21 +1446,21 @@ def generate_hgroups_dict(array):
     hgroups_info = {}
     hgroups = array.list_hgroups()
     for hgroup in range(0, len(hgroups)):
-        hostgroup = hgroups[hgroup]['name']
+        hostgroup = hgroups[hgroup]["name"]
         hgroups_info[hostgroup] = {
-            'hosts': hgroups[hgroup]['hosts'],
-            'pgs': [],
-            'vols': [],
+            "hosts": hgroups[hgroup]["hosts"],
+            "pgs": [],
+            "vols": [],
         }
     pghgroups = array.list_hgroups(protect=True)
     for pghg in range(0, len(pghgroups)):
-        pgname = pghgroups[pghg]['name']
-        hgroups_info[pgname]['pgs'].append(pghgroups[pghg]['protection_group'])
+        pgname = pghgroups[pghg]["name"]
+        hgroups_info[pgname]["pgs"].append(pghgroups[pghg]["protection_group"])
     volhgroups = array.list_hgroups(connect=True)
     for pgvol in range(0, len(volhgroups)):
-        pgname = volhgroups[pgvol]['name']
-        volpgdict = [volhgroups[pgvol]['vol'], volhgroups[pgvol]['lun']]
-        hgroups_info[pgname]['vols'].append(volpgdict)
+        pgname = volhgroups[pgvol]["name"]
+        volpgdict = [volhgroups[pgvol]["vol"], volhgroups[pgvol]["lun"]]
+        hgroups_info[pgname]["vols"].append(volpgdict)
     return hgroups_info
 
 
@@ -1100,90 +1469,127 @@ def generate_interfaces_dict(array):
     int_info = {}
     ports = array.list_ports()
     for port in range(0, len(ports)):
-        int_name = ports[port]['name']
-        if ports[port]['wwn']:
-            int_info[int_name] = ports[port]['wwn']
-        if ports[port]['iqn']:
-            int_info[int_name] = ports[port]['iqn']
+        int_name = ports[port]["name"]
+        if ports[port]["wwn"]:
+            int_info[int_name] = ports[port]["wwn"]
+        if ports[port]["iqn"]:
+            int_info[int_name] = ports[port]["iqn"]
         if NVME_API_VERSION in api_version:
-            if ports[port]['nqn']:
-                int_info[int_name] = ports[port]['nqn']
+            if ports[port]["nqn"]:
+                int_info[int_name] = ports[port]["nqn"]
     return int_info
 
 
 def main():
     argument_spec = purefa_argument_spec()
-    argument_spec.update(dict(
-        gather_subset=dict(default='minimum', type='list', elements='str')
-    ))
+    argument_spec.update(
+        dict(gather_subset=dict(default="minimum", type="list", elements="str"))
+    )
 
     module = AnsibleModule(argument_spec, supports_check_mode=False)
     array = get_system(module)
+    api_version = array._list_available_rest_versions()
 
-    subset = [test.lower() for test in module.params['gather_subset']]
-    valid_subsets = ('all', 'minimum', 'config', 'performance', 'capacity',
-                     'network', 'subnet', 'interfaces', 'hgroups', 'pgroups',
-                     'hosts', 'admins', 'volumes', 'snapshots', 'pods', 'replication',
-                     'vgroups', 'offload', 'apps', 'arrays', 'certs', 'kmip')
+    subset = [test.lower() for test in module.params["gather_subset"]]
+    valid_subsets = (
+        "all",
+        "minimum",
+        "config",
+        "performance",
+        "capacity",
+        "network",
+        "subnet",
+        "interfaces",
+        "hgroups",
+        "pgroups",
+        "hosts",
+        "admins",
+        "volumes",
+        "snapshots",
+        "pods",
+        "replication",
+        "vgroups",
+        "offload",
+        "apps",
+        "arrays",
+        "certs",
+        "kmip",
+        "clients",
+        "policies",
+        "dir_snaps",
+        "filesystems",
+    )
     subset_test = (test in valid_subsets for test in subset)
     if not all(subset_test):
-        module.fail_json(msg="value must gather_subset must be one or more of: %s, got: %s"
-                         % (",".join(valid_subsets), ",".join(subset)))
+        module.fail_json(
+            msg="value must gather_subset must be one or more of: %s, got: %s"
+            % (",".join(valid_subsets), ",".join(subset))
+        )
 
     info = {}
 
-    if 'minimum' in subset or 'all' in subset or 'apps' in subset:
-        info['default'] = generate_default_dict(array)
-    if 'performance' in subset or 'all' in subset:
-        info['performance'] = generate_perf_dict(array)
-    if 'config' in subset or 'all' in subset:
-        info['config'] = generate_config_dict(module, array)
-    if 'capacity' in subset or 'all' in subset:
-        info['capacity'] = generate_capacity_dict(array)
-    if 'network' in subset or 'all' in subset:
-        info['network'] = generate_network_dict(array)
-    if 'subnet' in subset or 'all' in subset:
-        info['subnet'] = generate_subnet_dict(array)
-    if 'interfaces' in subset or 'all' in subset:
-        info['interfaces'] = generate_interfaces_dict(array)
-    if 'hosts' in subset or 'all' in subset:
-        info['hosts'] = generate_host_dict(array)
-    if 'volumes' in subset or 'all' in subset:
-        info['volumes'] = generate_vol_dict(module, array)
-        info['deleted_volumes'] = generate_del_vol_dict(module, array)
-    if 'snapshots' in subset or 'all' in subset:
-        info['snapshots'] = generate_snap_dict(array)
-        info['deleted_snapshots'] = generate_del_snap_dict(array)
-    if 'hgroups' in subset or 'all' in subset:
-        info['hgroups'] = generate_hgroups_dict(array)
-    if 'pgroups' in subset or 'all' in subset:
-        info['pgroups'] = generate_pgroups_dict(array)
-    if 'pods' in subset or 'all' in subset or 'replication' in subset:
-        info['replica_links'] = generate_rl_dict(module, array)
-        info['pods'] = generate_pods_dict(array)
-        info['deleted_pods'] = generate_del_pods_dict(array)
-    if 'admins' in subset or 'all' in subset:
-        info['admins'] = generate_admin_dict(array)
-    if 'vgroups' in subset or 'all' in subset:
-        info['vgroups'] = generate_vgroups_dict(array)
-    if 'offload' in subset or 'all' in subset:
-        info['azure_offload'] = generate_azure_offload_dict(array)
-        info['nfs_offload'] = generate_nfs_offload_dict(array)
-        info['s3_offload'] = generate_s3_offload_dict(array)
-    if 'apps' in subset or 'all' in subset:
-        if 'CBS' not in info['default']['array_model']:
-            info['apps'] = generate_apps_dict(array)
+    if "minimum" in subset or "all" in subset or "apps" in subset:
+        info["default"] = generate_default_dict(module, array)
+    if "performance" in subset or "all" in subset:
+        info["performance"] = generate_perf_dict(array)
+    if "config" in subset or "all" in subset:
+        info["config"] = generate_config_dict(module, array)
+    if "capacity" in subset or "all" in subset:
+        info["capacity"] = generate_capacity_dict(array)
+    if "network" in subset or "all" in subset:
+        info["network"] = generate_network_dict(array)
+    if "subnet" in subset or "all" in subset:
+        info["subnet"] = generate_subnet_dict(array)
+    if "interfaces" in subset or "all" in subset:
+        info["interfaces"] = generate_interfaces_dict(array)
+    if "hosts" in subset or "all" in subset:
+        info["hosts"] = generate_host_dict(array)
+    if "volumes" in subset or "all" in subset:
+        info["volumes"] = generate_vol_dict(array)
+        info["deleted_volumes"] = generate_del_vol_dict(array)
+    if "snapshots" in subset or "all" in subset:
+        info["snapshots"] = generate_snap_dict(module, array)
+        info["deleted_snapshots"] = generate_del_snap_dict(module, array)
+    if "hgroups" in subset or "all" in subset:
+        info["hgroups"] = generate_hgroups_dict(array)
+    if "pgroups" in subset or "all" in subset:
+        info["pgroups"] = generate_pgroups_dict(array)
+    if "pods" in subset or "all" in subset or "replication" in subset:
+        info["replica_links"] = generate_rl_dict(module, array)
+        info["pods"] = generate_pods_dict(array)
+        info["deleted_pods"] = generate_del_pods_dict(array)
+    if "admins" in subset or "all" in subset:
+        info["admins"] = generate_admin_dict(array)
+    if "vgroups" in subset or "all" in subset:
+        info["vgroups"] = generate_vgroups_dict(array)
+    if "offload" in subset or "all" in subset:
+        info["azure_offload"] = generate_azure_offload_dict(array)
+        info["nfs_offload"] = generate_nfs_offload_dict(array)
+        info["s3_offload"] = generate_s3_offload_dict(array)
+    if "apps" in subset or "all" in subset:
+        if "CBS" not in info["default"]["array_model"]:
+            info["apps"] = generate_apps_dict(array)
         else:
-            info['apps'] = {}
-    if 'arrays' in subset or 'all' in subset:
-        info['arrays'] = generate_conn_array_dict(array)
-    if 'certs' in subset or 'all' in subset:
-        info['certs'] = generate_certs_dict(array)
-    if 'kmip' in subset or 'all' in subset:
-        info['kmip'] = generate_kmip_dict(array)
+            info["apps"] = {}
+    if "arrays" in subset or "all" in subset:
+        info["arrays"] = generate_conn_array_dict(module, array)
+    if "certs" in subset or "all" in subset:
+        info["certs"] = generate_certs_dict(array)
+    if "kmip" in subset or "all" in subset:
+        info["kmip"] = generate_kmip_dict(array)
+    if FILES_API_VERSION in api_version:
+        array_v6 = get_array(module)
+        if "filesystems" in subset or "all" in subset:
+            info["filesystems"] = generate_filesystems_dict(array_v6)
+        if "policies" in subset or "all" in subset:
+            info["policies"] = generate_policies_dict(array_v6)
+        if "clients" in subset or "all" in subset:
+            info["clients"] = generate_clients_dict(array_v6)
+        if "dir_snaps" in subset or "all" in subset:
+            info["dir_snaps"] = generate_dir_snaps_dict(array_v6)
 
     module.exit_json(changed=False, purefa_info=info)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

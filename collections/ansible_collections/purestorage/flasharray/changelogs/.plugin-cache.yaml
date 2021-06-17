@@ -13,6 +13,11 @@ plugins:
       name: purefa_alert
       namespace: ''
       version_added: 1.0.0
+    purefa_apiclient:
+      description: Manage FlashArray API Clients
+      name: purefa_apiclient
+      namespace: ''
+      version_added: 1.5.0
     purefa_arrayname:
       description: Configure Pure Storage FlashArray array name
       name: purefa_arrayname
@@ -23,6 +28,11 @@ plugins:
       name: purefa_banner
       namespace: ''
       version_added: 1.0.0
+    purefa_certs:
+      description: Manage FlashArray SSL Certificates
+      name: purefa_certs
+      namespace: ''
+      version_added: 1.8.0
     purefa_connect:
       description: Manage replication connections between two FlashArrays
       name: purefa_connect
@@ -33,6 +43,11 @@ plugins:
       name: purefa_console
       namespace: ''
       version_added: 1.0.0
+    purefa_directory:
+      description: Manage FlashArray File System Directories
+      name: purefa_directory
+      namespace: ''
+      version_added: 1.5.0
     purefa_dns:
       description: Configure FlashArray DNS settings
       name: purefa_dns
@@ -58,6 +73,16 @@ plugins:
       name: purefa_eula
       namespace: ''
       version_added: 1.0.0
+    purefa_export:
+      description: Manage FlashArray File System Exports
+      name: purefa_export
+      namespace: ''
+      version_added: 1.5.0
+    purefa_fs:
+      description: Manage FlashArray File Systems
+      name: purefa_fs
+      namespace: ''
+      version_added: 1.5.0
     purefa_hg:
       description: Manage hostgroups on Pure Storage FlashArrays
       name: purefa_hg
@@ -78,6 +103,11 @@ plugins:
       name: purefa_inventory
       namespace: ''
       version_added: 1.0.0
+    purefa_maintenance:
+      description: Configure Pure Storage FlashArray Maintence Windows
+      name: purefa_maintenance
+      namespace: ''
+      version_added: 1.7.0
     purefa_network:
       description: Manage network interfaces in a Pure Storage FlashArray
       name: purefa_network
@@ -113,7 +143,7 @@ plugins:
       description: Enable or Disable Pure Storage FlashArray Phonehome
       name: purefa_phonehome
       namespace: ''
-      version_added: 1.0.0'
+      version_added: 1.0.0
     purefa_pod:
       description: Manage AC pods in Pure Storage FlashArrays
       name: purefa_pod
@@ -124,6 +154,11 @@ plugins:
       name: purefa_pod_replica
       namespace: ''
       version_added: 1.0.0
+    purefa_policy:
+      description: Manage FlashArray File System Policies
+      name: purefa_policy
+      namespace: ''
+      version_added: 1.5.0
     purefa_proxy:
       description: Configure FlashArray phonehome HTTPs proxy settings
       name: purefa_proxy
@@ -203,4 +238,4 @@ plugins:
   shell: {}
   strategy: {}
   vars: {}
-version: 1.4.0
+version: 1.8.0

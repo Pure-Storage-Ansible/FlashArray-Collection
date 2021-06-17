@@ -5,13 +5,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: purefa_banner
 version_added: '1.0.0'
@@ -36,9 +39,9 @@ options:
     default: "Welcome to the machine..."
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 - name: Set new banner text
   purefa_banner:
     banner: "Banner over\ntwo lines"
@@ -51,13 +54,16 @@ EXAMPLES = r'''
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
-'''
+"""
 
-RETURN = r'''
-'''
+RETURN = r"""
+"""
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import get_system, purefa_argument_spec
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_system,
+    purefa_argument_spec,
+)
 
 
 def set_banner(module, array):
@@ -65,12 +71,12 @@ def set_banner(module, array):
     changed = True
     if not module.check_mode:
         try:
-            if not module.params['banner']:
-                module.fail_json(msg='Invalid MOTD banner given')
+            if not module.params["banner"]:
+                module.fail_json(msg="Invalid MOTD banner given")
 
-            array.set(banner=module.params['banner'])
+            array.set(banner=module.params["banner"])
         except Exception:
-            module.fail_json(msg='Failed to set MOTD banner text')
+            module.fail_json(msg="Failed to set MOTD banner text")
 
     module.exit_json(changed=changed)
 
@@ -82,35 +88,39 @@ def delete_banner(module, array):
         try:
             array.set(banner="")
         except Exception:
-            module.fail_json(msg='Failed to delete current MOTD banner text')
+            module.fail_json(msg="Failed to delete current MOTD banner text")
     module.exit_json(changed=changed)
 
 
 def main():
     argument_spec = purefa_argument_spec()
-    argument_spec.update(dict(
-        banner=dict(type='str', default="Welcome to the machine..."),
-        state=dict(type='str', default='present', choices=['present', 'absent']),
-    ))
+    argument_spec.update(
+        dict(
+            banner=dict(type="str", default="Welcome to the machine..."),
+            state=dict(type="str", default="present", choices=["present", "absent"]),
+        )
+    )
 
-    required_if = [('state', 'present', ['banner'])]
+    required_if = [("state", "present", ["banner"])]
 
-    module = AnsibleModule(argument_spec,
-                           required_if=required_if,
-                           supports_check_mode=True)
+    module = AnsibleModule(
+        argument_spec, required_if=required_if, supports_check_mode=True
+    )
 
-    state = module.params['state']
+    state = module.params["state"]
     array = get_system(module)
-    current_banner = array.get(banner=True)['banner']
+    current_banner = array.get(banner=True)["banner"]
     # set banner if empty value or value differs
-    if state == 'present' and (not current_banner or current_banner != module.params['banner']):
+    if state == "present" and (
+        not current_banner or current_banner != module.params["banner"]
+    ):
         set_banner(module, array)
     # clear banner if it has a value
-    elif state == 'absent' and current_banner:
+    elif state == "absent" and current_banner:
         delete_banner(module, array)
 
     module.exit_json(changed=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

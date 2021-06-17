@@ -1,0 +1,6 @@
+purestorage >= '1.19'
+py-pure-client >= '1.14'
+netaddr
+requests
+python >= '3.3'
+pycountry
