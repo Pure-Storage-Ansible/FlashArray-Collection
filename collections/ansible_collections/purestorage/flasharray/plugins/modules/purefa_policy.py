@@ -38,7 +38,7 @@ options:
   policy:
     description:
     - The type of policy to use
-    choices: [ nfs, smb, snapshot ]
+    choices: [ nfs, smb, snapshot, quota ]
     required: true
     type: str
   enabled:
@@ -66,7 +66,7 @@ options:
     - Specifies access control for the export
     choices: [ root-squash, no-root-squash ]
     type: str
-    default: root-squash
+    default: no-root-squash
   nfs_permission:
     description:
     - Specifies which read-write client access permissions are allowed for the export
@@ -103,22 +103,62 @@ options:
     description:
     - New name of policy
     type: str
+  directory:
+    description:
+    - Directories to have the quota rule applied to.
+    type: list
+    elements: str
+    version_added: 1.9.0
+  quota_limit:
+    description:
+    - Logical space limit of the share in M, G, T or P units. See examples.
+    - If size is not set at filesystem creation time the filesystem size becomes unlimited.
+    - This value cannot be set to 0.
+    type: str
+    version_added: 1.9.0
+  quota_notifications:
+    description:
+    - Targets to notify when usage approaches the quota limit.
+    - The list of notification targets is a comma-separated string
+    - If not specified, notification targets are not assigned.
+    type: list
+    elements: str
+    choices: [ user, group ]
+    version_added: 1.9.0
+  quota_enforced:
+    description:
+    - Defines if the directory quota is enforced.
+    default: true
+    type: bool
+  ignore_usage:
+    description:
+    -  Flag used to override checks for quota management
+       operations.
+    - If set to true, directory usage is not checked against the
+      quota_limits that are set.
+    - If set to false, the actual logical bytes in use are prevented
+      from exceeding the limits set on the directory.
+    - Client operations might be impacted.
+    - If the limit exceeds the quota, the client operation is not allowed.
+    default: false
+    type: bool
+    version_added: 1.9.0
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
 
 EXAMPLES = r"""
-- name: Create an NFS policy with no rules
+- name: Create an NFS policy with initial rule
   purefa_policy:
     name: export1
     policy: nfs
-    nfs_access: no-root-squash
+    nfs_access: root-squash
     nfs_permission: ro
     client: client1
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Create an NFS policy with initial rule
+- name: Create an empty NFS policy with no rules
   purefa_policy:
     name: export1
     policy: nfs
@@ -136,7 +176,7 @@ EXAMPLES = r"""
   purefa_policy:
     name: export1
     policy: nfs
-    nfs_access: no-root-squash
+    nfs_access: root-squash
     nfs_permission: ro
     client: client2
     fa_url: 10.10.10.2
@@ -168,6 +208,48 @@ EXAMPLES = r"""
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Create directory quota policy for directory bar
+  purefa_policy:
+    name: foo
+    directory:
+     - "foo:root"
+     - "bar:bin"
+    policy: quota
+    quota_limit: 10G
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Delete directory quota policy foo
+  purefa_policy:
+    name: foo
+    state: absent
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Create empty directory quota policy foo
+  purefa_policy:
+    name: foo
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Detach directory "foo:bar" from quota policy quota1
+  purefa_policy:
+    name: quota1
+    directory:
+     - "foo:bar"
+    state: absent
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Remove quota rule from quota policy foo
+  purefa_policy:
+    name: foo
+    policy: quota
+    quota_limit: 10G
+    state: absent
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
 
 RETURN = r"""
@@ -187,6 +269,33 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 )
 
 MIN_REQUIRED_API_VERSION = "2.3"
+MIN_QUOTA_API_VERSION = "2.7"
+
+
+def _human_to_bytes(size):
+    """Given a human-readable byte string (e.g. 2G, 30M),
+    return the number of bytes.  Will return 0 if the argument has
+    unexpected form.
+    """
+    bytes = size[:-1]
+    unit = size[-1].upper()
+    if bytes.isdigit():
+        bytes = int(bytes)
+        if unit == "P":
+            bytes *= 1125899906842624
+        elif unit == "T":
+            bytes *= 1099511627776
+        elif unit == "G":
+            bytes *= 1073741824
+        elif unit == "M":
+            bytes *= 1048576
+        elif unit == "K":
+            bytes *= 1024
+        else:
+            bytes = 0
+    else:
+        bytes = 0
+    return bytes
 
 
 def _convert_to_millisecs(hour):
@@ -240,7 +349,7 @@ def rename_policy(module, array):
                             module.params["name"], module.params["rename"]
                         )
                     )
-            else:
+            elif module.params["policy"] == "snapshot":
                 res = array.patch_policies_snapshot(
                     names=[module.params["name"]],
                     policy=flasharray.PolicyPatch(name=module.params["rename"]),
@@ -250,6 +359,19 @@ def rename_policy(module, array):
                 else:
                     module.fail_json(
                         msg="Failed to rename snapshot policy {0} to {1}".format(
+                            module.params["name"], module.params["rename"]
+                        )
+                    )
+            else:
+                res = array.patch_policies_quota(
+                    names=[module.params["name"]],
+                    policy=flasharray.PolicyPatch(name=module.params["rename"]),
+                )
+                if res.status_code == 200:
+                    changed = True
+                else:
+                    module.fail_json(
+                        msg="Failed to rename quota policy {0} to {1}".format(
                             module.params["name"], module.params["rename"]
                         )
                     )
@@ -341,7 +463,7 @@ def delete_policy(module, array):
                                     deleted.errors[0].message,
                                 )
                             )
-        else:
+        elif module.params["policy"] == "snapshot":
             if not module.params["snap_client_name"]:
                 res = array.delete_policies_snapshot(names=[module.params["name"]])
                 if res.status_code == 200:
@@ -381,7 +503,88 @@ def delete_policy(module, array):
                                     deleted.errors[0].message,
                                 )
                             )
-
+        else:
+            if module.params["quota_limit"]:
+                quota_limit = _human_to_bytes(module.params["quota_limit"])
+                rules = list(
+                    array.get_policies_quota_rules(
+                        policy_names=[module.params["name"]]
+                    ).items
+                )
+                if rules:
+                    for rule in range(0, len(rules)):
+                        if rules[rule].quota_limit == quota_limit:
+                            if (
+                                module.params["quota_enforced"] == rules[rule].enforced
+                                and ",".join(module.params["quota_notifications"])
+                                == rules[rule].notifications
+                            ):
+                                res = array.delete_policies_quota_rules(
+                                    policy_names=[module.params["name"]],
+                                    names=[rules[rule].name],
+                                )
+                                if res.status_code == 200:
+                                    changed = True
+                                else:
+                                    module.fail_json(
+                                        msg="Deletion of Quota rule failed. Error: {0}".format(
+                                            res.errors[0].message
+                                        )
+                                    )
+            if module.params["directory"]:
+                members = list(
+                    array.get_policies_quota_members(
+                        policy_names=[module.params["name"]]
+                    ).items
+                )
+                if members:
+                    for member in range(0, len(members)):
+                        if members[member].member.name in module.params["directory"]:
+                            res = array.delete_policies_quota_members(
+                                policy_names=[module.params["name"]],
+                                member_names=[members[member].member.name],
+                                member_types="directories",
+                            )
+                            if res.status_code != 200:
+                                module.fail_json(
+                                    msg="Deletion of Quota member {0} from policy {1}. Error: {2}".format(
+                                        members[member].member.name,
+                                        module.params["name"],
+                                        res.errors[0].message,
+                                    )
+                                )
+                            else:
+                                changed = True
+            if not module.params["quota_limit"] and not module.params["directory"]:
+                members = list(
+                    array.get_policies_quota_members(
+                        policy_names=[module.params["name"]]
+                    ).items
+                )
+                if members:
+                    member_names = []
+                    for member in range(0, len(members)):
+                        member_names.append(members[member].member.name)
+                    res = array.delete_policies_quota_members(
+                        policy_names=[module.params["name"]],
+                        member_names=member_names,
+                        member_types="directories",
+                    )
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Deletion of Quota members {0} failed. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
+                            )
+                        )
+                res = array.delete_policies_quota(names=[module.params["name"]])
+                if res.status_code == 200:
+                    changed = True
+                else:
+                    module.fail_json(
+                        msg="Deletion of Quota policy {0} failed. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
     module.exit_json(changed=changed)
 
 
@@ -448,7 +651,7 @@ def create_policy(module, array):
                         module.params["name"], created.errors[0].message
                     )
                 )
-        else:
+        elif module.params["policy"] == "snapshot":
             created = array.post_policies_snapshot(
                 names=[module.params["name"]],
                 policy=flasharray.PolicyPost(enabled=module.params["enabled"]),
@@ -493,6 +696,62 @@ def create_policy(module, array):
                         module.params["name"], created.errors[0].message
                     )
                 )
+        else:
+            created = array.post_policies_quota(
+                names=[module.params["name"]],
+                policy=flasharray.PolicyPost(enabled=module.params["enabled"]),
+            )
+            if created.status_code == 200:
+                changed = True
+                if module.params["quota_limit"]:
+                    quota = _human_to_bytes(module.params["quota_limit"])
+                    rules = flasharray.PolicyrulequotapostRules(
+                        enforced=module.params["quota_enforced"],
+                        quota_limit=quota,
+                        notifications=",".join(module.params["quota_notifications"]),
+                    )
+                    rule = flasharray.PolicyRuleQuotaPost(rules=[rules])
+                    quota_created = array.post_policies_quota_rules(
+                        policy_names=[module.params["name"]],
+                        rules=rule,
+                        ignore_usage=module.params["ignore_usage"],
+                    )
+                    if quota_created.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to create rule for Quota policy {0}. Error: {1}".format(
+                                module.params["name"], quota_created.errors[0].message
+                            )
+                        )
+                if module.params["directory"]:
+                    members = []
+                    for mem in range(0, len(module.params["directory"])):
+                        members.append(
+                            flasharray.PolicymemberpostMembers(
+                                member=flasharray.ReferenceWithType(
+                                    name=module.params["directory"][mem],
+                                    resource_type="directories",
+                                )
+                            )
+                        )
+                    member = flasharray.PolicyMemberPost(members=members)
+                    members_created = array.post_policies_quota_members(
+                        policy_names=[module.params["name"]],
+                        members=member,
+                        ignore_usage=module.params["ignore_usage"],
+                    )
+                    if members_created.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to add members to Quota policy {0}. Error: {1}".format(
+                                module.params["name"],
+                                members_created.errors[0].message,
+                            )
+                        )
+            else:
+                module.params(
+                    msg="Failed to create Quota policy {0}. Error: {1}".format(
+                        module.params["name"], created.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
@@ -500,7 +759,7 @@ def update_policy(module, array):
     """Update an existing policy including add/remove rules"""
     changed = True
     if not module.check_mode:
-        changed = changed_rule = changed_enable = False
+        changed = changed_rule = changed_enable = changed_quota = changed_member = False
         if module.params["policy"] == "nfs":
             try:
                 current_enabled = list(
@@ -538,10 +797,10 @@ def update_policy(module, array):
                             rule_name = rules[rule].name
                             break
                     if not rule_name:
-                        rules = flasharray.PolicyrulenfsclientpostRules(
-                            access=module.params["nfs_access"],
+                        rules = flasharray.PolicyrulesmbclientpostRules(
+                            anonymous_access_allowed=module.params["smb_anon_allowed"],
                             client=module.params["client"],
-                            permission=module.params["nfs_permission"],
+                            smb_encryption_required=module.params["smb_encrypt"],
                         )
                         rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
                         rule_created = array.post_policies_nfs_client_rules(
@@ -557,10 +816,10 @@ def update_policy(module, array):
                         else:
                             changed_rule = True
                 else:
-                    rules = flasharray.PolicyrulenfsclientpostRules(
-                        access=module.params["nfs_access"],
+                    rules = flasharray.PolicyrulesmbclientpostRules(
+                        anonymous_access_allowed=module.params["smb_anon_allowed"],
                         client=module.params["client"],
-                        permission=module.params["nfs_permission"],
+                        smb_encryption_required=module.params["smb_encrypt"],
                     )
                     rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
                     rule_created = array.post_policies_nfs_client_rules(
@@ -612,9 +871,9 @@ def update_policy(module, array):
                             break
                     if not rule_name:
                         rules = flasharray.PolicyrulesmbclientpostRules(
-                            anonymous_access_allowed=module.params["smb_anon_allowed"],
+                            access=module.params["nfs_access"],
                             client=module.params["client"],
-                            smb_encryption_required=module.params["smb_encrypt"],
+                            permission=module.params["nfs_permission"],
                         )
                         rule = flasharray.PolicyRuleSmbClientPost(rules=[rules])
                         rule_created = array.post_policies_smb_client_rules(
@@ -631,9 +890,9 @@ def update_policy(module, array):
                             changed_rule = True
                 else:
                     rules = flasharray.PolicyrulesmbclientpostRules(
-                        anonymous_access_allowed=module.params["smb_anon_allowed"],
+                        access=module.params["nfs_access"],
                         client=module.params["client"],
-                        smb_encryption_required=module.params["smb_encrypt"],
+                        permission=module.params["nfs_permission"],
                     )
                     rule = flasharray.PolicyRuleSmbClientPost(rules=[rules])
                     rule_created = array.post_policies_smb_client_rules(
@@ -647,7 +906,7 @@ def update_policy(module, array):
                         )
                     else:
                         changed_rule = True
-        else:
+        elif module.params["policy"] == "snapshot":
             try:
                 current_enabled = list(
                     array.get_policies_snapshot(names=[module.params["name"]]).items
@@ -661,7 +920,7 @@ def update_policy(module, array):
             if current_enabled != module.params["enabled"]:
                 res = array.patch_policies_snapshot(
                     names=[module.params["name"]],
-                    policy=flasharray.PolicyPost(enabled=module.params["enabled"]),
+                    policy=flasharray.PolicyPatch(enabled=module.params["enabled"]),
                 )
                 if res.status_code != 200:
                     module.exit_json(
@@ -764,7 +1023,184 @@ def update_policy(module, array):
                         )
                     else:
                         changed_rule = True
-        if changed_rule or changed_enable:
+        else:
+            current_enabled = list(
+                array.get_policies_quota(names=[module.params["name"]]).items
+            )[0].enabled
+            if current_enabled != module.params["enabled"]:
+                res = array.patch_policies_quota(
+                    names=[module.params["name"]],
+                    policy=flasharray.PolicyPatch(enabled=module.params["enabled"]),
+                )
+                if res.status_code != 200:
+                    module.exit_json(
+                        msg="Failed to enable/disable snapshot policy {0}".format(
+                            module.params["name"]
+                        )
+                    )
+                else:
+                    changed_enable = True
+            if module.params["directory"]:
+                current_members = list(
+                    array.get_policies_quota_members(
+                        policy_names=[module.params["name"]]
+                    ).items
+                )
+                if current_members:
+                    if module.params["state"] == "absent":
+                        for member in range(0, len(current_members)):
+                            if (
+                                current_members[member].member.name
+                                in module.params["directory"]
+                            ):
+                                res = array.delete_policies_quota_members(
+                                    policy_names=[module.params["name"]],
+                                    member_names=[current_members[member].member.name],
+                                )
+                                if res.status_code != 200:
+                                    module.fail_json(
+                                        msg="Failed to delete rule {0} from quota policy {1}. Error: {2}".format(
+                                            current_members[member].member.name,
+                                            module.params["name"],
+                                            rule_created.errors[0].message,
+                                        )
+                                    )
+                                else:
+                                    changed_member = True
+                    else:
+                        members = []
+                        cmembers = []
+                        for cmem in range(0, len(current_members)):
+                            cmembers.append(current_members[cmem].member.name)
+                        mem_diff = list(set(module.params["directory"]) - set(cmembers))
+                        if mem_diff:
+                            for mem in range(0, len(mem_diff)):
+                                members.append(
+                                    flasharray.PolicymemberpostMembers(
+                                        member=flasharray.ReferenceWithType(
+                                            name=mem_diff[mem],
+                                            resource_type="directories",
+                                        )
+                                    )
+                                )
+                            member = flasharray.PolicyMemberPost(members=members)
+                            members_created = array.post_policies_quota_members(
+                                policy_names=[module.params["name"]],
+                                members=member,
+                                ignore_usage=module.params["ignore_usage"],
+                            )
+                            if members_created.status_code != 200:
+                                module.fail_json(
+                                    msg="Failed to update members for Quota policy {0}. Error: {1}".format(
+                                        module.params["name"],
+                                        members_created.errors[0].message,
+                                    )
+                                )
+                            else:
+                                changed_member = True
+                else:
+                    members = []
+                    for mem in range(0, len(module.params["directory"])):
+                        members.append(
+                            flasharray.PolicymemberpostMembers(
+                                member=flasharray.ReferenceWithType(
+                                    name=module.params["directory"][mem],
+                                    resource_type="directories",
+                                )
+                            )
+                        )
+                    member = flasharray.PolicyMemberPost(members=members)
+                    members_created = array.post_policies_quota_members(
+                        policy_names=[module.params["name"]],
+                        members=member,
+                        ignore_usage=module.params["ignore_usage"],
+                    )
+                    if members_created.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to update members for Quota policy {0}. Error: {1}".format(
+                                module.params["name"],
+                                members_created.errors[0].message,
+                            )
+                        )
+                    else:
+                        changed_member = True
+            if module.params["quota_limit"]:
+                quota = _human_to_bytes(module.params["quota_limit"])
+                current_rules = list(
+                    array.get_policies_quota_rules(
+                        policy_names=[module.params["name"]]
+                    ).items
+                )
+                if current_rules:
+                    one_enforced = False
+                    for rule in range(0, len(current_rules)):
+                        if current_rules[rule].enforced:
+                            one_enforced = True
+                    for rule in range(0, len(current_rules)):
+                        rule_exists = False
+                        if not module.params["quota_notifications"]:
+                            current_notifications = "none"
+                        else:
+                            current_notifications = ",".join(
+                                module.params["quota_notifications"]
+                            )
+                        if (
+                            current_rules[rule].quota_limit == quota
+                            and current_rules[rule].enforced
+                            == module.params["quota_enforced"]
+                            and current_rules[rule].notifications
+                            == current_notifications
+                        ):
+                            rule_exists = True
+                    if not rule_exists:
+                        if module.params["quota_enforced"] and one_enforced:
+                            module.fail_json(
+                                msg="Only one enforced rule can be defined per policy"
+                            )
+                        rules = flasharray.PolicyrulequotapostRules(
+                            enforced=module.params["quota_enforced"],
+                            quota_limit=quota,
+                            notifications=",".join(
+                                module.params["quota_notifications"]
+                            ),
+                        )
+                        rule = flasharray.PolicyRuleQuotaPost(rules=[rules])
+                        quota_created = array.post_policies_quota_rules(
+                            policy_names=[module.params["name"]],
+                            rules=rule,
+                            ignore_usage=module.params["ignore_usage"],
+                        )
+                        if quota_created.status_code != 200:
+                            module.fail_json(
+                                msg="Failed to add new rule to Quota policy {0}. Error: {1}".format(
+                                    module.params["name"],
+                                    quota_created.errors[0].message,
+                                )
+                            )
+                        else:
+                            changed_quota = True
+                else:
+                    rules = flasharray.PolicyrulequotapostRules(
+                        enforced=module.params["quota_enforced"],
+                        quota_limit=quota,
+                        notifications=",".join(module.params["quota_notifications"]),
+                    )
+                    rule = flasharray.PolicyRuleQuotaPost(rules=[rules])
+                    quota_created = array.post_policies_quota_rules(
+                        policy_names=[module.params["name"]],
+                        rules=rule,
+                        ignore_usage=module.params["ignore_usage"],
+                    )
+                    if quota_created.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to add rule to Quota policy {0}. Error: {1}".format(
+                                module.params["name"], quota_created.errors[0].message
+                            )
+                        )
+                    else:
+                        changed_quota = True
+
+        if changed_rule or changed_enable or changed_quota or changed_member:
             changed = True
     module.exit_json(changed=changed)
 
@@ -776,11 +1212,13 @@ def main():
             state=dict(type="str", default="present", choices=["absent", "present"]),
             nfs_access=dict(
                 type="str",
-                default="root-squash",
+                default="no-root-squash",
                 choices=["root-squash", "no-root-squash"],
             ),
             nfs_permission=dict(type="str", default="rw", choices=["rw", "ro"]),
-            policy=dict(type="str", required=True, choices=["nfs", "smb", "snapshot"]),
+            policy=dict(
+                type="str", required=True, choices=["nfs", "smb", "snapshot", "quota"]
+            ),
             name=dict(type="str", required=True),
             rename=dict(type="str"),
             client=dict(type="str"),
@@ -791,6 +1229,13 @@ def main():
             snap_client_name=dict(type="str"),
             smb_anon_allowed=dict(type="bool", default=False),
             smb_encrypt=dict(type="bool", default=False),
+            ignore_usage=dict(type="bool", default=False),
+            quota_enforced=dict(type="bool", default=True),
+            quota_limit=dict(type="str"),
+            quota_notifications=dict(
+                type="list", elements="str", choices=["user", "group"]
+            ),
+            directory=dict(type="list", elements="str"),
         )
     )
 
@@ -809,8 +1254,24 @@ def main():
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
         )
+    if module.params["policy"] == "quota" and MIN_QUOTA_API_VERSION not in api_version:
+        module.fail_json(
+            msg="FlashArray REST version not supportedi for directory quotas. "
+            "Minimum version required: {0}".format(MIN_QUOTA_API_VERSION)
+        )
     array = get_array(module)
     state = module.params["state"]
+    if module.params["quota_notifications"]:
+        module.params["quota_notifications"].sort(reverse=True)
+        quota_notifications = []
+        [
+            quota_notifications.append(x)
+            for x in module.params["quota_notifications"]
+            if x not in quota_notifications
+        ]
+        module.params["quota_notifications"] = quota_notifications
+    else:
+        module.params["quota_notifications"] = []
 
     exists = bool(array.get_policies(names=[module.params["name"]]).status_code == 200)
 

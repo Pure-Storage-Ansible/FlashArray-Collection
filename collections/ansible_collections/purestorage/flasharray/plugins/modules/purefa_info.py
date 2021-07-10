@@ -403,6 +403,7 @@ purefa_info:
                         1
                     ]
                 ],
+                "page83_naa": "naa.624a937043BE47C12334399B00013959",
                 "serial": "43BE47C12334399B00013959",
                 "size": 68719476736,
                 "source": null
@@ -415,6 +416,7 @@ purefa_info:
                         1
                     ]
                 ],
+                "page83_naa": "naa.624a937043BE47C12334399B00011418",
                 "serial": "43BE47C12334399B00011418",
                 "size": 21474836480,
                 "source": null
@@ -447,6 +449,7 @@ V6_MINIMUM_API_VERSION = "2.2"
 FILES_API_VERSION = "2.3"
 FC_REPL_API_VERSION = "2.4"
 ENCRYPTION_STATUS_API_VERSION = "2.6"
+DIR_QUOTA_API_VERSION = "2.7"
 PURE_OUI = "naa.624a9370"
 
 
@@ -465,6 +468,8 @@ def generate_default_dict(module, array):
         default_info["directory_snapshots"] = len(
             arrayv6.get_directory_snapshots().items
         )
+        if DIR_QUOTA_API_VERSION in api_version:
+            default_info["quota_policies"] = len(arrayv6.get_policies_quota().items)
         if ENCRYPTION_STATUS_API_VERSION in api_version:
             array_data = list(arrayv6.get_arrays().items)[0]
             encryption = array_data.encryption
@@ -688,7 +693,7 @@ def generate_dir_snaps_dict(array):
     return dir_snaps_info
 
 
-def generate_policies_dict(array):
+def generate_policies_dict(array, quota_available):
     policy_info = {}
     policies = list(array.get_policies().items)
     for policy in range(0, len(policies)):
@@ -697,11 +702,61 @@ def generate_policies_dict(array):
             "type": policies[policy].policy_type,
             "enabled": policies[policy].enabled,
             "members": [],
+            "rules": [],
         }
         members = list(array.get_directories_policies(policy_names=[p_name]).items)
         for member in range(0, len(members)):
             m_name = members[member].member.name
             policy_info[p_name]["members"].append(m_name)
+        if policies[policy].policy_type == "smb":
+            rules = list(
+                array.get_policies_smb_client_rules(policy_names=[p_name]).items
+            )
+            for rule in range(0, len(rules)):
+                smb_rules_dict = {
+                    "client": rules[rule].client,
+                    "smb_encryption_required": rules[rule].smb_encryption_required,
+                    "anonymous_access_allowed": rules[rule].anonymous_access_allowed,
+                }
+                policy_info[p_name]["rules"].append(smb_rules_dict)
+        if policies[policy].policy_type == "nfs":
+            rules = list(
+                array.get_policies_nfs_client_rules(policy_names=[p_name]).items
+            )
+            for rule in range(0, len(rules)):
+                nfs_rules_dict = {
+                    "access": rules[rule].access,
+                    "permission": rules[rule].permission,
+                    "client": rules[rule].client,
+                }
+                policy_info[p_name]["rules"].append(nfs_rules_dict)
+        if policies[policy].policy_type == "snapshot":
+            rules = list(array.get_policies_snapshot_rules(policy_names=[p_name]).items)
+            for rule in range(0, len(rules)):
+                try:
+                    snap_rules_dict = {
+                        "at": str(int(rules[rule].at / 3600000)).zfill(2) + ":00",
+                        "client_name": rules[rule].client_name,
+                        "every": str(int(rules[rule].every / 60000)) + " mins",
+                        "keep_for": str(int(rules[rule].keep_for / 60000)) + " mins",
+                    }
+                except AttributeError:
+                    snap_rules_dict = {
+                        "at": None,
+                        "client_name": rules[rule].client_name,
+                        "every": str(int(rules[rule].every / 60000)) + " mins",
+                        "keep_for": str(int(rules[rule].keep_for / 60000)) + " mins",
+                    }
+                policy_info[p_name]["rules"].append(snap_rules_dict)
+        if policies[policy].policy_type == "quota" and quota_available:
+            rules = list(array.get_policies_quota_rules(policy_names=[p_name]).items)
+            for rule in range(0, len(rules)):
+                quota_rules_dict = {
+                    "enforced": rules[rule].enforced,
+                    "quota_limit": rules[rule].quota_limit,
+                    "notifications": rules[rule].notifications,
+                }
+                policy_info[p_name]["rules"].append(quota_rules_dict)
     return policy_info
 
 
@@ -1582,7 +1637,11 @@ def main():
         if "filesystems" in subset or "all" in subset:
             info["filesystems"] = generate_filesystems_dict(array_v6)
         if "policies" in subset or "all" in subset:
-            info["policies"] = generate_policies_dict(array_v6)
+            if DIR_QUOTA_API_VERSION in api_version:
+                quota = True
+            else:
+                quota = False
+            info["policies"] = generate_policies_dict(array_v6, quota)
         if "clients" in subset or "all" in subset:
             info["clients"] = generate_clients_dict(array_v6)
         if "dir_snaps" in subset or "all" in subset:
