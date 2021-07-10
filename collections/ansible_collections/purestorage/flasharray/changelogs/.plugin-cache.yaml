@@ -1,3 +1,4 @@
+objects: {}
 plugins:
   become: {}
   cache: {}
@@ -8,6 +9,11 @@ plugins:
   inventory: {}
   lookup: {}
   module:
+    purefa_ad:
+      description: Manage FlashArray Active Directory Account
+      name: purefa_ad
+      namespace: ''
+      version_added: 1.9.0
     purefa_alert:
       description: Configure Pure Storage FlashArray alert email settings
       name: purefa_alert
@@ -48,6 +54,11 @@ plugins:
       name: purefa_directory
       namespace: ''
       version_added: 1.5.0
+    purefa_dirsnap:
+      description: Manage FlashArray File System Directory Snapshots
+      name: purefa_dirsnap
+      namespace: ''
+      version_added: 1.9.0
     purefa_dns:
       description: Configure FlashArray DNS settings
       name: purefa_dns
@@ -68,6 +79,11 @@ plugins:
       name: purefa_endpoint
       namespace: ''
       version_added: 1.0.0
+    purefa_eradication:
+      description: Configure Pure Storage FlashArray Eradication Timer
+      name: purefa_eradication
+      namespace: ''
+      version_added: 1.9.0
     purefa_eula:
       description: Sign Pure Storage FlashArray EULA
       name: purefa_eula
@@ -189,6 +205,11 @@ plugins:
       name: purefa_snmp
       namespace: ''
       version_added: 1.0.0
+    purefa_sso:
+      description: Configure Pure Storage FlashArray Single Sign-On
+      name: purefa_sso
+      namespace: ''
+      version_added: 1.9.0
     purefa_subnet:
       description: Manage network subnets in a Pure Storage FlashArray
       name: purefa_subnet
@@ -238,4 +259,4 @@ plugins:
   shell: {}
   strategy: {}
   vars: {}
-version: 1.8.0
+version: 1.9.0

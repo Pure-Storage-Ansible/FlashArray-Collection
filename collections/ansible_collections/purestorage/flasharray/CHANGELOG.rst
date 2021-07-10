@@ -5,6 +5,41 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.9.0
+======
+
+Minor Changes
+-------------
+
+- purefa_ad - Increase number of kerberos and directory servers to be 3 for each.
+- purefa_ad - New module to manage Active Directory accounts
+- purefa_dirsnap - New modules to manage FA-Files directory snapshots
+- purefa_eradication - New module to set deleted items eradication timer
+- purefa_info - Add data-at-rest and eradication timer information to default dict
+- purefa_info - Add high-level count for directory quotas and details for all FA-Files policies
+- purefa_info - Add volume Page 83 NAA information for volume details
+- purefa_network - Add support for enable/diable FC ports
+- purefa_policy - Add support for FA-files Directory Quotas and associated rules and members
+- purefa_sso - Add support for setting FlashArray Single Sign-On from Pure1 Manage
+- purefa_volume - Add volume Page 83 NAA information to response dict
+
+Bugfixes
+--------
+
+- purefa_host - Rollback host creation if initiators already used by another host
+- purefa_policy - Fix incorrect protocol endpoint invocation
+- purefa_ra - fix disable feature for remote assist, this didn't work due to error in check logic
+- purefa_vg - Correct issue when setting or changing Volume Group QoS
+- purefa_volume - Fix incorrect API version check for ActiveDR support
+
+New Modules
+-----------
+
+- purestorage.flasharray.purefa_ad - Manage FlashArray Active Directory Account
+- purestorage.flasharray.purefa_dirsnap - Manage FlashArray File System Directory Snapshots
+- purestorage.flasharray.purefa_eradication - Configure Pure Storage FlashArray Eradication Timer
+- purestorage.flasharray.purefa_sso - Configure Pure Storage FlashArray Single Sign-On
+
 v1.8.0
 ======
 
@@ -12,13 +47,13 @@ Minor Changes
 -------------
 
 - purefa_certs - New module for managing SSL certificates
-- purefa_volume - New parameter pgroup to specify an existing protection group to put created volume(s) in.
+- purefa_volume - New parameter pgroup to specify an existing protection group to put crwated volume(s) in.
 
 Bugfixes
 --------
 
 - purefa_dsrole - If using None for group or group_base incorrect change state applied
-- purefa_network - Allow gateway parameter to be set as None - needed for non-routing iSCSI ports
+- purefa_network - Allow gateway paremeter to be set as None - needed for non-routing iSCSI ports
 - purefa_pg - Check to ensure protection group name meets naming convention
 - purefa_pgsnap - Fail with warning if trying to restore to a stretched ActiveCluster pod
 - purefa_volume - Ensure REST version is high enough to support promotion_status
