@@ -56,6 +56,11 @@ options:
     - If not provided the ID will be automatically assigned.
     - Range for LUN ID is 1 to 4095.
     type: int
+  rename:
+    description:
+    - New name of hostgroup
+    type: str
+    version_added: '1.10.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -100,6 +105,13 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
 
+- name: Rename hostgroup
+  purefa_hg:
+    hostgroup: foo
+    rename: bar
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
 - name: Create host group with hosts and volumes
   purefa_hg:
     hostgroup: bar
@@ -123,6 +135,17 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 )
 
 
+def rename_exists(module, array):
+    """Determine if rename target already exists"""
+    exists = False
+    new_name = module.params["rename"]
+    for hgroup in array.list_hgroups():
+        if hgroup["name"].lower() == new_name.lower():
+            exists = True
+            break
+    return exists
+
+
 def get_hostgroup(module, array):
 
     hostgroup = None
@@ -136,7 +159,12 @@ def get_hostgroup(module, array):
 
 
 def make_hostgroup(module, array):
-
+    if module.params["rename"]:
+        module.fail_json(
+            msg="Hostgroup {0} does not exist - rename failed.".format(
+                module.params["hostgroup"]
+            )
+        )
     changed = True
     if not module.check_mode:
         try:
@@ -174,18 +202,36 @@ def update_hostgroup(module, array):
     changed = True
     if not module.check_mode:
         changed = False
+        renamed = False
         hgroup = get_hostgroup(module, array)
+        current_hostgroup = module.params["hostgroup"]
         volumes = array.list_hgroup_connections(module.params["hostgroup"])
         if module.params["state"] == "present":
+            if module.params["rename"]:
+                if not rename_exists(module, array):
+                    try:
+                        array.rename_hgroup(
+                            module.params["hostgroup"], module.params["rename"]
+                        )
+                        current_hostgroup = module.params["rename"]
+                        renamed = True
+                    except Exception:
+                        module.fail_json(
+                            msg="Rename to {0} failed.".format(module.params["rename"])
+                        )
+                else:
+                    module.warn(
+                        "Rename failed. Hostgroup {0} already exists. Continuing with other changes...".format(
+                            module.params["rename"]
+                        )
+                    )
             if module.params["host"]:
                 cased_hosts = [host.lower() for host in module.params["host"]]
                 cased_hghosts = [host.lower() for host in hgroup["hosts"]]
                 new_hosts = list(set(cased_hosts).difference(cased_hghosts))
                 if new_hosts:
                     try:
-                        array.set_hgroup(
-                            module.params["hostgroup"], addhostlist=new_hosts
-                        )
+                        array.set_hgroup(current_hostgroup, addhostlist=new_hosts)
                         changed = True
                     except Exception:
                         module.fail_json(msg="Failed to add host(s) to hostgroup")
@@ -197,7 +243,7 @@ def update_hostgroup(module, array):
                     if len(new_volumes) == 1 and module.params["lun"]:
                         try:
                             array.connect_hgroup(
-                                module.params["hostgroup"],
+                                current_hostgroup,
                                 new_volumes[0],
                                 lun=module.params["lun"],
                             )
@@ -211,19 +257,19 @@ def update_hostgroup(module, array):
                     else:
                         for cvol in new_volumes:
                             try:
-                                array.connect_hgroup(module.params["hostgroup"], cvol)
+                                array.connect_hgroup(current_hostgroup, cvol)
                                 changed = True
                             except Exception:
                                 module.fail_json(
                                     msg="Failed to connect volume {0} to hostgroup {1}.".format(
-                                        cvol, module.params["hostgroup"]
+                                        cvol, current_hostgroup
                                     )
                                 )
                 else:
                     if len(module.params["volume"]) == 1 and module.params["lun"]:
                         try:
                             array.connect_hgroup(
-                                module.params["hostgroup"],
+                                current_hostgroup,
                                 module.params["volume"][0],
                                 lun=module.params["lun"],
                             )
@@ -237,12 +283,12 @@ def update_hostgroup(module, array):
                     else:
                         for cvol in module.params["volume"]:
                             try:
-                                array.connect_hgroup(module.params["hostgroup"], cvol)
+                                array.connect_hgroup(current_hostgroup, cvol)
                                 changed = True
                             except Exception:
                                 module.fail_json(
                                     msg="Failed to connect volume {0} to hostgroup {1}.".format(
-                                        cvol, module.params["hostgroup"]
+                                        cvol, current_hostgroup
                                     )
                                 )
         else:
@@ -252,14 +298,12 @@ def update_hostgroup(module, array):
                 old_hosts = list(set(cased_old_hosts).intersection(cased_hosts))
                 if old_hosts:
                     try:
-                        array.set_hgroup(
-                            module.params["hostgroup"], remhostlist=old_hosts
-                        )
+                        array.set_hgroup(current_hostgroup, remhostlist=old_hosts)
                         changed = True
                     except Exception:
                         module.fail_json(
                             msg="Failed to remove hosts {0} from hostgroup {1}".format(
-                                old_hosts, module.params["hostgroup"]
+                                old_hosts, current_hostgroup
                             )
                         )
             if module.params["volume"]:
@@ -271,15 +315,15 @@ def update_hostgroup(module, array):
                 )
                 for cvol in old_volumes:
                     try:
-                        array.disconnect_hgroup(module.params["hostgroup"], cvol)
+                        array.disconnect_hgroup(current_hostgroup, cvol)
                         changed = True
                     except Exception:
                         module.fail_json(
                             msg="Failed to disconnect volume {0} from hostgroup {1}".format(
-                                cvol, module.params["hostgroup"]
+                                cvol, current_hostgroup
                             )
                         )
-
+    changed = changed or renamed
     module.exit_json(changed=changed)
 
 
@@ -331,6 +375,7 @@ def main():
             state=dict(type="str", default="present", choices=["absent", "present"]),
             host=dict(type="list", elements="str"),
             lun=dict(type="int"),
+            rename=dict(type="str"),
             volume=dict(type="list", elements="str"),
         )
     )
