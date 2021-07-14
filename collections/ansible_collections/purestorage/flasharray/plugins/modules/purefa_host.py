@@ -339,7 +339,6 @@ def _set_host_initiators(module, array):
     if module.params["protocol"].lower() in ["fc", "mixed"]:
         if module.params["wwns"]:
             try:
-                module.warn("Here")
                 array.set_host(module.params["name"], wwnlist=module.params["wwns"])
             except Exception:
                 array.delete_host(module.params["name"])
