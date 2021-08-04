@@ -32,7 +32,8 @@ options:
       - FlashArray API token for admin privileged user.
     type: str
 notes:
-  - This module requires the C(purestorage) Python library
+  - This module requires the C(purestorage) and C(py-pure-client) Python libraries
+  - Additional Python librarues may be required for specific modules.
   - You must set C(PUREFA_URL) and C(PUREFA_API) environment variables
     if I(fa_url) and I(api_token) arguments are not passed to the module directly
 requirements:
