@@ -81,6 +81,15 @@ options:
     - Do a local-only delete of an active directory account
     type: bool
     default: false
+  join_ou:
+    description:
+    - Distinguished name of organization unit in which the computer account
+      should be created when joining the domain. e.g. OU=Arrays,OU=Storage.
+    - The B(DC=...) components can be omitted.
+    - If left empty, defaults to B(CN=Computers).
+    - Requires Purity//FA 6.1.8 or higher
+    type: str
+    version_added: '1.10.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -89,8 +98,9 @@ EXAMPLES = r"""
 - name: Create new AD account
   purefa_ad:
     name: ad_account
-    computer: FLASHBLADE
+    computer: FLASHARRAY
     domain: acme.com
+    join_ou: "OU=Acme,OU=Dev"
     username: Administrator
     password: Password
     kerberos_servers:
@@ -98,20 +108,20 @@ EXAMPLES = r"""
     directory_servers:
     - ldap.acme.com
     fa_url: 10.10.10.2
-    api_token: T-55a68eb5-c785-4720-a2ca-8b03903bf641
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete AD account locally
   purefa_ad:
     name: ad_account
     local_only: True
     fa_url: 10.10.10.2
-    api_token: T-55a68eb5-c785-4720-a2ca-8b03903bf641
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Fully delete AD account. Note that correct AD permissions are required
   purefa_ad:
     name: ad_account
     fa_url: 10.10.10.2
-    api_token: T-55a68eb5-c785-4720-a2ca-8b03903bf641
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
 
 RETURN = r"""
@@ -132,6 +142,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 MIN_REQUIRED_API_VERSION = "2.2"
 SERVER_API_VERSION = "2.6"
+MIN_JOIN_OU_API_VERSION = "2.8"
 
 
 def delete_account(module, array):
@@ -150,17 +161,28 @@ def delete_account(module, array):
     module.exit_json(changed=changed)
 
 
-def create_account(module, array):
+def create_account(module, array, api_version):
     """Create Active Directory Account"""
     changed = True
-    ad_config = ActiveDirectoryPost(
-        computer_name=module.params["computer"],
-        directory_servers=module.params["directory_servers"],
-        kerberos_servers=module.params["kerberos_servers"],
-        domain=module.params["domain"],
-        user=module.params["username"],
-        password=module.params["password"],
-    )
+    if MIN_JOIN_OU_API_VERSION not in api_version:
+        ad_config = ActiveDirectoryPost(
+            computer_name=module.params["computer"],
+            directory_servers=module.params["directory_servers"],
+            kerberos_servers=module.params["kerberos_servers"],
+            domain=module.params["domain"],
+            user=module.params["username"],
+            password=module.params["password"],
+        )
+    else:
+        ad_config = ActiveDirectoryPost(
+            computer_name=module.params["computer"],
+            directory_servers=module.params["directory_servers"],
+            kerberos_servers=module.params["kerberos_servers"],
+            domain=module.params["domain"],
+            user=module.params["username"],
+            join_ou=module.params["join_ou"],
+            password=module.params["password"],
+        )
     if not module.check_mode:
         res = array.post_active_directory(
             names=[module.params["name"]],
@@ -186,6 +208,7 @@ def main():
             computer=dict(type="str"),
             local_only=dict(type="bool", default=False),
             domain=dict(type="str"),
+            join_ou=dict(type="str"),
             directory_servers=dict(type="list", elements="str"),
             kerberos_servers=dict(type="list", elements="str"),
         )
@@ -225,9 +248,8 @@ def main():
             module.params["directory_servers"] = module.params["directory_servers"][0:3]
         else:
             module.params["directory_servers"] = module.params["directory_servers"][0:1]
-
     if not exists and state == "present":
-        create_account(module, array)
+        create_account(module, array, api_version)
     elif exists and state == "absent":
         delete_account(module, array)
 
