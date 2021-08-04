@@ -119,6 +119,11 @@ plugins:
       name: purefa_inventory
       namespace: ''
       version_added: 1.0.0
+    purefa_kmip:
+      description: Manage FlashArray KMIP server objects
+      name: purefa_kmip
+      namespace: ''
+      version_added: 1.10.0
     purefa_maintenance:
       description: Configure Pure Storage FlashArray Maintence Windows
       name: purefa_maintenance
@@ -259,4 +264,4 @@ plugins:
   shell: {}
   strategy: {}
   vars: {}
-version: 1.9.0
+version: 1.10.0

@@ -1,5 +1,18 @@
 ancestor: null
 releases:
+  1.10.0:
+    changes:
+      minor_changes:
+      - purefa_ds - Add ``join_ou`` parameter for AD account creation
+      - purefa_kmip - Add support for KMIP server management
+    fragments:
+    - 213_add_kmip.yaml
+    - 214_join_ou.yaml
+    modules:
+    - description: Manage FlashArray KMIP server objects
+      name: purefa_kmip
+      namespace: ''
+    release_date: '2021-08-04'
   1.4.0:
     changes:
       bugfixes:

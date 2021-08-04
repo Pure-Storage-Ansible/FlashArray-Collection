@@ -5,6 +5,20 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.10.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_ds - Add ``join_ou`` parameter for AD account creation
+- purefa_kmip - Add support for KMIP server management
+
+New Modules
+-----------
+
+- purestorage.flasharray.purefa_kmip - Manage FlashArray KMIP server objects
+
 v1.9.0
 ======
 
