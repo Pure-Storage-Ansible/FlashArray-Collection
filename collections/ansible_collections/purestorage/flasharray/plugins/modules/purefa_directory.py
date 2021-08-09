@@ -116,13 +116,13 @@ def delete_dir(module, array):
 
 def rename_dir(module, array):
     """Recover a file system"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        target = array.get_directories(
-            names=[module.params["filesystem"] + ":" + module.params["rename"]]
-        )
-        if target.status_code != 200:
+    changed = False
+    target = array.get_directories(
+        names=[module.params["filesystem"] + ":" + module.params["rename"]]
+    )
+    if target.status_code != 200:
+        if not module.check_mode:
+            changed = True
             directory = flasharray.DirectoryPatch(
                 name=module.params["filesystem"] + ":" + module.params["rename"]
             )
@@ -134,34 +134,30 @@ def rename_dir(module, array):
                 module.fail_json(
                     msg="Failed to delete file system {0}".format(module.params["name"])
                 )
-            else:
-                changed = True
-        else:
-            module.fail_json(
-                msg="Target file system {0} already exists".format(
-                    module.params["rename"]
-                )
-            )
+    else:
+        module.fail_json(
+            msg="Target file system {0} already exists".format(module.params["rename"])
+        )
     module.exit_json(changed=changed)
 
 
 def create_dir(module, array):
     """Create a file system directory"""
+    changed = False
+    if not module.params["path"]:
+        module.params["path"] = module.params["name"]
+    all_fs = list(
+        array.get_directories(file_system_names=[module.params["filesystem"]]).items
+    )
+    for check in range(0, len(all_fs)):
+        if module.params["path"] == all_fs[check].path[1:]:
+            module.fail_json(
+                msg="Path {0} already existis in file system {1}".format(
+                    module.params["path"], module.params["filesystem"]
+                )
+            )
     changed = True
     if not module.check_mode:
-        changed = False
-        if not module.params["path"]:
-            module.params["path"] = module.params["name"]
-        all_fs = list(
-            array.get_directories(file_system_names=[module.params["filesystem"]]).items
-        )
-        for check in range(0, len(all_fs)):
-            if module.params["path"] == all_fs[check].path[1:]:
-                module.fail_json(
-                    msg="Path {0} already existis in file system {1}".format(
-                        module.params["path"], module.params["filesystem"]
-                    )
-                )
         directory = flasharray.DirectoryPost(
             directory_name=module.params["name"], path=module.params["path"]
         )
@@ -174,8 +170,6 @@ def create_dir(module, array):
                     module.params["name"], res.errors[0].message
                 )
             )
-        else:
-            changed = True
     module.exit_json(changed=changed)
 
 

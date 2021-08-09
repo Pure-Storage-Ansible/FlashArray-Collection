@@ -69,11 +69,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 def set_banner(module, array):
     """Set MOTD banner text"""
     changed = True
+    if not module.params["banner"]:
+        module.fail_json(msg="Invalid MOTD banner given")
     if not module.check_mode:
         try:
-            if not module.params["banner"]:
-                module.fail_json(msg="Invalid MOTD banner given")
-
             array.set(banner=module.params["banner"])
         except Exception:
             module.fail_json(msg="Failed to set MOTD banner text")
