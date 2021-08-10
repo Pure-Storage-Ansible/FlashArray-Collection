@@ -83,36 +83,36 @@ def remove(duplicate):
 
 def delete_dns(module, array):
     """Delete DNS settings"""
-    changed = True
-    if not module.check_mode:
-        current_dns = array.get_dns()
-        if current_dns["domain"] == "" and current_dns["nameservers"] == [""]:
-            module.exit_json(changed=changed)
-        else:
-            try:
+    changed = False
+    current_dns = array.get_dns()
+    if current_dns["domain"] == "" and current_dns["nameservers"] == [""]:
+        module.exit_json(changed=changed)
+    else:
+        try:
+            changed = True
+            if not module.check_mode:
                 array.set_dns(domain="", nameservers=[])
-            except Exception:
-                module.fail_json(msg="Delete DNS settigs failed")
+        except Exception:
+            module.fail_json(msg="Delete DNS settigs failed")
     module.exit_json(changed=changed)
 
 
 def create_dns(module, array):
     """Set DNS settings"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        current_dns = array.get_dns()
-        if current_dns["domain"] != module.params["domain"] or sorted(
-            module.params["nameservers"]
-        ) != sorted(current_dns["nameservers"]):
-            try:
+    changed = False
+    current_dns = array.get_dns()
+    if current_dns["domain"] != module.params["domain"] or sorted(
+        module.params["nameservers"]
+    ) != sorted(current_dns["nameservers"]):
+        try:
+            changed = True
+            if not module.check_mode:
                 array.set_dns(
                     domain=module.params["domain"],
                     nameservers=module.params["nameservers"][0:3],
                 )
-                changed = True
-            except Exception:
-                module.fail_json(msg="Set DNS settings failed: Check configuration")
+        except Exception:
+            module.fail_json(msg="Set DNS settings failed: Check configuration")
     module.exit_json(changed=changed)
 
 

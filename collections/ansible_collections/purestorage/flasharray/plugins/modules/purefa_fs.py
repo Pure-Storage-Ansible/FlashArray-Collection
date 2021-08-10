@@ -146,15 +146,14 @@ def eradicate_fs(module, array):
 
 def rename_fs(module, array):
     """Rename a file system"""
-    changed = True
-    if not module.check_mode:
-        try:
-            target = list(
-                array.get_file_systems(names=[module.params["rename"]]).items
-            )[0]
-        except Exception:
-            target = None
-        if not target:
+    changed = False
+    try:
+        target = list(array.get_file_systems(names=[module.params["rename"]]).items)[0]
+    except Exception:
+        target = None
+    if not target:
+        changed = True
+        if not module.check_mode:
             try:
                 file_system = flasharray.FileSystemPatch(name=module.params["rename"])
                 array.patch_file_systems(
@@ -164,12 +163,10 @@ def rename_fs(module, array):
                 module.fail_json(
                     msg="Failed to rename file system {0}".format(module.params["name"])
                 )
-        else:
-            module.fail_json(
-                msg="Target file system {0} already exists".format(
-                    module.params["rename"]
-                )
-            )
+    else:
+        module.fail_json(
+            msg="Target file system {0} already exists".format(module.params["rename"])
+        )
     module.exit_json(changed=changed)
 
 

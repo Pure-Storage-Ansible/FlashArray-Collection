@@ -71,25 +71,26 @@ EULA_API_VERSION = "1.17"
 
 def set_eula(module, array):
     """Sign EULA"""
-    changed = True
-    if not module.check_mode:
+    changed = False
+    try:
+        current_eula = array.get_eula()
+    except Exception:
+        module.fail_json(msg="Failed to get current EULA")
+    if (
+        current_eula["company"] != module.params["company"]
+        or current_eula["title"] != module.params["title"]
+        or current_eula["name"] != module.params["name"]
+    ):
         try:
-            current_eula = array.get_eula()
-        except Exception:
-            module.fail_json(msg="Failed to get current EULA")
-        if (
-            current_eula["company"] != module.params["company"]
-            or current_eula["title"] != module.params["title"]
-            or current_eula["name"] != module.params["name"]
-        ):
-            try:
+            changed = True
+            if not module.check_mode:
                 array.set_eula(
                     company=module.params["company"],
                     title=module.params["title"],
                     name=module.params["name"],
                 )
-            except Exception:
-                module.fail_json(msg="Signing EULA failed")
+        except Exception:
+            module.fail_json(msg="Signing EULA failed")
     module.exit_json(changed=changed)
 
 
