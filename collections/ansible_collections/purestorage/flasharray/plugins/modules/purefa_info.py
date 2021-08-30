@@ -450,6 +450,7 @@ FILES_API_VERSION = "2.3"
 FC_REPL_API_VERSION = "2.4"
 ENCRYPTION_STATUS_API_VERSION = "2.6"
 DIR_QUOTA_API_VERSION = "2.7"
+SHARED_CAP_API_VERSION = "2.9"
 PURE_OUI = "naa.624a9370"
 
 
@@ -554,8 +555,8 @@ def generate_config_dict(module, array):
         for service in range(0, len(services)):
             service_type = services[service].name
             config_info["directory_service"][service_type] = {
-                "base_dn": services[service].base_dn,
-                "bind_user": services[service].bind_user,
+                "base_dn": getattr(services[service], "base_dn", "None"),
+                "bind_user": getattr(services[service], "bind_user", "None"),
                 "enabled": services[service].enabled,
                 "services": services[service].services,
                 "uris": services[service].uris,
@@ -573,16 +574,6 @@ def generate_config_dict(module, array):
                 pass
     else:
         config_info["directory_service"] = {}
-        # TODO: Remove for 1.7.0 release from here...
-        config_info["directory_service"] = array.get_directory_service()
-        module.warn(
-            "Deprecation Notice: The 'directory_services' dictionary moves previous entries"
-        )
-        module.warn(
-            "down into a 'management' sub-dictionary. Please amend your playbooks as necessary"
-        )
-        module.warn("The old dictionary entries will be removed in Collections 1.7.0")
-        # to here.
         config_info["directory_service"]["management"] = array.get_directory_service()
         if S3_REQUIRED_API_VERSION in api_version:
             config_info["directory_service_roles"] = {}
@@ -834,10 +825,30 @@ def generate_network_dict(array):
     return net_info
 
 
-def generate_capacity_dict(array):
+def generate_capacity_dict(module, array):
     capacity_info = {}
     api_version = array._list_available_rest_versions()
-    if CAP_REQUIRED_API_VERSION in api_version:
+    if V6_MINIMUM_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        total_capacity = list(arrayv6.get_arrays().items)[0].capacity
+        capacity = list(arrayv6.get_arrays_space().items)[0]
+        capacity_info["provisioned_space"] = capacity.space["total_provisioned"]
+        capacity_info["free_space"] = total_capacity - capacity.space["total_physical"]
+        capacity_info["total_capacity"] = total_capacity
+        capacity_info["data_reduction"] = capacity.space["data_reduction"]
+        capacity_info["system_space"] = capacity.space["system"]
+        capacity_info["volume_space"] = capacity.space["unique"]
+        capacity_info["shared_space"] = capacity.space["shared"]
+        capacity_info["snapshot_space"] = capacity.space["snapshots"]
+        capacity_info["thin_provisioning"] = capacity.space["thin_provisioning"]
+        capacity_info["total_reduction"] = capacity.space["total_reduction"]
+        capacity_info["replication"] = capacity.space["replication"]
+        if SHARED_CAP_API_VERSION in api_version:
+            capacity_info["shared_effective"] = capacity.space["shared_effective"]
+            capacity_info["snapshots_effective"] = capacity.space["snapshots_effective"]
+            capacity_info["unique_effective"] = capacity.space["total_effective"]
+            capacity_info["total_effective"] = capacity.space["total_effective"]
+    elif CAP_REQUIRED_API_VERSION in api_version:
         volumes = array.list_volumes(pending=True)
         capacity_info["provisioned_space"] = sum(item["size"] for item in volumes)
         capacity = array.get(space=True)
@@ -858,6 +869,9 @@ def generate_capacity_dict(array):
 def generate_snap_dict(module, array):
     snap_info = {}
     api_version = array._list_available_rest_versions()
+    if FC_REPL_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        snapsv6 = list(arrayv6.get_volume_snapshots(destroyed=False).items)
     snaps = array.list_volumes(snap=True)
     for snap in range(0, len(snaps)):
         snapshot = snaps[snap]["name"]
@@ -869,7 +883,18 @@ def generate_snap_dict(module, array):
             "remote": [],
         }
     if FC_REPL_API_VERSION in api_version:
-        arrayv6 = get_array(module)
+        for snap in range(0, len(snapsv6)):
+            snapshot = snapsv6[snap].name
+            snap_info[snapshot]["snapshot_space"] = snapsv6[snap].space.snapshots
+            snap_info[snapshot]["total_physical"] = snapsv6[snap].space.total_physical
+            snap_info[snapshot]["total_provisioned"] = snapsv6[
+                snap
+            ].space.total_provisioned
+            snap_info[snapshot]["unique_space"] = snapsv6[snap].space.unique
+            if SHARED_CAP_API_VERSION in api_version:
+                snap_info[snapshot]["snapshots_effective"] = snapsv6[
+                    snap
+                ].space.snapshots_effective
         offloads = list(arrayv6.get_offloads().items)
         for offload in range(0, len(offloads)):
             offload_name = offloads[offload].name
@@ -927,6 +952,9 @@ def generate_snap_dict(module, array):
 def generate_del_snap_dict(module, array):
     snap_info = {}
     api_version = array._list_available_rest_versions()
+    if FC_REPL_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        snapsv6 = list(arrayv6.get_volume_snapshots(destroyed=True).items)
     snaps = array.list_volumes(snap=True, pending_only=True)
     for snap in range(0, len(snaps)):
         snapshot = snaps[snap]["name"]
@@ -939,7 +967,14 @@ def generate_del_snap_dict(module, array):
             "remote": [],
         }
     if FC_REPL_API_VERSION in api_version:
-        arrayv6 = get_array(module)
+        for snap in range(0, len(snapsv6)):
+            snapshot = snapsv6[snap].name
+            snap_info[snapshot]["snapshot_space"] = snapsv6[snap].space.snapshots
+            snap_info[snapshot]["total_physical"] = snapsv6[snap].space.total_physical
+            snap_info[snapshot]["total_provisioned"] = snapsv6[
+                snap
+            ].space.total_provisioned
+            snap_info[snapshot]["unique_space"] = snapsv6[snap].space.unique
         offloads = list(arrayv6.get_offloads().items)
         for offload in range(0, len(offloads)):
             offload_name = offloads[offload].name
@@ -996,7 +1031,7 @@ def generate_del_snap_dict(module, array):
     return snap_info
 
 
-def generate_del_vol_dict(array):
+def generate_del_vol_dict(module, array):
     volume_info = {}
     api_version = array._list_available_rest_versions()
     vols = array.list_volumes(pending_only=True)
@@ -1011,6 +1046,34 @@ def generate_del_vol_dict(array):
             "time_remaining": vols[vol]["time_remaining"],
             "tags": [],
         }
+    if V6_MINIMUM_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        vols_space = list(arrayv6.get_volumes_space(destroyed=True).items)
+        for vol in range(0, len(vols_space)):
+            name = vols_space[vol].name
+            volume_info[name]["snapshots_space"] = vols_space[vol].space.snapshots
+            # Provide system as this matches the old naming convention
+            volume_info[name]["system"] = vols_space[vol].space.unique
+            volume_info[name]["unique_space"] = vols_space[vol].space.unique
+            volume_info[name]["virtual_space"] = vols_space[vol].space.virtual
+            volume_info[name]["total_physical_space"] = vols_space[
+                vol
+            ].space.total_physical
+            volume_info[name]["data_reduction"] = vols_space[vol].space.data_reduction
+            volume_info[name]["total_reduction"] = vols_space[vol].space.total_reduction
+            volume_info[name]["total_provisioned"] = vols_space[
+                vol
+            ].space.total_provisioned
+            volume_info[name]["thin_provisioning"] = vols_space[
+                vol
+            ].space.thin_provisioning
+            if SHARED_CAP_API_VERSION in api_version:
+                volume_info[name]["snapshots_effective"] = vols_space[
+                    vol
+                ].space.snapshots_effective
+                volume_info[name]["unique_effective"] = vols_space[
+                    vol
+                ].space.unique_effective
     if ACTIVE_DR_API in api_version:
         voltags = array.list_volumes(tags=True, pending_only=True)
         for voltag in range(0, len(voltags)):
@@ -1026,8 +1089,9 @@ def generate_del_vol_dict(array):
     return volume_info
 
 
-def generate_vol_dict(array):
+def generate_vol_dict(module, array):
     volume_info = {}
+    vols_space = array.list_volumes(space=True)
     vols = array.list_volumes()
     for vol in range(0, len(vols)):
         volume = vols[vol]["name"]
@@ -1040,8 +1104,35 @@ def generate_vol_dict(array):
             "tags": [],
             "hosts": [],
             "bandwidth": "",
+            "iops_limit": "",
+            "data_reduction": vols_space[vol]["data_reduction"],
+            "thin_provisioning": vols_space[vol]["thin_provisioning"],
+            "total_reduction": vols_space[vol]["total_reduction"],
         }
     api_version = array._list_available_rest_versions()
+    if V6_MINIMUM_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        vols_space = list(arrayv6.get_volumes_space(destroyed=False).items)
+        for vol in range(0, len(vols_space)):
+            name = vols_space[vol].name
+            volume_info[name]["snapshots_space"] = vols_space[vol].space.snapshots
+            # Provide system as this matches the old naming convention
+            volume_info[name]["system"] = vols_space[vol].space.unique
+            volume_info[name]["unique_space"] = vols_space[vol].space.unique
+            volume_info[name]["virtual_space"] = vols_space[vol].space.virtual
+            volume_info[name]["total_physical_space"] = vols_space[
+                vol
+            ].space.total_physical
+            if SHARED_CAP_API_VERSION in api_version:
+                volume_info[name]["snapshots_effective"] = vols_space[
+                    vol
+                ].space.snapshots_effective
+                volume_info[name]["unique_effective"] = vols_space[
+                    vol
+                ].space.unique_effective
+                volume_info[name]["total_effective"] = vols_space[
+                    vol
+                ].space.total_effective
     if AC_REQUIRED_API_VERSION in api_version:
         qvols = array.list_volumes(qos=True)
         for qvol in range(0, len(qvols)):
@@ -1590,7 +1681,7 @@ def main():
     if "config" in subset or "all" in subset:
         info["config"] = generate_config_dict(module, array)
     if "capacity" in subset or "all" in subset:
-        info["capacity"] = generate_capacity_dict(array)
+        info["capacity"] = generate_capacity_dict(module, array)
     if "network" in subset or "all" in subset:
         info["network"] = generate_network_dict(array)
     if "subnet" in subset or "all" in subset:
@@ -1600,8 +1691,8 @@ def main():
     if "hosts" in subset or "all" in subset:
         info["hosts"] = generate_host_dict(array)
     if "volumes" in subset or "all" in subset:
-        info["volumes"] = generate_vol_dict(array)
-        info["deleted_volumes"] = generate_del_vol_dict(array)
+        info["volumes"] = generate_vol_dict(module, array)
+        info["deleted_volumes"] = generate_del_vol_dict(module, array)
     if "snapshots" in subset or "all" in subset:
         info["snapshots"] = generate_snap_dict(module, array)
         info["deleted_snapshots"] = generate_del_snap_dict(module, array)
