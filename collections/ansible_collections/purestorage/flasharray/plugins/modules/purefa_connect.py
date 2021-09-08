@@ -124,13 +124,13 @@ def _check_connected(module, array):
 def break_connection(module, array, target_array):
     """Break connection between arrays"""
     changed = True
+    source_array = array.get()["array_name"]
+    if target_array["management_address"] is None:
+        module.fail_json(
+            msg="disconnect can only happen from the array that formed the connection"
+        )
     if not module.check_mode:
-        source_array = array.get()["array_name"]
         try:
-            if target_array["management_address"] is None:
-                module.fail_json(
-                    msg="disconnect can only happen from the array that formed the connection"
-                )
             array.disconnect_array(target_array["array_name"])
         except Exception:
             module.fail_json(
@@ -144,39 +144,39 @@ def break_connection(module, array, target_array):
 def create_connection(module, array):
     """Create connection between arrays"""
     changed = True
-    if not module.check_mode:
-        remote_array = module.params["target_url"]
-        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
-            "base": "Ansible",
-            "class": __name__,
-            "version": 1.2,
-            "platform": platform.platform(),
-        }
-        try:
-            remote_system = FlashArray(
-                module.params["target_url"],
-                api_token=module.params["target_api"],
-                user_agent=user_agent,
-            )
-            connection_key = remote_system.get(connection_key=True)["connection_key"]
-            remote_array = remote_system.get()["array_name"]
-            api_version = array._list_available_rest_versions()
-            # TODO: Refactor when FC async is supported
-            if (
-                FC_REPL_VERSION in api_version
-                and module.params["transport"].lower() == "fc"
-            ):
-                if module.params["connection"].lower() == "async":
-                    module.fail_json(
-                        msg="Asynchronous replication not supported using FC transport"
-                    )
-                array_connection = flasharray.ArrayConnectionPost(
-                    type="sync-replication",
-                    management_address=module.params["target_url"],
-                    replication_transport="fc",
-                    connection_key=connection_key,
+    remote_array = module.params["target_url"]
+    user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+        "base": "Ansible",
+        "class": __name__,
+        "version": 1.2,
+        "platform": platform.platform(),
+    }
+    try:
+        remote_system = FlashArray(
+            module.params["target_url"],
+            api_token=module.params["target_api"],
+            user_agent=user_agent,
+        )
+        connection_key = remote_system.get(connection_key=True)["connection_key"]
+        remote_array = remote_system.get()["array_name"]
+        api_version = array._list_available_rest_versions()
+        # TODO: Refactor when FC async is supported
+        if (
+            FC_REPL_VERSION in api_version
+            and module.params["transport"].lower() == "fc"
+        ):
+            if module.params["connection"].lower() == "async":
+                module.fail_json(
+                    msg="Asynchronous replication not supported using FC transport"
                 )
-                array = get_array(module)
+            array_connection = flasharray.ArrayConnectionPost(
+                type="sync-replication",
+                management_address=module.params["target_url"],
+                replication_transport="fc",
+                connection_key=connection_key,
+            )
+            array = get_array(module)
+            if not module.check_mode:
                 res = array.post_array_connections(array_connection=array_connection)
                 if res.status_code != 200:
                     module.fail_json(
@@ -184,16 +184,17 @@ def create_connection(module, array):
                             res.errors[0].message
                         )
                     )
-            else:
+        else:
+            if not module.check_mode:
                 array.connect_array(
                     module.params["target_url"],
                     connection_key,
                     [module.params["connection"]],
                 )
-        except Exception:
-            module.fail_json(
-                msg="Failed to connect to remote array {0}.".format(remote_array)
-            )
+    except Exception:
+        module.fail_json(
+            msg="Failed to connect to remote array {0}.".format(remote_array)
+        )
     module.exit_json(changed=changed)
 
 
