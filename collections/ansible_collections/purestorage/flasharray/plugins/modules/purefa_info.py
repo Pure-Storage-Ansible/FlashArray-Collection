@@ -1541,7 +1541,7 @@ def main():
         dict(gather_subset=dict(default="minimum", type="list", elements="str"))
     )
 
-    module = AnsibleModule(argument_spec, supports_check_mode=False)
+    module = AnsibleModule(argument_spec)
     array = get_system(module)
     api_version = array._list_available_rest_versions()
 
