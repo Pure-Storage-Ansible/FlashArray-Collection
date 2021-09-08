@@ -131,10 +131,10 @@ def delete_client(module, array):
 
 def update_client(module, array, client):
     """Update API Client"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        if client.enabled != module.params["enabled"]:
+    changed = False
+    if client.enabled != module.params["enabled"]:
+        changed = True
+        if not module.check_mode:
             try:
                 array.patch_api_clients(
                     names=[module.params["name"]],
@@ -142,7 +142,6 @@ def update_client(module, array, client):
                         enabled=module.params["enabled"]
                     ),
                 )
-                changed = True
             except Exception:
                 module.fail_json(
                     msg="Failed to update API Client {0}".format(module.params["name"])
@@ -153,21 +152,20 @@ def update_client(module, array, client):
 def create_client(module, array):
     """Create API Client"""
     changed = True
-    if not module.check_mode:
-        changed = False
-        if not 1 <= module.params["token_ttl"] <= 86400:
-            module.fail_json(msg="token_ttl parameter is out of range (1 to 86400)")
-        else:
-            token_ttl = module.params["token_ttl"] * 1000
-        if not module.params["issuer"]:
-            module.params["issuer"] = module.params["name"]
-        try:
-            client = flasharray.ApiClientPost(
-                max_role=module.params["role"],
-                issuer=module.params["issuer"],
-                access_token_ttl_in_ms=token_ttl,
-                public_key=module.params["public_key"],
-            )
+    if not 1 <= module.params["token_ttl"] <= 86400:
+        module.fail_json(msg="token_ttl parameter is out of range (1 to 86400)")
+    else:
+        token_ttl = module.params["token_ttl"] * 1000
+    if not module.params["issuer"]:
+        module.params["issuer"] = module.params["name"]
+    try:
+        client = flasharray.ApiClientPost(
+            max_role=module.params["role"],
+            issuer=module.params["issuer"],
+            access_token_ttl_in_ms=token_ttl,
+            public_key=module.params["public_key"],
+        )
+        if not module.check_mode:
             res = array.post_api_clients(
                 names=[module.params["name"]], api_clients=client
             )
@@ -192,11 +190,10 @@ def create_client(module, array):
                             module.params["name"]
                         )
                     )
-            changed = True
-        except Exception:
-            module.fail_json(
-                msg="Failed to create API Client {0}".format(module.params["name"])
-            )
+    except Exception:
+        module.fail_json(
+            msg="Failed to create API Client {0}".format(module.params["name"])
+        )
     module.exit_json(changed=changed)
 
 

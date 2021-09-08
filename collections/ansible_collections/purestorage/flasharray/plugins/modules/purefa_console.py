@@ -60,9 +60,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 def enable_console(module, array):
     """Enable Console Lockout"""
-    changed = True
-    if not module.check_mode:
-        if array.get_console_lock_status()["console_lock"] != "enabled":
+    changed = False
+    if array.get_console_lock_status()["console_lock"] != "enabled":
+        changed = True
+        if not module.check_mode:
             try:
                 array.enable_console_lock()
             except Exception:
@@ -72,9 +73,10 @@ def enable_console(module, array):
 
 def disable_console(module, array):
     """Disable Console Lock"""
-    changed = True
-    if not module.check_mode:
-        if array.get_console_lock_status()["console_lock"] == "enabled":
+    changed = False
+    if array.get_console_lock_status()["console_lock"] == "enabled":
+        changed = True
+        if not module.check_mode:
             try:
                 array.disable_console_lock()
             except Exception:
