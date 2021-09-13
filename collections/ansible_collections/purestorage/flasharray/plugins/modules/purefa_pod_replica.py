@@ -126,30 +126,30 @@ def _get_arrays(array):
 
 def update_rl(module, array, local_rl):
     """Create Pod Replica Link"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        if module.params["pause"] is not None:
-            if local_rl["status"] != "paused" and module.params["pause"]:
+    changed = False
+    if module.params["pause"] is not None:
+        if local_rl["status"] != "paused" and module.params["pause"]:
+            changed = True
+            if not module.check_mode:
                 try:
                     array.pause_pod_replica_link(
                         local_pod_name=module.params["name"],
                         remote_pod_name=local_rl["remote_pod_name"],
                     )
-                    changed = True
                 except Exception:
                     module.fail_json(
                         msg="Failed to pause replica link {0}.".format(
                             module.params["name"]
                         )
                     )
-            elif local_rl["status"] == "paused" and not module.params["pause"]:
+        elif local_rl["status"] == "paused" and not module.params["pause"]:
+            changed = True
+            if not module.check_mode:
                 try:
                     array.resume_pod_replica_link(
                         local_pod_name=module.params["name"],
                         remote_pod_name=local_rl["remote_pod_name"],
                     )
-                    changed = True
                 except Exception:
                     module.fail_json(
                         msg="Failed to resume replica link {0}.".format(
@@ -162,34 +162,34 @@ def update_rl(module, array, local_rl):
 def create_rl(module, array):
     """Create Pod Replica Link"""
     changed = True
-    if not module.check_mode:
-        if not module.params["target_pod"]:
-            module.fail_json(msg="target_pod required to create a new replica link.")
-        if not module.params["target_array"]:
-            module.fail_json(msg="target_array required to create a new replica link.")
-        try:
-            connected_arrays = array.list_array_connections()
-            if connected_arrays == []:
-                module.fail_json(msg="No connected arrays.")
-            else:
-                good_array = False
-                for conn_array in range(0, len(connected_arrays)):
-                    if connected_arrays[conn_array]["array_name"] == module.params[
-                        "target_array"
-                    ] and connected_arrays[conn_array]["status"] in [
-                        "connected",
-                        "connecting",
-                        "partially_connected",
-                    ]:
-                        good_array = True
-                        break
-                if not good_array:
-                    module.fail_json(
-                        msg="Target array {0} is not connected to the source array.".format(
-                            module.params["target_array"]
-                        )
+    if not module.params["target_pod"]:
+        module.fail_json(msg="target_pod required to create a new replica link.")
+    if not module.params["target_array"]:
+        module.fail_json(msg="target_array required to create a new replica link.")
+    try:
+        connected_arrays = array.list_array_connections()
+        if connected_arrays == []:
+            module.fail_json(msg="No connected arrays.")
+        else:
+            good_array = False
+            for conn_array in range(0, len(connected_arrays)):
+                if connected_arrays[conn_array]["array_name"] == module.params[
+                    "target_array"
+                ] and connected_arrays[conn_array]["status"] in [
+                    "connected",
+                    "connecting",
+                    "partially_connected",
+                ]:
+                    good_array = True
+                    break
+            if not good_array:
+                module.fail_json(
+                    msg="Target array {0} is not connected to the source array.".format(
+                        module.params["target_array"]
                     )
-                else:
+                )
+            else:
+                if not module.check_mode:
                     try:
                         array.create_pod_replica_link(
                             local_pod_name=module.params["name"],
@@ -202,12 +202,12 @@ def create_rl(module, array):
                                 module.params["name"], module.params["target_array"]
                             )
                         )
-        except Exception:
-            module.fail_json(
-                msg="Failed to create replica link for pod {0}.".format(
-                    module.params["name"]
-                )
+    except Exception:
+        module.fail_json(
+            msg="Failed to create replica link for pod {0}.".format(
+                module.params["name"]
             )
+        )
     module.exit_json(changed=changed)
 
 
@@ -215,12 +215,10 @@ def delete_rl(module, array, local_rl):
     """Delete Pod Replica Link"""
     changed = True
     if not module.check_mode:
-        changed = False
         try:
             array.delete_pod_replica_link(
                 module.params["name"], remote_pod_name=local_rl["remote_pod_name"]
             )
-            changed = True
         except Exception:
             module.fail_json(
                 msg="Failed to delete replica link for pod {0}.".format(

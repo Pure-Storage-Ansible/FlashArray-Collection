@@ -264,30 +264,33 @@ def get_snapshot(module, array):
 
 def create_snapshot(module, array, arrayv6):
     """Create Snapshot"""
-    changed = True
-    if not module.check_mode:
-        if module.params["offload"]:
-            if module.params["suffix"]:
-                module.warn(
-                    "Suffix not supported for Remote Volume Offload Snapshot. Using next incremental integer"
-                )
-                module.params["suffix"] = None
-            res = arrayv6.post_remote_volume_snapshots(
-                source_names=[module.params["name"]], on=module.params["offload"]
+    changed = False
+    if module.params["offload"]:
+        if module.params["suffix"]:
+            module.warn(
+                "Suffix not supported for Remote Volume Offload Snapshot. Using next incremental integer"
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to crete remote snapshot for volume {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
+            module.params["suffix"] = None
+            changed = True
+            if not module.check_mode:
+                res = arrayv6.post_remote_volume_snapshots(
+                    source_names=[module.params["name"]], on=module.params["offload"]
                 )
-        else:
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to crete remote snapshot for volume {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+    else:
+        changed = True
+        if not module.check_mode:
             try:
                 array.create_snapshot(
                     module.params["name"], suffix=module.params["suffix"]
                 )
             except Exception:
-                changed = False
+                pass
     module.exit_json(changed=changed)
 
 
@@ -314,24 +317,23 @@ def recover_snapshot(module, array, arrayv6):
     """Recover Snapshot"""
     changed = False
     snapname = module.params["name"] + "." + module.params["suffix"]
-    if not module.check_mode:
-        if module.params["offload"] and _check_offload(module, arrayv6):
-            source_array = list(array.get_arrays().items)[0].name
-            snapname = (
-                source_array + module.params["name"] + "." + module.params["suffix"]
-            )
+    if module.params["offload"] and _check_offload(module, arrayv6):
+        source_array = list(array.get_arrays().items)[0].name
+        snapname = source_array + module.params["name"] + "." + module.params["suffix"]
+        changed = True
+        if not module.check_mode:
             res = arrayv6.patch_remote_volume_snapshots(
                 names=[snapname],
                 on=module.params["offload"],
                 remote_volume_snapshot=flasharray.DestroyedPatchPost(destroyed=False),
             )
-            changed = True
             if res.status_code != 200:
                 module.fail_json(msg="Failed to recover remote snapshot ".format())
-        else:
+    else:
+        changed = True
+        if not module.check_mode:
             try:
                 array.recover_volume(snapname)
-                changed = True
             except Exception:
                 module.fail_json(msg="Recovery of snapshot {0} failed".format(snapname))
     module.exit_json(changed=changed)
@@ -358,12 +360,13 @@ def update_snapshot(module, array):
 
 def delete_snapshot(module, array, arrayv6):
     """Delete Snapshot"""
-    changed = True
+    changed = False
     snapname = module.params["name"] + "." + module.params["suffix"]
-    if not module.check_mode:
-        if module.params["offload"] and _check_offload(module, arrayv6):
-            source_array = list(arrayv6.get_arrays().items)[0].name
-            full_snapname = source_array + ":" + snapname
+    if module.params["offload"] and _check_offload(module, arrayv6):
+        source_array = list(arrayv6.get_arrays().items)[0].name
+        full_snapname = source_array + ":" + snapname
+        changed = True
+        if not module.check_mode:
             res = arrayv6.patch_remote_volume_snapshots(
                 names=[full_snapname],
                 on=module.params["offload"],
@@ -388,7 +391,9 @@ def delete_snapshot(module, array, arrayv6):
                             snapname, res.errors[0].message
                         )
                     )
-        elif module.params["offload"] and _check_target(module, arrayv6):
+    elif module.params["offload"] and _check_target(module, arrayv6):
+        changed = True
+        if not module.check_mode:
             res = arrayv6.patch_volume_snapshots(
                 names=[snapname],
                 volume_snapshot=flasharray.DestroyedPatchPost(destroyed=True),
@@ -410,16 +415,18 @@ def delete_snapshot(module, array, arrayv6):
                             snapname, res.errors[0].message
                         )
                     )
-        else:
+    else:
+        changed = True
+        if not module.check_mode:
             try:
                 array.destroy_volume(snapname)
                 if module.params["eradicate"]:
                     try:
                         array.eradicate_volume(snapname)
                     except Exception:
-                        changed = False
+                        pass
             except Exception:
-                changed = False
+                pass
     module.exit_json(changed=changed)
 
 
