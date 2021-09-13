@@ -206,23 +206,23 @@ def delete_snap(module, array):
 def update_snap(module, array, snap_detail):
     """Update a filesystem snapshot retention time"""
     changed = True
-    if not module.check_mode:
-        snapname = (
-            module.params["filesystem"]
-            + ":"
-            + module.params["name"]
-            + "."
-            + module.params["client"]
-            + "."
-            + module.params["suffix"]
-        )
-        if module.params["keep_for"] == 0:
-            keep_for = 0
-        elif 300 <= module.params["keep_for"] <= 31536000:
-            keep_for = module.params["keep_for"] * 1000
-        else:
-            module.fail_json(msg="keep_for not in range of 300 - 31536000")
-        if snap_detail.destroyed:
+    snapname = (
+        module.params["filesystem"]
+        + ":"
+        + module.params["name"]
+        + "."
+        + module.params["client"]
+        + "."
+        + module.params["suffix"]
+    )
+    if module.params["keep_for"] == 0:
+        keep_for = 0
+    elif 300 <= module.params["keep_for"] <= 31536000:
+        keep_for = module.params["keep_for"] * 1000
+    else:
+        module.fail_json(msg="keep_for not in range of 300 - 31536000")
+    if snap_detail.destroyed:
+        if not module.check_mode:
             directory_snapshot = DirectorySnapshotPatch(destroyed=False)
             res = array.patch_directory_snapshots(
                 names=[snapname], directory_snapshot=directory_snapshot
@@ -233,6 +233,7 @@ def update_snap(module, array, snap_detail):
                         snapname, res.errors[0].message
                     )
                 )
+    if not module.check_mode:
         directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
         res = array.patch_directory_snapshots(
             names=[snapname], directory_snapshot=directory_snapshot
@@ -314,7 +315,7 @@ def main():
                 )
             )
     if module.params["client"]:
-        if not client_pattern.match(module.params["suffix"]):
+        if not client_pattern.match(module.params["client"]):
             module.fail_json(
                 msg="Client name {0} does not conform to the client name rules.".format(
                     module.params["client"]
@@ -338,20 +339,20 @@ def main():
         == 0
     ):
         module.fail_json(msg="Directory {0} does not exist.".format(snapshot_root))
-    snap_detail = array.get_directory_snapshots(
-        filter="name='"
-        + snapshot_root
-        + "."
-        + module.params["client"]
-        + "."
-        + module.params["suffix"]
-        + "'",
-        total_item_count=True,
-    )
-    if bool(snap_detail.status_code != 200):
-        snap_exists = False
-    else:
-        snap_exists = bool(snap_detail.total_item_count != 0)
+    snap_exists = False
+    if module.params["suffix"]:
+        snap_detail = array.get_directory_snapshots(
+            filter="name='"
+            + snapshot_root
+            + "."
+            + module.params["client"]
+            + "."
+            + module.params["suffix"]
+            + "'",
+            total_item_count=True,
+        )
+        if bool(snap_detail.status_code == 200):
+            snap_exists = bool(snap_detail.total_item_count != 0)
     if snap_exists:
         snap_facts = list(snap_detail.items)[0]
     if state == "present" and not snap_exists:

@@ -168,69 +168,69 @@ def check_vgroup(module, array):
 
 def create_endpoint(module, array):
     """Create Endpoint"""
-    changed = True
+    changed = False
     volfact = []
-    if not module.check_mode:
-        if "/" in module.params["name"] and not check_vgroup(module, array):
-            module.fail_json(
-                msg="Failed to create endpoint {0}. Volume Group does not exist.".format(
-                    module.params["name"]
-                )
+    if "/" in module.params["name"] and not check_vgroup(module, array):
+        module.fail_json(
+            msg="Failed to create endpoint {0}. Volume Group does not exist.".format(
+                module.params["name"]
             )
-        try:
+        )
+    try:
+        changed = True
+        if not module.check_mode:
             volfact = array.create_conglomerate_volume(module.params["name"])
+    except Exception:
+        module.fail_json(
+            msg="Endpoint {0} creation failed.".format(module.params["name"])
+        )
+    if module.params["host"]:
+        try:
+            if not module.check_mode:
+                array.connect_host(module.params["host"], module.params["name"])
         except Exception:
             module.fail_json(
-                msg="Endpoint {0} creation failed.".format(module.params["name"])
+                msg="Failed to attach endpoint {0} to host {1}.".format(
+                    module.params["name"], module.params["host"]
+                )
             )
-        if module.params["host"]:
-            try:
-                array.connect_host(module.params["host"], module.params["name"])
-            except Exception:
-                module.fail_json(
-                    msg="Failed to attach endpoint {0} to host {1}.".format(
-                        module.params["name"], module.params["host"]
-                    )
-                )
-        if module.params["hgroup"]:
-            try:
+    if module.params["hgroup"]:
+        try:
+            if not module.check_mode:
                 array.connect_hgroup(module.params["hgroup"], module.params["name"])
-            except Exception:
-                module.fail_json(
-                    msg="Failed to attach endpoint {0} to hostgroup {1}.".format(
-                        module.params["name"], module.params["hgroup"]
-                    )
+        except Exception:
+            module.fail_json(
+                msg="Failed to attach endpoint {0} to hostgroup {1}.".format(
+                    module.params["name"], module.params["hgroup"]
                 )
+            )
 
     module.exit_json(changed=changed, volume=volfact)
 
 
 def rename_endpoint(module, array):
     """Rename endpoint within a container, ie vgroup or local array"""
-    changed = True
+    changed = False
     volfact = []
-    if not module.check_mode:
-        changed = False
-        target_name = module.params["rename"]
-        if "/" in module.params["rename"] or "::" in module.params["rename"]:
-            module.fail_json(msg="Target endpoint cannot include a container name")
-        if "/" in module.params["name"]:
-            vgroup_name = module.params["name"].split("/")[0]
-            target_name = vgroup_name + "/" + module.params["rename"]
-        if get_target(target_name, array) or get_destroyed_endpoint(target_name, array):
-            module.fail_json(
-                msg="Target endpoint {0} already exists.".format(target_name)
-            )
-        else:
-            try:
+    target_name = module.params["rename"]
+    if "/" in module.params["rename"] or "::" in module.params["rename"]:
+        module.fail_json(msg="Target endpoint cannot include a container name")
+    if "/" in module.params["name"]:
+        vgroup_name = module.params["name"].split("/")[0]
+        target_name = vgroup_name + "/" + module.params["rename"]
+    if get_target(target_name, array) or get_destroyed_endpoint(target_name, array):
+        module.fail_json(msg="Target endpoint {0} already exists.".format(target_name))
+    else:
+        try:
+            changed = True
+            if not module.check_mode:
                 volfact = array.rename_volume(module.params["name"], target_name)
-                changed = True
-            except Exception:
-                module.fail_json(
-                    msg="Rename endpoint {0} to {1} failed.".format(
-                        module.params["name"], module.params["rename"]
-                    )
+        except Exception:
+            module.fail_json(
+                msg="Rename endpoint {0} to {1} failed.".format(
+                    module.params["name"], module.params["rename"]
                 )
+            )
 
     module.exit_json(changed=changed, volume=volfact)
 
@@ -241,7 +241,6 @@ def delete_endpoint(module, array):
     volfact = []
     if not module.check_mode:
         try:
-
             array.destroy_volume(module.params["name"])
             if module.params["eradicate"]:
                 try:
