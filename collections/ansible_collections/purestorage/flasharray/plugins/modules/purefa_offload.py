@@ -175,17 +175,17 @@ def create_offload(module, array):
     """Create offload target"""
     changed = True
     api_version = array._list_available_rest_versions()
-    if not module.check_mode:
-        # First check if the offload network inteface is there and enabled
-        try:
-            if not array.get_network_interface("@offload.data")["enabled"]:
-                module.fail_json(
-                    msg="Offload Network interface not enabled. Please resolve."
-                )
-        except Exception:
+    # First check if the offload network inteface is there and enabled
+    try:
+        if not array.get_network_interface("@offload.data")["enabled"]:
             module.fail_json(
-                msg="Offload Network interface not correctly configured. Please resolve."
+                msg="Offload Network interface not enabled. Please resolve."
             )
+    except Exception:
+        module.fail_json(
+            msg="Offload Network interface not correctly configured. Please resolve."
+        )
+    if not module.check_mode:
         if module.params["protocol"] == "nfs":
             try:
                 array.connect_nfs_offload(
