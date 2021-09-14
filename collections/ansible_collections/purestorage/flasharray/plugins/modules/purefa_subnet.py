@@ -122,58 +122,53 @@ def _get_subnet(module, array):
 
 def update_subnet(module, array, subnet):
     """Modify subnet settings"""
-    changed = True
-    if not module.check_mode:
-        current_state = {
-            "mtu": subnet["mtu"],
-            "vlan": subnet["vlan"],
-            "prefix": subnet["prefix"],
-            "gateway": subnet["gateway"],
-        }
-        if not module.params["prefix"]:
-            prefix = subnet["prefix"]
+    changed = False
+    current_state = {
+        "mtu": subnet["mtu"],
+        "vlan": subnet["vlan"],
+        "prefix": subnet["prefix"],
+        "gateway": subnet["gateway"],
+    }
+    if not module.params["prefix"]:
+        prefix = subnet["prefix"]
+    else:
+        if module.params["gateway"] and module.params["gateway"] not in IPNetwork(
+            module.params["prefix"]
+        ):
+            module.fail_json(msg="Gateway and subnet are not compatible.")
+        elif not module.params["gateway"] and subnet["gateway"] not in IPNetwork(
+            module.params["prefix"]
+        ):
+            module.fail_json(msg="Gateway and subnet are not compatible.")
+        prefix = module.params["prefix"]
+    if not module.params["vlan"]:
+        vlan = subnet["vlan"]
+    else:
+        if not 0 <= module.params["vlan"] <= 4094:
+            module.fail_json(
+                msg="VLAN {0} is out of range (0 to 4094)".format(module.params["vlan"])
+            )
         else:
-            if module.params["gateway"] and module.params["gateway"] not in IPNetwork(
-                module.params["prefix"]
-            ):
-                module.fail_json(msg="Gateway and subnet are not compatible.")
-            elif not module.params["gateway"] and subnet["gateway"] not in IPNetwork(
-                module.params["prefix"]
-            ):
-                module.fail_json(msg="Gateway and subnet are not compatible.")
-            prefix = module.params["prefix"]
-        if not module.params["vlan"]:
-            vlan = subnet["vlan"]
+            vlan = module.params["vlan"]
+    if not module.params["mtu"]:
+        mtu = subnet["mtu"]
+    else:
+        if not 568 <= module.params["mtu"] <= 9000:
+            module.fail_json(
+                msg="MTU {0} is out of range (568 to 9000)".format(module.params["mtu"])
+            )
         else:
-            if not 0 <= module.params["vlan"] <= 4094:
-                module.fail_json(
-                    msg="VLAN {0} is out of range (0 to 4094)".format(
-                        module.params["vlan"]
-                    )
-                )
-            else:
-                vlan = module.params["vlan"]
-        if not module.params["mtu"]:
-            mtu = subnet["mtu"]
-        else:
-            if not 568 <= module.params["mtu"] <= 9000:
-                module.fail_json(
-                    msg="MTU {0} is out of range (568 to 9000)".format(
-                        module.params["mtu"]
-                    )
-                )
-            else:
-                mtu = module.params["mtu"]
-        if not module.params["gateway"]:
-            gateway = subnet["gateway"]
-        else:
-            if module.params["gateway"] not in IPNetwork(prefix):
-                module.fail_json(msg="Gateway and subnet are not compatible.")
-            gateway = module.params["gateway"]
-        new_state = {"prefix": prefix, "mtu": mtu, "gateway": gateway, "vlan": vlan}
-        if new_state == current_state:
-            changed = False
-        else:
+            mtu = module.params["mtu"]
+    if not module.params["gateway"]:
+        gateway = subnet["gateway"]
+    else:
+        if module.params["gateway"] not in IPNetwork(prefix):
+            module.fail_json(msg="Gateway and subnet are not compatible.")
+        gateway = module.params["gateway"]
+    new_state = {"prefix": prefix, "mtu": mtu, "gateway": gateway, "vlan": vlan}
+    if new_state != current_state:
+        changed = True
+        if not module.check_mode:
             try:
                 array.set_subnet(
                     subnet["name"],
@@ -188,19 +183,21 @@ def update_subnet(module, array, subnet):
                         subnet["name"]
                     )
                 )
-        if subnet["enabled"] != module.params["enabled"]:
-            if module.params["enabled"]:
+    if subnet["enabled"] != module.params["enabled"]:
+        if module.params["enabled"]:
+            changed = True
+            if not module.check_mode:
                 try:
                     array.enable_subnet(subnet["name"])
-                    changed = True
                 except Exception:
                     module.fail_json(
                         msg="Failed to enable subnet {0}.".format(subnet["name"])
                     )
-            else:
+        else:
+            changed = True
+            if not module.check_mode:
                 try:
                     array.disable_subnet(subnet["name"])
-                    changed = True
                 except Exception:
                     module.fail_json(
                         msg="Failed to disable subnet {0}.".format(subnet["name"])
@@ -211,41 +208,37 @@ def update_subnet(module, array, subnet):
 def create_subnet(module, array):
     """Create subnet"""
     changed = True
+    if not module.params["prefix"]:
+        module.fail_json(msg="Prefix required when creating subnet.")
+    else:
+        if module.params["gateway"] and module.params["gateway"] not in IPNetwork(
+            module.params["prefix"]
+        ):
+            module.fail_json(msg="Gateway and subnet are not compatible.")
+        prefix = module.params["prefix"]
+    if module.params["vlan"]:
+        if not 0 <= module.params["vlan"] <= 4094:
+            module.fail_json(
+                msg="VLAN {0} is out of range (0 to 4094)".format(module.params["vlan"])
+            )
+        else:
+            vlan = module.params["vlan"]
+    else:
+        vlan = 0
+    if module.params["mtu"]:
+        if not 568 <= module.params["mtu"] <= 9000:
+            module.fail_json(
+                msg="MTU {0} is out of range (568 to 9000)".format(module.params["mtu"])
+            )
+        else:
+            mtu = module.params["mtu"]
+    if module.params["gateway"]:
+        if module.params["gateway"] not in IPNetwork(prefix):
+            module.fail_json(msg="Gateway and subnet are not compatible.")
+        gateway = module.params["gateway"]
+    else:
+        gateway = ""
     if not module.check_mode:
-        if not module.params["prefix"]:
-            module.fail_json(msg="Prefix required when creating subnet.")
-        else:
-            if module.params["gateway"] and module.params["gateway"] not in IPNetwork(
-                module.params["prefix"]
-            ):
-                module.fail_json(msg="Gateway and subnet are not compatible.")
-            prefix = module.params["prefix"]
-        if module.params["vlan"]:
-            if not 0 <= module.params["vlan"] <= 4094:
-                module.fail_json(
-                    msg="VLAN {0} is out of range (0 to 4094)".format(
-                        module.params["vlan"]
-                    )
-                )
-            else:
-                vlan = module.params["vlan"]
-        else:
-            vlan = 0
-        if module.params["mtu"]:
-            if not 568 <= module.params["mtu"] <= 9000:
-                module.fail_json(
-                    msg="MTU {0} is out of range (568 to 9000)".format(
-                        module.params["mtu"]
-                    )
-                )
-            else:
-                mtu = module.params["mtu"]
-        if module.params["gateway"]:
-            if module.params["gateway"] not in IPNetwork(prefix):
-                module.fail_json(msg="Gateway and subnet are not compatible.")
-            gateway = module.params["gateway"]
-        else:
-            gateway = ""
         try:
             array.create_subnet(
                 module.params["name"],
@@ -258,14 +251,16 @@ def create_subnet(module, array):
             module.fail_json(
                 msg="Failed to create subnet {0}.".format(module.params["name"])
             )
-        if module.params["enabled"]:
+    if module.params["enabled"]:
+        if not module.check_mode:
             try:
                 array.enable_subnet(module.params["name"])
             except Exception:
                 module.fail_json(
                     msg="Failed to enable subnet {0}.".format(module.params["name"])
                 )
-        else:
+    else:
+        if not module.check_mode:
             try:
                 array.disable_subnet(module.params["name"])
             except Exception:

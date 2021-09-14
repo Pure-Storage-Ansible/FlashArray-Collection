@@ -147,23 +147,22 @@ def create_tag(module, array):
 
 def update_tag(module, array, current_tags):
     """Update Volume Tag"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        for tag in range(0, len(module.params["kvp"])):
-            tag_exists = False
-            for current_tag in range(0, len(current_tags)):
+    changed = False
+    for tag in range(0, len(module.params["kvp"])):
+        tag_exists = False
+        for current_tag in range(0, len(current_tags)):
+            if (
+                module.params["kvp"][tag].split(":")[0]
+                == current_tags[current_tag]["key"]
+                and module.params["namespace"] == current_tags[current_tag]["namespace"]
+            ):
+                tag_exists = True
                 if (
-                    module.params["kvp"][tag].split(":")[0]
-                    == current_tags[current_tag]["key"]
-                    and module.params["namespace"]
-                    == current_tags[current_tag]["namespace"]
+                    module.params["kvp"][tag].split(":")[1]
+                    != current_tags[current_tag]["value"]
                 ):
-                    tag_exists = True
-                    if (
-                        module.params["kvp"][tag].split(":")[1]
-                        != current_tags[current_tag]["value"]
-                    ):
+                    changed = True
+                    if not module.check_mode:
                         try:
                             array.add_tag_to_volume(
                                 module.params["name"],
@@ -171,7 +170,6 @@ def update_tag(module, array, current_tags):
                                 key=module.params["kvp"][tag].split(":")[0],
                                 value=module.params["kvp"][tag].split(":")[1],
                             )
-                            changed = True
                         except Exception:
                             module.fail_json(
                                 msg="Failed to update tag '{0}' from volume {1}".format(
@@ -180,7 +178,9 @@ def update_tag(module, array, current_tags):
                                 )
                             )
 
-            if not tag_exists:
+        if not tag_exists:
+            changed = True
+            if not module.check_mode:
                 try:
                     array.add_tag_to_volume(
                         module.params["name"],
@@ -188,7 +188,6 @@ def update_tag(module, array, current_tags):
                         key=module.params["kvp"][tag].split(":")[0],
                         value=module.params["kvp"][tag].split(":")[1],
                     )
-                    changed = True
                 except Exception:
                     module.fail_json(
                         msg="Failed to add tag KVP {0} to volume {1}".format(
@@ -201,24 +200,22 @@ def update_tag(module, array, current_tags):
 
 def delete_tag(module, array, current_tags):
     """Delete Tag"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        for tag in range(0, len(module.params["kvp"])):
-            for current_tag in range(0, len(current_tags)):
-                if (
-                    module.params["kvp"][tag].split(":")[0]
-                    == current_tags[current_tag]["key"]
-                    and module.params["namespace"]
-                    == current_tags[current_tag]["namespace"]
-                ):
+    changed = False
+    for tag in range(0, len(module.params["kvp"])):
+        for current_tag in range(0, len(current_tags)):
+            if (
+                module.params["kvp"][tag].split(":")[0]
+                == current_tags[current_tag]["key"]
+                and module.params["namespace"] == current_tags[current_tag]["namespace"]
+            ):
+                changed = True
+                if not module.check_mode:
                     try:
                         array.remove_tag_from_volume(
                             module.params["name"],
                             namespace=module.params["namespace"],
                             key=module.params["kvp"][tag].split(":")[0],
                         )
-                        changed = True
                     except Exception:
                         module.fail_json(
                             msg="Failed to remove tag KVP '{0}' from volume {1}".format(
