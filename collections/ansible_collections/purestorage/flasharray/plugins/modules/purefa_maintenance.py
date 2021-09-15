@@ -82,16 +82,17 @@ def delete_window(module, array):
     """Delete Maintenance Window"""
     changed = False
     if list(array.get_maintenance_windows().items):
+        changed = True
         if not module.check_mode:
             state = array.delete_maintenance_windows(names=["environment"])
-            if state.status_code == 200:
-                changed = True
+            if state.status_code != 200:
+                changed = False
     module.exit_json(changed=changed)
 
 
 def set_window(module, array):
     """Set Maintenace Window"""
-    changed = False
+    changed = True
     if not 60 <= module.params["timeout"] <= 86400:
         module.fail_json(msg="Maintenance Window Timeout is out of range (60 to 86400)")
     window = flasharray.MaintenanceWindowPost(timeout=module.params["timeout"] * 1000)
@@ -99,9 +100,7 @@ def set_window(module, array):
         state = array.post_maintenance_windows(
             names=["environment"], maintenance_window=window
         )
-        if state.status_code == 200:
-            changed = True
-        else:
+        if state.status_code != 200:
             module.fail_json(msg="Setting maintenance window failed")
     module.exit_json(changed=changed)
 
