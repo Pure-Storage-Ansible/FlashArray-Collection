@@ -69,35 +69,33 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 def delete_proxy(module, array):
     """Delete proxy settings"""
-    changed = True
-    if not module.check_mode:
-        current_proxy = array.get(proxy=True)["proxy"]
-        if current_proxy != "":
+    changed = False
+    current_proxy = array.get(proxy=True)["proxy"]
+    if current_proxy != "":
+        changed = True
+        if not module.check_mode:
             try:
                 array.set(proxy="")
             except Exception:
                 module.fail_json(msg="Delete proxy settigs failed")
-        else:
-            changed = False
     module.exit_json(changed=changed)
 
 
 def create_proxy(module, array):
     """Set proxy settings"""
-    changed = True
-    if not module.check_mode:
-        current_proxy = array.get(proxy=True)
-        if current_proxy is not None:
-            new_proxy = (
-                "https://" + module.params["host"] + ":" + str(module.params["port"])
-            )
-            if new_proxy != current_proxy["proxy"]:
+    changed = False
+    current_proxy = array.get(proxy=True)
+    if current_proxy is not None:
+        new_proxy = (
+            "https://" + module.params["host"] + ":" + str(module.params["port"])
+        )
+        if new_proxy != current_proxy["proxy"]:
+            changed = True
+            if not module.check_mode:
                 try:
                     array.set(proxy=new_proxy)
                 except Exception:
                     module.fail_json(msg="Set phone home proxy failed.")
-            else:
-                changed = False
 
     module.exit_json(changed=changed)
 

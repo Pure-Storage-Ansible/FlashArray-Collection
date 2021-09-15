@@ -236,9 +236,9 @@ def check_arrays(module, array):
 def create_pod(module, array):
     """Create Pod"""
     changed = True
+    if module.params["target"]:
+        module.fail_json(msg="Cannot clone non-existant pod.")
     if not module.check_mode:
-        if module.params["target"]:
-            module.fail_json(msg="Cannot clone non-existant pod.")
         try:
             if module.params["failover"]:
                 array.create_pod(
@@ -275,91 +275,91 @@ def create_pod(module, array):
 
 def clone_pod(module, array):
     """Create Pod Clone"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        if get_target(module, array) is None:
-            if not get_destroyed_target(module, array):
+    changed = False
+    if get_target(module, array) is None:
+        if not get_destroyed_target(module, array):
+            changed = True
+            if not module.check_mode:
                 try:
                     array.clone_pod(module.params["name"], module.params["target"])
-                    changed = True
                 except Exception:
                     module.fail_json(
                         msg="Clone pod {0} to pod {1} failed.".format(
                             module.params["name"], module.params["target"]
                         )
                     )
-            else:
-                module.fail_json(
-                    msg="Target pod {0} already exists but deleted.".format(
-                        module.params["target"]
-                    )
+        else:
+            module.fail_json(
+                msg="Target pod {0} already exists but deleted.".format(
+                    module.params["target"]
                 )
+            )
 
     module.exit_json(changed=changed)
 
 
 def update_pod(module, array):
     """Update Pod configuration"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        current_config = array.get_pod(module.params["name"], failover_preference=True)
-        if module.params["failover"]:
-            current_failover = current_config["failover_preference"]
-            if current_failover == [] or sorted(module.params["failover"]) != sorted(
-                current_failover
-            ):
+    changed = False
+    current_config = array.get_pod(module.params["name"], failover_preference=True)
+    if module.params["failover"]:
+        current_failover = current_config["failover_preference"]
+        if current_failover == [] or sorted(module.params["failover"]) != sorted(
+            current_failover
+        ):
+            changed = True
+            if not module.check_mode:
                 try:
                     if module.params["failover"] == ["auto"]:
                         if current_failover != []:
                             array.set_pod(module.params["name"], failover_preference=[])
-                            changed = True
                     else:
                         array.set_pod(
                             module.params["name"],
                             failover_preference=module.params["failover"],
                         )
-                        changed = True
                 except Exception:
                     module.fail_json(
                         msg="Failed to set failover preference for pod {0}.".format(
                             module.params["name"]
                         )
                     )
-        current_config = array.get_pod(module.params["name"], mediator=True)
-        if current_config["mediator"] != module.params["mediator"]:
+    current_config = array.get_pod(module.params["name"], mediator=True)
+    if current_config["mediator"] != module.params["mediator"]:
+        changed = True
+        if not module.check_mode:
             try:
                 array.set_pod(module.params["name"], mediator=module.params["mediator"])
-                changed = True
             except Exception:
                 module.warn(
                     "Failed to communicate with mediator {0}. Setting unchanged.".format(
                         module.params["mediator"]
                     )
                 )
-        if module.params["promote"] is not None:
-            if len(current_config["arrays"]) > 1:
-                module.fail_json(
-                    msg="Promotion/Demotion not permitted. Pod {0} is stretched".format(
-                        module.params["name"]
-                    )
+    if module.params["promote"] is not None:
+        if len(current_config["arrays"]) > 1:
+            module.fail_json(
+                msg="Promotion/Demotion not permitted. Pod {0} is stretched".format(
+                    module.params["name"]
                 )
-            else:
-                if (
-                    current_config["promotion_status"] == "demoted"
-                    and module.params["promote"]
-                ):
-                    try:
-                        if module.params["undo"] is None:
-                            module.params["undo"] = True
-                        if current_config["promotion_status"] == "quiescing":
-                            module.fail_json(
-                                msg="Cannot promote pod {0} as it is still quiesing".format(
-                                    module.params["name"]
-                                )
+            )
+        else:
+            if (
+                current_config["promotion_status"] == "demoted"
+                and module.params["promote"]
+            ):
+                try:
+                    if module.params["undo"] is None:
+                        module.params["undo"] = True
+                    if current_config["promotion_status"] == "quiescing":
+                        module.fail_json(
+                            msg="Cannot promote pod {0} as it is still quiesing".format(
+                                module.params["name"]
                             )
-                        elif module.params["undo"]:
+                        )
+                    elif module.params["undo"]:
+                        changed = True
+                        if not module.check_mode:
                             if get_undo_pod(module, array):
                                 array.promote_pod(
                                     module.params["name"],
@@ -372,64 +372,62 @@ def update_pod(module, array):
                                         module.params["name"]
                                     )
                                 )
-                            changed = True
-                        else:
+                    else:
+                        changed = True
+                        if not module.check_mode:
                             array.promote_pod(module.params["name"])
-                            changed = True
-                    except Exception:
+                except Exception:
+                    module.fail_json(
+                        msg="Failed to promote pod {0}.".format(module.params["name"])
+                    )
+            elif (
+                current_config["promotion_status"] != "demoted"
+                and not module.params["promote"]
+            ):
+                try:
+                    if get_undo_pod(module, array):
                         module.fail_json(
-                            msg="Failed to promote pod {0}.".format(
+                            msg="Cannot demote pod {0} due to associated undo-demote pod not being eradicated".format(
                                 module.params["name"]
                             )
                         )
-                elif (
-                    current_config["promotion_status"] != "demoted"
-                    and not module.params["promote"]
-                ):
-                    try:
-                        if get_undo_pod(module, array):
-                            module.fail_json(
-                                msg="Cannot demote pod {0} due to associated undo-demote pod not being eradicated".format(
-                                    module.params["name"]
-                                )
-                            )
-                        if module.params["quiesce"] is None:
-                            module.params["quiesce"] = True
-                        if current_config["link_target_count"] == 0:
+                    if module.params["quiesce"] is None:
+                        module.params["quiesce"] = True
+                    if current_config["link_target_count"] == 0:
+                        changed = True
+                        if not module.check_mode:
                             array.demote_pod(module.params["name"])
-                            changed = True
-                        elif not module.params["quiesce"]:
+                    elif not module.params["quiesce"]:
+                        changed = True
+                        if not module.check_mode:
                             array.demote_pod(module.params["name"], skip_quiesce=True)
-                            changed = True
-                        else:
+                    else:
+                        changed = True
+                        if not module.check_mode:
                             array.demote_pod(module.params["name"], quiesce=True)
-                            changed = True
-                    except Exception:
-                        module.fail_json(
-                            msg="Failed to demote pod {0}.".format(
-                                module.params["name"]
-                            )
-                        )
+                except Exception:
+                    module.fail_json(
+                        msg="Failed to demote pod {0}.".format(module.params["name"])
+                    )
     module.exit_json(changed=changed)
 
 
 def stretch_pod(module, array):
     """Stretch/unstretch Pod configuration"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        current_config = array.get_pod(module.params["name"], failover_preference=True)
-        if module.params["stretch"]:
-            current_arrays = []
-            for arr in range(0, len(current_config["arrays"])):
-                current_arrays.append(current_config["arrays"][arr]["name"])
-            if (
-                module.params["stretch"] not in current_arrays
-                and module.params["state"] == "present"
-            ):
+    changed = False
+    current_config = array.get_pod(module.params["name"], failover_preference=True)
+    if module.params["stretch"]:
+        current_arrays = []
+        for arr in range(0, len(current_config["arrays"])):
+            current_arrays.append(current_config["arrays"][arr]["name"])
+        if (
+            module.params["stretch"] not in current_arrays
+            and module.params["state"] == "present"
+        ):
+            changed = True
+            if not module.check_mode:
                 try:
                     array.add_pod(module.params["name"], module.params["stretch"])
-                    changed = True
                 except Exception:
                     module.fail_json(
                         msg="Failed to stretch pod {0} to array {1}.".format(
@@ -437,13 +435,14 @@ def stretch_pod(module, array):
                         )
                     )
 
-            if (
-                module.params["stretch"] in current_arrays
-                and module.params["state"] == "absent"
-            ):
+        if (
+            module.params["stretch"] in current_arrays
+            and module.params["state"] == "absent"
+        ):
+            changed = True
+            if not module.check_mode:
                 try:
                     array.remove_pod(module.params["name"], module.params["stretch"])
-                    changed = True
                 except Exception:
                     module.fail_json(
                         msg="Failed to unstretch pod {0} from array {1}.".format(
