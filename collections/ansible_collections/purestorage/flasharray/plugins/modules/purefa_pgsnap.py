@@ -282,41 +282,41 @@ def create_pgsnapshot(module, array):
 def restore_pgsnapvolume(module, array):
     """Restore a Protection Group Snapshot Volume"""
     changed = True
-    if not module.check_mode:
-        if module.params["suffix"] == "latest":
-            all_snaps = array.get_pgroup(module.params["name"], snap=True)
-            latest_snap = all_snaps[len(all_snaps) - 1]["name"]
-            module.params["suffix"] = latest_snap.split(".")[1]
-        if ":" in module.params["name"] and "::" not in module.params["name"]:
-            if get_rpgsnapshot(module, array) is None:
-                module.fail_json(
-                    msg="Selected restore snapshot {0} does not exist in the Protection Group".format(
-                        module.params["restore"]
-                    )
+    if module.params["suffix"] == "latest":
+        all_snaps = array.get_pgroup(module.params["name"], snap=True)
+        latest_snap = all_snaps[len(all_snaps) - 1]["name"]
+        module.params["suffix"] = latest_snap.split(".")[1]
+    if ":" in module.params["name"] and "::" not in module.params["name"]:
+        if get_rpgsnapshot(module, array) is None:
+            module.fail_json(
+                msg="Selected restore snapshot {0} does not exist in the Protection Group".format(
+                    module.params["restore"]
                 )
+            )
+    else:
+        if get_pgroupvolume(module, array) is None:
+            module.fail_json(
+                msg="Selected restore volume {0} does not exist in the Protection Group".format(
+                    module.params["restore"]
+                )
+            )
+    volume = (
+        module.params["name"]
+        + "."
+        + module.params["suffix"]
+        + "."
+        + module.params["restore"]
+    )
+    if "::" in module.params["target"]:
+        target_pod_name = module.params["target"].split(":")[0]
+        if "::" in module.params["name"]:
+            source_pod_name = module.params["name"].split(":")[0]
         else:
-            if get_pgroupvolume(module, array) is None:
-                module.fail_json(
-                    msg="Selected restore volume {0} does not exist in the Protection Group".format(
-                        module.params["restore"]
-                    )
-                )
-        volume = (
-            module.params["name"]
-            + "."
-            + module.params["suffix"]
-            + "."
-            + module.params["restore"]
-        )
-        if "::" in module.params["target"]:
-            target_pod_name = module.params["target"].split(":")[0]
-            if "::" in module.params["name"]:
-                source_pod_name = module.params["name"].split(":")[0]
-            else:
-                source_pod_name = ""
-            if source_pod_name != target_pod_name:
-                if len(array.get_pod(target_pod_name, mediator=True)["arrays"]) > 1:
-                    module.fail_json(msg="Volume cannot be restored to a stretched pod")
+            source_pod_name = ""
+        if source_pod_name != target_pod_name:
+            if len(array.get_pod(target_pod_name, mediator=True)["arrays"]) > 1:
+                module.fail_json(msg="Volume cannot be restored to a stretched pod")
+    if not module.check_mode:
         try:
             array.copy_volume(
                 volume, module.params["target"], overwrite=module.params["overwrite"]
@@ -332,11 +332,12 @@ def restore_pgsnapvolume(module, array):
 
 def delete_offload_snapshot(module, array):
     """Delete Offloaded Protection Group Snapshot"""
-    changed = True
-    if not module.check_mode:
-        snapname = module.params["name"] + "." + module.params["suffix"]
-        if ":" in module.params["name"] and module.params["offload"]:
-            if _check_offload(module, array):
+    changed = False
+    snapname = module.params["name"] + "." + module.params["suffix"]
+    if ":" in module.params["name"] and module.params["offload"]:
+        if _check_offload(module, array):
+            changed = True
+            if not module.check_mode:
                 try:
                     array.destroy_pgroup(snapname, on=module.params["offload"])
                     if module.params["eradicate"]:
@@ -351,15 +352,15 @@ def delete_offload_snapshot(module, array):
                                 )
                             )
                 except Exception:
-                    changed = False
-            else:
-                module.fail_json(
-                    msg="Offload target {0} does not exist or not connected".format(
-                        module.params["offload"]
-                    )
-                )
+                    pass
         else:
-            module.fail_json(msg="Protection Group name not in the correct format")
+            module.fail_json(
+                msg="Offload target {0} does not exist or not connected".format(
+                    module.params["offload"]
+                )
+            )
+    else:
+        module.fail_json(msg="Protection Group name not in the correct format")
 
     module.exit_json(changed=changed)
 
