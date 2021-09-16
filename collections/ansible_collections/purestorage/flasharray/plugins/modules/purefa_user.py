@@ -103,6 +103,7 @@ RETURN = r"""
 """
 
 
+import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_system,
@@ -254,6 +255,12 @@ def main():
         module.fail_json(
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
+        )
+    pattern = re.compile("^[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?$")
+    if not pattern.match(module.params["name"]):
+        module.fail_json(
+            msg="name must contain a minimum of 1 and a maximum of 32 characters "
+            "(alphanumeric or `-`). All letters must be lowercase."
         )
 
     if state == "absent":
