@@ -235,15 +235,15 @@ def update_interface(module, array, interface):
     }
     if new_state != current_state:
         changed = True
+        if (
+            "management" in interface["services"]
+            or "app" in interface["services"]
+            and address == "0.0.0.0/0"
+        ):
+            module.fail_json(
+                msg="Removing IP address from a management or app port is not supported"
+            )
         if not module.check_mode:
-            if (
-                "management" in interface["services"]
-                or "app" in interface["services"]
-                and address == "0.0.0.0/0"
-            ):
-                module.fail_json(
-                    msg="Removing IP address from a management or app port is not supported"
-                )
             try:
                 if new_state["gateway"] is not None:
                     array.set_network_interface(

@@ -310,71 +310,62 @@ def _convert_to_millisecs(hour):
 
 def rename_policy(module, array):
     """Rename a file system policy"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        target_exists = bool(
-            array.get_policies(names=[module.params["rename"]]).status_code == 200
-        )
-        if target_exists:
-            module.fail_json(
-                msg="Rename failed - Target policy {0} already exists".format(
-                    module.params["rename"]
-                )
+    changed = False
+    target_exists = bool(
+        array.get_policies(names=[module.params["rename"]]).status_code == 200
+    )
+    if target_exists:
+        module.fail_json(
+            msg="Rename failed - Target policy {0} already exists".format(
+                module.params["rename"]
             )
+        )
+    if not module.check_mode:
+        changed = True
+        if module.params["policy"] == "nfs":
+            res = array.patch_policies_nfs(
+                names=[module.params["name"]],
+                policy=flasharray.PolicyPatch(name=module.params["rename"]),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to rename NFS policy {0} to {1}".format(
+                        module.params["name"], module.params["rename"]
+                    )
+                )
+        elif module.params["policy"] == "smb":
+            res = array.patch_policies_smb(
+                names=[module.params["name"]],
+                policy=flasharray.PolicyPatch(name=module.params["rename"]),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to rename SMB policy {0} to {1}".format(
+                        module.params["name"], module.params["rename"]
+                    )
+                )
+        elif module.params["policy"] == "snapshot":
+            res = array.patch_policies_snapshot(
+                names=[module.params["name"]],
+                policy=flasharray.PolicyPatch(name=module.params["rename"]),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to rename snapshot policy {0} to {1}".format(
+                        module.params["name"], module.params["rename"]
+                    )
+                )
         else:
-            if module.params["policy"] == "nfs":
-                res = array.patch_policies_nfs(
-                    names=[module.params["name"]],
-                    policy=flasharray.PolicyPatch(name=module.params["rename"]),
-                )
-                if res.status_code == 200:
-                    changed = True
-                else:
-                    module.fail_json(
-                        msg="Failed to rename NFS policy {0} to {1}".format(
-                            module.params["name"], module.params["rename"]
-                        )
+            res = array.patch_policies_quota(
+                names=[module.params["name"]],
+                policy=flasharray.PolicyPatch(name=module.params["rename"]),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to rename quota policy {0} to {1}".format(
+                        module.params["name"], module.params["rename"]
                     )
-            elif module.params["policy"] == "smb":
-                res = array.patch_policies_smb(
-                    names=[module.params["name"]],
-                    policy=flasharray.PolicyPatch(name=module.params["rename"]),
                 )
-                if res.status_code == 200:
-                    changed = True
-                else:
-                    module.fail_json(
-                        msg="Failed to rename SMB policy {0} to {1}".format(
-                            module.params["name"], module.params["rename"]
-                        )
-                    )
-            elif module.params["policy"] == "snapshot":
-                res = array.patch_policies_snapshot(
-                    names=[module.params["name"]],
-                    policy=flasharray.PolicyPatch(name=module.params["rename"]),
-                )
-                if res.status_code == 200:
-                    changed = True
-                else:
-                    module.fail_json(
-                        msg="Failed to rename snapshot policy {0} to {1}".format(
-                            module.params["name"], module.params["rename"]
-                        )
-                    )
-            else:
-                res = array.patch_policies_quota(
-                    names=[module.params["name"]],
-                    policy=flasharray.PolicyPatch(name=module.params["rename"]),
-                )
-                if res.status_code == 200:
-                    changed = True
-                else:
-                    module.fail_json(
-                        msg="Failed to rename quota policy {0} to {1}".format(
-                            module.params["name"], module.params["rename"]
-                        )
-                    )
     module.exit_json(changed=changed)
 
 
@@ -757,21 +748,21 @@ def create_policy(module, array):
 
 def update_policy(module, array):
     """Update an existing policy including add/remove rules"""
-    changed = True
-    if not module.check_mode:
-        changed = changed_rule = changed_enable = changed_quota = changed_member = False
-        if module.params["policy"] == "nfs":
-            try:
-                current_enabled = list(
-                    array.get_policies_nfs(names=[module.params["name"]]).items
-                )[0].enabled
-            except Exception:
-                module.fail_json(
-                    msg="Incorrect policy type specified for existing policy {0}".format(
-                        module.params["name"]
-                    )
+    changed = changed_rule = changed_enable = changed_quota = changed_member = False
+    if module.params["policy"] == "nfs":
+        try:
+            current_enabled = list(
+                array.get_policies_nfs(names=[module.params["name"]]).items
+            )[0].enabled
+        except Exception:
+            module.fail_json(
+                msg="Incorrect policy type specified for existing policy {0}".format(
+                    module.params["name"]
                 )
-            if current_enabled != module.params["enabled"]:
+            )
+        if current_enabled != module.params["enabled"]:
+            changed_enable = True
+            if not module.check_mode:
                 res = array.patch_policies_nfs(
                     names=[module.params["name"]],
                     policy=flasharray.PolicyPatch(enabled=module.params["enabled"]),
@@ -782,27 +773,27 @@ def update_policy(module, array):
                             module.params["name"]
                         )
                     )
-                else:
-                    changed_enable = True
-            if module.params["client"]:
-                rules = list(
-                    array.get_policies_nfs_client_rules(
-                        policy_names=[module.params["name"]]
-                    ).items
-                )
-                if rules:
-                    rule_name = ""
-                    for rule in range(0, len(rules)):
-                        if rules[rule].client == module.params["client"]:
-                            rule_name = rules[rule].name
-                            break
-                    if not rule_name:
-                        rules = flasharray.PolicyrulesmbclientpostRules(
-                            anonymous_access_allowed=module.params["smb_anon_allowed"],
-                            client=module.params["client"],
-                            smb_encryption_required=module.params["smb_encrypt"],
-                        )
-                        rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
+        if module.params["client"]:
+            rules = list(
+                array.get_policies_nfs_client_rules(
+                    policy_names=[module.params["name"]]
+                ).items
+            )
+            if rules:
+                rule_name = ""
+                for rule in range(0, len(rules)):
+                    if rules[rule].client == module.params["client"]:
+                        rule_name = rules[rule].name
+                        break
+                if not rule_name:
+                    rules = flasharray.PolicyrulesmbclientpostRules(
+                        anonymous_access_allowed=module.params["smb_anon_allowed"],
+                        client=module.params["client"],
+                        smb_encryption_required=module.params["smb_encrypt"],
+                    )
+                    rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
+                    changed_rule = True
+                    if not module.check_mode:
                         rule_created = array.post_policies_nfs_client_rules(
                             policy_names=[module.params["name"]], rules=rule
                         )
@@ -813,15 +804,15 @@ def update_policy(module, array):
                                     rule_created.errors[0].message,
                                 )
                             )
-                        else:
-                            changed_rule = True
-                else:
-                    rules = flasharray.PolicyrulesmbclientpostRules(
-                        anonymous_access_allowed=module.params["smb_anon_allowed"],
-                        client=module.params["client"],
-                        smb_encryption_required=module.params["smb_encrypt"],
-                    )
-                    rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
+            else:
+                rules = flasharray.PolicyrulesmbclientpostRules(
+                    anonymous_access_allowed=module.params["smb_anon_allowed"],
+                    client=module.params["client"],
+                    smb_encryption_required=module.params["smb_encrypt"],
+                )
+                rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
+                changed_rule = True
+                if not module.check_mode:
                     rule_created = array.post_policies_nfs_client_rules(
                         policy_names=[module.params["name"]], rules=rule
                     )
@@ -831,20 +822,20 @@ def update_policy(module, array):
                                 module.params["name"], rule_created.errors[0].message
                             )
                         )
-                    else:
-                        changed_rule = True
-        elif module.params["policy"] == "smb":
-            try:
-                current_enabled = list(
-                    array.get_policies_smb(names=[module.params["name"]]).items
-                )[0].enabled
-            except Exception:
-                module.fail_json(
-                    msg="Incorrect policy type specified for existing policy {0}".format(
-                        module.params["name"]
-                    )
+    elif module.params["policy"] == "smb":
+        try:
+            current_enabled = list(
+                array.get_policies_smb(names=[module.params["name"]]).items
+            )[0].enabled
+        except Exception:
+            module.fail_json(
+                msg="Incorrect policy type specified for existing policy {0}".format(
+                    module.params["name"]
                 )
-            if current_enabled != module.params["enabled"]:
+            )
+        if current_enabled != module.params["enabled"]:
+            changed_enable = True
+            if not module.check_mode:
                 res = array.patch_policies_smb(
                     names=[module.params["name"]],
                     policy=flasharray.PolicyPatch(enabled=module.params["enabled"]),
@@ -855,27 +846,27 @@ def update_policy(module, array):
                             module.params["name"]
                         )
                     )
-                else:
-                    changed_enable = True
-            if module.params["client"]:
-                rules = list(
-                    array.get_policies_smb_client_rules(
-                        policy_names=[module.params["name"]]
-                    ).items
-                )
-                if rules:
-                    rule_name = ""
-                    for rule in range(0, len(rules)):
-                        if rules[rule].client == module.params["client"]:
-                            rule_name = rules[rule].name
-                            break
-                    if not rule_name:
-                        rules = flasharray.PolicyrulesmbclientpostRules(
-                            access=module.params["nfs_access"],
-                            client=module.params["client"],
-                            permission=module.params["nfs_permission"],
-                        )
-                        rule = flasharray.PolicyRuleSmbClientPost(rules=[rules])
+        if module.params["client"]:
+            rules = list(
+                array.get_policies_smb_client_rules(
+                    policy_names=[module.params["name"]]
+                ).items
+            )
+            if rules:
+                rule_name = ""
+                for rule in range(0, len(rules)):
+                    if rules[rule].client == module.params["client"]:
+                        rule_name = rules[rule].name
+                        break
+                if not rule_name:
+                    rules = flasharray.PolicyrulesmbclientpostRules(
+                        access=module.params["nfs_access"],
+                        client=module.params["client"],
+                        permission=module.params["nfs_permission"],
+                    )
+                    rule = flasharray.PolicyRuleSmbClientPost(rules=[rules])
+                    changed_rule = True
+                    if not module.check_mode:
                         rule_created = array.post_policies_smb_client_rules(
                             policy_names=[module.params["name"]], rules=rule
                         )
@@ -886,15 +877,15 @@ def update_policy(module, array):
                                     rule_created.errors[0].message,
                                 )
                             )
-                        else:
-                            changed_rule = True
-                else:
-                    rules = flasharray.PolicyrulesmbclientpostRules(
-                        access=module.params["nfs_access"],
-                        client=module.params["client"],
-                        permission=module.params["nfs_permission"],
-                    )
-                    rule = flasharray.PolicyRuleSmbClientPost(rules=[rules])
+            else:
+                rules = flasharray.PolicyrulesmbclientpostRules(
+                    access=module.params["nfs_access"],
+                    client=module.params["client"],
+                    permission=module.params["nfs_permission"],
+                )
+                rule = flasharray.PolicyRuleSmbClientPost(rules=[rules])
+                changed_rule = True
+                if not module.check_mode:
                     rule_created = array.post_policies_smb_client_rules(
                         policy_names=[module.params["name"]], rules=rule
                     )
@@ -904,20 +895,20 @@ def update_policy(module, array):
                                 module.params["name"], rule_created.errors[0].message
                             )
                         )
-                    else:
-                        changed_rule = True
-        elif module.params["policy"] == "snapshot":
-            try:
-                current_enabled = list(
-                    array.get_policies_snapshot(names=[module.params["name"]]).items
-                )[0].enabled
-            except Exception:
-                module.fail_json(
-                    msg="Incorrect policy type specified for existing policy {0}".format(
-                        module.params["name"]
-                    )
+    elif module.params["policy"] == "snapshot":
+        try:
+            current_enabled = list(
+                array.get_policies_snapshot(names=[module.params["name"]]).items
+            )[0].enabled
+        except Exception:
+            module.fail_json(
+                msg="Incorrect policy type specified for existing policy {0}".format(
+                    module.params["name"]
                 )
-            if current_enabled != module.params["enabled"]:
+            )
+        if current_enabled != module.params["enabled"]:
+            changed_enable = True
+            if not module.check_mode:
                 res = array.patch_policies_snapshot(
                     names=[module.params["name"]],
                     policy=flasharray.PolicyPatch(enabled=module.params["enabled"]),
@@ -928,66 +919,28 @@ def update_policy(module, array):
                             module.params["name"]
                         )
                     )
-                else:
-                    changed_enable = True
-            if module.params["snap_client_name"]:
-                if module.params["snap_at"]:
-                    if not module.params["snap_every"] % 1440 == 0:
-                        module.fail_json(
-                            msg="snap_at time can only be set if snap_every is multiple of 1440"
-                        )
-                if module.params["snap_keep_for"] < module.params["snap_every"]:
+        if module.params["snap_client_name"]:
+            if module.params["snap_at"]:
+                if not module.params["snap_every"] % 1440 == 0:
                     module.fail_json(
-                        msg="Retention period (snap_keep_for) cannot be less than snapshot interval (snap_every)."
+                        msg="snap_at time can only be set if snap_every is multiple of 1440"
                     )
-                rules = list(
-                    array.get_policies_snapshot_rules(
-                        policy_names=[module.params["name"]]
-                    ).items
+            if module.params["snap_keep_for"] < module.params["snap_every"]:
+                module.fail_json(
+                    msg="Retention period (snap_keep_for) cannot be less than snapshot interval (snap_every)."
                 )
-                if rules:
-                    rule_name = ""
-                    for rule in range(0, len(rules)):
-                        if rules[rule].client_name == module.params["snap_client_name"]:
-                            rule_name = rules[rule].name
-                            break
-                    if not rule_name:
-                        if module.params["snap_keep_for"] < module.params["snap_every"]:
-                            module.fail_json(
-                                msg="Retention period (snap_keep_for) cannot be less than snapshot interval (snap_every)."
-                            )
-                        if module.params["snap_at"]:
-                            if not module.params["snap_every"] % 1440 == 0:
-                                module.fail_json(
-                                    msg="snap_at time can only be set if snap_every is multiple of 1440"
-                                )
-                            rules = flasharray.PolicyrulesnapshotpostRules(
-                                at=_convert_to_millisecs(module.params["snap_at"]),
-                                client_name=module.params["snap_client_name"],
-                                every=module.params["snap_every"] * 60000,
-                                keep_for=module.params["snap_keep_for"] * 60000,
-                            )
-                        else:
-                            rules = flasharray.PolicyrulesnapshotpostRules(
-                                client_name=module.params["snap_client_name"],
-                                every=module.params["snap_every"] * 60000,
-                                keep_for=module.params["snap_keep_for"] * 60000,
-                            )
-                        rule = flasharray.PolicyRuleSnapshotPost(rules=[rules])
-                        rule_created = array.post_policies_snapshot_rules(
-                            policy_names=[module.params["name"]], rules=rule
-                        )
-                        if rule_created.status_code != 200:
-                            err_no = len(rule_created.errors) - 1
-                            module.fail_json(
-                                msg="Failed to create new rule for Snapshot policy {0}. Error: {1}".format(
-                                    module.params["name"],
-                                    rule_created.errors[err_no].message,
-                                )
-                            )
-                        else:
-                            changed_rule = True
-                else:
+            rules = list(
+                array.get_policies_snapshot_rules(
+                    policy_names=[module.params["name"]]
+                ).items
+            )
+            if rules:
+                rule_name = ""
+                for rule in range(0, len(rules)):
+                    if rules[rule].client_name == module.params["snap_client_name"]:
+                        rule_name = rules[rule].name
+                        break
+                if not rule_name:
                     if module.params["snap_keep_for"] < module.params["snap_every"]:
                         module.fail_json(
                             msg="Retention period (snap_keep_for) cannot be less than snapshot interval (snap_every)."
@@ -1009,7 +962,45 @@ def update_policy(module, array):
                             every=module.params["snap_every"] * 60000,
                             keep_for=module.params["snap_keep_for"] * 60000,
                         )
-                    rule = flasharray.PolicyRuleSnapshotPost(rules=[rules])
+                        rule = flasharray.PolicyRuleSnapshotPost(rules=[rules])
+                        changed_rule = True
+                        if not module.check_mode:
+                            rule_created = array.post_policies_snapshot_rules(
+                                policy_names=[module.params["name"]], rules=rule
+                            )
+                            if rule_created.status_code != 200:
+                                err_no = len(rule_created.errors) - 1
+                                module.fail_json(
+                                    msg="Failed to create new rule for Snapshot policy {0}. Error: {1}".format(
+                                        module.params["name"],
+                                        rule_created.errors[err_no].message,
+                                    )
+                                )
+            else:
+                if module.params["snap_keep_for"] < module.params["snap_every"]:
+                    module.fail_json(
+                        msg="Retention period (snap_keep_for) cannot be less than snapshot interval (snap_every)."
+                    )
+                if module.params["snap_at"]:
+                    if not module.params["snap_every"] % 1440 == 0:
+                        module.fail_json(
+                            msg="snap_at time can only be set if snap_every is multiple of 1440"
+                        )
+                    rules = flasharray.PolicyrulesnapshotpostRules(
+                        at=_convert_to_millisecs(module.params["snap_at"]),
+                        client_name=module.params["snap_client_name"],
+                        every=module.params["snap_every"] * 60000,
+                        keep_for=module.params["snap_keep_for"] * 60000,
+                    )
+                else:
+                    rules = flasharray.PolicyrulesnapshotpostRules(
+                        client_name=module.params["snap_client_name"],
+                        every=module.params["snap_every"] * 60000,
+                        keep_for=module.params["snap_keep_for"] * 60000,
+                    )
+                rule = flasharray.PolicyRuleSnapshotPost(rules=[rules])
+                changed_rule = True
+                if not module.check_mode:
                     rule_created = array.post_policies_snapshot_rules(
                         policy_names=[module.params["name"]], rules=rule
                     )
@@ -1021,13 +1012,13 @@ def update_policy(module, array):
                                 rule_created.errors[err_no].message,
                             )
                         )
-                    else:
-                        changed_rule = True
-        else:
-            current_enabled = list(
-                array.get_policies_quota(names=[module.params["name"]]).items
-            )[0].enabled
-            if current_enabled != module.params["enabled"]:
+    else:
+        current_enabled = list(
+            array.get_policies_quota(names=[module.params["name"]]).items
+        )[0].enabled
+        if current_enabled != module.params["enabled"]:
+            changed_quota = True
+            if not module.check_mode:
                 res = array.patch_policies_quota(
                     names=[module.params["name"]],
                     policy=flasharray.PolicyPatch(enabled=module.params["enabled"]),
@@ -1038,21 +1029,21 @@ def update_policy(module, array):
                             module.params["name"]
                         )
                     )
-                else:
-                    changed_enable = True
-            if module.params["directory"]:
-                current_members = list(
-                    array.get_policies_quota_members(
-                        policy_names=[module.params["name"]]
-                    ).items
-                )
-                if current_members:
-                    if module.params["state"] == "absent":
-                        for member in range(0, len(current_members)):
-                            if (
-                                current_members[member].member.name
-                                in module.params["directory"]
-                            ):
+        if module.params["directory"]:
+            current_members = list(
+                array.get_policies_quota_members(
+                    policy_names=[module.params["name"]]
+                ).items
+            )
+            if current_members:
+                if module.params["state"] == "absent":
+                    for member in range(0, len(current_members)):
+                        if (
+                            current_members[member].member.name
+                            in module.params["directory"]
+                        ):
+                            changed_member = True
+                            if not module.check_mode:
                                 res = array.delete_policies_quota_members(
                                     policy_names=[module.params["name"]],
                                     member_names=[current_members[member].member.name],
@@ -1065,25 +1056,25 @@ def update_policy(module, array):
                                             rule_created.errors[0].message,
                                         )
                                     )
-                                else:
-                                    changed_member = True
-                    else:
-                        members = []
-                        cmembers = []
-                        for cmem in range(0, len(current_members)):
-                            cmembers.append(current_members[cmem].member.name)
-                        mem_diff = list(set(module.params["directory"]) - set(cmembers))
-                        if mem_diff:
-                            for mem in range(0, len(mem_diff)):
-                                members.append(
-                                    flasharray.PolicymemberpostMembers(
-                                        member=flasharray.ReferenceWithType(
-                                            name=mem_diff[mem],
-                                            resource_type="directories",
-                                        )
+                else:
+                    members = []
+                    cmembers = []
+                    for cmem in range(0, len(current_members)):
+                        cmembers.append(current_members[cmem].member.name)
+                    mem_diff = list(set(module.params["directory"]) - set(cmembers))
+                    if mem_diff:
+                        for mem in range(0, len(mem_diff)):
+                            members.append(
+                                flasharray.PolicymemberpostMembers(
+                                    member=flasharray.ReferenceWithType(
+                                        name=mem_diff[mem],
+                                        resource_type="directories",
                                     )
                                 )
-                            member = flasharray.PolicyMemberPost(members=members)
+                            )
+                        member = flasharray.PolicyMemberPost(members=members)
+                        changed_member = True
+                        if not module.check_mode:
                             members_created = array.post_policies_quota_members(
                                 policy_names=[module.params["name"]],
                                 members=member,
@@ -1096,20 +1087,20 @@ def update_policy(module, array):
                                         members_created.errors[0].message,
                                     )
                                 )
-                            else:
-                                changed_member = True
-                else:
-                    members = []
-                    for mem in range(0, len(module.params["directory"])):
-                        members.append(
-                            flasharray.PolicymemberpostMembers(
-                                member=flasharray.ReferenceWithType(
-                                    name=module.params["directory"][mem],
-                                    resource_type="directories",
-                                )
+            else:
+                members = []
+                for mem in range(0, len(module.params["directory"])):
+                    members.append(
+                        flasharray.PolicymemberpostMembers(
+                            member=flasharray.ReferenceWithType(
+                                name=module.params["directory"][mem],
+                                resource_type="directories",
                             )
                         )
-                    member = flasharray.PolicyMemberPost(members=members)
+                    )
+                member = flasharray.PolicyMemberPost(members=members)
+                changed_member = True
+                if not module.check_mode:
                     members_created = array.post_policies_quota_members(
                         policy_names=[module.params["name"]],
                         members=member,
@@ -1122,49 +1113,46 @@ def update_policy(module, array):
                                 members_created.errors[0].message,
                             )
                         )
+        if module.params["quota_limit"]:
+            quota = _human_to_bytes(module.params["quota_limit"])
+            current_rules = list(
+                array.get_policies_quota_rules(
+                    policy_names=[module.params["name"]]
+                ).items
+            )
+            if current_rules:
+                one_enforced = False
+                for rule in range(0, len(current_rules)):
+                    if current_rules[rule].enforced:
+                        one_enforced = True
+                for rule in range(0, len(current_rules)):
+                    rule_exists = False
+                    if not module.params["quota_notifications"]:
+                        current_notifications = "none"
                     else:
-                        changed_member = True
-            if module.params["quota_limit"]:
-                quota = _human_to_bytes(module.params["quota_limit"])
-                current_rules = list(
-                    array.get_policies_quota_rules(
-                        policy_names=[module.params["name"]]
-                    ).items
-                )
-                if current_rules:
-                    one_enforced = False
-                    for rule in range(0, len(current_rules)):
-                        if current_rules[rule].enforced:
-                            one_enforced = True
-                    for rule in range(0, len(current_rules)):
-                        rule_exists = False
-                        if not module.params["quota_notifications"]:
-                            current_notifications = "none"
-                        else:
-                            current_notifications = ",".join(
-                                module.params["quota_notifications"]
-                            )
-                        if (
-                            current_rules[rule].quota_limit == quota
-                            and current_rules[rule].enforced
-                            == module.params["quota_enforced"]
-                            and current_rules[rule].notifications
-                            == current_notifications
-                        ):
-                            rule_exists = True
-                    if not rule_exists:
-                        if module.params["quota_enforced"] and one_enforced:
-                            module.fail_json(
-                                msg="Only one enforced rule can be defined per policy"
-                            )
-                        rules = flasharray.PolicyrulequotapostRules(
-                            enforced=module.params["quota_enforced"],
-                            quota_limit=quota,
-                            notifications=",".join(
-                                module.params["quota_notifications"]
-                            ),
+                        current_notifications = ",".join(
+                            module.params["quota_notifications"]
                         )
-                        rule = flasharray.PolicyRuleQuotaPost(rules=[rules])
+                    if (
+                        current_rules[rule].quota_limit == quota
+                        and current_rules[rule].enforced
+                        == module.params["quota_enforced"]
+                        and current_rules[rule].notifications == current_notifications
+                    ):
+                        rule_exists = True
+                if not rule_exists:
+                    if module.params["quota_enforced"] and one_enforced:
+                        module.fail_json(
+                            msg="Only one enforced rule can be defined per policy"
+                        )
+                    rules = flasharray.PolicyrulequotapostRules(
+                        enforced=module.params["quota_enforced"],
+                        quota_limit=quota,
+                        notifications=",".join(module.params["quota_notifications"]),
+                    )
+                    rule = flasharray.PolicyRuleQuotaPost(rules=[rules])
+                    changed_quota = True
+                    if not module.check_mode:
                         quota_created = array.post_policies_quota_rules(
                             policy_names=[module.params["name"]],
                             rules=rule,
@@ -1177,15 +1165,15 @@ def update_policy(module, array):
                                     quota_created.errors[0].message,
                                 )
                             )
-                        else:
-                            changed_quota = True
-                else:
-                    rules = flasharray.PolicyrulequotapostRules(
-                        enforced=module.params["quota_enforced"],
-                        quota_limit=quota,
-                        notifications=",".join(module.params["quota_notifications"]),
-                    )
-                    rule = flasharray.PolicyRuleQuotaPost(rules=[rules])
+            else:
+                rules = flasharray.PolicyrulequotapostRules(
+                    enforced=module.params["quota_enforced"],
+                    quota_limit=quota,
+                    notifications=",".join(module.params["quota_notifications"]),
+                )
+                rule = flasharray.PolicyRuleQuotaPost(rules=[rules])
+                changed_quota = True
+                if not module.check_mode:
                     quota_created = array.post_policies_quota_rules(
                         policy_names=[module.params["name"]],
                         rules=rule,
@@ -1197,11 +1185,9 @@ def update_policy(module, array):
                                 module.params["name"], quota_created.errors[0].message
                             )
                         )
-                    else:
-                        changed_quota = True
 
-        if changed_rule or changed_enable or changed_quota or changed_member:
-            changed = True
+    if changed_rule or changed_enable or changed_quota or changed_member:
+        changed = True
     module.exit_json(changed=changed)
 
 

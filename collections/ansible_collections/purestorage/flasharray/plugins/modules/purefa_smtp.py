@@ -92,41 +92,37 @@ def delete_smtp(module, array):
 
 def create_smtp(module, array):
     """Set SMTP settings"""
-    changed = True
+    changed = changed_sender = changed_relay = changed_creds = False
     current_smtp = array.get_smtp()
-    if not module.check_mode:
-        if (
-            module.params["sender_domain"]
-            and current_smtp["sender_domain"] != module.params["sender_domain"]
-        ):
+    if (
+        module.params["sender_domain"]
+        and current_smtp["sender_domain"] != module.params["sender_domain"]
+    ):
+        changed_sender = True
+        if not module.check_mode:
             try:
                 array.set_smtp(sender_domain=module.params["sender_domain"])
-                changed_sender = True
             except Exception:
                 module.fail_json(msg="Set SMTP sender domain failed.")
-        else:
-            changed_sender = False
-        if (
-            module.params["relay_host"]
-            and current_smtp["relay_host"] != module.params["relay_host"]
-        ):
+    if (
+        module.params["relay_host"]
+        and current_smtp["relay_host"] != module.params["relay_host"]
+    ):
+        changed_relay = True
+        if not module.check_mode:
             try:
                 array.set_smtp(relay_host=module.params["relay_host"])
-                changed_relay = True
             except Exception:
                 module.fail_json(msg="Set SMTP relay host failed.")
-        else:
-            changed_relay = False
-        if module.params["user"]:
+    if module.params["user"]:
+        changed_creds = True
+        if not module.check_mode:
             try:
                 array.set_smtp(
                     user_name=module.params["user"], password=module.params["password"]
                 )
-                changed_creds = True
             except Exception:
                 module.fail_json(msg="Set SMTP username/password failed.")
-        else:
-            changed_creds = False
         changed = bool(changed_sender or changed_relay or changed_creds)
 
     module.exit_json(changed=changed)
