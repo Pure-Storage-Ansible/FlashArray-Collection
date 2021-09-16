@@ -70,8 +70,7 @@ def set_timeout(module, array):
     changed = True
     if not module.check_mode:
         try:
-            if not module.check_mode:
-                array.set(idle_timeout=module.params["timeout"])
+            array.set(idle_timeout=module.params["timeout"])
         except Exception:
             module.fail_json(msg="Failed to set GUI idle timeout")
 

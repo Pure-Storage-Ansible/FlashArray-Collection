@@ -491,42 +491,43 @@ def check_pod(module, array):
 
 def create_volume(module, array):
     """Create Volume"""
-    changed = True
     volfact = []
-    if not module.check_mode:
-        api_version = array._list_available_rest_versions()
-        if "/" in module.params["name"] and not check_vgroup(module, array):
+    changed = False
+    api_version = array._list_available_rest_versions()
+    if "/" in module.params["name"] and not check_vgroup(module, array):
+        module.fail_json(
+            msg="Failed to create volume {0}. Volume Group does not exist.".format(
+                module.params["name"]
+            )
+        )
+    if "::" in module.params["name"]:
+        if not check_pod(module, array):
             module.fail_json(
-                msg="Failed to create volume {0}. Volume Group does not exist.".format(
+                msg="Failed to create volume {0}. Pod does not exist".format(
                     module.params["name"]
                 )
             )
-        if "::" in module.params["name"]:
-            if not check_pod(module, array):
-                module.fail_json(
-                    msg="Failed to create volume {0}. Pod does not exist".format(
-                        module.params["name"]
-                    )
-                )
-            pod_name = module.params["name"].split("::")[0]
-            if PROMOTE_API_VERSION in api_version:
-                if array.get_pod(pod_name)["promotion_status"] == "demoted":
-                    module.fail_json(msg="Volume cannot be created in a demoted pod")
-            if module.params["bw_qos"] or module.params["iops_qos"]:
-                if AC_QOS_VERSION not in api_version:
-                    module.warn(
-                        "Pods cannot cannot contain volumes with QoS settings. Ignoring..."
-                    )
-                    module.params["bw_qos"] = module.params["iops_qos"] = None
-        if not module.params["size"]:
-            module.fail_json(msg="Size for a new volume must be specified")
+        pod_name = module.params["name"].split("::")[0]
+        if PROMOTE_API_VERSION in api_version:
+            if array.get_pod(pod_name)["promotion_status"] == "demoted":
+                module.fail_json(msg="Volume cannot be created in a demoted pod")
         if module.params["bw_qos"] or module.params["iops_qos"]:
-            if module.params["bw_qos"] and QOS_API_VERSION in api_version:
-                if module.params["iops_qos"] and IOPS_API_VERSION in api_version:
-                    if module.params["bw_qos"] and not module.params["iops_qos"]:
-                        if int(human_to_bytes(module.params["bw_qos"])) in range(
-                            1048576, 549755813888
-                        ):
+            if AC_QOS_VERSION not in api_version:
+                module.warn(
+                    "Pods cannot cannot contain volumes with QoS settings. Ignoring..."
+                )
+                module.params["bw_qos"] = module.params["iops_qos"] = None
+    if not module.params["size"]:
+        module.fail_json(msg="Size for a new volume must be specified")
+    if module.params["bw_qos"] or module.params["iops_qos"]:
+        if module.params["bw_qos"] and QOS_API_VERSION in api_version:
+            if module.params["iops_qos"] and IOPS_API_VERSION in api_version:
+                if module.params["bw_qos"] and not module.params["iops_qos"]:
+                    if int(human_to_bytes(module.params["bw_qos"])) in range(
+                        1048576, 549755813888
+                    ):
+                        changed = True
+                        if not module.check_mode:
                             try:
                                 volfact = array.create_volume(
                                     module.params["name"],
@@ -542,50 +543,25 @@ def create_volume(module, array):
                                         module.params["name"]
                                     )
                                 )
-                        else:
-                            module.fail_json(
-                                msg="Bandwidth QoS value {0} out of range.".format(
-                                    module.params["bw_qos"]
-                                )
-                            )
-                    elif module.params["iops_qos"] and not module.params["bw_qos"]:
-                        if (
-                            100000000
-                            >= int(human_to_real(module.params["iops_qos"]))
-                            >= 100
-                        ):
-                            try:
-                                volfact = array.create_volume(
-                                    module.params["name"],
-                                    module.params["size"],
-                                    iops_limit=module.params["iops_qos"],
-                                )
-                                volfact["page83_naa"] = (
-                                    PURE_OUI + volfact["serial"].lower()
-                                )
-                            except Exception:
-                                module.fail_json(
-                                    msg="Volume {0} creation failed.".format(
-                                        module.params["name"]
-                                    )
-                                )
-                        else:
-                            module.fail_json(
-                                msg="IOPs QoS value {0} out of range.".format(
-                                    module.params["iops_qos"]
-                                )
-                            )
                     else:
-                        bw_qos_size = int(human_to_bytes(module.params["bw_qos"]))
-                        if int(human_to_real(module.params["iops_qos"])) in range(
-                            100, 100000000
-                        ) and bw_qos_size in range(1048576, 549755813888):
+                        module.fail_json(
+                            msg="Bandwidth QoS value {0} out of range.".format(
+                                module.params["bw_qos"]
+                            )
+                        )
+                elif module.params["iops_qos"] and not module.params["bw_qos"]:
+                    if (
+                        100000000
+                        >= int(human_to_real(module.params["iops_qos"]))
+                        >= 100
+                    ):
+                        changed = True
+                        if not module.check_mode:
                             try:
                                 volfact = array.create_volume(
                                     module.params["name"],
                                     module.params["size"],
                                     iops_limit=module.params["iops_qos"],
-                                    bandwidth_limit=module.params["bw_qos"],
                                 )
                                 volfact["page83_naa"] = (
                                     PURE_OUI + volfact["serial"].lower()
@@ -596,15 +572,46 @@ def create_volume(module, array):
                                         module.params["name"]
                                     )
                                 )
-                        else:
-                            module.fail_json(
-                                msg="IOPs or Bandwidth QoS value out of range."
+                    else:
+                        module.fail_json(
+                            msg="IOPs QoS value {0} out of range.".format(
+                                module.params["iops_qos"]
                             )
+                        )
                 else:
-                    if module.params["bw_qos"]:
-                        if int(human_to_bytes(module.params["bw_qos"])) in range(
-                            1048576, 549755813888
-                        ):
+                    bw_qos_size = int(human_to_bytes(module.params["bw_qos"]))
+                    if int(human_to_real(module.params["iops_qos"])) in range(
+                        100, 100000000
+                    ) and bw_qos_size in range(1048576, 549755813888):
+                        changed = True
+                        if not module.check_mode:
+                            try:
+                                volfact = array.create_volume(
+                                    module.params["name"],
+                                    module.params["size"],
+                                    iops_limit=module.params["iops_qos"],
+                                    bandwidth_limit=module.params["bw_qos"],
+                                )
+                                volfact["page83_naa"] = (
+                                    PURE_OUI + volfact["serial"].lower()
+                                )
+                            except Exception:
+                                module.fail_json(
+                                    msg="Volume {0} creation failed.".format(
+                                        module.params["name"]
+                                    )
+                                )
+                    else:
+                        module.fail_json(
+                            msg="IOPs or Bandwidth QoS value out of range."
+                        )
+            else:
+                if module.params["bw_qos"]:
+                    if int(human_to_bytes(module.params["bw_qos"])) in range(
+                        1048576, 549755813888
+                    ):
+                        changed = True
+                        if not module.check_mode:
                             try:
                                 volfact = array.create_volume(
                                     module.params["name"],
@@ -620,13 +627,15 @@ def create_volume(module, array):
                                         module.params["name"]
                                     )
                                 )
-                        else:
-                            module.fail_json(
-                                msg="Bandwidth QoS value {0} out of range.".format(
-                                    module.params["bw_qos"]
-                                )
-                            )
                     else:
+                        module.fail_json(
+                            msg="Bandwidth QoS value {0} out of range.".format(
+                                module.params["bw_qos"]
+                            )
+                        )
+                else:
+                    changed = True
+                    if not module.check_mode:
                         try:
                             volfact = array.create_volume(
                                 module.params["name"], module.params["size"]
@@ -638,7 +647,9 @@ def create_volume(module, array):
                                     module.params["name"]
                                 )
                             )
-        else:
+    else:
+        changed = True
+        if not module.check_mode:
             try:
                 volfact = array.create_volume(
                     module.params["name"], module.params["size"]
@@ -649,7 +660,9 @@ def create_volume(module, array):
                     msg="Volume {0} creation failed.".format(module.params["name"])
                 )
 
-        if module.params["pgroup"]:
+    if module.params["pgroup"]:
+        changed = True
+        if not module.check_mode:
             try:
                 array.set_pgroup(
                     module.params["pgroup"], addvollist=[module.params["name"]]
@@ -666,74 +679,72 @@ def create_volume(module, array):
 
 def create_multi_volume(module, array):
     """Create Volume"""
-    changed = True
     volfact = {}
-    if not module.check_mode:
-        api_version = array._list_available_rest_versions()
-        bw_qos_size = iops_qos_size = 0
-        names = []
-        if "/" in module.params["name"] and not check_vgroup(module, array):
+    changed = True
+    api_version = array._list_available_rest_versions()
+    bw_qos_size = iops_qos_size = 0
+    names = []
+    if "/" in module.params["name"] and not check_vgroup(module, array):
+        module.fail_json(
+            msg="Multi-volume create failed. Volume Group {0} does not exist.".format(
+                module.params["name"].split("/")[0]
+            )
+        )
+    if "::" in module.params["name"]:
+        if not check_pod(module, array):
             module.fail_json(
-                msg="Multi-volume create failed. Volume Group {0} does not exist.".format(
-                    module.params["name"].split("/")[0]
+                msg="Multi-volume create failed. Pod {0} does not exist".format(
+                    module.params["name"].split(":")[0]
                 )
             )
-        if "::" in module.params["name"]:
-            if not check_pod(module, array):
-                module.fail_json(
-                    msg="Multi-volume create failed. Pod {0} does not exist".format(
-                        module.params["name"].split(":")[0]
-                    )
-                )
-            pod_name = module.params["name"].split("::")[0]
-            if PROMOTE_API_VERSION in api_version:
-                if array.get_pod(pod_name)["promotion_status"] == "demoted":
-                    module.fail_json(msg="Volume cannot be created in a demoted pod")
-        array = get_array(module)
-        for vol_num in range(
-            module.params["start"], module.params["count"] + module.params["start"]
-        ):
-            names.append(
-                module.params["name"]
-                + str(vol_num).zfill(module.params["digits"])
-                + module.params["suffix"]
-            )
-        if module.params["bw_qos"]:
-            bw_qos = int(human_to_bytes(module.params["bw_qos"]))
-            if bw_qos in range(1048576, 549755813888):
-                bw_qos_size = bw_qos
-            else:
-                module.fail_json(msg="Bandwidth QoS value out of range.")
-        if module.params["iops_qos"]:
-            iops_qos = int(human_to_real(module.params["iops_qos"]))
-            if iops_qos in range(100, 100000000):
-                iops_qos_size = iops_qos
-            else:
-                module.fail_json(msg="IOPs QoS value out of range.")
-        if bw_qos_size != 0 and iops_qos_size != 0:
-            vols = flasharray.VolumePost(
-                provisioned=human_to_bytes(module.params["size"]),
-                qos=flasharray.Qos(
-                    bandwidth_limit=bw_qos_size, iops_limit=iops_qos_size
-                ),
-                subtype="regular",
-            )
-        elif bw_qos_size == 0 and iops_qos_size == 0:
-            vols = flasharray.VolumePost(
-                provisioned=human_to_bytes(module.params["size"]), subtype="regular"
-            )
-        elif bw_qos_size == 0 and iops_qos_size != 0:
-            vols = flasharray.VolumePost(
-                provisioned=human_to_bytes(module.params["size"]),
-                qos=flasharray.Qos(iops_limit=iops_qos_size),
-                subtype="regular",
-            )
-        elif bw_qos_size != 0 and iops_qos_size == 0:
-            vols = flasharray.VolumePost(
-                provisioned=human_to_bytes(module.params["size"]),
-                qos=flasharray.Qos(bandwidth_limit=bw_qos_size),
-                subtype="regular",
-            )
+        pod_name = module.params["name"].split("::")[0]
+        if PROMOTE_API_VERSION in api_version:
+            if array.get_pod(pod_name)["promotion_status"] == "demoted":
+                module.fail_json(msg="Volume cannot be created in a demoted pod")
+    array = get_array(module)
+    for vol_num in range(
+        module.params["start"], module.params["count"] + module.params["start"]
+    ):
+        names.append(
+            module.params["name"]
+            + str(vol_num).zfill(module.params["digits"])
+            + module.params["suffix"]
+        )
+    if module.params["bw_qos"]:
+        bw_qos = int(human_to_bytes(module.params["bw_qos"]))
+        if bw_qos in range(1048576, 549755813888):
+            bw_qos_size = bw_qos
+        else:
+            module.fail_json(msg="Bandwidth QoS value out of range.")
+    if module.params["iops_qos"]:
+        iops_qos = int(human_to_real(module.params["iops_qos"]))
+        if iops_qos in range(100, 100000000):
+            iops_qos_size = iops_qos
+        else:
+            module.fail_json(msg="IOPs QoS value out of range.")
+    if bw_qos_size != 0 and iops_qos_size != 0:
+        vols = flasharray.VolumePost(
+            provisioned=human_to_bytes(module.params["size"]),
+            qos=flasharray.Qos(bandwidth_limit=bw_qos_size, iops_limit=iops_qos_size),
+            subtype="regular",
+        )
+    elif bw_qos_size == 0 and iops_qos_size == 0:
+        vols = flasharray.VolumePost(
+            provisioned=human_to_bytes(module.params["size"]), subtype="regular"
+        )
+    elif bw_qos_size == 0 and iops_qos_size != 0:
+        vols = flasharray.VolumePost(
+            provisioned=human_to_bytes(module.params["size"]),
+            qos=flasharray.Qos(iops_limit=iops_qos_size),
+            subtype="regular",
+        )
+    elif bw_qos_size != 0 and iops_qos_size == 0:
+        vols = flasharray.VolumePost(
+            provisioned=human_to_bytes(module.params["size"]),
+            qos=flasharray.Qos(bandwidth_limit=bw_qos_size),
+            subtype="regular",
+        )
+    if not module.check_mode:
         res = array.post_volumes(names=names, volume=vols)
         if res.status_code != 200:
             module.fail_json(
@@ -762,7 +773,8 @@ def create_multi_volume(module, array):
                 if iops_qos_size != 0:
                     volfact[vol_name]["iops_limit"] = temp[count].qos.iops_limit
 
-        if module.params["pgroup"]:
+    if module.params["pgroup"]:
+        if not module.check_mode:
             res = array.post_protection_groups_volumes(
                 group_names=[module.params["pgroup"]], member_names=names
             )
@@ -778,13 +790,13 @@ def create_multi_volume(module, array):
 
 def copy_from_volume(module, array):
     """Create Volume Clone"""
-    changed = True
     volfact = []
-    if not module.check_mode:
-        changed = False
-        tgt = get_target(module, array)
+    changed = False
+    tgt = get_target(module, array)
 
-        if tgt is None:
+    if tgt is None:
+        changed = True
+        if not module.check_mode:
             try:
                 volfact = array.copy_volume(
                     module.params["name"], module.params["target"]
@@ -797,7 +809,9 @@ def copy_from_volume(module, array):
                         module.params["name"], module.params["target"]
                     )
                 )
-        elif tgt is not None and module.params["overwrite"]:
+    elif tgt is not None and module.params["overwrite"]:
+        changed = True
+        if not module.check_mode:
             try:
                 volfact = array.copy_volume(
                     module.params["name"],
@@ -818,29 +832,29 @@ def copy_from_volume(module, array):
 
 def update_volume(module, array):
     """Update Volume size and/or QoS"""
-    changed = True
     volfact = []
-    if not module.check_mode:
-        change = False
-        api_version = array._list_available_rest_versions()
-        vol = array.get_volume(module.params["name"])
-        vol_qos = array.get_volume(module.params["name"], qos=True)
-        if QOS_API_VERSION in api_version:
-            if vol_qos["bandwidth_limit"] is None:
-                vol_qos["bandwidth_limit"] = 0
-        if IOPS_API_VERSION in api_version:
-            if vol_qos["iops_limit"] is None:
-                vol_qos["iops_limit"] = 0
-        if "::" in module.params["name"]:
-            if module.params["bw_qos"] or module.params["iops_qos"]:
-                if AC_QOS_VERSION not in api_version:
-                    module.warn(
-                        "Pods cannot cannot contain volumes with QoS settings. Ignoring..."
-                    )
-                    module.params["bw_qos"] = module.params["iops_qos"] = None
-        if module.params["size"]:
-            if human_to_bytes(module.params["size"]) != vol["size"]:
-                if human_to_bytes(module.params["size"]) > vol["size"]:
+    changed = False
+    api_version = array._list_available_rest_versions()
+    vol = array.get_volume(module.params["name"])
+    vol_qos = array.get_volume(module.params["name"], qos=True)
+    if QOS_API_VERSION in api_version:
+        if vol_qos["bandwidth_limit"] is None:
+            vol_qos["bandwidth_limit"] = 0
+    if IOPS_API_VERSION in api_version:
+        if vol_qos["iops_limit"] is None:
+            vol_qos["iops_limit"] = 0
+    if "::" in module.params["name"]:
+        if module.params["bw_qos"] or module.params["iops_qos"]:
+            if AC_QOS_VERSION not in api_version:
+                module.warn(
+                    "Pods cannot cannot contain volumes with QoS settings. Ignoring..."
+                )
+                module.params["bw_qos"] = module.params["iops_qos"] = None
+    if module.params["size"]:
+        if human_to_bytes(module.params["size"]) != vol["size"]:
+            if human_to_bytes(module.params["size"]) > vol["size"]:
+                changed = True
+                if not module.check_mode:
                     try:
                         volfact = array.extend_volume(
                             module.params["name"], module.params["size"]
@@ -852,9 +866,11 @@ def update_volume(module, array):
                                 module.params["name"]
                             )
                         )
-        if module.params["bw_qos"] and QOS_API_VERSION in api_version:
-            if human_to_bytes(module.params["bw_qos"]) != vol_qos["bandwidth_limit"]:
-                if module.params["bw_qos"] == "0":
+    if module.params["bw_qos"] and QOS_API_VERSION in api_version:
+        if human_to_bytes(module.params["bw_qos"]) != vol_qos["bandwidth_limit"]:
+            if module.params["bw_qos"] == "0":
+                changed = True
+                if not module.check_mode:
                     try:
                         volfact = array.set_volume(
                             module.params["name"], bandwidth_limit=""
@@ -866,9 +882,11 @@ def update_volume(module, array):
                                 module.params["name"]
                             )
                         )
-                elif int(human_to_bytes(module.params["bw_qos"])) in range(
-                    1048576, 549755813888
-                ):
+            elif int(human_to_bytes(module.params["bw_qos"])) in range(
+                1048576, 549755813888
+            ):
+                changed = True
+                if not module.check_mode:
                     try:
                         volfact = array.set_volume(
                             module.params["name"],
@@ -881,15 +899,17 @@ def update_volume(module, array):
                                 module.params["name"]
                             )
                         )
-                else:
-                    module.fail_json(
-                        msg="Bandwidth QoS value {0} out of range.".format(
-                            module.params["bw_qos"]
-                        )
+            else:
+                module.fail_json(
+                    msg="Bandwidth QoS value {0} out of range.".format(
+                        module.params["bw_qos"]
                     )
-        if module.params["iops_qos"] and IOPS_API_VERSION in api_version:
-            if human_to_real(module.params["iops_qos"]) != vol_qos["iops_limit"]:
-                if module.params["iops_qos"] == "0":
+                )
+    if module.params["iops_qos"] and IOPS_API_VERSION in api_version:
+        if human_to_real(module.params["iops_qos"]) != vol_qos["iops_limit"]:
+            if module.params["iops_qos"] == "0":
+                changed = True
+                if not module.check_mode:
                     try:
                         volfact = array.set_volume(module.params["name"], iops_limit="")
                         change = True
@@ -899,9 +919,9 @@ def update_volume(module, array):
                                 module.params["name"]
                             )
                         )
-                elif int(human_to_real(module.params["iops_qos"])) in range(
-                    100, 100000000
-                ):
+            elif int(human_to_real(module.params["iops_qos"])) in range(100, 100000000):
+                changed = True
+                if not module.check_mode:
                     try:
                         volfact = array.set_volume(
                             module.params["name"], iops_limit=module.params["iops_qos"]
@@ -913,199 +933,176 @@ def update_volume(module, array):
                                 module.params["name"]
                             )
                         )
-                else:
-                    module.fail_json(
-                        msg="Bandwidth QoS value {0} out of range.".format(
-                            module.params["bw_qos"]
-                        )
+            else:
+                module.fail_json(
+                    msg="Bandwidth QoS value {0} out of range.".format(
+                        module.params["bw_qos"]
                     )
+                )
 
-        module.exit_json(changed=change, volume=volfact)
-
-    module.exit_json(changed=changed)
+    module.exit_json(changed=change, volume=volfact)
 
 
 def rename_volume(module, array):
     """Rename volume within a container, ie pod, vgroup or local array"""
-    changed = True
     volfact = []
-    if not module.check_mode:
-        changed = False
-        pod_name = ""
-        vgroup_name = ""
-        target_name = module.params["rename"]
-        target_exists = False
-        if "::" in module.params["name"]:
-            pod_name = module.params["name"].split("::")[0]
-            target_name = pod_name + "::" + module.params["rename"]
-            try:
-                array.get_volume(target_name, pending=True)
-                target_exists = True
-            except Exception:
-                target_exists = False
-        elif "/" in module.params["name"]:
-            vgroup_name = module.params["name"].split("/")[0]
-            target_name = vgroup_name + "/" + module.params["rename"]
-            try:
-                array.get_volume(target_name, pending=True)
-                target_exists = True
-            except Exception:
-                target_exists = False
-        else:
-            try:
-                array.get_volume(target_name, pending=True)
-                target_exists = True
-            except Exception:
-                target_exists = False
-        if target_exists and get_endpoint(target_name, array):
+    changed = False
+    pod_name = ""
+    vgroup_name = ""
+    target_name = module.params["rename"]
+    target_exists = False
+    if "::" in module.params["name"]:
+        pod_name = module.params["name"].split("::")[0]
+        target_name = pod_name + "::" + module.params["rename"]
+        try:
+            array.get_volume(target_name, pending=True)
+            target_exists = True
+        except Exception:
+            target_exists = False
+    elif "/" in module.params["name"]:
+        vgroup_name = module.params["name"].split("/")[0]
+        target_name = vgroup_name + "/" + module.params["rename"]
+        try:
+            array.get_volume(target_name, pending=True)
+            target_exists = True
+        except Exception:
+            target_exists = False
+    else:
+        try:
+            array.get_volume(target_name, pending=True)
+            target_exists = True
+        except Exception:
+            target_exists = False
+    if target_exists and get_endpoint(target_name, array):
+        module.fail_json(
+            msg="Target volume {0} is a protocol-endpoinnt".format(target_name)
+        )
+    if not target_exists:
+        if get_destroyed_endpoint(target_name, array):
             module.fail_json(
-                msg="Target volume {0} is a protocol-endpoinnt".format(target_name)
-            )
-        if not target_exists:
-            if get_destroyed_endpoint(target_name, array):
-                module.fail_json(
-                    msg="Target volume {0} is a destroyed protocol-endpoinnt".format(
-                        target_name
-                    )
+                msg="Target volume {0} is a destroyed protocol-endpoinnt".format(
+                    target_name
                 )
-            else:
+            )
+        else:
+            changed = True
+            if not module.check_mode:
                 try:
                     volfact = array.rename_volume(
                         module.params["name"], module.params["rename"]
                     )
-                    changed = True
                 except Exception:
                     module.fail_json(
                         msg="Rename volume {0} to {1} failed.".format(
                             module.params["name"], module.params["rename"]
                         )
                     )
-        else:
-            module.fail_json(
-                msg="Target volume {0} already exists.".format(target_name)
-            )
+    else:
+        module.fail_json(msg="Target volume {0} already exists.".format(target_name))
 
     module.exit_json(changed=changed, volume=volfact)
 
 
 def move_volume(module, array):
     """Move volume between pods, vgroups or local array"""
-    changed = True
     volfact = []
-    if not module.check_mode:
-        api_version = array._list_available_rest_versions()
-        changed = False
-        vgroup_exists = False
-        target_exists = False
-        pod_exists = False
-        pod_name = ""
-        vgroup_name = ""
-        volume_name = module.params["name"]
-        if "::" in module.params["name"]:
-            volume_name = module.params["name"].split("::")[1]
-            pod_name = module.params["name"].split("::")[0]
-        if "/" in module.params["name"]:
-            volume_name = module.params["name"].split("/")[1]
-            vgroup_name = module.params["name"].split("/")[0]
-        if module.params["move"] == "local":
-            target_location = ""
-            if "::" not in module.params["name"]:
-                if "/" not in module.params["name"]:
-                    module.fail_json(
-                        msg="Source and destination [local] cannot be the same."
-                    )
+    changed = vgroup_exists = target_exists = pod_exists = False
+    api_version = array._list_available_rest_versions()
+    pod_name = ""
+    vgroup_name = ""
+    volume_name = module.params["name"]
+    if "::" in module.params["name"]:
+        volume_name = module.params["name"].split("::")[1]
+        pod_name = module.params["name"].split("::")[0]
+    if "/" in module.params["name"]:
+        volume_name = module.params["name"].split("/")[1]
+        vgroup_name = module.params["name"].split("/")[0]
+    if module.params["move"] == "local":
+        target_location = ""
+        if "::" not in module.params["name"]:
+            if "/" not in module.params["name"]:
+                module.fail_json(
+                    msg="Source and destination [local] cannot be the same."
+                )
+        try:
+            target_exists = array.get_volume(volume_name, pending=True)
+        except Exception:
+            target_exists = False
+        if target_exists:
+            module.fail_json(msg="Target volume {0} already exists".format(volume_name))
+    else:
+        try:
+            pod_exists = array.get_pod(module.params["move"])
+            if len(pod_exists["arrays"]) > 1:
+                module.fail_json(msg="Volume cannot be moved into a stretched pod")
+            if pod_exists["link_target_count"] != 0:
+                module.fail_json(msg="Volume cannot be moved into a linked source pod")
+            if PROMOTE_API_VERSION in api_version:
+                if pod_exists["promotion_status"] == "demoted":
+                    module.fail_json(msg="Volume cannot be moved into a demoted pod")
+            pod_exists = bool(pod_exists)
+        except Exception:
+            pod_exists = False
+        if pod_exists:
             try:
-                target_exists = array.get_volume(volume_name, pending=True)
+                target_exists = bool(
+                    array.get_volume(
+                        module.params["move"] + "::" + volume_name, pending=True
+                    )
+                )
             except Exception:
                 target_exists = False
-            if target_exists:
-                module.fail_json(
-                    msg="Target volume {0} already exists".format(volume_name)
-                )
-        else:
+        try:
+            vgroup_exists = bool(array.get_vgroup(module.params["move"]))
+        except Exception:
+            vgroup_exists = False
+        if vgroup_exists:
             try:
-                pod_exists = array.get_pod(module.params["move"])
-                if len(pod_exists["arrays"]) > 1:
-                    module.fail_json(msg="Volume cannot be moved into a stretched pod")
-                if pod_exists["link_target_count"] != 0:
-                    module.fail_json(
-                        msg="Volume cannot be moved into a linked source pod"
+                target_exists = bool(
+                    array.get_volume(
+                        module.params["move"] + "/" + volume_name, pending=True
                     )
-                if PROMOTE_API_VERSION in api_version:
-                    if pod_exists["promotion_status"] == "demoted":
-                        module.fail_json(
-                            msg="Volume cannot be moved into a demoted pod"
-                        )
-                pod_exists = bool(pod_exists)
+                )
             except Exception:
-                pod_exists = False
-            if pod_exists:
-                try:
-                    target_exists = bool(
-                        array.get_volume(
-                            module.params["move"] + "::" + volume_name, pending=True
-                        )
-                    )
-                except Exception:
-                    target_exists = False
-            try:
-                vgroup_exists = bool(array.get_vgroup(module.params["move"]))
-            except Exception:
-                vgroup_exists = False
-            if vgroup_exists:
-                try:
-                    target_exists = bool(
-                        array.get_volume(
-                            module.params["move"] + "/" + volume_name, pending=True
-                        )
-                    )
-                except Exception:
-                    target_exists = False
-            if target_exists:
-                module.fail_json(
-                    msg="Volume of same name already exists in move location"
-                )
-            if pod_exists and vgroup_exists:
-                module.fail_json(
-                    msg="Move location {0} matches both a pod and a vgroup. Please rename one of these.".format(
-                        module.params["move"]
-                    )
-                )
-            if not pod_exists and not vgroup_exists:
-                module.fail_json(
-                    msg="Move location {0} does not exist.".format(
-                        module.params["move"]
-                    )
-                )
-            if "::" in module.params["name"]:
-                pod = array.get_pod(module.params["move"])
-                if len(pod["arrays"]) > 1:
-                    module.fail_json(
-                        msg="Volume cannot be moved out of a stretched pod"
-                    )
-                if pod["linked_target_count"] != 0:
-                    module.fail_json(
-                        msg="Volume cannot be moved out of a linked source pod"
-                    )
-                if PROMOTE_API_VERSION in api_version:
-                    if pod["promotion_status"] == "demoted":
-                        module.fail_json(
-                            msg="Volume cannot be moved out of a demoted pod"
-                        )
-            if "/" in module.params["name"]:
-                if (
-                    vgroup_name == module.params["move"]
-                    or pod_name == module.params["move"]
-                ):
-                    module.fail_json(msg="Source and destination cannot be the same")
-            target_location = module.params["move"]
-        if get_endpoint(target_location, array):
+                target_exists = False
+        if target_exists:
+            module.fail_json(msg="Volume of same name already exists in move location")
+        if pod_exists and vgroup_exists:
             module.fail_json(
-                msg="Target volume {0} is a protocol-endpoinnt".format(target_location)
+                msg="Move location {0} matches both a pod and a vgroup. Please rename one of these.".format(
+                    module.params["move"]
+                )
             )
+        if not pod_exists and not vgroup_exists:
+            module.fail_json(
+                msg="Move location {0} does not exist.".format(module.params["move"])
+            )
+        if "::" in module.params["name"]:
+            pod = array.get_pod(module.params["move"])
+            if len(pod["arrays"]) > 1:
+                module.fail_json(msg="Volume cannot be moved out of a stretched pod")
+            if pod["linked_target_count"] != 0:
+                module.fail_json(
+                    msg="Volume cannot be moved out of a linked source pod"
+                )
+            if PROMOTE_API_VERSION in api_version:
+                if pod["promotion_status"] == "demoted":
+                    module.fail_json(msg="Volume cannot be moved out of a demoted pod")
+        if "/" in module.params["name"]:
+            if (
+                vgroup_name == module.params["move"]
+                or pod_name == module.params["move"]
+            ):
+                module.fail_json(msg="Source and destination cannot be the same")
+        target_location = module.params["move"]
+    if get_endpoint(target_location, array):
+        module.fail_json(
+            msg="Target volume {0} is a protocol-endpoinnt".format(target_location)
+        )
+    changed = True
+    if not module.check_mode:
         try:
             volfact = array.move_volume(module.params["name"], target_location)
-            changed = True
         except Exception:
             if target_location == "":
                 target_location = "[local]"
@@ -1141,8 +1138,8 @@ def delete_volume(module, array):
 def eradicate_volume(module, array):
     """Eradicate Deleted Volume"""
     changed = True
+    volfact = []
     if not module.check_mode:
-        volfact = []
         if module.params["eradicate"]:
             try:
                 array.eradicate_volume(module.params["name"])

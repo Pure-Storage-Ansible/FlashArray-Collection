@@ -169,18 +169,17 @@ def create_vif(module, array, interface, subnet):
 
 def update_vif(module, array, interface, subnet):
     """Modify VLAN Interface settings"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        vif_info = _get_vif(array, interface, subnet)
-        vif_name = vif_info["name"]
-        if module.params["address"]:
-            if module.params["address"] != vif_info["address"]:
+    changed = False
+    vif_info = _get_vif(array, interface, subnet)
+    vif_name = vif_info["name"]
+    if module.params["address"]:
+        if module.params["address"] != vif_info["address"]:
+            changed = True
+            if not module.check_mode:
                 try:
                     array.set_network_interface(
                         vif_name, address=module.params["address"]
                     )
-                    changed = True
                 except Exception:
                     module.fail_json(
                         msg="Failed to change IP address for VLAN interface {0}.".format(
@@ -188,19 +187,21 @@ def update_vif(module, array, interface, subnet):
                         )
                     )
 
-        if module.params["enabled"] != vif_info["enabled"]:
-            if module.params["enabled"]:
+    if module.params["enabled"] != vif_info["enabled"]:
+        if module.params["enabled"]:
+            changed = True
+            if not module.check_mode:
                 try:
                     array.set_network_interface(vif_name, enabled=True)
-                    changed = True
                 except Exception:
                     module.fail_json(
                         msg="Failed to enable VLAN interface {0}.".format(vif_name)
                     )
-            else:
+        else:
+            changed = True
+            if not module.check_mode:
                 try:
                     array.set_network_interface(vif_name, enabled=False)
-                    changed = True
                 except Exception:
                     module.fail_json(
                         msg="Failed to disable VLAN interface {0}.".format(vif_name)
