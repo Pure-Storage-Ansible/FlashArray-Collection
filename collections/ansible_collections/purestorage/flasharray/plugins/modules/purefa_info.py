@@ -1043,6 +1043,10 @@ def generate_del_vol_dict(module, array):
             "created": vols[vol]["created"],
             "serial": vols[vol]["serial"],
             "page83_naa": PURE_OUI + vols[vol]["serial"],
+            "nvme_nguid": "00"
+            + vols[vol]["serial"][0:14]
+            + "24a937"
+            + vols[vol]["serial"][-10:],
             "time_remaining": vols[vol]["time_remaining"],
             "tags": [],
         }
@@ -1101,6 +1105,10 @@ def generate_vol_dict(module, array):
             "size": vols[vol]["size"],
             "serial": vols[vol]["serial"],
             "page83_naa": PURE_OUI + vols[vol]["serial"],
+            "nvme_nguid": "00"
+            + vols[vol]["serial"][0:14]
+            + "24a937"
+            + vols[vol]["serial"][-10:],
             "tags": [],
             "hosts": [],
             "bandwidth": "",
@@ -1149,6 +1157,10 @@ def generate_vol_dict(module, array):
                 "protocol_endpoint": True,
                 "source": vvols[vvol]["source"],
                 "serial": vvols[vvol]["serial"],
+                "nvme_nguid": "00"
+                + vols[vol]["serial"][0:14]
+                + "24a937"
+                + vols[vol]["serial"][-10:],
                 "page83_naa": PURE_OUI + vvols[vvol]["serial"],
                 "tags": [],
                 "hosts": [],
