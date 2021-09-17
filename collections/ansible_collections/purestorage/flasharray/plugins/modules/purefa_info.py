@@ -403,6 +403,7 @@ purefa_info:
                         1
                     ]
                 ],
+                "nvme_guid": "eui.0043BE47C123343924a9379B00013959",
                 "page83_naa": "naa.624a937043BE47C12334399B00013959",
                 "serial": "43BE47C12334399B00013959",
                 "size": 68719476736,
@@ -416,6 +417,7 @@ purefa_info:
                         1
                     ]
                 ],
+                "nvme_guid": "eui.0043BE47C14a93724a9379B00013959",
                 "page83_naa": "naa.624a937043BE47C12334399B00011418",
                 "serial": "43BE47C12334399B00011418",
                 "size": 21474836480,
@@ -1043,10 +1045,10 @@ def generate_del_vol_dict(module, array):
             "created": vols[vol]["created"],
             "serial": vols[vol]["serial"],
             "page83_naa": PURE_OUI + vols[vol]["serial"],
-            "nvme_nguid": "00"
-            + vols[vol]["serial"][0:14]
+            "nvme_nguid": "eui.00"
+            + vols[vol]["serial"][0:14].lower()
             + "24a937"
-            + vols[vol]["serial"][-10:],
+            + vols[vol]["serial"][-10:].lower(),
             "time_remaining": vols[vol]["time_remaining"],
             "tags": [],
         }
@@ -1105,10 +1107,10 @@ def generate_vol_dict(module, array):
             "size": vols[vol]["size"],
             "serial": vols[vol]["serial"],
             "page83_naa": PURE_OUI + vols[vol]["serial"],
-            "nvme_nguid": "00"
-            + vols[vol]["serial"][0:14]
+            "nvme_nguid": "eui.00"
+            + vols[vol]["serial"][0:14].lower()
             + "24a937"
-            + vols[vol]["serial"][-10:],
+            + vols[vol]["serial"][-10:].lower(),
             "tags": [],
             "hosts": [],
             "bandwidth": "",
@@ -1157,10 +1159,10 @@ def generate_vol_dict(module, array):
                 "protocol_endpoint": True,
                 "source": vvols[vvol]["source"],
                 "serial": vvols[vvol]["serial"],
-                "nvme_nguid": "00"
-                + vols[vol]["serial"][0:14]
+                "nvme_nguid": "eui.00"
+                + vols[vol]["serial"][0:14].lower()
                 + "24a937"
-                + vols[vol]["serial"][-10:],
+                + vols[vol]["serial"][-10:].lower(),
                 "page83_naa": PURE_OUI + vvols[vvol]["serial"],
                 "tags": [],
                 "hosts": [],

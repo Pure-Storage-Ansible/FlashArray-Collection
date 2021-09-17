@@ -235,6 +235,10 @@ volume:
             description: Volume serial number
             type: str
             sample: '361019ECACE43D83000120A4'
+        nvme_nguid:
+            description: Volume NVMe namespace globally unique identifier
+            type: str
+            sample: 'eui.00cd6b99ef25864724a937c5000be684'
         page83_naa:
             description: Volume NAA canonical name
             type: str
@@ -282,6 +286,11 @@ IOPS_API_VERSION = "1.17"
 MULTI_VOLUME_VERSION = "2.2"
 PROMOTE_API_VERSION = "1.19"
 PURE_OUI = "naa.624a9370"
+
+
+def _create_nguid(serial):
+    nguid = "eui.00" + serial[0:14] + "24a937" + serial[-10:]
+    return nguid
 
 
 def get_pod(module, array):
@@ -537,6 +546,9 @@ def create_volume(module, array):
                                 volfact["page83_naa"] = (
                                     PURE_OUI + volfact["serial"].lower()
                                 )
+                                volfact["nvme_nguid"] = _create_nguid(
+                                    volfact["serial"].lower()
+                                )
                             except Exception:
                                 module.fail_json(
                                     msg="Volume {0} creation failed.".format(
@@ -565,6 +577,9 @@ def create_volume(module, array):
                                 )
                                 volfact["page83_naa"] = (
                                     PURE_OUI + volfact["serial"].lower()
+                                )
+                                volfact["nvme_nguid"] = _create_nguid(
+                                    volfact["serial"].lower()
                                 )
                             except Exception:
                                 module.fail_json(
@@ -595,6 +610,9 @@ def create_volume(module, array):
                                 volfact["page83_naa"] = (
                                     PURE_OUI + volfact["serial"].lower()
                                 )
+                                volfact["nvme_nguid"] = _create_nguid(
+                                    volfact["serial"].lower()
+                                )
                             except Exception:
                                 module.fail_json(
                                     msg="Volume {0} creation failed.".format(
@@ -621,6 +639,9 @@ def create_volume(module, array):
                                 volfact["page83_naa"] = (
                                     PURE_OUI + volfact["serial"].lower()
                                 )
+                                volfact["nvme_nguid"] = _create_nguid(
+                                    volfact["serial"].lower()
+                                )
                             except Exception:
                                 module.fail_json(
                                     msg="Volume {0} creation failed.".format(
@@ -641,6 +662,9 @@ def create_volume(module, array):
                                 module.params["name"], module.params["size"]
                             )
                             volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
+                            volfact["nvme_nguid"] = _create_nguid(
+                                volfact["serial"].lower()
+                            )
                         except Exception:
                             module.fail_json(
                                 msg="Volume {0} creation failed.".format(
@@ -655,6 +679,7 @@ def create_volume(module, array):
                     module.params["name"], module.params["size"]
                 )
                 volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
+                volfact["nvme_nguid"] = _create_nguid(volfact["serial"].lower())
             except Exception:
                 module.fail_json(
                     msg="Volume {0} creation failed.".format(module.params["name"])
@@ -765,6 +790,7 @@ def create_multi_volume(module, array):
                         "%Y-%m-%d %H:%M:%S", time.localtime(temp[count].created / 1000)
                     ),
                     "page83_naa": PURE_OUI + temp[count].serial.lower(),
+                    "nvme_nguid": _create_nguid(temp[count].serial.lower()),
                 }
                 if bw_qos_size != 0:
                     volfact[vol_name]["bandwidth_limit"] = temp[
@@ -802,6 +828,7 @@ def copy_from_volume(module, array):
                     module.params["name"], module.params["target"]
                 )
                 volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
+                volfact["nvme_nguid"] = _create_nguid(volfact["serial"].lower())
                 changed = True
             except Exception:
                 module.fail_json(
@@ -819,6 +846,7 @@ def copy_from_volume(module, array):
                     overwrite=module.params["overwrite"],
                 )
                 volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
+                volfact["nvme_nguid"] = _create_nguid(volfact["serial"].lower())
                 changed = True
             except Exception:
                 module.fail_json(
@@ -859,7 +887,6 @@ def update_volume(module, array):
                         volfact = array.extend_volume(
                             module.params["name"], module.params["size"]
                         )
-                        change = True
                     except Exception:
                         module.fail_json(
                             msg="Volume {0} resize failed.".format(
@@ -875,7 +902,6 @@ def update_volume(module, array):
                         volfact = array.set_volume(
                             module.params["name"], bandwidth_limit=""
                         )
-                        change = True
                     except Exception:
                         module.fail_json(
                             msg="Volume {0} Bandwidth QoS removal failed.".format(
@@ -892,7 +918,6 @@ def update_volume(module, array):
                             module.params["name"],
                             bandwidth_limit=module.params["bw_qos"],
                         )
-                        change = True
                     except Exception:
                         module.fail_json(
                             msg="Volume {0} Bandwidth QoS change failed.".format(
@@ -912,7 +937,6 @@ def update_volume(module, array):
                 if not module.check_mode:
                     try:
                         volfact = array.set_volume(module.params["name"], iops_limit="")
-                        change = True
                     except Exception:
                         module.fail_json(
                             msg="Volume {0} IOPs QoS removal failed.".format(
@@ -926,7 +950,6 @@ def update_volume(module, array):
                         volfact = array.set_volume(
                             module.params["name"], iops_limit=module.params["iops_qos"]
                         )
-                        change = True
                     except Exception:
                         module.fail_json(
                             msg="Volume {0} IOPs QoS change failed.".format(
@@ -940,7 +963,7 @@ def update_volume(module, array):
                     )
                 )
 
-    module.exit_json(changed=change, volume=volfact)
+    module.exit_json(changed=changed, volume=volfact)
 
 
 def rename_volume(module, array):
