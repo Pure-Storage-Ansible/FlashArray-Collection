@@ -76,7 +76,6 @@ EXAMPLES = r"""
   purefa_user:
     name: ansible
     role: array_admin
-    state: update
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
@@ -92,7 +91,6 @@ EXAMPLES = r"""
   purefa_user:
     name: ansible
     api: true
-    state: update
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
   register: result
@@ -126,15 +124,13 @@ def get_user(module, array):
 
 def create_user(module, array):
     """Create or Update Local User Account"""
-    changed = True
-    if not module.check_mode:
-        user = get_user(module, array)
-        role = module.params["role"]
-        api_changed = False
-        role_changed = False
-        passwd_changed = False
-        user_token = {}
-        if not user:
+    changed = api_changed = role_changed = passwd_changed = False
+    user = get_user(module, array)
+    role = module.params["role"]
+    user_token = {}
+    if not user:
+        changed = True
+        if not module.check_mode:
             try:
                 if not role:
                     role = "readonly"
@@ -157,72 +153,73 @@ def create_user(module, array):
                 module.fail_json(
                     msg="Local User {0}: Creation failed".format(module.params["name"])
                 )
-        else:
-            if module.params["password"] and not module.params["old_password"]:
-                changed = False
-                module.exit_json(changed=changed)
-            if module.params["password"] and module.params["old_password"]:
-                if module.params["old_password"] and (
-                    module.params["password"] != module.params["old_password"]
-                ):
+    else:
+        if module.params["password"] and not module.params["old_password"]:
+            module.exit_json(changed=changed)
+        if module.params["password"] and module.params["old_password"]:
+            if module.params["old_password"] and (
+                module.params["password"] != module.params["old_password"]
+            ):
+                passwd_changed = True
+                if not module.check_mode:
                     try:
                         array.set_admin(
                             module.params["name"],
                             password=module.params["password"],
                             old_password=module.params["old_password"],
                         )
-                        passwd_changed = True
                     except Exception:
                         module.fail_json(
                             msg="Local User {0}: Password reset failed. "
                             "Check old password.".format(module.params["name"])
                         )
-                else:
-                    module.fail_json(
-                        msg="Local User Account {0}: Password change failed - "
-                        "Check both old and new passwords".format(module.params["name"])
-                    )
-            if module.params["api"]:
-                try:
-                    if (
-                        not array.get_api_token(module.params["name"])["api_token"]
-                        is None
-                    ):
+            else:
+                module.fail_json(
+                    msg="Local User Account {0}: Password change failed - "
+                    "Check both old and new passwords".format(module.params["name"])
+                )
+        if module.params["api"]:
+            try:
+                if not array.get_api_token(module.params["name"])["api_token"] is None:
+                    if not module.check_mode:
                         array.delete_api_token(module.params["name"])
+                api_changed = True
+                if not module.check_mode:
                     user_token["user_api"] = array.create_api_token(
                         module.params["name"]
                     )["api_token"]
-                    api_changed = True
-                except Exception:
-                    module.fail_json(
-                        msg="Local User {0}: API token change failed".format(
-                            module.params["name"]
-                        )
+            except Exception:
+                module.fail_json(
+                    msg="Local User {0}: API token change failed".format(
+                        module.params["name"]
                     )
-            if module.params["role"] and module.params["role"] != user["role"]:
-                if module.params["name"] != "pureuser":
+                )
+        if module.params["role"] and module.params["role"] != user["role"]:
+            if module.params["name"] != "pureuser":
+                role_changed = True
+                if not module.check_mode:
                     try:
                         array.set_admin(
                             module.params["name"], role=module.params["role"]
                         )
-                        role_changed = True
                     except Exception:
                         module.fail_json(
                             msg="Local User {0}: Role changed failed".format(
                                 module.params["name"]
                             )
                         )
-                else:
-                    module.warn("Role for 'pureuser' cannot be modified.")
-            changed = bool(passwd_changed or role_changed or api_changed)
+            else:
+                module.warn("Role for 'pureuser' cannot be modified.")
+        changed = bool(passwd_changed or role_changed or api_changed)
     module.exit_json(changed=changed, user_info=user_token)
 
 
 def delete_user(module, array):
     """Delete Local User Account"""
-    changed = True
-    if not module.check_mode:
-        if get_user(module, array):
+    changed = False
+    if get_user(module, array):
+        changed = True
+        if not module.check_mode:
             try:
                 array.delete_admin(module.params["name"])
             except Exception:

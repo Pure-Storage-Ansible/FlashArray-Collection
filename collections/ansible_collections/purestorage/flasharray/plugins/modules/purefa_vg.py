@@ -252,17 +252,18 @@ def get_vgroup(module, array):
 def make_vgroup(module, array):
     """Create Volume Group"""
     changed = True
-    if not module.check_mode:
-        api_version = array._list_available_rest_versions()
-        if (
-            module.params["bw_qos"]
-            or module.params["iops_qos"]
-            and VG_IOPS_VERSION in api_version
-        ):
-            if module.params["bw_qos"] and not module.params["iops_qos"]:
-                if int(human_to_bytes(module.params["bw_qos"])) in range(
-                    1048576, 549755813888
-                ):
+    api_version = array._list_available_rest_versions()
+    if (
+        module.params["bw_qos"]
+        or module.params["iops_qos"]
+        and VG_IOPS_VERSION in api_version
+    ):
+        if module.params["bw_qos"] and not module.params["iops_qos"]:
+            if int(human_to_bytes(module.params["bw_qos"])) in range(
+                1048576, 549755813888
+            ):
+                changed = True
+                if not module.check_mode:
                     try:
                         array.create_vgroup(
                             module.params["name"],
@@ -274,16 +275,16 @@ def make_vgroup(module, array):
                                 module.params["name"]
                             )
                         )
-                else:
-                    module.fail_json(
-                        msg="Bandwidth QoS value {0} out of range.".format(
-                            module.params["bw_qos"]
-                        )
+            else:
+                module.fail_json(
+                    msg="Bandwidth QoS value {0} out of range.".format(
+                        module.params["bw_qos"]
                     )
-            elif module.params["iops_qos"] and not module.params["bw_qos"]:
-                if int(human_to_real(module.params["iops_qos"])) in range(
-                    100, 100000000
-                ):
+                )
+        elif module.params["iops_qos"] and not module.params["bw_qos"]:
+            if int(human_to_real(module.params["iops_qos"])) in range(100, 100000000):
+                changed = True
+                if not module.check_mode:
                     try:
                         array.create_vgroup(
                             module.params["name"], iops_limit=module.params["iops_qos"]
@@ -294,17 +295,19 @@ def make_vgroup(module, array):
                                 module.params["name"]
                             )
                         )
-                else:
-                    module.fail_json(
-                        msg="IOPs QoS value {0} out of range.".format(
-                            module.params["iops_qos"]
-                        )
-                    )
             else:
-                bw_qos_size = int(human_to_bytes(module.params["bw_qos"]))
-                if int(human_to_real(module.params["iops_qos"])) in range(
-                    100, 100000000
-                ) and bw_qos_size in range(1048576, 549755813888):
+                module.fail_json(
+                    msg="IOPs QoS value {0} out of range.".format(
+                        module.params["iops_qos"]
+                    )
+                )
+        else:
+            bw_qos_size = int(human_to_bytes(module.params["bw_qos"]))
+            if int(human_to_real(module.params["iops_qos"])) in range(
+                100, 100000000
+            ) and bw_qos_size in range(1048576, 549755813888):
+                changed = True
+                if not module.check_mode:
                     try:
                         array.create_vgroup(
                             module.params["name"],
@@ -317,9 +320,11 @@ def make_vgroup(module, array):
                                 module.params["name"]
                             )
                         )
-                else:
-                    module.fail_json(msg="IOPs or Bandwidth QoS value out of range.")
-        else:
+            else:
+                module.fail_json(msg="IOPs or Bandwidth QoS value out of range.")
+    else:
+        changed = True
+        if not module.check_mode:
             try:
                 array.create_vgroup(module.params["name"])
             except Exception:
@@ -335,46 +340,44 @@ def make_vgroup(module, array):
 def make_multi_vgroups(module):
     """Create multiple Volume Groups"""
     changed = True
+    bw_qos_size = iops_qos_size = 0
+    names = []
+    array = get_array(module)
+    for vg_num in range(
+        module.params["start"], module.params["count"] + module.params["start"]
+    ):
+        names.append(
+            module.params["name"]
+            + str(vg_num).zfill(module.params["digits"])
+            + module.params["suffix"]
+        )
+    if module.params["bw_qos"]:
+        bw_qos = int(human_to_bytes(module.params["bw_qos"]))
+        if bw_qos in range(1048576, 549755813888):
+            bw_qos_size = bw_qos
+        else:
+            module.fail_json(msg="Bandwidth QoS value out of range.")
+    if module.params["iops_qos"]:
+        iops_qos = int(human_to_real(module.params["iops_qos"]))
+        if iops_qos in range(100, 100000000):
+            iops_qos_size = iops_qos
+        else:
+            module.fail_json(msg="IOPs QoS value out of range.")
+    if bw_qos_size != 0 and iops_qos_size != 0:
+        volume_group = flasharray.VolumeGroupPost(
+            qos=flasharray.Qos(bandwidth_limit=bw_qos_size, iops_limit=iops_qos_size)
+        )
+    elif bw_qos_size == 0 and iops_qos_size == 0:
+        volume_group = flasharray.VolumeGroupPost()
+    elif bw_qos_size == 0 and iops_qos_size != 0:
+        volume_group = flasharray.VolumeGroupPost(
+            qos=flasharray.Qos(iops_limit=iops_qos_size)
+        )
+    elif bw_qos_size != 0 and iops_qos_size == 0:
+        volume_group = flasharray.VolumeGroupPost(
+            qos=flasharray.Qos(bandwidth_limit=bw_qos_size)
+        )
     if not module.check_mode:
-        bw_qos_size = iops_qos_size = 0
-        names = []
-        array = get_array(module)
-        for vg_num in range(
-            module.params["start"], module.params["count"] + module.params["start"]
-        ):
-            names.append(
-                module.params["name"]
-                + str(vg_num).zfill(module.params["digits"])
-                + module.params["suffix"]
-            )
-        if module.params["bw_qos"]:
-            bw_qos = int(human_to_bytes(module.params["bw_qos"]))
-            if bw_qos in range(1048576, 549755813888):
-                bw_qos_size = bw_qos
-            else:
-                module.fail_json(msg="Bandwidth QoS value out of range.")
-        if module.params["iops_qos"]:
-            iops_qos = int(human_to_real(module.params["iops_qos"]))
-            if iops_qos in range(100, 100000000):
-                iops_qos_size = iops_qos
-            else:
-                module.fail_json(msg="IOPs QoS value out of range.")
-        if bw_qos_size != 0 and iops_qos_size != 0:
-            volume_group = flasharray.VolumeGroupPost(
-                qos=flasharray.Qos(
-                    bandwidth_limit=bw_qos_size, iops_limit=iops_qos_size
-                )
-            )
-        elif bw_qos_size == 0 and iops_qos_size == 0:
-            volume_group = flasharray.VolumeGroupPost()
-        elif bw_qos_size == 0 and iops_qos_size != 0:
-            volume_group = flasharray.VolumeGroupPost(
-                qos=flasharray.Qos(iops_limit=iops_qos_size)
-            )
-        elif bw_qos_size != 0 and iops_qos_size == 0:
-            volume_group = flasharray.VolumeGroupPost(
-                qos=flasharray.Qos(bandwidth_limit=bw_qos_size)
-            )
         res = array.post_volume_groups(names=names, volume_group=volume_group)
         if res.status_code != 200:
             module.fail_json(
@@ -389,26 +392,27 @@ def make_multi_vgroups(module):
 
 def update_vgroup(module, array):
     """Update Volume Group"""
-    changed = True
-    if not module.check_mode:
-        api_version = array._list_available_rest_versions()
-        if VG_IOPS_VERSION in api_version:
-            try:
-                vg_qos = array.get_vgroup(module.params["name"], qos=True)
-            except Exception:
-                module.fail_json(
-                    msg="Failed to get QoS settings for vgroup {0}.".format(
-                        module.params["name"]
-                    )
+    changed = False
+    api_version = array._list_available_rest_versions()
+    if VG_IOPS_VERSION in api_version:
+        try:
+            vg_qos = array.get_vgroup(module.params["name"], qos=True)
+        except Exception:
+            module.fail_json(
+                msg="Failed to get QoS settings for vgroup {0}.".format(
+                    module.params["name"]
                 )
-        if VG_IOPS_VERSION in api_version:
-            if vg_qos["bandwidth_limit"] is None:
-                vg_qos["bandwidth_limit"] = 0
-            if vg_qos["iops_limit"] is None:
-                vg_qos["iops_limit"] = 0
-        if module.params["bw_qos"] and VG_IOPS_VERSION in api_version:
-            if human_to_bytes(module.params["bw_qos"]) != vg_qos["bandwidth_limit"]:
-                if module.params["bw_qos"] == "0":
+            )
+    if VG_IOPS_VERSION in api_version:
+        if vg_qos["bandwidth_limit"] is None:
+            vg_qos["bandwidth_limit"] = 0
+        if vg_qos["iops_limit"] is None:
+            vg_qos["iops_limit"] = 0
+    if module.params["bw_qos"] and VG_IOPS_VERSION in api_version:
+        if human_to_bytes(module.params["bw_qos"]) != vg_qos["bandwidth_limit"]:
+            if module.params["bw_qos"] == "0":
+                changed = True
+                if not module.check_mode:
                     try:
                         array.set_vgroup(module.params["name"], bandwidth_limit="")
                     except Exception:
@@ -417,9 +421,11 @@ def update_vgroup(module, array):
                                 module.params["name"]
                             )
                         )
-                elif int(human_to_bytes(module.params["bw_qos"])) in range(
-                    1048576, 549755813888
-                ):
+            elif int(human_to_bytes(module.params["bw_qos"])) in range(
+                1048576, 549755813888
+            ):
+                changed = True
+                if not module.check_mode:
                     try:
                         array.set_vgroup(
                             module.params["name"],
@@ -431,15 +437,17 @@ def update_vgroup(module, array):
                                 module.params["name"]
                             )
                         )
-                else:
-                    module.fail_json(
-                        msg="Bandwidth QoS value {0} out of range.".format(
-                            module.params["bw_qos"]
-                        )
+            else:
+                module.fail_json(
+                    msg="Bandwidth QoS value {0} out of range.".format(
+                        module.params["bw_qos"]
                     )
-        if module.params["iops_qos"] and VG_IOPS_VERSION in api_version:
-            if human_to_real(module.params["iops_qos"]) != vg_qos["iops_limit"]:
-                if module.params["iops_qos"] == "0":
+                )
+    if module.params["iops_qos"] and VG_IOPS_VERSION in api_version:
+        if human_to_real(module.params["iops_qos"]) != vg_qos["iops_limit"]:
+            if module.params["iops_qos"] == "0":
+                changed = True
+                if not module.check_mode:
                     try:
                         array.set_vgroup(module.params["name"], iops_limit="")
                     except Exception:
@@ -448,9 +456,9 @@ def update_vgroup(module, array):
                                 module.params["name"]
                             )
                         )
-                elif int(human_to_real(module.params["iops_qos"])) in range(
-                    100, 100000000
-                ):
+            elif int(human_to_real(module.params["iops_qos"])) in range(100, 100000000):
+                changed = True
+                if not module.check_mode:
                     try:
                         array.set_vgroup(
                             module.params["name"], iops_limit=module.params["iops_qos"]
@@ -461,12 +469,12 @@ def update_vgroup(module, array):
                                 module.params["name"]
                             )
                         )
-                else:
-                    module.fail_json(
-                        msg="Bandwidth QoS value {0} out of range.".format(
-                            module.params["bw_qos"]
-                        )
+            else:
+                module.fail_json(
+                    msg="Bandwidth QoS value {0} out of range.".format(
+                        module.params["bw_qos"]
                     )
+                )
 
     module.exit_json(changed=changed)
 

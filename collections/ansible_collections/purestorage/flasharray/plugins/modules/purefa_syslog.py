@@ -104,23 +104,23 @@ SYSLOG_NAME_API = "2.4"
 def delete_syslog(module, array):
     """Delete Syslog Server"""
     changed = False
-    if not module.check_mode:
-        noport_address = module.params["protocol"] + "://" + module.params["address"]
+    noport_address = module.params["protocol"] + "://" + module.params["address"]
 
-        if module.params["port"]:
-            full_address = noport_address + ":" + module.params["port"]
-        else:
-            full_address = noport_address
+    if module.params["port"]:
+        full_address = noport_address + ":" + module.params["port"]
+    else:
+        full_address = noport_address
 
-        address_list = array.get(syslogserver=True)["syslogserver"]
+    address_list = array.get(syslogserver=True)["syslogserver"]
 
-        if address_list:
-            for address in range(0, len(address_list)):
-                if address_list[address] == full_address:
-                    del address_list[address]
+    if address_list:
+        for address in range(0, len(address_list)):
+            if address_list[address] == full_address:
+                del address_list[address]
+                changed = True
+                if not module.check_mode:
                     try:
                         array.set(syslogserver=address_list)
-                        changed = True
                         break
                     except Exception:
                         module.fail_json(
@@ -134,26 +134,26 @@ def delete_syslog(module, array):
 
 def add_syslog(module, array, arrayv6):
     """Add Syslog Server"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        noport_address = module.params["protocol"] + "://" + module.params["address"]
+    changed = False
+    noport_address = module.params["protocol"] + "://" + module.params["address"]
 
-        if module.params["port"]:
-            full_address = noport_address + ":" + module.params["port"]
-        else:
-            full_address = noport_address
+    if module.params["port"]:
+        full_address = noport_address + ":" + module.params["port"]
+    else:
+        full_address = noport_address
 
-        address_list = array.get(syslogserver=True)["syslogserver"]
-        exists = False
+    address_list = array.get(syslogserver=True)["syslogserver"]
+    exists = False
 
-        if address_list:
-            for address in range(0, len(address_list)):
-                if address_list[address] == full_address:
-                    exists = True
-                    break
-        if not exists:
-            if arrayv6 and module.params["name"]:
+    if address_list:
+        for address in range(0, len(address_list)):
+            if address_list[address] == full_address:
+                exists = True
+                break
+    if not exists:
+        if arrayv6 and module.params["name"]:
+            changed = True
+            if not module.check_mode:
                 res = arrayv6.post_syslog_servers(
                     names=[module.params["name"]],
                     syslog_server=flasharray.SyslogServer(
@@ -166,13 +166,12 @@ def add_syslog(module, array, arrayv6):
                             module.params["name"], res.errors[0].message
                         )
                     )
-                else:
-                    changed = True
-            else:
+        else:
+            changed = True
+            if not module.check_mode:
                 try:
                     address_list.append(full_address)
                     array.set(syslogserver=address_list)
-                    changed = True
                 except Exception:
                     module.fail_json(
                         msg="Failed to add syslog server: {0}".format(full_address)
