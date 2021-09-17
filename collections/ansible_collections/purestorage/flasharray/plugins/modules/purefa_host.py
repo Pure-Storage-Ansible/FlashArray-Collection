@@ -38,6 +38,12 @@ options:
     type: str
     required: true
     aliases: [ host ]
+  protocol:
+    description:
+    - Defines the host connection protocol for volumes.
+    - DEPRECATED No longer a necessary parameter
+    type: str
+    choices: [ fc, iscsi, nvme, mixed ]
   rename:
     description:
     - The name to rename to.
@@ -51,26 +57,21 @@ options:
     type: str
     default: present
     choices: [ absent, present ]
-  protocol:
-    description:
-    - Defines the host connection protocol for volumes.
-    type: str
-    choices: [ fc, iscsi, nvme, mixed ]
   wwns:
     type: list
     elements: str
     description:
-    - List of wwns of the host if protocol is fc or mixed.
+    - List of wwns of the host.
   iqn:
     type: list
     elements: str
     description:
-    - List of IQNs of the host if protocol is iscsi or mixed.
+    - List of IQNs of the host.
   nqn:
     type: list
     elements: str
     description:
-    - List of NQNs of the host if protocol is nvme or mixed.
+    - List of NQNs of the host.
   volume:
     type: str
     description:
@@ -188,7 +189,6 @@ EXAMPLES = r"""
 - name: Make host bar with wwn ports
   purefa_host:
     name: bar
-    protocol: fc
     wwns:
     - 00:00:00:00:00:00:00
     - 11:11:11:11:11:11:11
@@ -198,7 +198,6 @@ EXAMPLES = r"""
 - name: Make host bar with iSCSI ports
   purefa_host:
     name: bar
-    protocol: iscsi
     iqn:
     - iqn.1994-05.com.redhat:7d366003913
     fa_url: 10.10.10.2
@@ -207,7 +206,6 @@ EXAMPLES = r"""
 - name: Make host bar with NVMe ports
   purefa_host:
     name: bar
-    protocol: nvme
     nqn:
     - nqn.2014-08.com.vendor:nvme:nvm-subsystem-sn-d78432
     fa_url: 10.10.10.2
@@ -216,7 +214,6 @@ EXAMPLES = r"""
 - name: Make mixed protocol host
   purefa_host:
     name: bar
-    protocol: mixed
     nqn:
     - nqn.2014-08.com.vendor:nvme:nvm-subsystem-sn-d78432
     iqn:
@@ -320,99 +317,84 @@ def _is_cbs(array, is_cbs=False):
 
 def _set_host_initiators(module, array):
     """Set host initiators."""
-    if not module.params["protocol"]:
-        module.fail_json(msg="Host creation failed. 'protocol' not specified")
-    if module.params["protocol"].lower() in ["nvme", "mixed"]:
-        if module.params["nqn"]:
-            try:
-                array.set_host(module.params["name"], nqnlist=module.params["nqn"])
-            except Exception:
-                array.delete_host(module.params["name"])
-                module.fail_json(msg="Setting of NVMe NQN failed.")
-    if module.params["protocol"].lower() in ["iscsi", "mixed"]:
-        if module.params["iqn"]:
-            try:
-                array.set_host(module.params["name"], iqnlist=module.params["iqn"])
-            except Exception:
-                array.delete_host(module.params["name"])
-                module.fail_json(msg="Setting of iSCSI IQN failed.")
-    if module.params["protocol"].lower() in ["fc", "mixed"]:
-        if module.params["wwns"]:
-            try:
-                array.set_host(module.params["name"], wwnlist=module.params["wwns"])
-            except Exception:
-                array.delete_host(module.params["name"])
-                module.fail_json(msg="Setting of FC WWNs failed.")
+    if module.params["nqn"]:
+        try:
+            array.set_host(module.params["name"], nqnlist=module.params["nqn"])
+        except Exception:
+            module.fail_json(msg="Setting of NVMe NQN failed.")
+    if module.params["iqn"]:
+        try:
+            array.set_host(module.params["name"], iqnlist=module.params["iqn"])
+        except Exception:
+            module.fail_json(msg="Setting of iSCSI IQN failed.")
+    if module.params["wwns"]:
+        try:
+            array.set_host(module.params["name"], wwnlist=module.params["wwns"])
+        except Exception:
+            module.fail_json(msg="Setting of FC WWNs failed.")
 
 
 def _update_host_initiators(module, array, answer=False):
     """Change host initiator if iscsi or nvme or add new FC WWNs"""
-    if not module.params["protocol"]:
-        module.warn(msg="Initiator update ignored as 'protocol' not specified")
-    if module.params["protocol"].lower() in ["nvme", "mixed"]:
-        if module.params["nqn"]:
-            current_nqn = array.get_host(module.params["name"])["nqn"]
-            if module.params["nqn"] != [""]:
-                if current_nqn != module.params["nqn"]:
-                    answer = True
-                    if not module.check_mode:
-                        try:
-                            array.set_host(
-                                module.params["name"], nqnlist=module.params["nqn"]
-                            )
-                        except Exception:
-                            module.fail_json(msg="Change of NVMe NQN failed.")
-            elif current_nqn:
+    if module.params["nqn"]:
+        current_nqn = array.get_host(module.params["name"])["nqn"]
+        if module.params["nqn"] != [""]:
+            if current_nqn != module.params["nqn"]:
                 answer = True
                 if not module.check_mode:
                     try:
-                        array.set_host(module.params["name"], remnqnlist=current_nqn)
+                        array.set_host(
+                            module.params["name"], nqnlist=module.params["nqn"]
+                        )
                     except Exception:
-                        module.fail_json(msg="Removal of NVMe NQN failed.")
-    if module.params["protocol"].lower() in ["iscsi", "mixed"]:
-        if module.params["iqn"]:
-            current_iqn = array.get_host(module.params["name"])["iqn"]
-            if module.params["iqn"] != [""]:
-                if current_iqn != module.params["iqn"]:
-                    answer = True
-                    if not module.check_mode:
-                        try:
-                            array.set_host(
-                                module.params["name"], iqnlist=module.params["iqn"]
-                            )
-                        except Exception:
-                            module.fail_json(msg="Change of iSCSI IQN failed.")
-            elif current_iqn:
+                        module.fail_json(msg="Change of NVMe NQN failed.")
+        elif current_nqn:
+            answer = True
+            if not module.check_mode:
+                try:
+                    array.set_host(module.params["name"], remnqnlist=current_nqn)
+                except Exception:
+                    module.fail_json(msg="Removal of NVMe NQN failed.")
+    if module.params["iqn"]:
+        current_iqn = array.get_host(module.params["name"])["iqn"]
+        if module.params["iqn"] != [""]:
+            if current_iqn != module.params["iqn"]:
                 answer = True
                 if not module.check_mode:
                     try:
-                        array.set_host(module.params["name"], remiqnlist=current_iqn)
+                        array.set_host(
+                            module.params["name"], iqnlist=module.params["iqn"]
+                        )
                     except Exception:
-                        module.fail_json(msg="Removal of iSCSI IQN failed.")
-    if module.params["protocol"].lower() in ["fc", "mixed"]:
-        if module.params["wwns"]:
-            module.params["wwns"] = [
-                wwn.replace(":", "") for wwn in module.params["wwns"]
-            ]
-            module.params["wwns"] = [wwn.upper() for wwn in module.params["wwns"]]
-            current_wwn = array.get_host(module.params["name"])["wwn"]
-            if module.params["wwns"] != [""]:
-                if current_wwn != module.params["wwns"]:
-                    answer = True
-                    if not module.check_mode:
-                        try:
-                            array.set_host(
-                                module.params["name"], wwnlist=module.params["wwns"]
-                            )
-                        except Exception:
-                            module.fail_json(msg="FC WWN change failed.")
-            elif current_wwn:
+                        module.fail_json(msg="Change of iSCSI IQN failed.")
+        elif current_iqn:
+            answer = True
+            if not module.check_mode:
+                try:
+                    array.set_host(module.params["name"], remiqnlist=current_iqn)
+                except Exception:
+                    module.fail_json(msg="Removal of iSCSI IQN failed.")
+    if module.params["wwns"]:
+        module.params["wwns"] = [wwn.replace(":", "") for wwn in module.params["wwns"]]
+        module.params["wwns"] = [wwn.upper() for wwn in module.params["wwns"]]
+        current_wwn = array.get_host(module.params["name"])["wwn"]
+        if module.params["wwns"] != [""]:
+            if current_wwn != module.params["wwns"]:
                 answer = True
                 if not module.check_mode:
                     try:
-                        array.set_host(module.params["name"], remwwnlist=current_wwn)
+                        array.set_host(
+                            module.params["name"], wwnlist=module.params["wwns"]
+                        )
                     except Exception:
-                        module.fail_json(msg="Removal of all FC WWNs failed.")
+                        module.fail_json(msg="FC WWN change failed.")
+        elif current_wwn:
+            answer = True
+            if not module.check_mode:
+                try:
+                    array.set_host(module.params["name"], remwwnlist=current_wwn)
+                except Exception:
+                    module.fail_json(msg="Removal of all FC WWNs failed.")
     return answer
 
 
@@ -831,7 +813,11 @@ def main():
         dict(
             name=dict(type="str", required=True, aliases=["host"]),
             state=dict(type="str", default="present", choices=["absent", "present"]),
-            protocol=dict(type="str", choices=["fc", "iscsi", "nvme", "mixed"]),
+            protocol=dict(
+                type="str",
+                choices=["fc", "iscsi", "nvme", "mixed"],
+                removed_from_collection="1.13",
+            ),
             nqn=dict(type="list", elements="str"),
             iqn=dict(type="list", elements="str"),
             wwns=dict(type="list", elements="str"),
