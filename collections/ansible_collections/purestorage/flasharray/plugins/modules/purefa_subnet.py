@@ -103,6 +103,7 @@ try:
 except ImportError:
     HAS_NETADDR = False
 
+import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_system,
@@ -301,7 +302,12 @@ def main():
 
     if not HAS_NETADDR:
         module.fail_json(msg="netaddr module is required")
-
+    pattern = re.compile(r"[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
+    if not pattern.match(module.params["name"]):
+        module.fail_json(
+            msg="name must be between 1 and 63 characters in length and begin and end "
+            "with a letter or number. The name must include at least one letter or '-'."
+        )
     state = module.params["state"]
     array = get_system(module)
     subnet = _get_subnet(module, array)
