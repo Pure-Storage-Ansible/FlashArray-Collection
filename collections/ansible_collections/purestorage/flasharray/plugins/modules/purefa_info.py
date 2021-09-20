@@ -1243,9 +1243,15 @@ def generate_host_dict(array):
     return host_info
 
 
-def generate_pgroups_dict(array):
+def generate_pgroups_dict(module, array):
     pgroups_info = {}
+    api_version = array._list_available_rest_versions()
     pgroups = array.list_pgroups()
+    if SHARED_CAP_API_VERSION in api_version:
+        array_v6 = get_array(module)
+        deleted_enabled = True
+    else:
+        deleted_enabled = False
     for pgroup in range(0, len(pgroups)):
         protgroup = pgroups[pgroup]["name"]
         pgroups_info[protgroup] = {
@@ -1294,6 +1300,19 @@ def generate_pgroups_dict(array):
                 "data_transferred": snap_transfers[snap_transfer]["data_transferred"],
                 "progress": snap_transfers[snap_transfer]["progress"],
             }
+        if deleted_enabled:
+            pgroups_info[protgroup]["deleted_volumes"] = []
+            volumes = list(
+                array_v6.get_protection_groups_volumes(group_names=[protgroup]).items
+            )
+            if volumes:
+                for volume in range(0, len(volumes)):
+                    if volumes[volume].member["destroyed"]:
+                        pgroups_info[protgroup]["deleted_volumes"].append(
+                            volumes[volume].member["name"]
+                        )
+            else:
+                pgroups_info[protgroup]["deleted_volumes"] = None
     return pgroups_info
 
 
@@ -1713,7 +1732,7 @@ def main():
     if "hgroups" in subset or "all" in subset:
         info["hgroups"] = generate_hgroups_dict(array)
     if "pgroups" in subset or "all" in subset:
-        info["pgroups"] = generate_pgroups_dict(array)
+        info["pgroups"] = generate_pgroups_dict(module, array)
     if "pods" in subset or "all" in subset or "replication" in subset:
         info["replica_links"] = generate_rl_dict(module, array)
         info["pods"] = generate_pods_dict(array)
