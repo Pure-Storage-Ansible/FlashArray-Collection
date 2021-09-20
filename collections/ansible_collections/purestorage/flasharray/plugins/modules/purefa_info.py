@@ -434,6 +434,12 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_system,
     purefa_argument_spec,
 )
+
+HAS_PACKAGING = True
+try:
+    from packaging import version
+except ImportError:
+    HAS_PACKAGING = False
 import time
 
 SEC_TO_DAY = 86400000
@@ -724,6 +730,12 @@ def generate_policies_dict(array, quota_available):
                 }
                 policy_info[p_name]["rules"].append(nfs_rules_dict)
         if policies[policy].policy_type == "snapshot":
+            if HAS_PACKAGING:
+                suffix_enabled = version.parse(
+                    array.get_rest_version()
+                ) >= version.parse(SHARED_CAP_API_VERSION)
+            else:
+                suffix_enabled = False
             rules = list(array.get_policies_snapshot_rules(policy_names=[p_name]).items)
             for rule in range(0, len(rules)):
                 try:
@@ -740,6 +752,11 @@ def generate_policies_dict(array, quota_available):
                         "every": str(int(rules[rule].every / 60000)) + " mins",
                         "keep_for": str(int(rules[rule].keep_for / 60000)) + " mins",
                     }
+                if suffix_enabled:
+                    try:
+                        snap_rules_dict["suffix"] = rules[rule].suffix
+                    except AttributeError:
+                        snap_rules_dict["suffix"] = ""
                 policy_info[p_name]["rules"].append(snap_rules_dict)
         if policies[policy].policy_type == "quota" and quota_available:
             rules = list(array.get_policies_quota_rules(policy_names=[p_name]).items)
