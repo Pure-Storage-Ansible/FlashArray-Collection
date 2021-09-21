@@ -68,6 +68,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_sso - set Single Sign-On from Pure1 Manage state
 - purefa_subnet - manage network subnets on the FlashArray
 - purefa_syslog - manage the Syslog settings on the FlashArray
+- purefa_syslog_settings - manage the global syslog server settings on the FlashArray
 - purefa_timeout - manage the GUI idle timeout on the FlashArray
 - purefa_user - manage local user accounts on the FlashArray
 - purefa_vg - manage volume groups on the FlashArray
