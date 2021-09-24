@@ -827,6 +827,7 @@ def main():
             protocol=dict(
                 type="str",
                 choices=["fc", "iscsi", "nvme", "mixed"],
+                removed_from_collection="1.13",
             ),
             nqn=dict(type="list", elements="str"),
             iqn=dict(type="list", elements="str"),
