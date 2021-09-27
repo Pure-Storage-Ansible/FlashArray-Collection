@@ -13,6 +13,31 @@ releases:
       name: purefa_kmip
       namespace: ''
     release_date: '2021-08-04'
+  1.11.0:
+    changes:
+      bugfixes:
+      - purefa_subnet - Add regex to check for correct dsubnet name
+      - purefa_user - Add regex to check for correct username
+      minor_changes:
+      - purefa_host - Deprecate ``protocol`` parameter. No longer required.
+      - purefa_info - Add NVMe NGUID value for volumes
+      - purefa_info - Add array, volume and snapshot detailed capacity information
+      - purefa_info - Add deleted members to volume protection group info
+      - purefa_info - Add snapshot policy rules suffix support
+      - purefa_info - Remove directory_services field. Deprecated in Collections 1.6
+      - purefa_policy - Add snapshot policy rules suffix support
+      - purefa_syslog_settings - Add support to manage global syslog server settings
+      - purefa_volume - Add NVMe NGUID to response dict
+    fragments:
+    - 220_capacity_info.yaml
+    - 224_add_nguid_info.yaml
+    - 226_deprecate_protocol.yaml
+    - 227_missing_regex.yaml
+    - 228_nguid_to_volfact.yaml
+    - 229_snapsuffix.yaml
+    - 230_add_pg_deleted_vols.yaml
+    - 231_syslog_settings.yaml
+    release_date: '2021-09-27'
   1.4.0:
     changes:
       bugfixes:
