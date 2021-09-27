@@ -225,6 +225,11 @@ plugins:
       name: purefa_syslog
       namespace: ''
       version_added: 1.0.0
+    purefa_syslog_settings:
+      description: Manage FlashArray syslog servers settings
+      name: purefa_syslog_settings
+      namespace: ''
+      version_added: 1.10.0
     purefa_timeout:
       description: Configure Pure Storage FlashArray GUI idle timeout
       name: purefa_timeout
@@ -264,4 +269,4 @@ plugins:
   shell: {}
   strategy: {}
   vars: {}
-version: 1.10.0
+version: 1.11.0

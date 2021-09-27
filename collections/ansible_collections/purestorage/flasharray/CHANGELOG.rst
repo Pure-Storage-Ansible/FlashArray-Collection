@@ -5,6 +5,28 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.11.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_host - Deprecate ``protocol`` parameter. No longer required.
+- purefa_info - Add NVMe NGUID value for volumes
+- purefa_info - Add array, volume and snapshot detailed capacity information
+- purefa_info - Add deleted members to volume protection group info
+- purefa_info - Add snapshot policy rules suffix support
+- purefa_info - Remove directory_services field. Deprecated in Collections 1.6
+- purefa_policy - Add snapshot policy rules suffix support
+- purefa_syslog_settings - Add support to manage global syslog server settings
+- purefa_volume - Add NVMe NGUID to response dict
+
+Bugfixes
+--------
+
+- purefa_subnet - Add regex to check for correct dsubnet name
+- purefa_user - Add regex to check for correct username
+
 v1.10.0
 =======
 
