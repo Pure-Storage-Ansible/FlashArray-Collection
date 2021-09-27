@@ -1,6 +1,7 @@
 purestorage >= '1.19'
-py-pure-client >= '1.16'
+py-pure-client >= '1.18'
 netaddr
 requests
 python >= '3.3'
 pycountry
+packaging
