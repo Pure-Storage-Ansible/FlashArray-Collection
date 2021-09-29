@@ -817,6 +817,7 @@ def main():
                 type="str",
                 choices=["fc", "iscsi", "nvme", "mixed"],
                 removed_from_collection="1.13",
+                removed_in_version="2.0.0",
             ),
             nqn=dict(type="list", elements="str"),
             iqn=dict(type="list", elements="str"),
