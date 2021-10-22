@@ -77,9 +77,9 @@ def set_eula(module, array):
     except Exception:
         module.fail_json(msg="Failed to get current EULA")
     if (
-        current_eula["company"] != module.params["company"]
-        or current_eula["title"] != module.params["title"]
-        or current_eula["name"] != module.params["name"]
+        current_eula["acceptance"]["company"] != module.params["company"]
+        or current_eula["acceptance"]["title"] != module.params["title"]
+        or current_eula["acceptance"]["name"] != module.params["name"]
     ):
         try:
             changed = True
