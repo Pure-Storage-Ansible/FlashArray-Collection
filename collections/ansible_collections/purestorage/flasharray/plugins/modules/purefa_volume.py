@@ -962,7 +962,8 @@ def update_volume(module, array):
                         module.params["bw_qos"]
                     )
                 )
-
+    if not changed:
+        volfact = array.get_volume(module.params["name"])
     module.exit_json(changed=changed, volume=volfact)
 
 

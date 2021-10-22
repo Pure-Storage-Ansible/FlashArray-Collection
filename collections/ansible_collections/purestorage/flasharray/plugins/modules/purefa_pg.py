@@ -522,7 +522,7 @@ def update_pgroup(module, array):
                     changed = True
                     try:
                         array.set_pgroup(
-                            module.params["pgroup"], vollist=module.params["volume"]
+                            module.params["pgroup"], addvollist=module.params["volume"]
                         )
                     except Exception:
                         module.fail_json(
@@ -559,7 +559,7 @@ def update_pgroup(module, array):
                     changed = True
                     try:
                         array.set_pgroup(
-                            module.params["pgroup"], hostlist=module.params["host"]
+                            module.params["pgroup"], addhostlist=module.params["host"]
                         )
                     except Exception:
                         module.fail_json(
@@ -597,7 +597,7 @@ def update_pgroup(module, array):
                     try:
                         array.set_pgroup(
                             module.params["pgroup"],
-                            hgrouplist=module.params["hostgroup"],
+                            addhgrouplist=module.params["hostgroup"],
                         )
                     except Exception:
                         module.fail_json(
