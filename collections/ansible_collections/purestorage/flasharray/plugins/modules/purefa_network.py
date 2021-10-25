@@ -307,18 +307,27 @@ def main():
 
     array = get_system(module)
     api_version = array._list_available_rest_versions()
-    if module.params["name"].split(".")[1][0].lower() == "f":
-        if FC_ENABLE_API in api_version:
-            if not HAS_PYPURECLIENT:
-                module.fail_json(msg="pypureclient module is required")
-            array = get_array(module)
-            interface = _get_fc_interface(module, array)
+    if "." in module.params["name"]:
+        if module.params["name"].split(".")[1][0].lower() == "f":
+            if FC_ENABLE_API in api_version:
+                if not HAS_PYPURECLIENT:
+                    module.fail_json(msg="pypureclient module is required")
+                array = get_array(module)
+                interface = _get_fc_interface(module, array)
+                if not interface:
+                    module.fail_json(msg="Invalid network interface specified.")
+                else:
+                    update_fc_interface(module, array, interface)
+            else:
+                module.warn(
+                    "Purity version does not support enabling/disabling FC ports"
+                )
+        else:
+            interface = _get_interface(module, array)
             if not interface:
                 module.fail_json(msg="Invalid network interface specified.")
             else:
-                update_fc_interface(module, array, interface)
-        else:
-            module.warn("Purity version does not support enabling/disabling FC ports")
+                update_interface(module, array, interface)
     else:
         interface = _get_interface(module, array)
         if not interface:
