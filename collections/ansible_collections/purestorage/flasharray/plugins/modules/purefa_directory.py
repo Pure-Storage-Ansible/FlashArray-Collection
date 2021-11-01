@@ -99,7 +99,7 @@ MIN_REQUIRED_API_VERSION = "2.2"
 
 
 def delete_dir(module, array):
-    """Delete a file system"""
+    """Delete a file system directory"""
     changed = True
     if not module.check_mode:
         res = array.delete_directories(
@@ -115,7 +115,7 @@ def delete_dir(module, array):
 
 
 def rename_dir(module, array):
-    """Recover a file system"""
+    """Rename a file system directory"""
     changed = False
     target = array.get_directories(
         names=[module.params["filesystem"] + ":" + module.params["rename"]]
