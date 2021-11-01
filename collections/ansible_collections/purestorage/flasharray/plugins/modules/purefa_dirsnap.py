@@ -58,14 +58,31 @@ options:
     description:
     - Snapshot suffix to use
     type: str
+  new_client:
+    description:
+    - The new client name when performing a rename
+    type: str
+    version_added: '1.12.0'
+  new_suffix:
+    description:
+    - The new suffix when performing a rename
+    type: str
+    version_added: '1.12.0'
+  rename:
+    description:
+    - Whether to rename a directory snapshot
+    - The snapshot client name and suffix can be changed
+    - Required with I(new_client) ans I(new_suffix)
+    type: bool
+    default: false
+    version_added: '1.12.0'
   keep_for:
     description:
     - Retention period, after which snapshots will be eradicated
     - Specify in seconds. Range 300 - 31536000 (5 minutes to 1 year)
-    - Set to 0 for no retention period.
+    - Value of 0 will set no retention period.
     - If not specified on create will default to 0 (no retention period)
     type: int
-    default: 0
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -130,6 +147,18 @@ EXAMPLES = r"""
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Rename snapshot
+  purefa_dirsnap:
+    name: foo
+    filesystem: bar
+    client: client
+    suffix: test
+    rename: true
+    new_client: client2
+    new_suffix: test2
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
 
 RETURN = r"""
@@ -150,6 +179,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 )
 
 MIN_REQUIRED_API_VERSION = "2.2"
+MIN_RENAME_API_VERSION = "2.10"
 
 
 def eradicate_snap(module, array):
@@ -215,14 +245,47 @@ def update_snap(module, array, snap_detail):
         + "."
         + module.params["suffix"]
     )
-    if module.params["keep_for"] == 0:
+    if module.params["rename"]:
+        if not module.params["new_client"]:
+            new_client = module.params["client"]
+        else:
+            new_client = module.params["new_client"]
+        if not module.params["new_suffix"]:
+            new_suffix = module.params["suffix"]
+        else:
+            new_suffix = module.params["new_suffix"]
+        new_snapname = (
+            module.params["filesystem"]
+            + ":"
+            + module.params["name"]
+            + "."
+            + new_client
+            + "."
+            + new_suffix
+        )
+        directory_snapshot = DirectorySnapshotPatch(
+            client_name=new_client, suffix=new_suffix
+        )
+        if not module.check_mode:
+            res = array.patch_directory_snapshots(
+                names=[snapname], directory_snapshot=directory_snapshot
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to rename snapshot {0}. Error: {1}".format(
+                        snapname, res.errors[0].message
+                    )
+                )
+            else:
+                snapname = new_snapname
+    if not module.params["keep_for"] or module.params["keep_for"] == 0:
         keep_for = 0
     elif 300 <= module.params["keep_for"] <= 31536000:
         keep_for = module.params["keep_for"] * 1000
     else:
         module.fail_json(msg="keep_for not in range of 300 - 31536000")
-    if snap_detail.destroyed:
-        if not module.check_mode:
+    if not module.check_mode:
+        if snap_detail.destroyed:
             directory_snapshot = DirectorySnapshotPatch(destroyed=False)
             res = array.patch_directory_snapshots(
                 names=[snapname], directory_snapshot=directory_snapshot
@@ -233,17 +296,29 @@ def update_snap(module, array, snap_detail):
                         snapname, res.errors[0].message
                     )
                 )
-    if not module.check_mode:
         directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
-        res = array.patch_directory_snapshots(
-            names=[snapname], directory_snapshot=directory_snapshot
-        )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to update for snapshot {0}. Error: {1}".format(
-                    snapname, res.errors[0].message
-                )
+        if snap_detail.time_remaining == 0 and keep_for != 0:
+            res = array.patch_directory_snapshots(
+                names=[snapname], directory_snapshot=directory_snapshot
             )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to retention time for snapshot {0}. Error: {1}".format(
+                        snapname, res.errors[0].message
+                    )
+                )
+        elif snap_detail.time_remaining > 0:
+            if module.params["rename"] and module.params["keep_for"]:
+                res = array.patch_directory_snapshots(
+                    names=[snapname], directory_snapshot=directory_snapshot
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to retention time for renamed snapshot {0}. Error: {1}".format(
+                            snapname, res.errors[0].message
+                        )
+                    )
+
     module.exit_json(changed=changed)
 
 
@@ -251,10 +326,12 @@ def create_snap(module, array):
     """Create a filesystem snapshot"""
     changed = True
     if not module.check_mode:
-        if module.params["keep_for"] == 0:
+        if not module.params["keep_for"] or module.params["keep_for"] == 0:
             keep_for = 0
-        else:
+        elif 300 <= module.params["keep_for"] <= 31536000:
             keep_for = module.params["keep_for"] * 1000
+        else:
+            module.fail_json(msg="keep_for not in range of 300 - 31536000")
         directory = module.params["filesystem"] + ":" + module.params["name"]
         if module.params["suffix"]:
             directory_snapshot = DirectorySnapshotPost(
@@ -288,7 +365,10 @@ def main():
             eradicate=dict(type="bool", default=False),
             client=dict(type="str", required=True),
             suffix=dict(type="str"),
-            keep_for=dict(type="int", default=0),
+            rename=dict(type="bool", default=False),
+            new_client=dict(type="str"),
+            new_suffix=dict(type="str"),
+            keep_for=dict(type="int"),
         )
     )
 
@@ -297,6 +377,10 @@ def main():
     module = AnsibleModule(
         argument_spec, required_if=required_if, supports_check_mode=True
     )
+
+    if module.params["rename"]:
+        if not module.params["new_client"] and not module.params["new_suffix"]:
+            module.fail_json(msg="Rename requires one of: new_client, new_suffix")
 
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
@@ -314,6 +398,13 @@ def main():
                     module.params["suffix"]
                 )
             )
+    if module.params["new_suffix"]:
+        if not suffix_pattern.match(module.params["new_suffix"]):
+            module.fail_json(
+                msg="Suffix rename {0} does not conform to the suffix name rules.".format(
+                    module.params["new_suffix"]
+                )
+            )
     if module.params["client"]:
         if not client_pattern.match(module.params["client"]):
             module.fail_json(
@@ -328,6 +419,11 @@ def main():
         module.fail_json(
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
+        )
+    if module.params["rename"] and MIN_RENAME_API_VERSION not in api_version:
+        module.fail_json(
+            msg="Directory snapshot rename not supported. "
+            "Minimum Purity//FA version required: 6.2.1"
         )
     array = get_array(module)
     state = module.params["state"]
