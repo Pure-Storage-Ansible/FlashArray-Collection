@@ -207,6 +207,7 @@ purefa_info:
             "pods": 1,
             "protection_groups": 1,
             "purity_version": "5.2.1",
+            "safe_mode": "Disabled",
             "snapshots": 2,
             "volume_groups": 1
         },
@@ -460,6 +461,7 @@ ENCRYPTION_STATUS_API_VERSION = "2.6"
 DIR_QUOTA_API_VERSION = "2.7"
 SHARED_CAP_API_VERSION = "2.9"
 PURE_OUI = "naa.624a9370"
+SAFE_MODE_VERSION = "2.10"
 
 
 def generate_default_dict(module, array):
@@ -490,6 +492,11 @@ def generate_default_dict(module, array):
             default_info["eradication_days_timer"] = int(
                 eradication.eradication_delay / SEC_TO_DAY
             )
+            if SAFE_MODE_VERSION in api_version:
+                if eradication.manual_eradication == "all-enabled":
+                    default_info["safe_mode"] = "Disabled"
+                else:
+                    default_info["safe_mode"] = "Enabled"
     if AC_REQUIRED_API_VERSION in api_version:
         default_info["volume_groups"] = len(array.list_vgroups())
         default_info["connected_arrays"] = len(array.list_array_connections())
