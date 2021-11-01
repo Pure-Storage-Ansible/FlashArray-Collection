@@ -25,6 +25,10 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 
 All modules are idempotent with the exception of modules that change or set passwords. Due to security requirements exisitng passwords can be validated against and therefore will always be modified, even if there is no change.
 
+## Notes
+
+The Pure Storage Ansible modules force all host and volume names to use kebab-case. Any parameters that use camelCase or PascalCase will be lowercased to ensure consistency across all modules.
+
 ## Available Modules
 
 - purefa_ad - manage FlashArray Active Directoy accounts
