@@ -161,6 +161,8 @@ MIN_REQUIRED_API_VERSION = "1.16"
 REGEX_TARGET_NAME = re.compile(r"^[a-zA-Z0-9\-]*$")
 P53_API_VERSION = "1.17"
 GCP_API_VERSION = "2.3"
+MULTIOFFLOAD_API_VERSION = "2.11"
+MULTIOFFLOAD_LIMIT = 5
 
 
 def get_target(module, array):
@@ -408,11 +410,19 @@ def main():
 
     target = get_target(module, array)
     if module.params["state"] == "present" and not target:
-        target_count = len(array.list_offload())
-        # Currently only 1 offload target is supported
-        # TODO: (SD) when more targets supported add in REST version check as well
-        if target_count != 0:
-            module.fail_json(msg="Currently only 1 Offload Target is supported.")
+        offloads = array.list_offload()
+        target_count = len(offloads)
+        if MIN_REQUIRED_API_VERSION not in api_version:
+            MULTIOFFLOAD_LIMIT = 1
+        if target_count >= MULTIOFFLOAD_LIMIT:
+            module.fail_json(
+                msg="Cannot add offload target {0}. Offload Target Limit of {1} would be exceeded.".format(
+                    module.params["name"], MULTIOFFLOAD_LIMIT
+                )
+            )
+            # TODO: (SD) Remove this check when multi-protocol offloads are supported
+            if offloads[0].protocol != module.params["protocol"]:
+                module.fail_json(msg="Currently all offloads must be of the same type.")
         create_offload(module, array)
     elif module.params["state"] == "present" and target:
         update_offload(module, array)
