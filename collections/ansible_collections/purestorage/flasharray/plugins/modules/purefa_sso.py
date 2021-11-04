@@ -19,7 +19,7 @@ DOCUMENTATION = r"""
 module: purefa_sso
 version_added: '1.9.0'
 deprecated:
-    removed_in: '1.12.0'
+    removed_in: '2.0.0'
     why: Superceeded by M(purefa_admin)
     alternative: Use M(purefa_admin) instead.
 short_description: Configure Pure Storage FlashArray Single Sign-On
