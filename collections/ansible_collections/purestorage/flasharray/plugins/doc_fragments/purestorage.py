@@ -37,9 +37,11 @@ notes:
   - You must set C(PUREFA_URL) and C(PUREFA_API) environment variables
     if I(fa_url) and I(api_token) arguments are not passed to the module directly
 requirements:
-  - python >= 2.7
+  - python >= 3.3
   - purestorage >= 1.19
-  - py-pure-client >= 1.6.0
+  - py-pure-client >= 1.19.0
   - netaddr
   - requests
+  - pycountry
+  - packaging
 """
