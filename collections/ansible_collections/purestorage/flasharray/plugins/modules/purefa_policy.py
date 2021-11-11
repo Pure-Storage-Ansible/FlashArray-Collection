@@ -931,9 +931,9 @@ def update_policy(module, array):
                         break
                 if not rule_name:
                     rules = flasharray.PolicyrulesmbclientpostRules(
-                        access=module.params["nfs_access"],
+                        anonymous_access_allowed=module.params["smb_anon_allowed"],
                         client=module.params["client"],
-                        permission=module.params["nfs_permission"],
+                        smb_encryption_required=module.params["smb_encrypt"],
                     )
                     rule = flasharray.PolicyRuleSmbClientPost(rules=[rules])
                     changed_rule = True
@@ -950,9 +950,9 @@ def update_policy(module, array):
                             )
             else:
                 rules = flasharray.PolicyrulesmbclientpostRules(
-                    access=module.params["nfs_access"],
+                    anonymous_access_allowed=module.params["smb_anon_allowed"],
                     client=module.params["client"],
-                    permission=module.params["nfs_permission"],
+                    smb_encryption_required=module.params["smb_encrypt"],
                 )
                 rule = flasharray.PolicyRuleSmbClientPost(rules=[rules])
                 changed_rule = True
