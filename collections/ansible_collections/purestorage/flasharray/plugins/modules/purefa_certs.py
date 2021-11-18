@@ -36,7 +36,8 @@ options:
     - I(absent) will delete an existing SSL certificate
     - I(sign) will construct a Certificate Signing request (CSR)
     - I(export) will export the exisitng SSL certificate
-    - I(import) will import a CA provided certificate
+    - I(import) will import a CA provided certificate. This will only allow import of a new certificate.
+      To update an existing certificate, you must first delete the old certificate using I(absent)
     default: present
     choices: [ absent, present, import, export, sign ]
     type: str
