@@ -36,8 +36,7 @@ options:
     - I(absent) will delete an existing SSL certificate
     - I(sign) will construct a Certificate Signing request (CSR)
     - I(export) will export the exisitng SSL certificate
-    - I(import) will import a CA provided certificate. This will only allow import of a new certificate.
-      To update an existing certificate, you must first delete the old certificate using I(absent)
+    - I(import) will import a CA provided certificate.
     default: present
     choices: [ absent, present, import, export, sign ]
     type: str
@@ -310,7 +309,7 @@ def delete_cert(module, array):
     module.exit_json(changed=changed)
 
 
-def import_cert(module, array):
+def import_cert(module, array, reimport=False):
     """Import a CA provided SSL certificate"""
     changed = True
     if len(module.params["certificate"]) > 3000:
@@ -323,9 +322,14 @@ def import_cert(module, array):
         status="imported",
     )
     if not module.check_mode:
-        res = array.post_certificates(
-            names=[module.params["name"]], certificate=certificate
-        )
+        if reimport:
+            res = array.patch_certificates(
+                names=[module.params["name"]], certificate=certificate
+            )
+        else:
+            res = array.post_certificates(
+                names=[module.params["name"]], certificate=certificate
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Importing Certificate failed. Error: {0}".format(
@@ -506,6 +510,8 @@ def main():
         create_csr(module, array)
     elif not exists and state == "import":
         import_cert(module, array)
+    elif exists and state == "import":
+        import_cert(module, array, reimport=True)
     elif state == "export":
         export_cert(module, array)
     elif exists and state == "absent":
