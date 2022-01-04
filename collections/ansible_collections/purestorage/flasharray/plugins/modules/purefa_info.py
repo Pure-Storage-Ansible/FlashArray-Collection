@@ -462,6 +462,7 @@ DIR_QUOTA_API_VERSION = "2.7"
 SHARED_CAP_API_VERSION = "2.9"
 PURE_OUI = "naa.624a9370"
 SAFE_MODE_VERSION = "2.10"
+SAML2_VERSION = "2.11"
 
 
 def generate_default_dict(module, array):
@@ -587,6 +588,57 @@ def generate_config_dict(module, array):
                 }
             except Exception:
                 pass
+        smi_s = list(arrayv6.get_smi_s().items)[0]
+        config_info["smi-s"] = {
+            "slp_enabled": smi_s.slp_enabled,
+            "wbem_https_enabled": smi_s.wbem_https_enabled,
+        }
+        if SAML2_VERSION in api_version:
+            config_info["saml2sso"] = {}
+            saml2 = list(arrayv6.get_sso_saml2_idps().items)
+            if saml2:
+                config_info["saml2sso"] = {
+                    "enabled": saml2[0].enabled,
+                    "array_url": saml2[0].array_url,
+                    "name": saml2[0].name,
+                    "idp": {
+                        "url": getattr(saml2[0].idp, "url", None),
+                        "encrypt_enabled": saml2[0].idp.encrypt_assertion_enabled,
+                        "sign_enabled": saml2[0].idp.sign_request_enabled,
+                        "metadata_url": saml2[0].idp.metadata_url,
+                    },
+                    "sp": {
+                        "decrypt_cred": getattr(
+                            saml2[0].sp.decryption_credential, "name", None
+                        ),
+                        "sign_cred": getattr(
+                            saml2[0].sp.signing_credential, "name", None
+                        ),
+                    },
+                }
+        if FILES_API_VERSION in api_version:
+            config_info["active_directory"] = {}
+            try:
+                ad_accounts = list(arrayv6.get_active_directory().items)
+                for ad_account in range(0, len(ad_accounts)):
+                    ad_name = ad_accounts[ad_account].name
+                    config_info["active_directory"][ad_name] = {
+                        "computer_name": ad_accounts[ad_account].computer_name,
+                        "domain": ad_accounts[ad_account].domain,
+                        "directory_servers": getattr(
+                            ad_accounts[ad_account], "directory_servers", None
+                        ),
+                        "kerberos_servers": getattr(
+                            ad_accounts[ad_account], "kerberos_servers", None
+                        ),
+                        "service_principal_names": getattr(
+                            ad_accounts[ad_account], "service_principal_names", None
+                        ),
+                        "tls": getattr(ad_accounts[ad_account], "tls", None),
+                    }
+            except Exception:
+                module.warn("FA-Files is not enabled on this array")
+
     else:
         config_info["directory_service"] = {}
         config_info["directory_service"]["management"] = array.get_directory_service()
@@ -614,21 +666,6 @@ def generate_config_dict(module, array):
     config_info["scsi_timeout"] = array.get(scsi_timeout=True)["scsi_timeout"]
     if S3_REQUIRED_API_VERSION in api_version:
         config_info["global_admin"] = array.get_global_admin_attributes()
-    if V6_MINIMUM_API_VERSION in api_version:
-        array = get_array(module)
-        smi_s = list(array.get_smi_s().items)[0]
-        config_info["smi-s"] = {
-            "slp_enabled": smi_s.slp_enabled,
-            "wbem_https_enabled": smi_s.wbem_https_enabled,
-        }
-    if FILES_API_VERSION in api_version:
-        try:
-            ad_accounts = list(array.get_active_directory().items)
-            for ad_account in range(0, len(ad_accounts)):
-                ad_name = ad_accounts[ad_account].name
-                config_info["active_directory"][ad_name] = ad_accounts[ad_account]
-        except Exception:
-            module.warn("FA-Files is not enabled on this array")
     return config_info
 
 
