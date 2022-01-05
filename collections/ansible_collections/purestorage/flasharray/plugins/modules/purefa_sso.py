@@ -20,8 +20,8 @@ module: purefa_sso
 version_added: '1.9.0'
 deprecated:
     removed_in: '2.0.0'
-    why: Superceeded by M(purefa_admin)
-    alternative: Use M(purefa_admin) instead.
+    why: Superceeded by M(purestorage.flasharray.purefa_admin)
+    alternative: Use M(purestorage.flasharray.purefa_admin) instead.
 short_description: Configure Pure Storage FlashArray Single Sign-On
 description:
 - Enable or disable Single Sign-On (SSO) to give LDAP users the ability
