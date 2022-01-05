@@ -5,6 +5,46 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.12.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_admin - New module to set global admin settings, inclusing SSO
+- purefa_dirsnap - Add support to rename directory snapshots not managed by a snapshot policy
+- purefa_info - Add SAML2SSO configutration information
+- purefa_info - Add Safe Mode status
+- purefa_info - Fix Active Directory configuration details
+- purefa_network - Resolve bug stopping management IP address being changed correctly
+- purefa_offload - Add support for multiple, homogeneous, offload targets
+- purefa_saml - Add support for SAML2 SSO IdPs
+- purefa_volume - Provide volume facts in all cases, including when no change has occured.
+
+Deprecated Features
+-------------------
+
+- purefa_sso - Deprecated in favor of M(purefa_admin). Will be removed in Collection 2.0
+
+Bugfixes
+--------
+
+- purefa_certs - Allow a certificate to be imported over an existing SSL certificate
+- purefa_eula - Reolve EULA signing issue
+- purefa_network - Fix bug introduced with management of FC ports
+- purefa_policy - Fix issue with SMB Policy creation
+
+Known Issues
+------------
+
+- purefa_admin - Once `max_login` and `lockout` have been set there is currently no way to rest these to zero except through the FlashArray GUI
+
+New Modules
+-----------
+
+- purestorage.flasharray.purefa_admin - Configure Pure Storage FlashArray Global Admin settings
+- purestorage.flasharray.purefa_saml - Manage FlashArray SAML2 service and identity providers
+
 v1.11.0
 =======
 
