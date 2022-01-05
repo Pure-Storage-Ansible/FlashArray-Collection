@@ -109,11 +109,9 @@ RETURN = r"""
 
 HAS_PURESTORAGE = True
 try:
-    from pypureclient import flasharray
     from pypureclient.flasharray import (
         Saml2Sso,
         Saml2SsoPost,
-        Saml2SsoPatch,
         Saml2SsoSp,
         Saml2SsoIdp,
         ReferenceNoId,
@@ -324,7 +322,7 @@ def main():
     state = module.params["state"]
 
     try:
-        res = list(array.get_sso_saml2_idps(names=[module.params["name"]]).items)[0]
+        list(array.get_sso_saml2_idps(names=[module.params["name"]]).items)[0]
         exists = True
     except AttributeError:
         exists = False

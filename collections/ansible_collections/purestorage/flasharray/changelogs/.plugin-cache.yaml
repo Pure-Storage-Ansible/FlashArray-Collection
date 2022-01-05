@@ -14,6 +14,11 @@ plugins:
       name: purefa_ad
       namespace: ''
       version_added: 1.9.0
+    purefa_admin:
+      description: Configure Pure Storage FlashArray Global Admin settings
+      name: purefa_admin
+      namespace: ''
+      version_added: 1.12.0
     purefa_alert:
       description: Configure Pure Storage FlashArray alert email settings
       name: purefa_alert
@@ -190,6 +195,11 @@ plugins:
       name: purefa_ra
       namespace: ''
       version_added: 1.0.0
+    purefa_saml:
+      description: Manage FlashArray SAML2 service and identity providers
+      name: purefa_saml
+      namespace: ''
+      version_added: 1.12.0
     purefa_smis:
       description: Enable or disable FlashArray SMI-S features
       name: purefa_smis
@@ -269,4 +279,4 @@ plugins:
   shell: {}
   strategy: {}
   vars: {}
-version: 1.11.0
+version: 1.12.0

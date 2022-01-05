@@ -38,6 +38,53 @@ releases:
     - 230_add_pg_deleted_vols.yaml
     - 231_syslog_settings.yaml
     release_date: '2021-09-27'
+  1.12.0:
+    changes:
+      bugfixes:
+      - purefa_certs - Allow a certificate to be imported over an existing SSL certificate
+      - purefa_eula - Reolve EULA signing issue
+      - purefa_network - Fix bug introduced with management of FC ports
+      - purefa_policy - Fix issue with SMB Policy creation
+      deprecated_features:
+      - purefa_sso - Deprecated in favor of M(purefa_admin). Will be removed in Collection
+        2.0
+      known_issues:
+      - purefa_admin - Once `max_login` and `lockout` have been set there is currently
+        no way to rest these to zero except through the FlashArray GUI
+      minor_changes:
+      - purefa_admin - New module to set global admin settings, inclusing SSO
+      - purefa_dirsnap - Add support to rename directory snapshots not managed by
+        a snapshot policy
+      - purefa_info - Add SAML2SSO configutration information
+      - purefa_info - Add Safe Mode status
+      - purefa_info - Fix Active Directory configuration details
+      - purefa_network - Resolve bug stopping management IP address being changed
+        correctly
+      - purefa_offload - Add support for multiple, homogeneous, offload targets
+      - purefa_saml - Add support for SAML2 SSO IdPs
+      - purefa_volume - Provide volume facts in all cases, including when no change
+        has occured.
+    fragments:
+    - 234_add_vol_info_on_nochange.yaml
+    - 235_eula.yaml
+    - 237_fix_network.yaml
+    - 238_add_dirsnap_rename.yaml
+    - 239_safe_mode.yaml
+    - 242_multi_offload.yaml
+    - 243_sso_to_admin.yaml
+    - 246_python_precedence.yaml
+    - 247_fix_smb_policy_rules.yaml
+    - 249_allow_cert_reimport.yaml
+    - 252_add_saml2.yaml
+    - 254_sam2_info.yaml
+    modules:
+    - description: Configure Pure Storage FlashArray Global Admin settings
+      name: purefa_admin
+      namespace: ''
+    - description: Manage FlashArray SAML2 service and identity providers
+      name: purefa_saml
+      namespace: ''
+    release_date: '2022-01-05'
   1.4.0:
     changes:
       bugfixes:
