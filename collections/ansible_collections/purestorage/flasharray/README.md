@@ -32,6 +32,7 @@ The Pure Storage Ansible modules force all host and volume names to use kebab-ca
 ## Available Modules
 
 - purefa_ad - manage FlashArray Active Directoy accounts
+- purefa_admin - Configure Pure Storage FlashArray Global Admin settings
 - purefa_alert - manage email alert settings on the FlashArray
 - purefa_apiclient - manageFlashArray API clients
 - purefa_arrayname - manage the name of the FlashArray
@@ -66,6 +67,7 @@ The Pure Storage Ansible modules force all host and volume names to use kebab-ca
 - purefa_policy - manage FlashArray NFS, SMB and snapshot policies
 - purefa_proxy - manage the phonehome HTTPS proxy setting for the FlashArray
 - purefa_ra - manage the Remote Assist setting for the FlashArray
+- purefa_saml - Manage FlashArray SAML2 service and identity providers
 - purefa_smis - manage SMI-S settings on the FlashArray
 - purefa_smtp - manage SMTP settings on the FlashArray
 - purefa_snap - manage local snapshots on the FlashArray
