@@ -69,7 +69,7 @@ extends_documentation_fragment:
 
 EXAMPLES = """
 - name: Create subnet subnet100
-  purefa_subnet:
+  purestorage.flasharray.purefa_subnet:
     name: subnet100
     vlan: 100
     gateway: 10.21.200.1
@@ -80,14 +80,14 @@ EXAMPLES = """
     api_token: c6033033-fe69-2515-a9e8-966bb7fe4b40
 
 - name: Disable subnet subnet100
-  purefa_subnet:
+  purestorage.flasharray.purefa_subnet:
     name: subnet100
     enabled: false
     fa_url: 10.10.10.2
     api_token: c6033033-fe69-2515-a9e8-966bb7fe4b40
 
 - name: Delete subnet subnet100
-  purefa_subnet:
+  purestorage.flasharray.purefa_subnet:
     name: subnet100
     state: absent
     fa_url: 10.10.10.2

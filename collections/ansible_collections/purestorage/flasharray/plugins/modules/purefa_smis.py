@@ -42,12 +42,12 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Enable SMI-S and SLP
-  purefa_smis:
+  purestorage.flasharray.purefa_smis:
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Disable SMI-S and SLP
-  purefa_smis:
+  purestorage.flasharray.purefa_smis:
     smis: false
     slp: false
     fa_url: 10.10.10.2

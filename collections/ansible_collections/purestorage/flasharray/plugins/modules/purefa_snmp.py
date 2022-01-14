@@ -89,20 +89,20 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Delete exisitng SNMP manager
-  purefa_snmp:
+  purestorage.flasharray.purefa_snmp:
     name: manager1
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Create v2c SNMP manager
-  purefa_snmp:
+  puretorage.flasharray.urefa_snmp:
     name: manager1
     community: public
     host: 10.21.22.23
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Create v3 SNMP manager
-  purefa_snmp:
+  puretorage.flasharray.urefa_snmp:
     name: manager2
     version: v3
     auth_protocol: MD5
@@ -111,7 +111,7 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Update existing SNMP manager
-  purefa_snmp:
+  purestorage.flasharray.purefa_snmp:
     name: manager1
     community: private
     fa_url: 10.10.10.2

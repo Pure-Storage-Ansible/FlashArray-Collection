@@ -49,7 +49,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Set global login parameters
-  purefa_admin:
+  purestorage.flasharray.purefa_admin:
     sso: false
     max_login: 5
     min_password: 10

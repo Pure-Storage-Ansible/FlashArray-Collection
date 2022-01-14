@@ -55,12 +55,12 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Delete exisitng SMTP settings
-  purefa_smtp:
+  purestorage.flasharray.purefa_smtp:
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Set SMTP settings
-  purefa_smtp:
+  purestorage.flasharray.purefa_smtp:
     sender_domain: purestorage.com
     password: account_password
     user: smtp_account

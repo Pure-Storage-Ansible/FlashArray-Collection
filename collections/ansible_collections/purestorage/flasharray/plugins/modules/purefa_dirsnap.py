@@ -89,7 +89,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create a snapshot direcotry foo in filesysten bar for client test with suffix test
-  purefa_dirsnap:
+  purestorage.flasharray.purefa_dirsnap:
     name: foo
     filesystem: bar
     client: test
@@ -98,7 +98,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Update retention time for a snapshot foo:bar.client.test
-  purefa_dirsnap:
+  purestorage.flasharray.purefa_dirsnap:
     name: foo
     filesystem: bar
     client: client
@@ -108,7 +108,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete snapshot foo:bar.client.test
-  purefa_dirsnap:
+  purestorage.flasharray.purefa_dirsnap:
     name: foo
     filesystem: bar
     client: client
@@ -118,7 +118,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Recover deleted snapshot foo:bar.client.test
-  purefa_dirsnap:
+  purestorage.flasharray.purefa_dirsnap:
     name: foo
     filesystem: bar
     client: client
@@ -127,7 +127,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete and eradicate snapshot foo:bar.client.test
-  purefa_dirsnap:
+  purestorage.flasharray.purefa_dirsnap:
     name: foo
     filesystem: bar
     client: client
@@ -138,7 +138,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Eradicate deleted snapshot foo:bar.client.test
-  purefa_dirsnap:
+  purestorage.flasharray.purefa_dirsnap:
     name: foo
     filesystem: bar
     client: client
@@ -149,7 +149,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Rename snapshot
-  purefa_dirsnap:
+  purestorage.flasharray.purefa_dirsnap:
     name: foo
     filesystem: bar
     client: client

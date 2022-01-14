@@ -37,13 +37,13 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Set eradication timer to 30 days
-  purefa_eradication:
+  purestorage.flasharray.purefa_eradication:
     timer: 30
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Set eradication timer to 1 day
-  purefa_eradication:
+  purestorage.flasharray.purefa_eradication:
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """

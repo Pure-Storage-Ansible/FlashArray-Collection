@@ -43,19 +43,19 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Delete exisitng maintenance window
-  purefa_maintenance:
+  purestorage.flasharray.purefa_maintenance:
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Set maintnence window to default of 1 hour
-  purefa_maintenance:
+  purestorage.flasharray.purefa_maintenance:
     state: present
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Update existing maintnence window
-  purefa_maintenance:
+  purestorage.flasharray.purefa_maintenance:
     state: present
     timeout: 86400
     fa_url: 10.10.10.2

@@ -46,14 +46,14 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Add new email recipient and enable, or enable existing email
-  purefa_alert:
+  purestorage.flasharray.purefa_alert:
     address: "user@domain.com"
     enabled: true
     state: present
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Delete existing email recipient
-  purefa_alert:
+  purestorage.flasharray.purefa_alert:
     state: absent
     address: "user@domain.com"
     fa_url: 10.10.10.2

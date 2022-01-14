@@ -84,7 +84,8 @@ options:
       specify OU= for each OU and multiple OUs should be separated by commas.
       The order of OUs is important and should get larger in scope from left
       to right. Each OU should not exceed 64 characters in length.
-    - Not Supported from Purity 5.2.0 or higher. Use I(purefa_dsrole) module.
+    - Not Supported from Purity 5.2.0 or higher.
+      Use I(purestorage.flasharray.purefa_dsrole) module.
   ro_group:
     type: str
     description:
@@ -92,7 +93,8 @@ options:
       containing users with read-only privileges on the FlashArray. This
       name should be just the Common Name of the group without the CN=
       specifier. Common Names should not exceed 64 characters in length.
-    - Not Supported from Purity 5.2.0 or higher. Use I(purefa_dsrole) module.
+    - Not Supported from Purity 5.2.0 or higher.
+      Use I(purestorage.flasharray.purefa_dsrole) module.
   sa_group:
     type: str
     description:
@@ -101,7 +103,8 @@ options:
       FlashArray. This name should be just the Common Name of the group
       without the CN= specifier. Common Names should not exceed 64
       characters in length.
-    - Not Supported from Purity 5.2.0 or higher. Use I(purefa_dsrole) module.
+    - Not Supported from Purity 5.2.0 or higher.
+      Use I(purestorage.flasharray.purefa_dsrole) module.
   aa_group:
     type: str
     description:
@@ -109,7 +112,8 @@ options:
       administrators with full privileges when managing the FlashArray.
       The name should be just the Common Name of the group without the
       CN= specifier. Common Names should not exceed 64 characters in length.
-    - Not Supported from Purity 5.2.0 or higher. Use I(purefa_dsrole) module.
+    - Not Supported from Purity 5.2.0 or higher.
+      Use I(purestorage.flasharray.purefa_dsrole) module.
   user_login:
     type: str
     description:
@@ -132,13 +136,13 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Delete existing directory service
-  purefa_ds:
+  purestorage.flasharray.purefa_ds:
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create directory service (disabled) - Pre-5.2.0
-  purefa_ds:
+  purestorage.flasharray.purefa_ds:
     uri: "ldap://lab.purestorage.com"
     base_dn: "DC=lab,DC=purestorage,DC=com"
     bind_user: Administrator
@@ -151,7 +155,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create directory service (disabled) - 5.2.0 or higher
-  purefa_ds:
+  purestorage.flasharray.purefa_ds:
     dstype: management
     uri: "ldap://lab.purestorage.com"
     base_dn: "DC=lab,DC=purestorage,DC=com"
@@ -161,19 +165,19 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Enable existing directory service
-  purefa_ds:
+  purestorage.flasharray.purefa_ds:
     enable: true
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Disable existing directory service
-  purefa_ds:
+  purestorage.flasharray.purefa_ds:
     enable: false
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create directory service (enabled) - Pre-5.2.0
-  purefa_ds:
+  purestorage.flasharray.purefa_ds:
     enable: true
     uri: "ldap://lab.purestorage.com"
     base_dn: "DC=lab,DC=purestorage,DC=com"
@@ -187,7 +191,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create directory service (enabled) - 5.2.0 or higher
-  purefa_ds:
+  purestorage.flasharray.purefa_ds:
     enable: true
     dstype: management
     uri: "ldap://lab.purestorage.com"

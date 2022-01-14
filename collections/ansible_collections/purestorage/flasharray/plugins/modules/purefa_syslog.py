@@ -63,7 +63,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Delete exisitng syslog server entries
-  purefa_syslog:
+  purestorage.flasharray.purefa_syslog:
     address: syslog1.com
     protocol: tcp
     state: absent
@@ -71,7 +71,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Set array syslog servers
-  purefa_syslog:
+  purestorage.flasharray.purefa_syslog:
     state: present
     address: syslog1.com
     protocol: udp

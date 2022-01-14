@@ -59,14 +59,14 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create new endpoint named foo
-  purefa_endpoint:
+  purestorage.flasharray.purefa_endpoint:
     name: test-endpoint
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: present
 
 - name: Delete and eradicate endpoint named foo
-  purefa_endpoint:
+  purestorage.flasharray.purefa_endpoint:
     name: foo
     eradicate: yes
     fa_url: 10.10.10.2
@@ -74,7 +74,7 @@ EXAMPLES = r"""
     state: absent
 
 - name: Rename endpoint foor to bar
-  purefa_endpoint:
+  purestorage.flasharray.purefa_endpoint:
     name: foo
     rename: bar
     fa_url: 10.10.10.2

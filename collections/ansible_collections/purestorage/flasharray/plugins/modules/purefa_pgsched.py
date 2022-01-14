@@ -115,7 +115,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Update protection group snapshot schedule
-  purefa_pgsched:
+  purestorage.flasharray.purefa_pgsched:
     name: foo
     schedule: snapshot
     enabled: true
@@ -127,7 +127,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Update protection group replication schedule
-  purefa_pgsched:
+  purestorage.flasharray.purefa_pgsched:
     name: foo
     schedule: replication
     enabled: true
@@ -141,7 +141,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete protection group snapshot schedule
-  purefa_pgsched:
+  purestorage.flasharray.purefa_pgsched:
     name: foo
     scheduke: snapshot
     state: absent
@@ -149,7 +149,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete protection group replication schedule
-  purefa_pgsched:
+  purestorage.flasharray.purefa_pgsched:
     name: foo
     scheduke: replication
     state: absent

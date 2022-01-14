@@ -67,7 +67,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create API token ansible-token
-  purefa_apiclient:
+  purestorage.flasharray.purefa_apiclient:
     name: ansible-token
     issuer: "Pure Storage"
     ttl: 3000
@@ -77,21 +77,21 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Disable API CLient
-  purefa_apiclient:
+  purestorage.flasharray.purefa_apiclient:
     name: ansible-token
     enabled: false
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Enable API CLient
-  purefa_apiclient:
+  purestorage.flasharray.purefa_apiclient:
     name: ansible-token
     enabled: true
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete API Client
-  purefa_apiclient:
+  purestorage.flasharray.purefa_apiclient:
     state: absent
     name: ansible-token
     fa_url: 10.10.10.2

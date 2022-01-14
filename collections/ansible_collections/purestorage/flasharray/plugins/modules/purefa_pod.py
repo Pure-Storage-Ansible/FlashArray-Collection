@@ -92,14 +92,14 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create new pod named foo
-  purefa_pod:
+  purestorage.flasharray.purefa_pod:
     name: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: present
 
 - name: Delete and eradicate pod named foo
-  purefa_pod:
+  purestorage.flasharray.purefa_pod:
     name: foo
     eradicate: yes
     fa_url: 10.10.10.2
@@ -107,7 +107,7 @@ EXAMPLES = r"""
     state: absent
 
 - name: Set failover array for pod named foo
-  purefa_pod:
+  purestorage.flasharray.purefa_pod:
     name: foo
     failover:
     - array1
@@ -115,21 +115,21 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Set mediator for pod named foo
-  purefa_pod:
+  purestorage.flasharray.purefa_pod:
     name: foo
     mediator: bar
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Stretch a pod named foo to array2
-  purefa_pod:
+  purestorage.flasharray.purefa_pod:
     name: foo
     stretch: array2
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Unstretch a pod named foo from array2
-  purefa_pod:
+  purestorage.flasharray.purefa_pod:
     name: foo
     stretch: array2
     state: absent
@@ -137,7 +137,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create clone of pod foo named bar
-  purefa_pod:
+  purestorage.flasharray.purefa_pod:
     name: foo
     target: bar
     fa_url: 10.10.10.2

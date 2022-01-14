@@ -81,7 +81,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create (disabled) SAML2 SSO with only metadata URL
-  purefa_saml:
+  purestorage.flasharray.purefa_saml:
     name: myIDP
     array_url: "https://10.10.10.2"
     metadata_url: "https://myidp.acme.com/adfs/ls"
@@ -90,14 +90,14 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Enable SAML2 SSO
-  purefa_saml:
+  purestorage.flasharray.purefa_saml:
     name: myISO
     enabled: true
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete SAML2 SSO
-  purefa_saml:
+  purestorage.flasharray.purefa_saml:
     state: absent
     name: myIDP
     fa_url: 10.10.10.2
