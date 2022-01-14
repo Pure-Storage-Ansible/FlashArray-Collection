@@ -48,7 +48,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Sign EULA for FlashArray
-  purefa_eula:
+  purestorage.flasharray.purefa_eula:
     company: "ACME Storage, Inc."
     name: "Fred Bloggs"
     title: "Storage Manager"

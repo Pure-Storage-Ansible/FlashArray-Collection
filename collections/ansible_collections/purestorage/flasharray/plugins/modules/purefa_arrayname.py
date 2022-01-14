@@ -42,7 +42,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Set new array name
-  purefa_arrayname:
+  purestorage.flasharray.purefa_arrayname:
     name: new-array-name
     state: present
     fa_url: 10.10.10.2

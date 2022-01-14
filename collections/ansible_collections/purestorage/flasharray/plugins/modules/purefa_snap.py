@@ -77,7 +77,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create snapshot foo.ansible
-  purefa_snap:
+  purestorage.flasharray.purefa_snap:
     name: foo
     suffix: ansible
     fa_url: 10.10.10.2
@@ -85,7 +85,7 @@ EXAMPLES = r"""
     state: present
 
 - name: Create R/W clone foo_clone from snapshot foo.snap
-  purefa_snap:
+  purestorage.flasharray.purefa_snap:
     name: foo
     suffix: snap
     target: foo_clone
@@ -94,7 +94,7 @@ EXAMPLES = r"""
     state: copy
 
 - name: Create R/W clone foo_clone from remote mnapshot arrayB:foo.snap
-  purefa_snap:
+  purestorage.flasharray.purefa_snap:
     name: arrayB:foo
     suffix: snap
     target: foo_clone
@@ -103,7 +103,7 @@ EXAMPLES = r"""
     state: copy
 
 - name: Overwrite existing volume foo_clone with snapshot foo.snap
-  purefa_snap:
+  purestorage.flasharray.purefa_snap:
     name: foo
     suffix: snap
     target: foo_clone
@@ -113,7 +113,7 @@ EXAMPLES = r"""
     state: copy
 
 - name: Delete and eradicate snapshot named foo.snap
-  purefa_snap:
+  purestorage.flasharray.purefa_snap:
     name: foo
     suffix: snap
     eradicate: true
@@ -122,7 +122,7 @@ EXAMPLES = r"""
     state: absent
 
 - name: Rename snapshot foo.fred to foo.dave
-  purefa_snap:
+  purestorage.flasharray.purefa_snap:
     name: foo
     suffix: fred
     target: dave
@@ -131,14 +131,14 @@ EXAMPLES = r"""
     state: rename
 
 - name: Create a remote volume snapshot on offload device arrayB
-  purefa_snap:
+  purestorage.flasharray.purefa_snap:
     name: foo
     offload: arrayB
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete and eradicate a volume snapshot foo.1 on offload device arrayB
-  purefa_snap:
+  purestorage.flasharray.purefa_snap:
     name: foo
     suffix: 1
     offload: arrayB

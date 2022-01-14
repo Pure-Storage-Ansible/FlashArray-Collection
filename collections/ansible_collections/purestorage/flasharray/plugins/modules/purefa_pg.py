@@ -91,19 +91,19 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create new local protection group
-  purefa_pg:
+  purestorage.flasharray.purefa_pg:
     pgroup: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create new protection group called bar in pod called foo
-  purefa_pg:
+  purestorage.flasharray.purefa_pg:
     pgroup: "foo::bar"
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create new replicated protection group
-  purefa_pg:
+  purestorage.flasharray.purefa_pg:
     pgroup: foo
     target:
       - arrayb
@@ -112,7 +112,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create new replicated protection group to offload target and remote array
-  purefa_pg:
+  purestorage.flasharray.purefa_pg:
     pgroup: foo
     target:
       - offload
@@ -121,14 +121,14 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create new protection group with snapshots disabled
-  purefa_pg:
+  purestorage.flasharray.purefa_pg:
     pgroup: foo
     enabled: false
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete protection group
-  purefa_pg:
+  purestorage.flasharray.purefa_pg:
     pgroup: foo
     eradicate: true
     fa_url: 10.10.10.2
@@ -136,8 +136,8 @@ EXAMPLES = r"""
     state: absent
 
 - name: Eradicate protection group foo on offload target where source array is arrayA
-  purefa_pg:
-    pgroup: "arrayA:foo"
+  purestorage.flasharray.purefa_pg:
+    purestorage.flasharray.pgroup: "arrayA:foo"
     target: offload
     eradicate: true
     fa_url: 10.10.10.2
@@ -145,14 +145,14 @@ EXAMPLES = r"""
     state: absent
 
 - name: Rename protection group foo in pod arrayA to bar
-  purefa_pg:
+  purestorage.flasharray.purefa_pg:
     pgroup: "arrayA::foo"
     rename: bar
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create protection group for hostgroups
-  purefa_pg:
+  purestorage.flasharray.purefa_pg:
     pgroup: bar
     hostgroup:
       - hg1
@@ -161,7 +161,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create protection group for hosts
-  purefa_pg:
+  purestorage.flasharray.purefa_pg:
     pgroup: bar
     host:
       - host1
@@ -170,7 +170,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create replicated protection group for volumes
-  purefa_pg:
+  purestorage.flasharray.purefa_pg:
     pgroup: bar
     volume:
       - vol1

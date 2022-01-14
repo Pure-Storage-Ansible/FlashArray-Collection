@@ -33,7 +33,7 @@ options:
     description:
     - Name of existing certifcate used to verify FlashArray
       authenticity to the KMIP server.
-    - Use the I(purefa_certs) module to create certificates.
+    - Use the I(purestorage.flasharray.purefa_certs) module to create certificates.
     type: str
   state:
     description:
@@ -58,7 +58,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create KMIP obejct
-  purefa_kmip:
+  purestorage.flasharray.purefa_kmip:
     name: foo
     certificate: bar
     ca_certificate: "{{lookup('file', 'example.crt') }}"
@@ -69,14 +69,14 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete KMIP object
-  purefa_kmip:
+  purestorage.flasharray.purefa_kmip:
     name: foo
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Update KMIP object
-  purefa_kmip:
+  purestorage.flasharray.purefa_kmip:
     name: foo
     ca_certificate: "{{lookup('file', 'example2.crt') }}"
     uris:

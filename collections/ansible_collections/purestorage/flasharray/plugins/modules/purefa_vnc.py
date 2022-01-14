@@ -41,13 +41,13 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Enable VNC for application test
-  purefa_vnc:
+  purestorage.flasharray.purefa_vnc:
     name: test
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Disable VNC for application test
-  purefa_vnc:
+  purestorage.flasharray.purefa_vnc:
     name: test
     state: absent
     fa_url: 10.10.10.2

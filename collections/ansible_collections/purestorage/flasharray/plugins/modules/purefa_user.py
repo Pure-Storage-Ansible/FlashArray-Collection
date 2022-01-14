@@ -60,7 +60,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create new user ansible with API token
-  purefa_user:
+  purestorage.flasharray.purefa_user:
     name: ansible
     password: apassword
     role: storage_admin
@@ -73,14 +73,14 @@ EXAMPLES = r"""
     msg: "API Token: {{ result['user_info']['user_api'] }}"
 
 - name: Change role type for existing user
-  purefa_user:
+  purestorage.flasharray.purefa_user:
     name: ansible
     role: array_admin
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Change password type for existing user (NOT IDEMPOTENT)
-  purefa_user:
+  purestorage.flasharray.purefa_user:
     name: ansible
     password: anewpassword
     old_password: apassword
@@ -88,7 +88,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Change API token for existing user
-  purefa_user:
+  purestorage.flasharray.purefa_user:
     name: ansible
     api: true
     fa_url: 10.10.10.2

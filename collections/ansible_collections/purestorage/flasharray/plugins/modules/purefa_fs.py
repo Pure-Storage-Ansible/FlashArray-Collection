@@ -50,13 +50,13 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create file system foo
-  purefa_fs:
+  purestorage.flasharray.purefa_fs:
     name: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete and eradicate file system foo
-  purefa_fs:
+  purestorage.flasharray.purefa_fs:
     name: foo
     eradicate: true
     state: absent
@@ -64,7 +64,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Rename file system foo to bar
-  purefa_fs:
+  purestorage.flasharray.purefa_fs:
     name: foo
     rename: bar
     fa_url: 10.10.10.2

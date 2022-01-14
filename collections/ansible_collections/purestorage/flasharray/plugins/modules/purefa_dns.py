@@ -47,13 +47,13 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Delete exisitng DNS settings
-  purefa_dns:
+  purestorage.flasharray.purefa_dns:
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Set DNS settings
-  purefa_dns:
+  purestorage.flasharray.purefa_dns:
     domain: purestorage.com
     nameservers:
       - 8.8.8.8

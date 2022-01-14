@@ -67,13 +67,13 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create empty hostgroup
-  purefa_hg:
+  purestorage.flasharray.purefa_hg:
     hostgroup: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Add hosts and volumes to existing or new hostgroup
-  purefa_hg:
+  purestorage.flasharray.purefa_hg:
     hostgroup: foo
     host:
       - host1
@@ -85,7 +85,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete hosts and volumes from hostgroup
-  purefa_hg:
+  purestorage.flasharray.purefa_hg:
     hostgroup: foo
     host:
       - host1
@@ -99,21 +99,21 @@ EXAMPLES = r"""
 
 # This will disconnect all hosts and volumes in the hostgroup
 - name: Delete hostgroup
-  purefa_hg:
+  purestorage.flasharray.purefa_hg:
     hostgroup: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
 
 - name: Rename hostgroup
-  purefa_hg:
+  purestorage.flasharray.purefa_hg:
     hostgroup: foo
     rename: bar
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create host group with hosts and volumes
-  purefa_hg:
+  purestorage.flasharray.purefa_hg:
     hostgroup: bar
     host:
       - host1

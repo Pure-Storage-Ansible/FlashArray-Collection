@@ -96,7 +96,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create new AD account
-  purefa_ad:
+  purestorage.flasharray.purefa_ad:
     name: ad_account
     computer: FLASHARRAY
     domain: acme.com
@@ -111,14 +111,14 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete AD account locally
-  purefa_ad:
+  purestorage.flasharray.purefa_ad:
     name: ad_account
     local_only: True
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Fully delete AD account. Note that correct AD permissions are required
-  purefa_ad:
+  purestorage.flasharray.purefa_ad:
     name: ad_account
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592

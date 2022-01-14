@@ -44,13 +44,13 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Delete exisitng proxy settings
-  purefa_proxy:
+  purestorage.flasharray.purefa_proxy:
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Set proxy settings
-  purefa_proxy:
+  purestorage.flasharray.purefa_proxy:
     host: purestorage.com
     port: 8080
     fa_url: 10.10.10.2

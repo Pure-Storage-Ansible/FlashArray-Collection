@@ -55,7 +55,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create direcotry foo in filesysten bar with path zeta
-  purefa_directory:
+  purestorage.flasharray.purefa_directory:
     name: foo
     filesystem: bar
     path: zeta
@@ -63,7 +63,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Rename directory foo to fin in filesystem bar
-  purefa_directory:
+  purestorage.flasharray.purefa_directory:
     name: foo
     rename: fin
     filesystem: bar
@@ -71,7 +71,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete diectory foo in filesystem bar
-  purefa_directory:
+  purestorage.flasharray.purefa_directory:
     name: foo
     filesystem: bar
     state: absent

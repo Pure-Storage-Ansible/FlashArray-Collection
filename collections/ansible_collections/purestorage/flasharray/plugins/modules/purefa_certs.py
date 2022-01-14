@@ -127,7 +127,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create SSL certifcate foo
-  purefa_certs:
+  purestorage.flasharray.purefa_certs:
     name: foo
     key_size: 4096
     country: US
@@ -139,27 +139,27 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete SSL certificate foo
-  purefa_certs:
+  purestorage.flasharray.purefa_certs:
     name: foo
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Request CSR
-  purefa_certs:
+  purestorage.flasharray.purefa_certs:
     state: sign
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Regenerate key for SSL foo
-  purefa_certs:
+  purestorage.flasharray.purefa_certs:
     generate: true
     name: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Import SSL Cert foo and Private Key
-  purefa_certs:
+  purestorage.flasharray.purefa_certs:
     state: import
     name: foo
     certificate: "{{lookup('file', 'example.crt') }}"

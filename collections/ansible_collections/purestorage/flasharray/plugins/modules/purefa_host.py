@@ -154,14 +154,14 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create new AIX host
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: foo
     personality: aix
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create 10 hosts with index starting at 10 but padded with 3 digits
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: foo
     personality: vms
     suffix: bar
@@ -173,21 +173,21 @@ EXAMPLES = r"""
     state: present
 
 - name: Rename host foo to bar
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: foo
     rename: bar
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete host
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
 
 - name: Make host bar with wwn ports
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: bar
     wwns:
     - 00:00:00:00:00:00:00
@@ -196,7 +196,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Make host bar with iSCSI ports
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: bar
     iqn:
     - iqn.1994-05.com.redhat:7d366003913
@@ -204,7 +204,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Make host bar with NVMe ports
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: bar
     nqn:
     - nqn.2014-08.com.vendor:nvme:nvm-subsystem-sn-d78432
@@ -212,7 +212,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Make mixed protocol host
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: bar
     nqn:
     - nqn.2014-08.com.vendor:nvme:nvm-subsystem-sn-d78432
@@ -225,7 +225,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Map host foo to volume bar as LUN ID 12
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: foo
     volume: bar
     lun: 12
@@ -233,7 +233,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Disconnect volume bar from host foo
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: foo
     volume: bar
     state: absent
@@ -241,7 +241,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Add preferred arrays to host foo
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: foo
     preferred_array:
     - array1
@@ -250,21 +250,21 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete preferred arrays from host foo
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: foo
     preferred_array: delete
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete exisitng WWNs from host foo (does not delete host object)
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: foo
     wwns: ""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Set CHAP target and host username/password pairs
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: foo
     target_user: user1
     target_password: passwrodpassword
@@ -274,7 +274,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete CHAP target and host username/password pairs
-  purefa_host:
+  purestorage.flasharray.purefa_host:
     name: foo
     target_user: user
     target_password: clear

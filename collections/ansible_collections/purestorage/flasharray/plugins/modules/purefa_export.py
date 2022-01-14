@@ -60,7 +60,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create NFS and SMB exports for directory foo in filesysten bar
-  purefa_export:
+  purestorage.flasharray.purefa_export:
     name: export1
     filesystem: bar
     directory: foo
@@ -70,7 +70,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete NFS export for directory foo in filesystem bar
-  purefa_export:
+  purestorage.flasharray.purefa_export:
     name: export1
     filesystem: bar
     directory: foo

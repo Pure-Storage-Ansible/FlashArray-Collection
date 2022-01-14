@@ -127,7 +127,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create new volume named foo with a QoS limit
-  purefa_volume:
+  purestorage.flasharray.purefa_volume:
     name: foo
     size: 1T
     bw_qos: 58M
@@ -137,7 +137,7 @@ EXAMPLES = r"""
     state: present
 
 - name: Create new volume named foo in pod bar in protection group pg1
-  purefa_volume:
+  purestorage.flasharray.purefa_volume:
     name: bar::foo
     prgoup: pg1
     size: 1T
@@ -146,7 +146,7 @@ EXAMPLES = r"""
     state: present
 
 - name: Create 10 volumes with index starting at 10 but padded with 3 digits
-  purefa_volume:
+  purestorage.flasharray.purefa_volume:
     name: foo
     size: 1T
     suffix: bar
@@ -158,7 +158,7 @@ EXAMPLES = r"""
     state: present
 
 - name: Extend the size of an existing volume named foo
-  purefa_volume:
+  purestorage.flasharray.purefa_volume:
     name: foo
     size: 2T
     fa_url: 10.10.10.2
@@ -166,7 +166,7 @@ EXAMPLES = r"""
     state: present
 
 - name: Delete and eradicate volume named foo
-  purefa_volume:
+  purestorage.flasharray.purefa_volume:
     name: foo
     eradicate: yes
     fa_url: 10.10.10.2
@@ -174,7 +174,7 @@ EXAMPLES = r"""
     state: absent
 
 - name: Create clone of volume bar named foo
-  purefa_volume:
+  purestorage.flasharray.purefa_volume:
     name: foo
     target: bar
     fa_url: 10.10.10.2
@@ -182,7 +182,7 @@ EXAMPLES = r"""
     state: present
 
 - name: Overwrite volume bar with volume foo
-  purefa_volume:
+  purestorage.flasharray.purefa_volume:
     name: foo
     target: bar
     overwrite: yes
@@ -191,7 +191,7 @@ EXAMPLES = r"""
     state: present
 
 - name: Clear volume QoS from volume foo
-  purefa_volume:
+  purestorage.flasharray.purefa_volume:
     name: foo
     bw_qos: 0
     iops_qos: 0
@@ -200,21 +200,21 @@ EXAMPLES = r"""
     state: present
 
 - name: Move local volume foo from local array to pod bar
-  purefa_volume:
+  purestorage.flasharray.purefa_volume:
     name: foo
     move: bar
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Move volume foo in pod bar to local array
-  purefa_volume:
+  purestorage.flasharray.purefa_volume:
     name: bar::foo
     move: local
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Move volume foo in pod bar to vgroup fin
-  purefa_volume:
+  purestorage.flasharray.purefa_volume:
     name: bar::foo
     move: fin
     fa_url: 10.10.10.2

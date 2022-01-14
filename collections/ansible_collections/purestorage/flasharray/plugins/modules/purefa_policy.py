@@ -158,7 +158,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create an NFS policy with initial rule
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: export1
     policy: nfs
     nfs_access: root-squash
@@ -168,21 +168,21 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create an empty NFS policy with no rules
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: export1
     policy: nfs
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create an empty snapshot policy with no rules
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: snap1
     policy: snapshot
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Disable a policy
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: export1
     policy: nfs
     enabled: false
@@ -190,7 +190,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Add rule to existing NFS export policy
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: export1
     policy: nfs
     nfs_access: root-squash
@@ -200,7 +200,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Add rule to existing SMB export policy
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: export1
     policy: smb
     smb_encrypt: yes
@@ -210,7 +210,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Add non-suffix rule to existing snapshot export policy
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: snap1
     policy: snapshot
     snap_client_name: foo
@@ -220,7 +220,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Add suffix rule to existing snapshot export policy
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: snap1
     policy: snapshot
     snap_client_name: foo
@@ -231,7 +231,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete policy rule for a client
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: export1
     policy: nfs
     client: client2
@@ -240,7 +240,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete policy
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: export1
     policy: nfs
     state: absent
@@ -248,7 +248,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create directory quota policy for directory bar
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: foo
     directory:
      - "foo:root"
@@ -259,7 +259,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete directory quota policy foo
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: foo
     policy: quota
     state: absent
@@ -267,14 +267,14 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create empty directory quota policy foo
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: foo
     policy: quota
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Detach directory "foo:bar" from quota policy quota1
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: quota1
     directory:
      - "foo:bar"
@@ -284,7 +284,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Remove quota rule from quota policy foo
-  purefa_policy:
+  purestorage.flasharray.purefa_policy:
     name: foo
     policy: quota
     quota_limit: 10G

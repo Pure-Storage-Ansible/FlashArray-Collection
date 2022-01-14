@@ -23,8 +23,8 @@ short_description:  Manage network interfaces in a Pure Storage FlashArray
 version_added: '1.0.0'
 description:
     - This module manages the physical and virtual network interfaces on a Pure Storage FlashArray.
-    - To manage VLAN interfaces use the I(purefa_vlan) module.
-    - To manage network subnets use the I(purefa_subnet) module.
+    - To manage VLAN interfaces use the I(purestorage.flasharray.purefa_vlan) module.
+    - To manage network subnets use the I(purestorage.flasharray.purefa_subnet) module.
     - To remove an IP address from a non-management port use 0.0.0.0/0
 author: Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
@@ -63,7 +63,7 @@ extends_documentation_fragment:
 
 EXAMPLES = """
 - name: Configure and enable network interface ct0.eth8
-  purefa_network:
+  purestorage.flasharray.purefa_network:
     name: ct0.eth8
     gateway: 10.21.200.1
     address: "10.21.200.18/24"
@@ -73,21 +73,21 @@ EXAMPLES = """
     api_token: c6033033-fe69-2515-a9e8-966bb7fe4b40
 
 - name: Disable physical interface ct1.eth2
-  purefa_network:
+  purestorage.flasharray.purefa_network:
     name: ct1.eth2
     state: absent
     fa_url: 10.10.10.2
     api_token: c6033033-fe69-2515-a9e8-966bb7fe4b40
 
 - name: Enable virtual network interface vir0
-  purefa_network:
+  purestorage.flasharray.purefa_network:
     name: vir0
     state: present
     fa_url: 10.10.10.2
     api_token: c6033033-fe69-2515-a9e8-966bb7fe4b40
 
 - name: Remove an IP address from iSCSI interface ct0.eth4
-  purefa_network:
+  purestorage.flasharray.purefa_network:
     name: ct0.eth4
     address: 0.0.0.0/0
     gateway: 0.0.0.0

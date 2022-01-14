@@ -91,7 +91,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create new volune group
-  purefa_vg:
+  purestorage.flasharray.purefa_vg:
     name: foo
     bw_qos: 50M
     iops_qos: 100
@@ -99,7 +99,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create 10 volune groups of pattern foo#bar with QoS
-  purefa_vg:
+  purestorage.flasharray.purefa_vg:
     name: foo
     suffix: bar
     count: 10
@@ -111,7 +111,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Update volune group QoS limits
-  purefa_vg:
+  purestorage.flasharray.purefa_vg:
     name: foo
     bw_qos: 0
     iops_qos: 5555
@@ -119,20 +119,20 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Destroy volume group
-  purefa_vg:
+  purestorage.flasharray.purefa_vg:
     name: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
 
 - name: Recover deleted volune group
-  purefa_vg:
+  purestorage.flasharray.purefa_vg:
     name: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Destroy and Eradicate volume group
-  purefa_vg:
+  purestorage.flasharray.purefa_vg:
     name: foo
     eradicate: true
     fa_url: 10.10.10.2

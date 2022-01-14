@@ -36,12 +36,12 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Enable Phonehome
-  purefa_phonehome:
+  purestorage.flasharray.purefa_phonehome:
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Disable Phonehome
-  purefa_phonehome:
+  purestorage.flasharray.purefa_phonehome:
     state: disable
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592

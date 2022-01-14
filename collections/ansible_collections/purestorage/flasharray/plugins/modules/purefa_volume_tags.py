@@ -62,7 +62,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create new tags in namespace test for volume foo
-  purefa_volume_tags:
+  purestorage.flasharray.purefa_volume_tags:
     name: foo
     namespace: test
     copyable: false
@@ -73,7 +73,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Remove an existing tag in namespace test for volume foo
-  purefa_volume_tags:
+  purestorage.flasharray.purefa_volume_tags:
     name: foo
     namespace: test
     kvp:
@@ -83,7 +83,7 @@ EXAMPLES = r"""
     state: absent
 
 - name: Update an existing tag in namespace test for volume foo
-  purefa_volume_tags:
+  purestorage.flasharray.purefa_volume_tags:
     name: foo
     namespace: test
     kvp:

@@ -60,7 +60,7 @@ extends_documentation_fragment:
 
 EXAMPLES = """
 - name: Configure and enable VLAN interface ct0.eth8 for subnet test
-  purefa_vlan:
+  purestorage.flasharray.purefa_vlan:
     name: ct0.eth8
     subnet: test
     address: 10.21.200.18
@@ -69,7 +69,7 @@ EXAMPLES = """
     api_token: c6033033-fe69-2515-a9e8-966bb7fe4b40
 
 - name: Disable VLAN interface for subnet test on ct1.eth2
-  purefa_vlan:
+  purestorage.flasharray.purefa_vlan:
     name: ct1.eth2
     subnet: test
     enabled: false
@@ -77,7 +77,7 @@ EXAMPLES = """
     api_token: c6033033-fe69-2515-a9e8-966bb7fe4b40
 
 - name: Delete VLAN inteface for subnet test on ct0.eth4
-  purefa_vlan:
+  purestorage.flasharray.purefa_vlan:
     name: ct0.eth4
     subnet: test
     state: absent

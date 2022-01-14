@@ -45,7 +45,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: collect default set of information
-  purefa_info:
+  purestorage.flasharray.purefa_info:
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
   register: array_info
@@ -54,7 +54,7 @@ EXAMPLES = r"""
     msg: "{{ array_info['purefa_info']['default'] }}"
 
 - name: collect configuration and capacity information
-  purefa_info:
+  purestorage.flasharray.purefa_info:
     gather_subset:
       - config
     fa_url: 10.10.10.2
@@ -65,7 +65,7 @@ EXAMPLES = r"""
     msg: "{{ array_info['purefa_info']['config'] }}"
 
 - name: collect all information
-  purefa_info:
+  purestorage.flasharray.purefa_info:
     gather_subset:
       - all
     fa_url: 10.10.10.2

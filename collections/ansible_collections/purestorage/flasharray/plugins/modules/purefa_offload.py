@@ -98,7 +98,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Create NFS offload target
-  purefa_offload:
+  purestorage.flasharray.purefa_offload:
     name: nfs-offload
     protocol: nfs
     address: 10.21.200.4
@@ -107,7 +107,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create S3 offload target
-  purefa_offload:
+  purestorage.flasharray.purefa_offload:
     name: s3-offload
     protocol: s3
     access_key: "3794fb12c6204e19195f"
@@ -118,7 +118,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create Azure offload target
-  purefa_offload:
+  purestorage.flasharray.purefa_offload:
     name: azure-offload
     protocol: azure
     secret: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
@@ -128,7 +128,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete offload target
-  purefa_offload:
+  purestorage.flasharray.purefa_offload:
     name: nfs-offload
     protocol: nfs
     state: absent
