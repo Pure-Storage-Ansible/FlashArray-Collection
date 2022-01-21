@@ -137,8 +137,10 @@ def update_subnet(module, array, subnet):
             module.params["prefix"]
         ):
             module.fail_json(msg="Gateway and subnet are not compatible.")
-        elif not module.params["gateway"] and subnet["gateway"] not in IPNetwork(
-            module.params["prefix"]
+        elif (
+            not module.params["gateway"]
+            and subnet["gateway"]
+            and subnet["gateway"] not in IPNetwork(module.params["prefix"])
         ):
             module.fail_json(msg="Gateway and subnet are not compatible.")
         prefix = module.params["prefix"]
