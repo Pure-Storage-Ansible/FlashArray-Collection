@@ -895,22 +895,30 @@ def generate_capacity_dict(module, array):
         arrayv6 = get_array(module)
         total_capacity = list(arrayv6.get_arrays().items)[0].capacity
         capacity = list(arrayv6.get_arrays_space().items)[0]
-        capacity_info["provisioned_space"] = capacity.space["total_provisioned"]
-        capacity_info["free_space"] = total_capacity - capacity.space["total_physical"]
+        capacity_info["provisioned_space"] = capacity.space.total_provisioned
+        capacity_info["free_space"] = total_capacity - capacity.space.total_physical
         capacity_info["total_capacity"] = total_capacity
-        capacity_info["data_reduction"] = capacity.space["data_reduction"]
-        capacity_info["system_space"] = capacity.space["system"]
-        capacity_info["volume_space"] = capacity.space["unique"]
-        capacity_info["shared_space"] = capacity.space["shared"]
-        capacity_info["snapshot_space"] = capacity.space["snapshots"]
-        capacity_info["thin_provisioning"] = capacity.space["thin_provisioning"]
-        capacity_info["total_reduction"] = capacity.space["total_reduction"]
-        capacity_info["replication"] = capacity.space["replication"]
+        capacity_info["data_reduction"] = capacity.space.data_reduction
+        capacity_info["system_space"] = capacity.space.system
+        capacity_info["volume_space"] = capacity.space.unique
+        capacity_info["shared_space"] = capacity.space.shared
+        capacity_info["snapshot_space"] = capacity.space.snapshots
+        capacity_info["thin_provisioning"] = capacity.space.thin_provisioning
+        capacity_info["total_reduction"] = capacity.space.total_reduction
+        capacity_info["replication"] = getattr(capacity.space, "replication", 0)
         if SHARED_CAP_API_VERSION in api_version:
-            capacity_info["shared_effective"] = capacity.space["shared_effective"]
-            capacity_info["snapshots_effective"] = capacity.space["snapshots_effective"]
-            capacity_info["unique_effective"] = capacity.space["total_effective"]
-            capacity_info["total_effective"] = capacity.space["total_effective"]
+            capacity_info["shared_effective"] = getattr(
+                capacity.space, "shared_effective", 0
+            )
+            capacity_info["snapshots_effective"] = getattr(
+                capacity.space, "snapshots_effective", 0
+            )
+            capacity_info["unique_effective"] = getattr(
+                capacity.space, "total_effective", 0
+            )
+            capacity_info["total_effective"] = getattr(
+                capacity.space, "total_effective", 0
+            )
     elif CAP_REQUIRED_API_VERSION in api_version:
         volumes = array.list_volumes(pending=True)
         capacity_info["provisioned_space"] = sum(item["size"] for item in volumes)
