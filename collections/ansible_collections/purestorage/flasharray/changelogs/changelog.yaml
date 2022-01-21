@@ -85,6 +85,18 @@ releases:
       name: purefa_saml
       namespace: ''
     release_date: '2022-01-05'
+  1.12.1:
+    changes:
+      bugfixes:
+      - purefa_info - Fix space reporting issue
+      - purefa_subnet - Fix subnet update checks when no gateway in existing subnet
+        configuration
+      minor_changes:
+      - All modules - Change examples to use FQCN for module
+    fragments:
+    - 257_fqcn.yaml
+    - 259_fix_gateway_check.yaml
+    release_date: '2022-01-21'
   1.4.0:
     changes:
       bugfixes:

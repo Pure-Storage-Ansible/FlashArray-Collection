@@ -5,6 +5,20 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.12.1
+=======
+
+Minor Changes
+-------------
+
+- All modules - Change examples to use FQCN for module
+
+Bugfixes
+--------
+
+- purefa_info - Fix space reporting issue
+- purefa_subnet - Fix subnet update checks when no gateway in existing subnet configuration
+
 v1.12.0
 =======
 
