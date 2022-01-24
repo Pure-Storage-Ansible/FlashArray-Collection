@@ -1518,10 +1518,11 @@ def generate_conn_array_dict(module, array):
             arrayname = carrays[carray].name
             conn_array_info[arrayname] = {
                 "array_id": carrays[carray].id,
-                "version": carrays[carray].version,
+                "version": getattr(carrays[carray], "version", None),
+                "status": carrays[carray].status,
                 "type": carrays[carray].type,
-                "mgmt_ip": carrays[carray].management_address,
-                "repl_ip": carrays[carray].replication_addresses,
+                "mgmt_ip": getattr(carrays[carray], "management_address", "-"),
+                "repl_ip": getattr(carrays[carray], "replication_addresses", "-"),
                 "transport": carrays[carray].replication_transport,
             }
 
