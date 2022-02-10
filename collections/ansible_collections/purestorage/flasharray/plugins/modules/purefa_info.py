@@ -469,6 +469,7 @@ def generate_default_dict(module, array):
     default_info = {}
     defaults = array.get()
     api_version = array._list_available_rest_versions()
+    default_info["api_versions"] = api_version
     if FILES_API_VERSION in api_version:
         arrayv6 = get_array(module)
         default_info["snapshot_policies"] = len(arrayv6.get_policies_snapshot().items)
