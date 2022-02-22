@@ -181,6 +181,14 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
+- name: Create an empty snapshot policy with single directory member
+  purestorage.flasharray.purefa_policy:
+    name: snap1
+    policy: snapshot
+    directory: "foo:bar"
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
 - name: Disable a policy
   purestorage.flasharray.purefa_policy:
     name: export1
@@ -503,7 +511,7 @@ def delete_policy(module, array):
                                 )
                             )
         elif module.params["policy"] == "snapshot":
-            if not module.params["snap_client_name"]:
+            if not module.params["snap_client_name"] and not module.params["directory"]:
                 res = array.delete_policies_snapshot(names=[module.params["name"]])
                 if res.status_code == 200:
                     changed = True
@@ -513,7 +521,40 @@ def delete_policy(module, array):
                             module.params["name"], res.errors[0].message
                         )
                     )
-            else:
+            if module.params["directory"]:
+                dirs = []
+                old_dirs = []
+                current_dirs = list(
+                    array.get_directories_policies_snapshot(
+                        policy_names=[module.params["name"]]
+                    ).items
+                )
+                if current_dirs:
+                    for current_dir in range(0, len(current_dirs)):
+                        dirs.append(current_dirs[current_dir].member.name)
+                    for old_dir in range(0, len(module.params["directory"])):
+                        if module.params["directory"][old_dir] in dirs:
+                            old_dirs.append(module.params["directory"][old_dir])
+                else:
+                    old_dirs = module.params["directory"]
+                if old_dirs:
+                    changed = True
+                    for rem_dir in range(0, len(old_dirs)):
+                        if not module.check_mode:
+                            directory_removed = (
+                                array.delete_directories_policies_snapshot(
+                                    member_names=[old_dirs[rem_dir]],
+                                    policy_names=module.params["name"],
+                                )
+                            )
+                            if directory_removed.status_code != 200:
+                                module.fail_json(
+                                    msg="Failed to remove directory from Snapshot policy {0}. Error: {1}".format(
+                                        module.params["name"],
+                                        directory_removed.errors[0].message,
+                                    )
+                                )
+            if module.params["snap_client_name"]:
                 rules = list(
                     array.get_policies_snapshot_rules(
                         policy_names=[module.params["name"]]
@@ -752,6 +793,24 @@ def create_policy(module, array):
                                 module.params["name"], rule_created.errors[0].message
                             )
                         )
+                if module.params["directory"]:
+                    policies = flasharray.DirectoryPolicyPost(
+                        policies=[
+                            flasharray.DirectorypolicypostPolicies(
+                                policy=flasharray.Reference(name=module.params["name"])
+                            )
+                        ]
+                    )
+                    directory_added = array.post_directories_policies_snapshot(
+                        member_names=module.params["directory"], policies=policies
+                    )
+                    if directory_added.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to add directory for Snapshot policy {0}. Error: {1}".format(
+                                module.params["name"],
+                                directory_added.errors[0].message,
+                            )
+                        )
             else:
                 module.fail_json(
                     msg="Failed to create Snapshot policy {0}. Error: {1}".format(
@@ -819,7 +878,9 @@ def create_policy(module, array):
 
 def update_policy(module, array):
     """Update an existing policy including add/remove rules"""
-    changed = changed_rule = changed_enable = changed_quota = changed_member = False
+    changed = (
+        changed_dir
+    ) = changed_rule = changed_enable = changed_quota = changed_member = False
     if module.params["policy"] == "nfs":
         try:
             current_enabled = list(
@@ -996,6 +1057,44 @@ def update_policy(module, array):
                             module.params["name"]
                         )
                     )
+        if module.params["directory"]:
+            dirs = []
+            new_dirs = []
+            current_dirs = list(
+                array.get_directories_policies_snapshot(
+                    policy_names=[module.params["name"]]
+                ).items
+            )
+            if current_dirs:
+                for current_dir in range(0, len(current_dirs)):
+                    dirs.append(current_dirs[current_dir].member.name)
+                for new_dir in range(0, len(module.params["directory"])):
+                    if module.params["directory"][new_dir] not in dirs:
+                        changed_dir = True
+                        new_dirs.append(module.params["directory"][new_dir])
+            else:
+                new_dirs = module.params["directory"]
+            if new_dirs:
+                policies = flasharray.DirectoryPolicyPost(
+                    policies=[
+                        flasharray.DirectorypolicypostPolicies(
+                            policy=flasharray.Reference(name=module.params["name"])
+                        )
+                    ]
+                )
+                changed_dir = True
+                for add_dir in range(0, len(new_dirs)):
+                    if not module.check_mode:
+                        directory_added = array.post_directories_policies_snapshot(
+                            member_names=[new_dirs[add_dir]], policies=policies
+                        )
+                        if directory_added.status_code != 200:
+                            module.fail_json(
+                                msg="Failed to add new directory to Snapshot policy {0}. Error: {1}".format(
+                                    module.params["name"],
+                                    directory_added.errors[0].message,
+                                )
+                            )
         if module.params["snap_client_name"]:
             if module.params["snap_at"]:
                 if not module.params["snap_every"] % 1440 == 0:
@@ -1240,8 +1339,8 @@ def update_policy(module, array):
             )
             if current_rules:
                 one_enforced = False
-                for rule in range(0, len(current_rules)):
-                    if current_rules[rule].enforced:
+                for check_rule in range(0, len(current_rules)):
+                    if current_rules[check_rule].enforced:
                         one_enforced = True
                 for rule in range(0, len(current_rules)):
                     rule_exists = False
@@ -1251,13 +1350,17 @@ def update_policy(module, array):
                         current_notifications = ",".join(
                             module.params["quota_notifications"]
                         )
-                    if (
-                        current_rules[rule].quota_limit == quota
-                        and current_rules[rule].enforced
-                        == module.params["quota_enforced"]
-                        and current_rules[rule].notifications == current_notifications
+                    if bool(
+                        (current_rules[rule].quota_limit == quota)
+                        and (
+                            current_rules[rule].enforced
+                            == module.params["quota_enforced"]
+                        )
+                        and (current_rules[rule].notifications == current_notifications)
                     ):
                         rule_exists = True
+                        break
+
                 if not rule_exists:
                     if module.params["quota_enforced"] and one_enforced:
                         module.fail_json(
@@ -1304,7 +1407,7 @@ def update_policy(module, array):
                             )
                         )
 
-    if changed_rule or changed_enable or changed_quota or changed_member:
+    if changed_rule or changed_enable or changed_quota or changed_member or changed_dir:
         changed = True
     module.exit_json(changed=changed)
 
