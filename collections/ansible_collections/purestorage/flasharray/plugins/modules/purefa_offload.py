@@ -147,8 +147,13 @@ try:
 except ImportError:
     HAS_PURESTORAGE = False
 
+HAS_PACKAGING = True
+try:
+    from packaging import version
+except ImportError:
+    HAS_PACKAGING = False
+
 import re
-from distutils.version import LooseVersion
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
@@ -351,6 +356,8 @@ def main():
         argument_spec, required_if=required_if, supports_check_mode=True
     )
 
+    if not HAS_PACKAGING:
+        module.fail_json(msg="packagingsdk is required for this module")
     if not HAS_PURESTORAGE and module.params["protocol"] == "gcp":
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
@@ -392,7 +399,7 @@ def main():
             if (
                 apps[app]["enabled"]
                 and apps[app]["status"] == "healthy"
-                and LooseVersion(apps[app]["version"]) >= LooseVersion("5.2.0")
+                and version.parse(apps[app]["version"]) >= version.parse("5.2.0")
             ):
                 all_good = True
                 app_version = apps[app]["version"]
@@ -403,7 +410,7 @@ def main():
             msg="Correct Offload app not installed or incorrectly configured"
         )
     else:
-        if LooseVersion(array.get()["version"]) != LooseVersion(app_version):
+        if version.parse(array.get()["version"]) != version.parse(app_version):
             module.fail_json(
                 msg="Offload app version must match Purity version. Please upgrade."
             )
