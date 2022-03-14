@@ -1162,6 +1162,16 @@ def generate_del_vol_dict(module, array):
                     "namespace": voltags[voltag]["namespace"],
                 }
                 volume_info[volume]["tags"].append(tagdict)
+    if SAFE_MODE_VERSION in api_version:
+        volumes = list(arrayv6.get_volumes(destroyed=True).items)
+        for vol in range(0, len(volumes)):
+            name = volumes[vol].name
+            volume_info[name]["priority"] = volumes[vol].priority
+            volume_info[name]["priority_adjustment"] = volumes[
+                vol
+            ].priority_adjustment.priority_adjustment_operator + str(
+                volumes[vol].priority_adjustment.priority_adjustment_value
+            )
     return volume_info
 
 
@@ -1253,6 +1263,16 @@ def generate_vol_dict(module, array):
                 volume_info[volume]["host_encryption_key_status"] = e2ees[e2ee][
                     "host_encryption_key_status"
                 ]
+    if SAFE_MODE_VERSION in api_version:
+        volumes = list(arrayv6.get_volumes(destroyed=False).items)
+        for vol in range(0, len(volumes)):
+            name = volumes[vol].name
+            volume_info[name]["priority"] = volumes[vol].priority
+            volume_info[name]["priority_adjustment"] = volumes[
+                vol
+            ].priority_adjustment.priority_adjustment_operator + str(
+                volumes[vol].priority_adjustment.priority_adjustment_value
+            )
     cvols = array.list_volumes(connect=True)
     for cvol in range(0, len(cvols)):
         volume = cvols[cvol]["name"]
@@ -1577,16 +1597,98 @@ def generate_apps_dict(array):
     return apps_info
 
 
-def generate_vgroups_dict(array):
+def generate_vgroups_dict(module, array):
     vgroups_info = {}
     api_version = array._list_available_rest_versions()
     if AC_REQUIRED_API_VERSION in api_version:
-        vgroups = array.list_vgroups()
+        vgroups = array.list_vgroups(pending=False)
         for vgroup in range(0, len(vgroups)):
             virtgroup = vgroups[vgroup]["name"]
             vgroups_info[virtgroup] = {
                 "volumes": vgroups[vgroup]["volumes"],
             }
+    if V6_MINIMUM_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        vgroups = list(arrayv6.get_volume_groups(destroyed=False).items)
+        for vgroup in range(0, len(vgroups)):
+            name = vgroups[vgroup].name
+            vgroups_info[name]["snapshots_space"] = vgroups[vgroup].space.snapshots
+            # Provide system as this matches the old naming convention
+            vgroups_info[name]["system"] = vgroups[vgroup].space.unique
+            vgroups_info[name]["unique_space"] = vgroups[vgroup].space.unique
+            vgroups_info[name]["virtual_space"] = vgroups[vgroup].space.virtual
+            vgroups_info[name]["data_reduction"] = vgroups[vgroup].space.data_reduction
+            vgroups_info[name]["total_reduction"] = vgroups[
+                vgroup
+            ].space.total_reduction
+            vgroups_info[name]["total_provisioned"] = vgroups[
+                vgroup
+            ].space.total_provisioned
+            vgroups_info[name]["thin_provisioning"] = vgroups[
+                vgroup
+            ].space.thin_provisioning
+            vgroups_info[name]["bandwidth_limit"] = getattr(
+                vgroups[vgroup].qos, "bandwidth_limit", ""
+            )
+            vgroups_info[name]["iops_limit"] = getattr(
+                vgroups[vgroup].qos, "iops_limit", ""
+            )
+        if SAFE_MODE_VERSION in api_version:
+            for vgroup in range(0, len(vgroups)):
+                name = vgroups[vgroup].name
+                vgroups_info[name]["priority_adjustment"] = vgroups[
+                    vgroup
+                ].priority_adjustment.priority_adjustment_operator + str(
+                    vgroups[vgroup].priority_adjustment.priority_adjustment_value
+                )
+    return vgroups_info
+
+
+def generate_del_vgroups_dict(module, array):
+    vgroups_info = {}
+    api_version = array._list_available_rest_versions()
+    if AC_REQUIRED_API_VERSION in api_version:
+        vgroups = array.list_vgroups(pending_only=True)
+        for vgroup in range(0, len(vgroups)):
+            virtgroup = vgroups[vgroup]["name"]
+            vgroups_info[virtgroup] = {
+                "volumes": vgroups[vgroup]["volumes"],
+            }
+    if V6_MINIMUM_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        vgroups = list(arrayv6.get_volume_groups(destroyed=True).items)
+        for vgroup in range(0, len(vgroups)):
+            name = vgroups[vgroup].name
+            vgroups_info[name]["snapshots_space"] = vgroups[vgroup].space.snapshots
+            # Provide system as this matches the old naming convention
+            vgroups_info[name]["system"] = vgroups[vgroup].space.unique
+            vgroups_info[name]["unique_space"] = vgroups[vgroup].space.unique
+            vgroups_info[name]["virtual_space"] = vgroups[vgroup].space.virtual
+            vgroups_info[name]["data_reduction"] = vgroups[vgroup].space.data_reduction
+            vgroups_info[name]["total_reduction"] = vgroups[
+                vgroup
+            ].space.total_reduction
+            vgroups_info[name]["total_provisioned"] = vgroups[
+                vgroup
+            ].space.total_provisioned
+            vgroups_info[name]["thin_provisioning"] = vgroups[
+                vgroup
+            ].space.thin_provisioning
+            vgroups_info[name]["time_remaining"] = (vgroups[vgroup].time_remaining,)
+            vgroups_info[name]["bandwidth_limit"] = getattr(
+                vgroups[vgroup].qos, "bandwidth_limit", ""
+            )
+            vgroups_info[name]["iops_limit"] = getattr(
+                vgroups[vgroup].qos, "iops_limit", ""
+            )
+        if SAFE_MODE_VERSION in api_version:
+            for vgroup in range(0, len(vgroups)):
+                name = vgroups[vgroup].name
+                vgroups_info[name]["priority_adjustment"] = vgroups[
+                    vgroup
+                ].priority_adjustment.priority_adjustment_operator + str(
+                    vgroups[vgroup].priority_adjustment.priority_adjustment_value
+                )
     return vgroups_info
 
 
@@ -1811,7 +1913,8 @@ def main():
     if "admins" in subset or "all" in subset:
         info["admins"] = generate_admin_dict(array)
     if "vgroups" in subset or "all" in subset:
-        info["vgroups"] = generate_vgroups_dict(array)
+        info["vgroups"] = generate_vgroups_dict(module, array)
+        info["deleted_vgroups"] = generate_del_vgroups_dict(module, array)
     if "offload" in subset or "all" in subset:
         info["azure_offload"] = generate_azure_offload_dict(array)
         info["nfs_offload"] = generate_nfs_offload_dict(array)
