@@ -85,6 +85,18 @@ options:
       See associated descriptions
     - Only supported from Purity//FA v6.0.0 and higher
     type: str
+  priority_operator:
+    description:
+    - DMM Priority Adjustment operator
+    type: str
+    choices: [ +, '-' ]
+    version_added: '1.13.0'
+  priority_value:
+    description:
+    - DMM Priority Adjustment value
+    type: int
+    choices: [ 0, 10 ]
+    version_added: '1.13.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -160,6 +172,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 VGROUP_API_VERSION = "1.13"
 VG_IOPS_VERSION = "1.17"
 MULTI_VG_VERSION = "2.2"
+PRIORITY_API_VERSION = "2.11"
 
 
 def human_to_bytes(size):
@@ -253,7 +266,29 @@ def make_vgroup(module, array):
     """Create Volume Group"""
     changed = True
     api_version = array._list_available_rest_versions()
-    if (
+    if PRIORITY_API_VERSION in api_version:
+        array = get_array(module)
+        volume_group = flasharray.VolumeGroupPost(
+            name=module.params["name"],
+            qos=flasharray.Qos(
+                bandwidth_limit=module.params["bw_qos"],
+                iops_limit=module.params["iops_qos"],
+            ),
+            priority_adjustment=flasharray.PriorityAdjustment(
+                priority_adjustment_operator=module.params["priority_operator"],
+                priority_adjustment_value=module.params["priority_value"],
+            ),
+        )
+        changed = True
+        if not module.check_mode:
+            res = array.post_volume_groups(volume_group=volume_group)
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to create volume group {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
+    elif (
         module.params["bw_qos"]
         or module.params["iops_qos"]
         and VG_IOPS_VERSION in api_version
@@ -394,6 +429,41 @@ def update_vgroup(module, array):
     """Update Volume Group"""
     changed = False
     api_version = array._list_available_rest_versions()
+    if PRIORITY_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        vg_prio = list(arrayv6.get_volume_groups(names=[module.params["name"]]).items)[
+            0
+        ].priority_adjustment
+        if (
+            module.params["priority_operator"]
+            and vg_prio.priority_adjustment_operator
+            != module.params["priority_operator"]
+        ):
+            changed = True
+            new_operator = module.params["priority_operator"]
+        else:
+            new_operator = vg_prio.priority_adjustment_operator
+        if vg_prio.priority_adjustment_value != module.params["priority_value"]:
+            changed = True
+            new_value = module.params["priority_value"]
+        else:
+            new_value = vg_prio.priority_adjustment_value
+        if changed and not module.check_mode:
+            volume_group = flasharray.VolumeGroup(
+                priority_adjustment=flasharray.PriorityAdjustment(
+                    priority_adjustment_operator=new_operator,
+                    priority_adjustment_value=new_value,
+                )
+            )
+            res = arrayv6.patch_volume_groups(
+                names=[module.params["name"]], volume_group=volume_group
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to changfe DMM Priority for volume group {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
     if VG_IOPS_VERSION in api_version:
         try:
             vg_qos = array.get_vgroup(module.params["name"], qos=True)
@@ -534,6 +604,8 @@ def main():
             start=dict(type="int", default=0),
             digits=dict(type="int", default=1),
             suffix=dict(type="str"),
+            priority_operator=dict(type="str", choices=["+", "-"]),
+            priority_value=dict(type="int", choices=[0, 10]),
             eradicate=dict(type="bool", default=False),
         )
     )
