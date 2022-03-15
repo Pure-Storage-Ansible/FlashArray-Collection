@@ -121,6 +121,18 @@ options:
     - Only application for volume(s) creation
     type: str
     version_added: 1.8.0
+  priority_operator:
+    description:
+    - DMM Priority Adjustment operator
+    type: str
+    choices: [ '=', '+', '-' ]
+    version_added: '1.13.0'
+  priority_value:
+    description:
+    - DMM Priority Adjustment value
+    type: int
+    choices: [ -10, 0, 10 ]
+    version_added: '1.13.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -132,6 +144,16 @@ EXAMPLES = r"""
     size: 1T
     bw_qos: 58M
     iops_qos: 23K
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+    state: present
+
+- name: Create new volume named foo with a DMM priority (Purity//FA 6.1.2+)
+  purestorage.flasharray.purefa_volume:
+    name: foo
+    size: 1T
+    priority_operator: +
+    priorty_value: 10
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: present
@@ -259,6 +281,12 @@ volume:
         iops_limit:
             description: Volume IOPs limit
             type: int
+        priority_operator:
+            description: DMM Priority Adjustment operator
+            type: str
+        priority_value:
+            description: DMM Priority Adjustment value
+            type: int
 """
 
 HAS_PURESTORAGE = True
@@ -286,6 +314,7 @@ IOPS_API_VERSION = "1.17"
 MULTI_VOLUME_VERSION = "2.2"
 PROMOTE_API_VERSION = "1.19"
 PURE_OUI = "naa.624a9370"
+PRIORITY_API_VERSION = "2.11"
 
 
 def _create_nguid(serial):
@@ -684,7 +713,29 @@ def create_volume(module, array):
                 module.fail_json(
                     msg="Volume {0} creation failed.".format(module.params["name"])
                 )
-
+    if PRIORITY_API_VERSION in api_version and module.params["priority_operator"]:
+        arrayv6 = get_array(module)
+        volume = flasharray.VolumePatch(
+            priority_adjustment=flasharray.PriorityAdjustment(
+                priority_adjustment_operator=module.params["priority_operator"],
+                priority_adjustment_value=module.params["priority_value"],
+            )
+        )
+        res = arrayv6.patch_volumes(names=[module.params["name"]], volume=volume)
+        if res.status_code != 200:
+            arrayv6.patch_volumes(
+                names=[module.params["name"]],
+                volume=flasharray.VolumePatch(destroyed=True),
+            )
+            arrayv6.delete_volumes(names=[module.params["name"]])
+            module.fail_json(
+                msg="Failed to set DMM Priority Adjustment on volume {0}. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
+            )
+        else:
+            volfact["priority_operator"] = module.params["priority_operator"]
+            volfact["priority_value"] = module.params["priority_value"]
     if module.params["pgroup"]:
         changed = True
         if not module.check_mode:
@@ -780,6 +831,29 @@ def create_multi_volume(module, array):
                 )
             )
         else:
+            if (
+                PRIORITY_API_VERSION in api_version
+                and module.params["priority_operator"]
+            ):
+                volume = flasharray.VolumePatch(
+                    priority_adjustment=flasharray.PriorityAdjustment(
+                        priority_adjustment_operator=module.params["priority_operator"],
+                        priority_adjustment_value=module.params["priority_value"],
+                    )
+                )
+                prio_res = array.patch_volumes(names=names, volume=volume)
+                if prio_res.status_code != 200:
+                    array.patch_volumes(
+                        names=names,
+                        volume=flasharray.VolumePatch(destroyed=True),
+                    )
+                    array.delete_volumes(names=names)
+                    module.fail_json(
+                        msg="Failed to set DMM Priority Adjustment on volumes. Error: {0}".format(
+                            prio_res.errors[0].message
+                        )
+                    )
+                prio_temp = list(prio_res.items)
             temp = list(res.items)
             for count in range(0, len(temp)):
                 vol_name = temp[count].name
@@ -798,6 +872,16 @@ def create_multi_volume(module, array):
                     ].qos.bandwidth_limit
                 if iops_qos_size != 0:
                     volfact[vol_name]["iops_limit"] = temp[count].qos.iops_limit
+                if (
+                    PRIORITY_API_VERSION in api_version
+                    and module.params["priority_operator"]
+                ):
+                    volfact[vol_name]["priority_operator"] = prio_temp[
+                        count
+                    ].priority_adjustment.priority_adjustment_operator
+                    volfact[vol_name]["priority_value"] = prio_temp[
+                        count
+                    ].priority_adjustment.priority_adjustment_value
 
     if module.params["pgroup"]:
         if not module.check_mode:
@@ -962,6 +1046,55 @@ def update_volume(module, array):
                         module.params["bw_qos"]
                     )
                 )
+    if PRIORITY_API_VERSION in api_version and module.params["priority_operator"]:
+        arrayv6 = get_array(module)
+        change_prio = False
+        volv6 = list(arrayv6.get_volumes(names=[module.params["name"]]).items)[0]
+        if (
+            module.params["priority_operator"]
+            != volv6.priority_adjustment.priority_adjustment_operator
+        ):
+            change_prio = True
+            newop = module.params["priority_operator"]
+        else:
+            newop = volv6.priority_adjustment.priority_adjustment_operator
+        if (
+            module.params["priority_value"]
+            and module.params["priority_value"]
+            != volv6.priority_adjustment.priority_adjustment_value
+        ):
+            change_prio = True
+            newval = module.params["priority_value"]
+        elif (
+            not module.params["priority_value"]
+            and volv6.priority_adjustment.priority_adjustment_value != 0
+        ):
+            change_prio = True
+            newval = 0
+        else:
+            newval = volv6.priority_adjustment.priority_adjustment_value
+        volumepatch = flasharray.VolumePatch(
+            priority_adjustment=flasharray.PriorityAdjustment(
+                priority_adjustment_operator=newop,
+                priority_adjustment_value=newval,
+            )
+        )
+        if change_prio and not module.check_mode:
+            changed = True
+            prio_res = arrayv6.patch_volumes(
+                names=[module.params["name"]], volume=volumepatch
+            )
+            if prio_res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to change DMM Priority Adjustment for {0}. Error: {1}".format(
+                        module.params["name"], prio_res.errors[0].message
+                    )
+                )
+            else:
+                if not volfact:
+                    volfact = array.get_volume(module.params["name"])
+                volfact["priority_operator"] = module.params["priority_operator"]
+                volfact["priority_value"] = module.params["priority_value"]
     if not changed:
         volfact = array.get_volume(module.params["name"])
     module.exit_json(changed=changed, volume=volfact)
@@ -1206,6 +1339,8 @@ def main():
             start=dict(type="int", default=0),
             digits=dict(type="int", default=1),
             suffix=dict(type="str"),
+            priority_operator=dict(type="str", choices=["+", "-", "="]),
+            priority_value=dict(type="int", choices=[-10, 0, 10]),
             size=dict(type="str"),
         )
     )
@@ -1215,9 +1350,13 @@ def main():
         ["move", "rename", "target", "eradicate"],
         ["rename", "move", "target", "eradicate"],
     ]
+    required_together = [["priority_operator", "priority_value"]]
 
     module = AnsibleModule(
-        argument_spec, mutually_exclusive=mutually_exclusive, supports_check_mode=True
+        argument_spec,
+        mutually_exclusive=mutually_exclusive,
+        required_together=required_together,
+        supports_check_mode=True,
     )
 
     size = module.params["size"]
