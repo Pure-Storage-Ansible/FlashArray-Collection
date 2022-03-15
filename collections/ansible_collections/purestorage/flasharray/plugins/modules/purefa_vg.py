@@ -130,6 +130,14 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
+- name: Update volune group DMM Priority Adjustment (Purity//FA 6.1.2+)
+  purestorage.flasharray.purefa_vg:
+    name: foo
+    priority_operator: '-'
+    priority_value: 10
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
 - name: Destroy volume group
   purestorage.flasharray.purefa_vg:
     name: foo
@@ -137,7 +145,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
 
-- name: Recover deleted volune group
+- name: Recover deleted volune group - no changes are made to the volume group on recovery
   purestorage.flasharray.purefa_vg:
     name: foo
     fa_url: 10.10.10.2
