@@ -615,13 +615,13 @@ def update_pgroup(module, array):
                     rename = container + ":" + module.params["rename"]
             else:
                 rename = module.params["rename"]
-                renamed = True
-                if not module.check_mode:
-                    try:
-                        array.rename_pgroup(module.params["pgroup"], rename)
-                        module.params["pgroup"] = rename
-                    except Exception:
-                        module.fail_json(msg="Rename to {0} failed.".format(rename))
+            renamed = True
+            if not module.check_mode:
+                try:
+                    array.rename_pgroup(module.params["pgroup"], rename)
+                    module.params["pgroup"] = rename
+                except Exception:
+                    module.fail_json(msg="Rename to {0} failed.".format(rename))
         else:
             module.warn(
                 "Rename failed. Protection group {0} already exists in container. Continuing with other changes...".format(
