@@ -204,6 +204,7 @@ def update_interface(module, array, interface):
             ]:
                 module.fail_json(msg="Gateway and subnet are not compatible.")
         address = str(module.params["address"].split("/", 1)[0])
+        ip_version = str(IPAddress(address).version)
     if not module.params["mtu"]:
         mtu = interface["mtu"]
     else:
@@ -227,6 +228,8 @@ def update_interface(module, array, interface):
         if module.params["gateway"] not in IPNetwork(full_addr):
             module.fail_json(msg="Gateway and subnet are not compatible.")
         gateway = module.params["gateway"]
+    if ip_version == "6":
+        netmask = str(IPAddress(netmask).netmask_bits())
     new_state = {
         "address": address,
         "mtu": mtu,
