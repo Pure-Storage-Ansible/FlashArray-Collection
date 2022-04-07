@@ -204,7 +204,7 @@ def update_interface(module, array, interface):
             ]:
                 module.fail_json(msg="Gateway and subnet are not compatible.")
         address = str(module.params["address"].split("/", 1)[0])
-        ip_version = str(IPAddress(address).version)
+    ip_version = str(IPAddress(address).version)
     if not module.params["mtu"]:
         mtu = interface["mtu"]
     else:
