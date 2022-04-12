@@ -730,6 +730,7 @@ def main():
     array = get_system(module)
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
     if module.params["rename"]:
+        module.params["rename"] = module.params["rename"].lower()
         if not pattern.match(module.params["rename"]):
             module.fail_json(
                 msg="Rename value {0} does not conform to naming convention".format(
