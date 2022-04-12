@@ -316,8 +316,10 @@ def restore_pgsnapvolume(module, array):
         else:
             source_pod_name = ""
         if source_pod_name != target_pod_name:
-            if (len(array.get_pod(target_pod_name, mediator=True)["arrays"]) > 1) and
-               (POD_SNAPSHOT not in api_version):
+            if (
+                len(array.get_pod(target_pod_name, mediator=True)["arrays"]) > 1
+                and POD_SNAPSHOT not in api_version
+            ):
                 module.fail_json(msg="Volume cannot be restored to a stretched pod")
     if not module.check_mode:
         try:
