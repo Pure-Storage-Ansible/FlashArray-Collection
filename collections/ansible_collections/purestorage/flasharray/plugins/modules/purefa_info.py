@@ -896,16 +896,26 @@ def generate_capacity_dict(module, array):
         arrayv6 = get_array(module)
         total_capacity = list(arrayv6.get_arrays().items)[0].capacity
         capacity = list(arrayv6.get_arrays_space().items)[0]
-        capacity_info["provisioned_space"] = capacity.space["total_provisioned"]
-        capacity_info["free_space"] = total_capacity - capacity.space["total_physical"]
+        capacity_info["provisioned_space"] = getattr(
+            capacity.space, "total_provisioned", 0
+        )
+        capacity_info["free_space"] = total_capacity - getattr(
+            capacity.space, "total_physical", 0
+        )
         capacity_info["total_capacity"] = total_capacity
-        capacity_info["data_reduction"] = capacity.space["data_reduction"]
-        capacity_info["system_space"] = capacity.space["system"]
-        capacity_info["volume_space"] = capacity.space["unique"]
-        capacity_info["shared_space"] = capacity.space["shared"]
-        capacity_info["snapshot_space"] = capacity.space["snapshots"]
-        capacity_info["thin_provisioning"] = capacity.space["thin_provisioning"]
-        capacity_info["total_reduction"] = capacity.space["total_reduction"]
+        capacity_info["data_reduction"] = getattr(
+            capacity.space, "data_reduction", 0
+        )
+        capacity_info["system_space"] = getattr(capacity.space, "system", 0)
+        capacity_info["volume_space"] = getattr(capacity.space, "unique", 0)
+        capacity_info["shared_space"] = getattr(capacity.space, "shared", 0)
+        capacity_info["snapshot_space"] = getattr(capacity.space, "snapshots", 0)
+        capacity_info["thin_provisioning"] = getattr(
+            capacity.space, "thin_provisioning", 0
+        )
+        capacity_info["total_reduction"] = getattr(
+            capacity.space, "total_reduction", 0
+        )
         capacity_info["replication"] = getattr(capacity.space, "replication", 0)
         if SHARED_CAP_API_VERSION in api_version:
             capacity_info["shared_effective"] = getattr(
