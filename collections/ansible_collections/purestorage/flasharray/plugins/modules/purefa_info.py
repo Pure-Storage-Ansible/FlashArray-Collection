@@ -903,9 +903,7 @@ def generate_capacity_dict(module, array):
             capacity.space, "total_physical", 0
         )
         capacity_info["total_capacity"] = total_capacity
-        capacity_info["data_reduction"] = getattr(
-            capacity.space, "data_reduction", 0
-        )
+        capacity_info["data_reduction"] = getattr(capacity.space, "data_reduction", 0)
         capacity_info["system_space"] = getattr(capacity.space, "system", 0)
         capacity_info["volume_space"] = getattr(capacity.space, "unique", 0)
         capacity_info["shared_space"] = getattr(capacity.space, "shared", 0)
@@ -913,9 +911,7 @@ def generate_capacity_dict(module, array):
         capacity_info["thin_provisioning"] = getattr(
             capacity.space, "thin_provisioning", 0
         )
-        capacity_info["total_reduction"] = getattr(
-            capacity.space, "total_reduction", 0
-        )
+        capacity_info["total_reduction"] = getattr(capacity.space, "total_reduction", 0)
         capacity_info["replication"] = getattr(capacity.space, "replication", 0)
         if SHARED_CAP_API_VERSION in api_version:
             capacity_info["shared_effective"] = getattr(
