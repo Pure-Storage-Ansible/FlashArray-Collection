@@ -462,6 +462,7 @@ DIR_QUOTA_API_VERSION = "2.7"
 SHARED_CAP_API_VERSION = "2.9"
 PURE_OUI = "naa.624a9370"
 SAFE_MODE_VERSION = "2.10"
+PER_PG_VERSION = "2.13"
 SAML2_VERSION = "2.11"
 
 
@@ -710,6 +711,28 @@ def generate_filesystems_dict(array):
                     },
                 }
     return files_info
+
+
+def generate_pgsnaps_dict(array):
+    pgsnaps_info = {}
+    snapshots = list(array.get_protection_group_snapshots().items)
+    for snapshot in range(0, len(snapshots)):
+        s_name = snapshots[snapshot].name
+        pgsnaps_info[s_name] = {
+            "destroyed": snapshots[snapshot].destroyed,
+            "source": snapshots[snapshot].source.name,
+            "suffix": snapshots[snapshot].suffix,
+            "snapshot_space": snapshots[snapshot].space.snapshots,
+        }
+        if pgsnaps_info[s_name]["destroyed"]:
+            pgsnaps_info[s_name]["time_remaining"] = snapshots[snapshot].time_remaining
+        try:
+            pgsnaps_info[s_name]["manual_eradication"] = snapshots[
+                snapshot
+            ].eradication_config.manual_eradication
+        except AttributeError:
+            pass
+    return pgsnaps_info
 
 
 def generate_dir_snaps_dict(array):
@@ -1409,6 +1432,16 @@ def generate_pgroups_dict(module, array):
                         )
             else:
                 pgroups_info[protgroup]["deleted_volumes"] = None
+        if PER_PG_VERSION in api_version:
+            try:
+                pgroups_info[protgroup]["retention_lock"] = list(
+                    array_v6.get_protection_groups(names=[protgroup]).items
+                )[0].retention_lock
+                pgroups_info[protgroup]["manual_eradication"] = list(
+                    array_v6.get_protection_groups(names=[protgroup]).items
+                )[0].eradication_config.manual_eradication
+            except Exception:
+                pass
     return pgroups_info
 
 
@@ -1950,6 +1983,8 @@ def main():
             info["clients"] = generate_clients_dict(array_v6)
         if "dir_snaps" in subset or "all" in subset:
             info["dir_snaps"] = generate_dir_snaps_dict(array_v6)
+        if "snapshots" in subset or "all" in subset:
+            info["pg_snapshots"] = generate_pgsnaps_dict(array_v6)
 
     module.exit_json(changed=False, purefa_info=info)
 
