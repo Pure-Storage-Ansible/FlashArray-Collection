@@ -43,7 +43,18 @@ options:
   rename:
     description:
     - Value to rename the specified file system to
+    - Rename only applies to the container the current filesystem is in.
+    - There is no requirement to specify the pod name as this is implied.
     type: str
+  move:
+    description:
+    - Move a filesystem in and out of a pod
+    - Provide the name of pod to move the filesystem to
+    - Pod names must be unique in the array
+    - To move to the local array, specify C(local)
+    - This is not idempotent - use C(ignore_errors) in the play
+    type: str
+    version_added: '1.13.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -88,6 +99,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 )
 
 MIN_REQUIRED_API_VERSION = "2.2"
+REPL_SUPPORT_API = "2.13"
 
 
 def delete_fs(module, array):
@@ -147,15 +159,19 @@ def eradicate_fs(module, array):
 def rename_fs(module, array):
     """Rename a file system"""
     changed = False
+    target_name = module.params["rename"]
+    if "::" in module.params["name"]:
+        pod_name = module.params["name"].split("::")[0]
+        target_name = pod_name + "::" + module.params["rename"]
     try:
-        target = list(array.get_file_systems(names=[module.params["rename"]]).items)[0]
+        target = list(array.get_file_systems(names=[target_name]).items)[0]
     except Exception:
         target = None
     if not target:
         changed = True
         if not module.check_mode:
             try:
-                file_system = flasharray.FileSystemPatch(name=module.params["rename"])
+                file_system = flasharray.FileSystemPatch(name=target_name)
                 array.patch_file_systems(
                     names=[module.params["name"]], file_system=file_system
                 )
@@ -173,12 +189,90 @@ def rename_fs(module, array):
 def create_fs(module, array):
     """Create a file system"""
     changed = True
+    if "::" in module.params["name"]:
+        pod_name = module.params["name"].split("::")[0]
+        try:
+            pod = list(array.get_pods(names=[pod_name]).items)[0]
+        except Exception:
+            module.fail_json(
+                msg="Failed to create filesystem. Pod {0} does not exist".format(
+                    pod_name
+                )
+            )
+        if pod.promotion_status == "demoted":
+            module.fail_json(msg="Filesystem cannot be created in a demoted pod")
     if not module.check_mode:
         try:
             array.post_file_systems(names=[module.params["name"]])
         except Exception:
             module.fail_json(
                 msg="Failed to create file system {0}".format(module.params["name"])
+            )
+    module.exit_json(changed=changed)
+
+
+def move_fs(module, array):
+    """Move filesystem between pods or local array"""
+    changed = False
+    target_exists = False
+    pod_exists = False
+    pod_name = ""
+    fs_name = module.params["name"]
+    if "::" in module.params["name"]:
+        fs_name = module.params["name"].split("::")[1]
+        pod_name = module.params["name"].split("::")[0]
+    if module.params["move"] == "local":
+        target_location = ""
+        if "::" not in module.params["name"]:
+            module.fail_json(msg="Source and destination [local] cannot be the same.")
+        try:
+            target_exists = list(array.get_file_systems(names=[fs_name]).items)[0]
+        except Exception:
+            target_exists = False
+        if target_exists:
+            module.fail_json(msg="Target filesystem {0} already exists".format(fs_name))
+    else:
+        try:
+            pod = list(array.get_pods(names=[module.params["move"]]).items)[0]
+            if len(pod.arrays) > 1:
+                module.fail_json(msg="Filesystem cannot be moved into a stretched pod")
+            if pod.link_target_count != 0:
+                module.fail_json(
+                    msg="Filesystem cannot be moved into a linked source pod"
+                )
+            if pod.promotion_status == "demoted":
+                module.fail_json(msg="Volume cannot be moved into a demoted pod")
+            pod_exists = True
+        except Exception:
+            module.fail_json(
+                msg="Failed to move filesystem. Pod {0} does not exist".format(pod_name)
+            )
+        if "::" in module.params["name"]:
+            pod = list(array.get_pods(names=[module.params["move"]]).items)[0]
+            if len(pod.arrays) > 1:
+                module.fail_json(
+                    msg="Filesystem cannot be moved out of a stretched pod"
+                )
+            if pod.linked_target_count != 0:
+                module.fail_json(
+                    msg="Filesystem cannot be moved out of a linked source pod"
+                )
+            if pod.promotion_status == "demoted":
+                module.fail_json(msg="Volume cannot be moved out of a demoted pod")
+        target_location = module.params["move"]
+    changed = True
+    if not module.check_mode:
+        file_system = flasharray.FileSystemPatch(
+            pod=flasharray.Reference(name=target_location)
+        )
+        move_res = array.patch_file_systems(
+            names=[module.params["name"]], file_system=file_system
+        )
+        if move_res.status_code != 200:
+            module.fail_json(
+                msg="Move of filesystem {0} failed. Error: {1}".format(
+                    module.params["name"], move_res.errors[0].message
+                )
             )
     module.exit_json(changed=changed)
 
@@ -190,11 +284,15 @@ def main():
             state=dict(type="str", default="present", choices=["absent", "present"]),
             eradicate=dict(type="bool", default=False),
             name=dict(type="str", required=True),
+            move=dict(type="str"),
             rename=dict(type="str"),
         )
     )
 
-    module = AnsibleModule(argument_spec, supports_check_mode=True)
+    mutually_exclusive = [["move", "rename"]]
+    module = AnsibleModule(
+        argument_spec, mutually_exclusive=mutually_exclusive, supports_check_mode=True
+    )
 
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
@@ -207,6 +305,10 @@ def main():
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
         )
+    if REPL_SUPPORT_API not in api_version and "::" in module.params["name"]:
+        module.fail_json(
+            msg="Filesystem Replication is only supported in Purity//FA 6.3.0 or higher"
+        )
     array = get_array(module)
     state = module.params["state"]
 
@@ -218,8 +320,15 @@ def main():
     except Exception:
         exists = False
 
-    if state == "present" and not exists:
+    if state == "present" and not exists and not module.params["move"]:
         create_fs(module, array)
+    elif (
+        state == "present"
+        and exists
+        and module.params["move"]
+        and not filesystem.destroyed
+    ):
+        move_fs(module, array)
     elif (
         state == "present"
         and exists
@@ -232,8 +341,17 @@ def main():
         and exists
         and filesystem.destroyed
         and not module.params["rename"]
+        and not module.params["move"]
     ):
         recover_fs(module, array)
+    elif (
+        state == "present" and exists and filesystem.destroyed and module.params["move"]
+    ):
+        module.fail_json(
+            msg="Filesystem {0} exists, but in destroyed state".format(
+                module.params["name"]
+            )
+        )
     elif state == "absent" and exists and not filesystem.destroyed:
         delete_fs(module, array)
     elif (
