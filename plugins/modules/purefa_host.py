@@ -649,7 +649,7 @@ def get_host(module, array):
     """Return host or None"""
     host = None
     for hst in array.list_hosts():
-        if hst["name"].lower() == module.params["name"].lower():
+        if hst["name"].casefold() == module.params["name"].casefold():
             module.params["name"] = hst["name"]
             host = hst
             break
@@ -660,7 +660,7 @@ def rename_exists(module, array):
     """Determine if rename target already exists"""
     exists = False
     for hst in array.list_hosts():
-        if hst["name"].lower() == module.params["rename"].lower():
+        if hst["name"].casefold() == module.params["rename"].casefold():
             exists = True
             break
     return exists
@@ -873,10 +873,8 @@ def main():
     )
 
     array = get_system(module)
-    module.params["name"] = module.params["name"].lower()
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
     if module.params["rename"]:
-        module.params["rename"] = module.params["rename"].lower()
         if not pattern.match(module.params["rename"]):
             module.fail_json(
                 msg="Rename value {0} does not conform to naming convention".format(
