@@ -1,0 +1,16 @@
+---
+edit_on_github:
+  repository: Pure-Storage-Ansible/FlashArray-Collection
+  branch: master
+  path_prefix: ''
+
+extra_links:
+  - description: Submit a bug report
+    url: https://github.com/Pure-Storage-Ansible/FlashArray-Collection/issues/new?assignees=sdodsley&labels=bug&template=bug_report_template.md
+  - description: Request a feature
+    url: https://github.com/Pure-Storage-Ansible/FlashArray-Collection/issues/new?assignees=sdodsley&labels=enhancement&template=feature_request_template.md
+
+communication:
+  mailing_lists:
+    - topic: Ansible Project List
+      url: https://groups.google.com/g/ansible-project
