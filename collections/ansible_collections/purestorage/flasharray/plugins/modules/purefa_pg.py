@@ -675,8 +675,9 @@ def update_pgroup(module, array):
                     )
                 except Exception:
                     module.fail_json(
-                        msg="Failed to set SafeMode on protection group {0}".format(
-                            module.params["pgroup"]
+                        msg="Failed to set SafeMode on protection group {0}. Error: {1}".format(
+                            module.params["pgroup"],
+                            res.errors[0].message,
                         )
                     )
         if current_pg.retention_lock == "racheted" and not module.params["safe_mode"]:

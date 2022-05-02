@@ -5,6 +5,32 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.13.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_fs - Add support for replicated file systems
+- purefa_info - Add QoS information for volume groups
+- purefa_info - Add info for protection group safe mode setting (Requires Purity//FA 6.3.0 or higher)
+- purefa_info - Add info for protection group snapshots
+- purefa_info - Add priority adjustment information for volumes and volume groups
+- purefa_info - Split volume groups into live and deleted dicts
+- purefa_pg - Add support for protection group SafeMode. Requires Purity//FA 6.3.0 or higher
+- purefa_policy - Allow directories in snapshot policies to be managed
+- purefa_vg - Add DMM Priority Adjustment support
+- purefa_volume - Add support for DMM Priority Adjustment
+- purefa_volume - Provide volume facts for volume after recovery
+
+Bugfixes
+--------
+
+- purefa_host - Allow multi-host creation without requiring a suffix string
+- purefa_info - Fix issue where remote arrays are not in a valid connected state
+- purefa_policy - Fix idempotency issue with quota policy rules
+- purefa_policy - Fix issue when creating multiple rules in an NFS policy
+
 v1.12.1
 =======
 
