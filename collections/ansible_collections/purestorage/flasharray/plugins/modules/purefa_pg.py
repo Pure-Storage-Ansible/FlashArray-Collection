@@ -85,6 +85,13 @@ options:
     - If the source protection group is in a Pod or Volume Group 'container'
       you only need to provide the new protection group name in the same 'container'
     type: str
+  safe_mode:
+    description:
+    - Enables SafeMode restrictions on the protection group
+    - B(Once set disabling this can only be performed by Pure Technical Support)
+    type: bool
+    default: False
+    version_added: '1.13.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -187,13 +194,21 @@ import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_system,
+    get_array,
     purefa_argument_spec,
 )
+
+HAS_PURESTORAGE = True
+try:
+    from pypureclient import flasharray
+except ImportError:
+    HAS_PURESTORAGE = False
 
 
 OFFLOAD_API_VERSION = "1.16"
 P53_API_VERSION = "1.17"
 AC_PG_API_VERSION = "1.13"
+RETENTION_LOCK_VERSION = "2.13"
 
 
 def get_pod(module, array):
@@ -393,6 +408,21 @@ def make_pgroup(module, array):
                 except Exception:
                     module.fail_json(
                         msg="Adding hostgroups to pgroup {0} failed.".format(
+                            module.params["pgroup"]
+                        )
+                    )
+            if module.params["safe_mode"]:
+                arrayv6 = get_array(module)
+                try:
+                    arrayv6.patch_protection_groups(
+                        names=[module.params["pgroup"]],
+                        protection_group=flasharray.ProtectionGroup(
+                            retention_lock="ratcheted"
+                        ),
+                    )
+                except Exception:
+                    module.fail_json(
+                        msg="Failed to set SafeMode on pgroup {0}".format(
                             module.params["pgroup"]
                         )
                     )
@@ -628,6 +658,33 @@ def update_pgroup(module, array):
                     module.params["rename"]
                 )
             )
+    if RETENTION_LOCK_VERSION in api_version:
+        arrayv6 = get_array(module)
+        current_pg = list(
+            arrayv6.get_protection_groups(names=[module.params["pgroup"]]).items
+        )[0]
+        if current_pg.retention_lock == "unlocked" and module.params["safe_mode"]:
+            changed = True
+            if not module.check_mode:
+                try:
+                    res = arrayv6.patch_protection_groups(
+                        names=[module.params["pgroup"]],
+                        protection_group=flasharray.ProtectionGroup(
+                            retention_lock="racheted"
+                        ),
+                    )
+                except Exception:
+                    module.fail_json(
+                        msg="Failed to set SafeMode on protection group {0}".format(
+                            module.params["pgroup"]
+                        )
+                    )
+        if current_pg.retention_lock == "racheted" and not module.params["safe_mode"]:
+            module.warn(
+                "Disabling SafeMode on protection group {0} can only be performed by Pure Technical Support".format(
+                    module.params["pgroup"]
+                )
+            )
     changed = changed or renamed
     module.exit_json(changed=changed)
 
@@ -715,6 +772,7 @@ def main():
             host=dict(type="list", elements="str"),
             hostgroup=dict(type="list", elements="str"),
             target=dict(type="list", elements="str"),
+            safe_mode=dict(type="bool", default=False),
             eradicate=dict(type="bool", default=False),
             enabled=dict(type="bool", default=True),
             rename=dict(type="str"),
@@ -725,6 +783,10 @@ def main():
     module = AnsibleModule(
         argument_spec, mutually_exclusive=mutually_exclusive, supports_check_mode=True
     )
+    if not HAS_PURESTORAGE and module.params["safe_mode"]:
+        module.fail_json(
+            msg="py-pure-client sdk is required to support 'safe_mode' parameter"
+        )
 
     state = module.params["state"]
     array = get_system(module)
@@ -744,6 +806,10 @@ def main():
                 )
             )
     api_version = array._list_available_rest_versions()
+    if module.params["safe_mode"] and RETENTION_LOCK_VERSION not in api_version:
+        module.fail_json(
+            msg="API version does not support setting SafeMode on a protection group."
+        )
     if ":" in module.params["pgroup"] and OFFLOAD_API_VERSION not in api_version:
         module.fail_json(msg="API version does not support offload protection groups.")
     if "::" in module.params["pgroup"] and AC_PG_API_VERSION not in api_version:
