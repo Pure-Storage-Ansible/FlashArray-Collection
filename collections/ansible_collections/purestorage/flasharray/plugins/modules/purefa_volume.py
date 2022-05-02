@@ -1318,6 +1318,9 @@ def recover_volume(module, array):
             module.fail_json(
                 msg="Recovery of volume {0} failed".format(module.params["name"])
             )
+        volfact = array.get_volume(module.params["name"])
+        volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
+        volfact["nvme_nguid"] = _create_nguid(volfact["serial"].lower())
     module.exit_json(changed=changed, volume=volfact)
 
 
