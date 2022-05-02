@@ -215,7 +215,6 @@ def move_fs(module, array):
     """Move filesystem between pods or local array"""
     changed = False
     target_exists = False
-    pod_exists = False
     pod_name = ""
     fs_name = module.params["name"]
     if "::" in module.params["name"]:
@@ -242,7 +241,6 @@ def move_fs(module, array):
                 )
             if pod.promotion_status == "demoted":
                 module.fail_json(msg="Volume cannot be moved into a demoted pod")
-            pod_exists = True
         except Exception:
             module.fail_json(
                 msg="Failed to move filesystem. Pod {0} does not exist".format(pod_name)

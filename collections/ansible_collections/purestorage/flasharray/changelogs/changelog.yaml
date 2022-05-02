@@ -97,6 +97,40 @@ releases:
     - 257_fqcn.yaml
     - 259_fix_gateway_check.yaml
     release_date: '2022-01-21'
+  1.13.0:
+    changes:
+      bugfixes:
+      - purefa_host - Allow multi-host creation without requiring a suffix string
+      - purefa_info - Fix issue where remote arrays are not in a valid connected state
+      - purefa_policy - Fix idempotency issue with quota policy rules
+      - purefa_policy - Fix issue when creating multiple rules in an NFS policy
+      minor_changes:
+      - purefa_fs - Add support for replicated file systems
+      - purefa_info - Add QoS information for volume groups
+      - purefa_info - Add info for protection group safe mode setting (Requires Purity//FA
+        6.3.0 or higher)
+      - purefa_info - Add info for protection group snapshots
+      - purefa_info - Add priority adjustment information for volumes and volume groups
+      - purefa_info - Split volume groups into live and deleted dicts
+      - purefa_pg - Add support for protection group SafeMode. Requires Purity//FA
+        6.3.0 or higher
+      - purefa_policy - Allow directories in snapshot policies to be managed
+      - purefa_vg - Add DMM Priority Adjustment support
+      - purefa_volume - Add support for DMM Priority Adjustment
+      - purefa_volume - Provide volume facts for volume after recovery
+    fragments:
+    - 261_fix_bad_arrays.yaml
+    - 265_fix_multiple_nfs_rules.yaml
+    - 268_fix_quotas_issues.yaml
+    - 270_add_priority_info.yaml
+    - 271_vgroup_prio.yaml
+    - 272_volume_prio.yaml
+    - 277_add_fs_repl.yaml
+    - 278_pgsnap_info.yaml
+    - 279_pg_safemode.yaml
+    - 280_multihost_no_suffix.yaml
+    - 284_volfact_for_recover.yaml
+    release_date: '2022-05-02'
   1.4.0:
     changes:
       bugfixes:
