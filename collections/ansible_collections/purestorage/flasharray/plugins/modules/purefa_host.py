@@ -104,9 +104,10 @@ options:
   suffix:
     description:
     - Suffix string, if required, for multiple host create
-    - Host names will be formed as I(<name>#I<suffix>), where
+    - Host names will be formed as I(<name>#<suffix>), where
       I(#) is a placeholder for the host index
       See associated descriptions
+    - Suffix string is optional
     - Only supported from Purity//FA v6.0.0 and higher
     type: str
   personality:
@@ -631,11 +632,16 @@ def get_multi_hosts(module):
     for host_num in range(
         module.params["start"], module.params["count"] + module.params["start"]
     ):
-        hosts.append(
-            module.params["name"]
-            + str(host_num).zfill(module.params["digits"])
-            + module.params["suffix"]
-        )
+        if module.params["suffix"]:
+            hosts.append(
+                module.params["name"]
+                + str(host_num).zfill(module.params["digits"])
+                + module.params["suffix"]
+            )
+        else:
+            hosts.append(
+                module.params["name"] + str(host_num).zfill(module.params["digits"])
+            )
     return bool(array.get_hosts(names=hosts).status_code == 200)
 
 
@@ -669,11 +675,16 @@ def make_multi_hosts(module):
         for host_num in range(
             module.params["start"], module.params["count"] + module.params["start"]
         ):
-            hosts.append(
-                module.params["name"]
-                + str(host_num).zfill(module.params["digits"])
-                + module.params["suffix"]
-            )
+            if module.params["suffix"]:
+                hosts.append(
+                    module.params["name"]
+                    + str(host_num).zfill(module.params["digits"])
+                    + module.params["suffix"]
+                )
+            else:
+                hosts.append(
+                    module.params["name"] + str(host_num).zfill(module.params["digits"])
+                )
         if module.params["personality"]:
             host = flasharray.HostPost(personality=module.params["personality"])
         else:
@@ -885,6 +896,10 @@ def main():
     if module.params["nqn"] is not None and NVME_API_VERSION not in api_version:
         module.fail_json(msg="NVMe protocol not supported. Please upgrade your array.")
     state = module.params["state"]
+    if module.params["suffix"]:
+        suffix_len = len(module.params["suffix"])
+    else:
+        suffix_len = 0
     if module.params["count"]:
         if not HAS_PURESTORAGE:
             module.fail_json(
@@ -898,10 +913,16 @@ def main():
             module.fail_json(msg="'digits' must be in the range of 1 to 10")
         if module.params["start"] < 0:
             module.fail_json(msg="'start' must be a positive number")
-        if not pattern.match(module.params["name"] + module.params["suffix"]):
+        if not pattern.match(module.params["name"]):
             module.fail_json(
                 msg="Host name pattern {0} does not conform to naming convention".format(
-                    module.params["name"] + "#" + module.params["suffix"]
+                    module.params["name"]
+                )
+            )
+        elif module.params["suffix"] and not pattern.match(module.params["suffix"]):
+            module.fail_json(
+                msg="Suffix pattern {0} does not conform to naming convention".format(
+                    module.params["suffix"]
                 )
             )
         elif (
@@ -910,7 +931,7 @@ def main():
                 len(str(module.params["count"] + module.params["start"])),
                 module.params["digits"],
             )
-            + len(module.params["suffix"])
+            + suffix_len
             > 63
         ):
             module.fail_json(msg="Host name length exceeds maximum allowed")
