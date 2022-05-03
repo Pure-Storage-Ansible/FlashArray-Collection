@@ -143,7 +143,7 @@ EXAMPLES = r"""
 - name: Delete protection group snapshot schedule
   purestorage.flasharray.purefa_pgsched:
     name: foo
-    scheduke: snapshot
+    schedule: snapshot
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
@@ -151,7 +151,7 @@ EXAMPLES = r"""
 - name: Delete protection group replication schedule
   purestorage.flasharray.purefa_pgsched:
     name: foo
-    scheduke: replication
+    schedule: replication
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
