@@ -1383,8 +1383,8 @@ def generate_pgroups_dict(module, array):
         prot_sched = array.get_pgroup(protgroup, schedule=True)
         prot_reten = array.get_pgroup(protgroup, retention=True)
         if prot_sched["snap_enabled"] or prot_sched["replicate_enabled"]:
-            pgroups_info[protgroup]["snap_freqyency"] = prot_sched["snap_frequency"]
-            pgroups_info[protgroup]["replicate_freqyency"] = prot_sched[
+            pgroups_info[protgroup]["snap_frequency"] = prot_sched["snap_frequency"]
+            pgroups_info[protgroup]["replicate_frequency"] = prot_sched[
                 "replicate_frequency"
             ]
             pgroups_info[protgroup]["snap_enabled"] = prot_sched["snap_enabled"]
