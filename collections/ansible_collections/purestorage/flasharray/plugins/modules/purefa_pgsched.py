@@ -259,7 +259,7 @@ def update_schedule(module, array):
         else:
             snap_at = module.params["snap_at"]
 
-        if nmodule.params["days"] is None:
+        if module.params["days"] is None:
             days = current_snap["days"]
         else:
             if module.params["days"] > 4000:
