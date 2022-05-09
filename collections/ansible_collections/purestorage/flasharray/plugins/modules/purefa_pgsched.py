@@ -259,7 +259,7 @@ def update_schedule(module, array):
         else:
             snap_at = module.params["snap_at"]
 
-        if not module.params["days"]:
+        if nmodule.params["days"] is None:
             days = current_snap["days"]
         else:
             if module.params["days"] > 4000:
@@ -267,7 +267,7 @@ def update_schedule(module, array):
             else:
                 days = module.params["days"]
 
-        if not module.params["per_day"]:
+        if module.params["per_day"] is None:
             per_day = current_snap["per_day"]
         else:
             if module.params["per_day"] > 1440:
@@ -339,7 +339,7 @@ def update_schedule(module, array):
         else:
             replicate_at = module.params["replicate_at"]
 
-        if not module.params["target_days"]:
+        if module.params["target_days"] is None:
             target_days = current_repl["target_days"]
         else:
             if module.params["target_days"] > 4000:
@@ -347,7 +347,7 @@ def update_schedule(module, array):
             else:
                 target_days = module.params["target_days"]
 
-        if not module.params["target_per_day"]:
+        if module.params["target_per_day"] is None:
             target_per_day = current_repl["target_per_day"]
         else:
             if module.params["target_per_day"] > 1440:
