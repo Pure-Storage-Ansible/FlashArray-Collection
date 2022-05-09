@@ -503,7 +503,7 @@ def main():
     elif pgroup is None:
         module.fail_json(
             msg="Specified protection group {0} does not exist.".format(
-                module.params["pgroup"]
+                module.params["name"]
             )
         )
 
