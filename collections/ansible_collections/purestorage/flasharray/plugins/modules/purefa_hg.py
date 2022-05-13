@@ -256,11 +256,11 @@ def update_hostgroup(module, array):
                             )
                         )
                 else:
-                    changed = True
                     for cvol in new_volumes:
                         try:
                             if not module.check_mode:
                                 array.connect_hgroup(current_hostgroup, cvol)
+                            changed = True
                         except Exception:
                             module.fail_json(
                                 msg="Failed to connect volume {0} to hostgroup {1}.".format(
@@ -284,11 +284,11 @@ def update_hostgroup(module, array):
                             )
                         )
                 else:
-                    changed = True
                     for cvol in module.params["volume"]:
                         try:
                             if not module.check_mode:
                                 array.connect_hgroup(current_hostgroup, cvol)
+                            changed = True
                         except Exception:
                             module.fail_json(
                                 msg="Failed to connect volume {0} to hostgroup {1}.".format(
