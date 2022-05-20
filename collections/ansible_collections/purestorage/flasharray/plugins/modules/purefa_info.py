@@ -34,7 +34,8 @@ options:
         Possible values for this include all, minimum, config, performance,
         capacity, network, subnet, interfaces, hgroups, pgroups, hosts,
         admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
-        arrays, certs, kmip, clients, policies, dir_snaps and filesystems.
+        arrays, certs, kmip, clients, policies, dir_snaps, filesystems
+        and virtual_machines.
     type: list
     elements: str
     required: false
@@ -465,6 +466,7 @@ SAFE_MODE_VERSION = "2.10"
 PER_PG_VERSION = "2.13"
 SAML2_VERSION = "2.11"
 NFS_USER_MAP_VERSION = "2.15"
+VM_VERSION = "2.14"
 
 
 def generate_default_dict(module, array):
@@ -474,6 +476,13 @@ def generate_default_dict(module, array):
     default_info["api_versions"] = api_version
     if FILES_API_VERSION in api_version:
         arrayv6 = get_array(module)
+        if VM_VERSION in api_version:
+            default_info["virtual_machines"] = len(
+                arrayv6.get_virtual_machines(vm_type="vvol").items
+            )
+            default_info["virtual_machine_snaps"] = len(
+                arrayv6.get_virtual_machine_snapshots(vm_type="vvol").items
+            )
         default_info["snapshot_policies"] = len(arrayv6.get_policies_snapshot().items)
         default_info["nfs_policies"] = len(arrayv6.get_policies_nfs().items)
         default_info["smb_policies"] = len(arrayv6.get_policies_smb().items)
@@ -1882,6 +1891,48 @@ def generate_interfaces_dict(array):
     return int_info
 
 
+def generate_vm_dict(array):
+    vm_info = {}
+    virt_machines = list(array.get_virtual_machines(vm_type="vvol").items)
+    for machine in range(0, len(virt_machines)):
+        name = virt_machines[machine].name
+        vm_info[name] = {
+            "vm_type": virt_machines[machine].vm_type,
+            "vm_id": virt_machines[machine].vm_id,
+            "destroyed": virt_machines[machine].destroyed,
+            "created": virt_machines[machine].created,
+            "time_remaining": getattr(virt_machines[machine], "time_remaining", None),
+            "latest_snapshot_name": getattr(
+                virt_machines[machine].recover_context, "name", None
+            ),
+            "latest_snapshot_id": getattr(
+                virt_machines[machine].recover_context, "id", None
+            ),
+        }
+    return vm_info
+
+
+def generate_vmsnap_dict(array):
+    vmsnap_info = {}
+    virt_snaps = list(array.get_virtual_machine_snapshots(vm_type="vvol").items)
+    for snap in range(0, len(virt_snaps)):
+        name = virt_snaps[snap].name
+        vmsnap_info[name] = {
+            "vm_type": virt_snaps[snap].vm_type,
+            "vm_id": virt_snaps[snap].vm_id,
+            "destroyed": virt_snaps[snap].destroyed,
+            "created": virt_snaps[snap].created,
+            "time_remaining": getattr(virt_snaps[snap], "time_remaining", None),
+            "latest_pgsnapshot_name": getattr(
+                virt_snaps[snap].recover_context, "name", None
+            ),
+            "latest_pgsnapshot_id": getattr(
+                virt_snaps[snap].recover_context, "id", None
+            ),
+        }
+    return vmsnap_info
+
+
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
@@ -1920,6 +1971,7 @@ def main():
         "policies",
         "dir_snaps",
         "filesystems",
+        "virtual_machines",
     )
     subset_test = (test in valid_subsets for test in subset)
     if not all(subset_test):
@@ -1996,6 +2048,11 @@ def main():
             info["dir_snaps"] = generate_dir_snaps_dict(array_v6)
         if "snapshots" in subset or "all" in subset:
             info["pg_snapshots"] = generate_pgsnaps_dict(array_v6)
+        if VM_VERSION in api_version and (
+            "virtual_machines" in subset or "all" in subset
+        ):
+            info["virtual_machines"] = generate_vm_dict(array_v6)
+            info["virtual_machines_snaps"] = generate_vmsnap_dict(array_v6)
 
     module.exit_json(changed=False, purefa_info=info)
 
