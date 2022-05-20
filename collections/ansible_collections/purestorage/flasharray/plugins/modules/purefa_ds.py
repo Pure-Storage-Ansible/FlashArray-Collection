@@ -66,6 +66,15 @@ options:
     type: str
     description:
     - Sets the password of the bind_user user name account.
+  force_bind_password:
+    type: bool
+    default: true
+    description:
+    - Will force the bind password to be reset even if the bind user password
+      is unchanged.
+    - If set to I(false) and I(bind_user) is unchanged the password will not
+      be reset.
+    version_added: 1.14.0
   bind_user:
     type: str
     description:
@@ -406,7 +415,7 @@ def update_ds_v6(module, array):
         ).items
     )[0]
     current_ds = dirserv
-    if current_ds.uris is None or module.params["bind_password"] is not None:
+    if module.params["uri"] and current_ds.uris is None:
         password_required = True
     if current_ds.uris != module.params["uri"]:
         uris = module.params["uri"]
@@ -424,19 +433,21 @@ def update_ds_v6(module, array):
     if module.params["base_dn"] != "" and module.params["base_dn"] != base_dn:
         base_dn = module.params["base_dn"]
         ds_change = True
-    if module.params["bind_user"] != "" and module.params["bind_user"] != bind_user:
+    if module.params["bind_user"] != "":
         bind_user = module.params["bind_user"]
-        password_required = True
-        ds_change = True
-    if module.params["bind_password"] is not None:
+        if module.params["bind_user"] != bind_user:
+            password_required = True
+            ds_change = True
+        elif module.params["force_bind_password"]:
+            password_required = True
+            ds_change = True
+    if module.params["bind_password"] is not None and password_required:
         bind_password = module.params["bind_password"]
         ds_change = True
     if module.params["enable"] != current_ds.enabled:
         ds_change = True
     if password_required and not module.params["bind_password"]:
-        module.fail_json(
-            msg="'bind_password' must be provided with new/changed 'bind_user'"
-        )
+        module.fail_json(msg="'bind_password' must be provided for this task")
     if module.params["dstype"] == "management":
         try:
             user_login = current_ds.management.user_login_attribute
@@ -520,6 +531,7 @@ def main():
             uri=dict(type="list", elements="str"),
             state=dict(type="str", default="present", choices=["absent", "present"]),
             enable=dict(type="bool", default=False),
+            force_bind_password=dict(type="bool", default=True),
             bind_password=dict(type="str", no_log=True),
             bind_user=dict(type="str"),
             base_dn=dict(type="str"),
