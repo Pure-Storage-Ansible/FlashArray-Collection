@@ -531,7 +531,7 @@ def main():
             uri=dict(type="list", elements="str"),
             state=dict(type="str", default="present", choices=["absent", "present"]),
             enable=dict(type="bool", default=False),
-            force_bind_password=dict(type="bool", default=True),
+            force_bind_password=dict(type="bool", default=True, no_log=True),
             bind_password=dict(type="str", no_log=True),
             bind_user=dict(type="str"),
             base_dn=dict(type="str"),
