@@ -44,6 +44,13 @@ purefa_inventory:
   returned: always
   type: complex
   sample: {
+        "chassis": {
+            "CH0": {
+                "model": null,
+                "serial": "ABC123",
+                "status": "ok"
+            },
+        },
         "controllers": {
             "CT0": {
                 "model": null,
@@ -155,6 +162,7 @@ def generate_hardware_dict(array):
         "drives": {},
         "interfaces": {},
         "power": {},
+        "chassis": {},
     }
     components = array.list_hardware()
     for component in range(0, len(components)):
@@ -203,6 +211,13 @@ def generate_hardware_dict(array):
         if component_name in ["CT0", "CT1"]:
             cont_name = component_name
             hw_info["controllers"][cont_name] = {
+                "status": components[component]["status"],
+                "serial": components[component]["serial"],
+                "model": components[component]["model"],
+            }
+        if component_name in ["CH0"]:
+            cont_name = component_name
+            hw_info["chassis"][cont_name] = {
                 "status": components[component]["status"],
                 "serial": components[component]["serial"],
                 "model": components[component]["model"],
