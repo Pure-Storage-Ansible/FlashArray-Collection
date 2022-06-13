@@ -22,6 +22,8 @@ short_description: Configure FlashArray DNS settings
 description:
 - Set or erase configuration for the DNS settings.
 - Nameservers provided will overwrite any existing nameservers.
+- From Purity//FA 6.3.3 DNS setting for FA-File can be configured seperately
+  to the management DNS settings
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
@@ -41,6 +43,7 @@ options:
       IPv4 or IPv6 - No validation is done of the addresses is performed.
     type: list
     elements: str
+  service:
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
