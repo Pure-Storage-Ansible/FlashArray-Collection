@@ -27,6 +27,13 @@ description:
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
+  name:
+    description:
+    - Name of the DNS configuration.
+    - Default value only supported for management service
+    default: management
+    type: str
+    version_added: 1.14.0
   state:
     description:
     - Set or delete directory service configuration
@@ -44,6 +51,17 @@ options:
     type: list
     elements: str
   service:
+    description:
+    - Type of ser vice the DNS will work with
+    type: str
+    version_added: 1.14.0
+    choices: [ management, file ]
+    default: management
+  source:
+    description:
+    - A virtual network interface (vif)
+    type: str
+    version_added: 1.14.0
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -55,7 +73,7 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Set DNS settings
+- name: Set managemnt DNS settings
   purestorage.flasharray.purefa_dns:
     domain: purestorage.com
     nameservers:
@@ -64,16 +82,36 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
+- name: Set file DNS settings
+  purestorage.flasharray.purefa_dns:
+    domain: purestorage.com
+    nameservers:
+      - 8.8.8.8
+      - 8.8.4.4
+    name: ad_dns
+    service: file
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
 """
 
 RETURN = r"""
 """
 
+HAS_PURESTORAGE = True
+try:
+    from pypureclient import flasharray
+except ImportError:
+    HAS_PURESTORAGE = False
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_system,
+    get_array,
     purefa_argument_spec,
 )
+
+MULTIPLE_DNS = "2.15"
 
 
 def remove(duplicate):
@@ -82,6 +120,14 @@ def remove(duplicate):
         if num not in final_list:
             final_list.append(num)
     return final_list
+
+
+def _get_source(module, array):
+    res = array.get_network_interfaces(names=[module.params["source"]])
+    if res.status_code == 200:
+        return True
+    else:
+        return False
 
 
 def delete_dns(module, array):
@@ -119,32 +165,139 @@ def create_dns(module, array):
     module.exit_json(changed=changed)
 
 
+def update_multi_dns(module, array):
+    """Update a DNS configuration"""
+    changed = False
+    module.exit_json(changed=changed)
+
+
+def delete_multi_dns(module, array):
+    """Delete a DNS configuration"""
+    changed = True
+    if module.params["name"] == "management":
+        res = array.update_dns(
+            names=[module.params["name"]],
+            dns=flasharray.DnsPatch(
+                domain=module.params["domain"],
+                nameservers=module.params["nameservers"],
+            ),
+        )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Management DNS configuration not deleted. Error: {0}".format(
+                    res.errors[0].message
+                )
+            )
+    else:
+        if not module.check_mode:
+            res = array.delete_dns(names=[module.params["name"]])
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to delete DNS configuration {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
+    module.exit_json(changed=changed)
+
+
+def create_multi_dns(module, array):
+    """Create a DNS configuration"""
+    changed = True
+    if not module.check_mode:
+        if module.params["service"] == "file":
+            res = array.post_dns(
+                names=[module.params["name"]],
+                dns=flasharray.DnsPost(
+                    services=[module.params["service"]],
+                    domain=module.params["domain"],
+                    nameservers=module.params["nameservers"],
+                    source=module.params["source"].lower(),
+                ),
+            )
+        else:
+            res = array.create_dns(
+                names=[module.params["name"]],
+                services=[module.params["service"]],
+                domain=module.params["domain"],
+                nameservers=module.params["nameservers"],
+            )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Failed to create {0} DNS configuration {1}. Error: {2}".format(
+                    module.params["service"],
+                    module.params["name"],
+                    res.errors[0].message,
+                )
+            )
+    module.exit_json(changed=changed)
+
+
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
             state=dict(type="str", default="present", choices=["absent", "present"]),
+            name=dict(type="str", default="management"),
+            service=dict(
+                type="str", default="management", choices=["management", "file"]
+            ),
             domain=dict(type="str"),
+            source=dict(type="str"),
             nameservers=dict(type="list", elements="str"),
         )
     )
 
-    required_if = [("state", "present", ["domain", "nameservers"])]
-
-    module = AnsibleModule(
-        argument_spec, required_if=required_if, supports_check_mode=True
-    )
+    module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     state = module.params["state"]
     array = get_system(module)
-
-    if state == "absent":
-        delete_dns(module, array)
-    elif state == "present":
+    api_version = array._list_available_rest_versions()
+    if module.params["nameservers"]:
         module.params["nameservers"] = remove(module.params["nameservers"])
-        create_dns(module, array)
+        if module.params["service"] == "management":
+            module.params["nameservers"] = module.params["nameservers"][0:3]
+
+    if MULTIPLE_DNS in api_version:
+        if (
+            module.params["service"] == "management"
+            and module.params["name"] != "management"
+        ):
+            module.warn("Overriding configuration name to management")
+            module.params["name"] = "management"
+        array = get_array(module)
+        if not _get_source(module, array):
+            module.fail_json(
+                msg="Specified VIF {0} does not exist.".format(module.params["source"])
+            )
+        configs = list(array.get_dns().items)
+        exists = False
+        for config in range(0, len(configs)):
+            if configs[config].name == module.params["name"]:
+                exists = True
+        if state == "present" and exists:
+            update_multi_dns(module, array)
+        elif state == "present" and not exists:
+            if len(configs) == 2:
+                module.fail_json(
+                    msg="Only 2 DNS configurations are currently"
+                    "supported. One for management and one for file services"
+                )
+            create_multi_dns(module, array)
+        elif state == "absent":
+            delete_multi_dns(module, array)
+        else:
+            module.exit_json(changed=False)
     else:
-        module.exit_json(changed=False)
+        if state == "absent":
+            delete_dns(module, array)
+        elif state == "present":
+            if not module.params["domain"] or not module.params["nameservers"]:
+                module.fail_json(
+                    msg="`domain` and `nameservers` are required for DNS configuration"
+                )
+            create_dns(module, array)
+        else:
+            module.exit_json(changed=False)
 
 
 if __name__ == "__main__":

@@ -464,6 +464,7 @@ PURE_OUI = "naa.624a9370"
 SAFE_MODE_VERSION = "2.10"
 PER_PG_VERSION = "2.13"
 SAML2_VERSION = "2.11"
+NFS_USER_MAP_VERSION = "2.15"
 
 
 def generate_default_dict(module, array):
@@ -595,6 +596,15 @@ def generate_config_dict(module, array):
             "slp_enabled": smi_s.slp_enabled,
             "wbem_https_enabled": smi_s.wbem_https_enabled,
         }
+        if NFS_USER_MAP_VERSION in api_version:
+            config_info["dns"] = {}
+            dns_configs = list(arrayv6.get_dns().items)
+            for config in range(0, len(dns_configs)):
+                config_info["dns"][dns_configs[config].services[0]] = {
+                    "source": dns_configs[config].source.name,
+                    "nameservers": dns_configs[config].nameservers,
+                    "domain": dns_configs[config].domain,
+                }
         if SAML2_VERSION in api_version:
             config_info["saml2sso"] = {}
             saml2 = list(arrayv6.get_sso_saml2_idps().items)
