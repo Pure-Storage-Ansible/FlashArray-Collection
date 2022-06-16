@@ -448,8 +448,8 @@ def rename_exists(module, array):
 def update_pgroup(module, array):
     """Update Protection Group"""
     changed = renamed = False
+    api_version = array._list_available_rest_versions()
     if module.params["target"]:
-        api_version = array._list_available_rest_versions()
         connected_targets = []
         connected_arrays = get_arrays(array)
 
