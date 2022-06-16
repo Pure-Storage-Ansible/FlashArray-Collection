@@ -448,8 +448,8 @@ def rename_exists(module, array):
 def update_pgroup(module, array):
     """Update Protection Group"""
     changed = renamed = False
+    api_version = array._list_available_rest_versions()
     if module.params["target"]:
-        api_version = array._list_available_rest_versions()
         connected_targets = []
         connected_arrays = get_arrays(array)
 
@@ -670,7 +670,7 @@ def update_pgroup(module, array):
                     res = arrayv6.patch_protection_groups(
                         names=[module.params["pgroup"]],
                         protection_group=flasharray.ProtectionGroup(
-                            retention_lock="racheted"
+                            retention_lock="ratcheted"
                         ),
                     )
                 except Exception:
@@ -680,7 +680,7 @@ def update_pgroup(module, array):
                             res.errors[0].message,
                         )
                     )
-        if current_pg.retention_lock == "racheted" and not module.params["safe_mode"]:
+        if current_pg.retention_lock == "ratcheted" and not module.params["safe_mode"]:
             module.warn(
                 "Disabling SafeMode on protection group {0} can only be performed by Pure Technical Support".format(
                     module.params["pgroup"]
