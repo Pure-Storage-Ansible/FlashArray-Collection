@@ -90,6 +90,24 @@ options:
     - Requires Purity//FA 6.1.8 or higher
     type: str
     version_added: '1.10.0'
+  tls:
+    description:
+    - TLS mode for communication with domain controllers.
+    type: str
+    choices: [ required, optional ]
+    default: required
+    version_added: '1.14.0'
+  join_existing:
+    description:
+    - If specified as I(true), the domain is searched for a pre-existing
+      computer account to join to, and no new account will be created within the domain.
+      The C(username) specified when joining a pre-existing account must have
+      permissions to 'read all properties from' and 'reset the password of'
+      the pre-existing account. C(join_ou) will be read from the pre-existing
+      account and cannot be specified when joining to an existing account
+    type: bool
+    default: false
+    version_added: '1.14.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -129,7 +147,7 @@ RETURN = r"""
 
 HAS_PURESTORAGE = True
 try:
-    from pypureclient.flasharray import ActiveDirectoryPost
+    from pypureclient.flasharray import ActiveDirectoryPost, ActiveDirectoryPatch
 except ImportError:
     HAS_PURESTORAGE = False
 
@@ -143,6 +161,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 MIN_REQUIRED_API_VERSION = "2.2"
 SERVER_API_VERSION = "2.6"
 MIN_JOIN_OU_API_VERSION = "2.8"
+MIN_TLS_API_VERSION = "2.15"
 
 
 def delete_account(module, array):
@@ -161,6 +180,28 @@ def delete_account(module, array):
     module.exit_json(changed=changed)
 
 
+def update_account(module, array):
+    """Update existing AD account"""
+    changed = False
+    current_acc = list(array.get_active_directory(names=[module.params["name"]]).items)[
+        0
+    ]
+    if current_acc.tls != module.params["tls"]:
+        changed = True
+        if not module.check_mode:
+            res = array.patch_active_directory(
+                names=[module.params["name"]],
+                active_directory=ActiveDirectoryPatch(tls=module.params["tls"]),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to update AD Account {0} TLS setting. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
+    module.exit_json(changed=changed)
+
+
 def create_account(module, array, api_version):
     """Create Active Directory Account"""
     changed = True
@@ -173,6 +214,17 @@ def create_account(module, array, api_version):
             user=module.params["username"],
             password=module.params["password"],
         )
+    elif MIN_TLS_API_VERSION in api_version:
+        ad_config = ActiveDirectoryPost(
+            computer_name=module.params["computer"],
+            directory_servers=module.params["directory_servers"],
+            kerberos_servers=module.params["kerberos_servers"],
+            domain=module.params["domain"],
+            user=module.params["username"],
+            join_ou=module.params["join_ou"],
+            password=module.params["password"],
+            tls=module.params["tls"],
+        )
     else:
         ad_config = ActiveDirectoryPost(
             computer_name=module.params["computer"],
@@ -184,10 +236,17 @@ def create_account(module, array, api_version):
             password=module.params["password"],
         )
     if not module.check_mode:
-        res = array.post_active_directory(
-            names=[module.params["name"]],
-            active_directory=ad_config,
-        )
+        if MIN_TLS_API_VERSION in api_version:
+            res = array.post_active_directory(
+                names=[module.params["name"]],
+                join_existing_account=module.params["join_existing"],
+                active_directory=ad_config,
+            )
+        else:
+            res = array.post_active_directory(
+                names=[module.params["name"]],
+                active_directory=ad_config,
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to add Active Directory Account {0}. Error: {1}".format(
@@ -211,6 +270,8 @@ def main():
             join_ou=dict(type="str"),
             directory_servers=dict(type="list", elements="str"),
             kerberos_servers=dict(type="list", elements="str"),
+            tls=dict(type="str", default="required", choices=["required", "optional"]),
+            join_existing=dict(type="bool", default=False),
         )
     )
 
@@ -250,6 +311,8 @@ def main():
             module.params["directory_servers"] = module.params["directory_servers"][0:1]
     if not exists and state == "present":
         create_account(module, array, api_version)
+    elif exists and state == "present" and MIN_TLS_API_VERSION in api_version:
+        update_account(module, array)
     elif exists and state == "absent":
         delete_account(module, array)
 
