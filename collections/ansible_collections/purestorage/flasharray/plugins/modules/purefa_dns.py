@@ -85,7 +85,9 @@ def delete_dns(module, array):
     """Delete DNS settings"""
     changed = False
     current_dns = array.get_dns()
-    if current_dns["domain"] == "" and current_dns["nameservers"] == [""]:
+    if current_dns["domain"] == "" and (
+        current_dns["nameservers"] == [] or current_dns["nameservers"] == [""]
+    ):
         module.exit_json(changed=changed)
     else:
         try:
