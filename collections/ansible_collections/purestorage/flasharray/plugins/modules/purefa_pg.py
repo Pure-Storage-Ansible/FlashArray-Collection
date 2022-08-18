@@ -455,14 +455,6 @@ def update_pgroup(module, array):
 
         if OFFLOAD_API_VERSION in api_version:
             connected_targets = get_targets(array)
-            offload_name = check_pg_on_offload(module, array)
-            if offload_name and offload_name in module.params["target"][0:4]:
-                module.fail_json(
-                    msg="Protection Group {0} already exists on offload target {1}.".format(
-                        module.params["pgroup"], offload_name
-                    )
-                )
-
         connected_arrays = connected_arrays + connected_targets
         if connected_arrays == []:
             module.fail_json(msg="No targets connected to source array.")
