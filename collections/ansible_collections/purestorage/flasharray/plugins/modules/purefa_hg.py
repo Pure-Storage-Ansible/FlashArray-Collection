@@ -314,21 +314,22 @@ def update_hostgroup(module, array):
         if module.params["volume"]:
             cased_old_vols = [vol.lower() for vol in module.params["volume"]]
             old_volumes = list(
-                set(cased_old_vols).difference(
+                set(cased_old_vols).intersection(
                     set([vol["name"].lower() for vol in volumes])
                 )
             )
-            changed = True
-            for cvol in old_volumes:
-                try:
-                    if not module.check_mode:
-                        array.disconnect_hgroup(current_hostgroup, cvol)
-                except Exception:
-                    module.fail_json(
-                        msg="Failed to disconnect volume {0} from hostgroup {1}".format(
-                            cvol, current_hostgroup
+            if old_volumes:
+                changed = True
+                for cvol in old_volumes:
+                    try:
+                        if not module.check_mode:
+                            array.disconnect_hgroup(current_hostgroup, cvol)
+                    except Exception:
+                        module.fail_json(
+                            msg="Failed to disconnect volume {0} from hostgroup {1}".format(
+                                cvol, current_hostgroup
+                            )
                         )
-                    )
     changed = changed or renamed
     module.exit_json(changed=changed)
 
