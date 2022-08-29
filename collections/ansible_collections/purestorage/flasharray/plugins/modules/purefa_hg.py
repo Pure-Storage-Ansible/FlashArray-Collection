@@ -315,7 +315,7 @@ def update_hostgroup(module, array):
             cased_old_vols = [vol.lower() for vol in module.params["volume"]]
             old_volumes = list(
                 set(cased_old_vols).intersection(
-                    set([vol["name"].lower() for vol in volumes])
+                    set([vol["vol"].lower() for vol in volumes])
                 )
             )
             if old_volumes:
