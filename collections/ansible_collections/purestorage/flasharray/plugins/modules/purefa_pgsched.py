@@ -259,8 +259,11 @@ def update_schedule(module, array):
         else:
             snap_at = module.params["snap_at"]
 
-        if module.params["days"] is None:
-            days = current_snap["days"]
+        if not module.params["days"]:
+            if isinstance(module.params["days"], int):
+                days = module.params["days"]
+            else:
+                days = current_snap["days"]
         else:
             if module.params["days"] > 4000:
                 module.fail_json(msg="Maximum value for days is 4000")
@@ -339,16 +342,22 @@ def update_schedule(module, array):
         else:
             replicate_at = module.params["replicate_at"]
 
-        if module.params["target_days"] is None:
-            target_days = current_repl["target_days"]
+        if not module.params["target_days"]:
+            if isinstance(module.params["target_days"], int):
+                target_days = module.params["target_days"]
+            else:
+                target_days = current_repl["target_days"]
         else:
             if module.params["target_days"] > 4000:
                 module.fail_json(msg="Maximum value for target_days is 4000")
             else:
                 target_days = module.params["target_days"]
 
-        if module.params["target_per_day"] is None:
-            target_per_day = current_repl["target_per_day"]
+        if not module.params["target_per_day"]:
+            if isinstance(module.params["target_per_day"], int):
+                target_per_day = module.params["target_per_day"]
+            else:
+                target_per_day = current_repl["target_per_day"]
         else:
             if module.params["target_per_day"] > 1440:
                 module.fail_json(msg="Maximum value for target_per_day is 1440")

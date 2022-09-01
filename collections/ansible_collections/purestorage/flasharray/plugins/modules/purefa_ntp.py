@@ -90,13 +90,15 @@ def remove(duplicate):
 
 def delete_ntp(module, array):
     """Delete NTP Servers"""
-    changed = True
-    if not module.check_mode:
-        if array.get(ntpserver=True)["ntpserver"] != []:
+    if array.get(ntpserver=True)["ntpserver"] != []:
+        changed = True
+        if not module.check_mode:
             try:
                 array.set(ntpserver=[])
             except Exception:
                 module.fail_json(msg="Deletion of NTP servers failed")
+    else:
+        changed = False
     module.exit_json(changed=changed)
 
 

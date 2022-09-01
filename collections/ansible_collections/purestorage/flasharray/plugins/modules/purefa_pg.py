@@ -455,14 +455,6 @@ def update_pgroup(module, array):
 
         if OFFLOAD_API_VERSION in api_version:
             connected_targets = get_targets(array)
-            offload_name = check_pg_on_offload(module, array)
-            if offload_name and offload_name in module.params["target"][0:4]:
-                module.fail_json(
-                    msg="Protection Group {0} already exists on offload target {1}.".format(
-                        module.params["pgroup"], offload_name
-                    )
-                )
-
         connected_arrays = connected_arrays + connected_targets
         if connected_arrays == []:
             module.fail_json(msg="No targets connected to source array.")
@@ -478,19 +470,19 @@ def update_pgroup(module, array):
                 module.fail_json(
                     msg="Check all selected targets are connected to the source array."
                 )
-                changed = True
-                if not module.check_mode:
-                    try:
-                        array.set_pgroup(
-                            module.params["pgroup"],
-                            targetlist=module.params["target"][0:4],
+            changed = True
+            if not module.check_mode:
+                try:
+                    array.set_pgroup(
+                        module.params["pgroup"],
+                        targetlist=module.params["target"][0:4],
+                    )
+                except Exception:
+                    module.fail_json(
+                        msg="Changing targets for pgroup {0} failed.".format(
+                            module.params["pgroup"]
                         )
-                    except Exception:
-                        module.fail_json(
-                            msg="Changing targets for pgroup {0} failed.".format(
-                                module.params["pgroup"]
-                            )
-                        )
+                    )
 
     if (
         module.params["target"]
@@ -763,6 +755,36 @@ def delete_pgroup(module, array):
     module.exit_json(changed=changed)
 
 
+def recover_pgroup(module, array):
+    """Recover deleted protection group"""
+    changed = True
+    if not module.check_mode:
+        if ":" in module.params["pgroup"]:
+            if "::" not in module.params["pgroup"]:
+                try:
+                    target = "".join(module.params["target"])
+                    array.recover_pgroup(module.params["pgroup"], on=target)
+                except Exception:
+                    module.fail_json(
+                        msg="Recover pgroup {0} failed.".format(module.params["pgroup"])
+                    )
+            else:
+                try:
+                    array.recover_pgroup(module.params["pgroup"])
+                except Exception:
+                    module.fail_json(
+                        msg="Recover pgroup {0} failed.".format(module.params["pgroup"])
+                    )
+        else:
+            try:
+                array.recover_pgroup(module.params["pgroup"])
+            except Exception:
+                module.fail_json(
+                    msg="ecover pgroup {0} failed.".format(module.params["pgroup"])
+                )
+    module.exit_json(changed=changed)
+
+
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
@@ -875,6 +897,8 @@ def main():
         make_pgroup(module, array)
     elif not pgroup and state == "present" and module.params["rename"]:
         module.exit_json(changed=False)
+    elif xpgroup and state == "present":
+        recover_pgroup(module, array)
     elif pgroup is None and state == "absent":
         module.exit_json(changed=False)
 
