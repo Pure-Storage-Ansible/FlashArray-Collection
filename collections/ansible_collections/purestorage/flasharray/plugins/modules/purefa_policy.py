@@ -73,6 +73,11 @@ options:
     choices: [ ro, rw ]
     default: rw
     type: str
+  user_mapping:
+    description:
+    - Defines if user mapping is enabled
+    type: bool
+    version_added: 1.14.0
   snap_at:
     description:
     - Specifies the number of hours since midnight at which to take a snapshot
@@ -326,6 +331,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 MIN_REQUIRED_API_VERSION = "2.3"
 MIN_QUOTA_API_VERSION = "2.7"
 MIN_SUFFIX_API_VERSION = "2.9"
+USER_MAP_VERSION = "2.15"
 
 
 def _human_to_bytes(size):
@@ -678,7 +684,20 @@ def create_policy(module, array):
                 names=[module.params["name"]],
                 policy=flasharray.PolicyPost(enabled=module.params["enabled"]),
             )
+
             if created.status_code == 200:
+                policy = flasharray.PolicyNfsPost(
+                    user_mapping_enabled=module.params["user_mapping"],
+                )
+                res = array.patch_policies_nfs(
+                    names=[module.params["name"]], policy=policy
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to set NFS policy {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
                 if module.params["client"]:
                     rules = flasharray.PolicyrulenfsclientpostRules(
                         access=module.params["nfs_access"],
@@ -876,22 +895,46 @@ def create_policy(module, array):
     module.exit_json(changed=changed)
 
 
-def update_policy(module, array):
+def update_policy(module, array, api_version):
     """Update an existing policy including add/remove rules"""
     changed = (
         changed_dir
-    ) = changed_rule = changed_enable = changed_quota = changed_member = False
+    ) = (
+        changed_rule
+    ) = changed_enable = changed_quota = changed_member = changed_user_map = False
     if module.params["policy"] == "nfs":
         try:
             current_enabled = list(
                 array.get_policies_nfs(names=[module.params["name"]]).items
             )[0].enabled
+            if USER_MAP_VERSION in api_version:
+                current_user_map = list(
+                    array.get_policies_nfs(names=[module.params["name"]]).items
+                )[0].user_mapping_enabled
         except Exception:
             module.fail_json(
                 msg="Incorrect policy type specified for existing policy {0}".format(
                     module.params["name"]
                 )
             )
+        if (
+            module.params["user_mapping"]
+            and current_user_map != module.params["user_mapping"]
+        ):
+            changed_user_map = True
+            if not module.check_mode:
+                res = array.patch_policies_nfs(
+                    names=[module.params["name"]],
+                    policy=flasharray.PolicyNfsPatch(
+                        user_mapping_enabled=module.params["user_mapping"]
+                    ),
+                )
+                if res.status_code != 200:
+                    module.exit_json(
+                        msg="Failed to enable/disable User Mapping for NFS policy {0}".format(
+                            module.params["name"]
+                        )
+                    )
         if current_enabled != module.params["enabled"]:
             changed_enable = True
             if not module.check_mode:
@@ -1407,7 +1450,14 @@ def update_policy(module, array):
                             )
                         )
 
-    if changed_rule or changed_enable or changed_quota or changed_member or changed_dir:
+    if (
+        changed_rule
+        or changed_enable
+        or changed_quota
+        or changed_member
+        or changed_dir
+        or changed_user_map
+    ):
         changed = True
     module.exit_json(changed=changed)
 
@@ -1443,6 +1493,7 @@ def main():
             quota_notifications=dict(
                 type="list", elements="str", choices=["user", "group"]
             ),
+            user_mapping=dict(type="bool"),
             directory=dict(type="list", elements="str"),
         )
     )
@@ -1488,7 +1539,7 @@ def main():
     elif state == "present" and exists and module.params["rename"]:
         rename_policy(module, array)
     elif state == "present" and exists:
-        update_policy(module, array)
+        update_policy(module, array, api_version)
     elif state == "absent" and exists:
         delete_policy(module, array)
 

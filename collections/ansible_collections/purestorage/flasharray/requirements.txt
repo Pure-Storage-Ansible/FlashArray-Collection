@@ -1,5 +1,5 @@
 purestorage >= '1.19'
-py-pure-client >= '1.22'
+py-pure-client >= '1.25'
 netaddr
 requests
 python >= '3.3'
