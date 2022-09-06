@@ -854,7 +854,7 @@ def main():
         if not pattern.match(module.params["pgroup"]):
             module.fail_json(
                 msg="Protection Group name {0} does not conform to naming convention".format(
-                    pgname
+                    module.params["pgroup"]
                 )
             )
 
