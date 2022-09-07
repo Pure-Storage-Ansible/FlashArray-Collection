@@ -61,6 +61,7 @@ The Pure Storage Ansible modules force all host and volume names to use kebab-ca
 - purefa_info - get information regarding the configuration of the Flasharray
 - purefa_inventory - get hardware inventory information from a FlashArray
 - purefa_maintenance - manage FlashArray maintenance windows
+- purefa_messages - list FlashArray alert messages
 - purefa_network - manage the physical and virtual network settings on the FlashArray
 - purefa_ntp - manage the NTP settings on the FlashArray
 - purefa_offload - manage the offload targets for a FlashArray
