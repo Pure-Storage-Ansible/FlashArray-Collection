@@ -328,7 +328,9 @@ def recover_snapshot(module, array, arrayv6):
                 remote_volume_snapshot=flasharray.DestroyedPatchPost(destroyed=False),
             )
             if res.status_code != 200:
-                module.fail_json(msg="Failed to recover remote snapshot ".format())
+                module.fail_json(
+                    msg="Failed to recover remote snapshot {0}".format(snapname)
+                )
     else:
         changed = True
         if not module.check_mode:

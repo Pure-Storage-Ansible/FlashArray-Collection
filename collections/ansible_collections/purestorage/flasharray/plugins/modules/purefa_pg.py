@@ -659,14 +659,13 @@ def update_pgroup(module, array):
         if current_pg.retention_lock == "unlocked" and module.params["safe_mode"]:
             changed = True
             if not module.check_mode:
-                try:
-                    res = arrayv6.patch_protection_groups(
-                        names=[module.params["name"]],
-                        protection_group=flasharray.ProtectionGroup(
-                            retention_lock="ratcheted"
-                        ),
-                    )
-                except Exception:
+                res = arrayv6.patch_protection_groups(
+                    names=[module.params["name"]],
+                    protection_group=flasharray.ProtectionGroup(
+                        retention_lock="ratcheted"
+                    ),
+                )
+                if res.status_code != 200:
                     module.fail_json(
                         msg="Failed to set SafeMode on protection group {0}. Error: {1}".format(
                             module.params["name"],
