@@ -20,7 +20,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
     - some modules require higher versions of Purity
 - Some modules require specific Purity versions
 - purestorage >=v1.19
-- py-pure-client >=v1.22
+- py-pure-client >=v1.27
 - Python >=v2.7
 - netaddr
 - requests
@@ -46,6 +46,7 @@ The Pure Storage Ansible modules force all host and volume names to use kebab-ca
 - purefa_certs - manage FlashArray SSL certificates
 - purefa_connect - manage FlashArrays connecting for replication purposes
 - purefa_console - manage Console Lock setting for the FlashArray
+- purefa_ddefault_protection - manage FlashArray default protections
 - purefa_directory - manage FlashArray managed file system directories
 - purefa_dirsnap - manage FlashArray managed file system directory snapshots
 - purefa_dns - manage the DNS settings of the FlashArray
