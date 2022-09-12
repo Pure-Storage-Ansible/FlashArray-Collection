@@ -64,7 +64,7 @@ options:
   nfs_access:
     description:
     - Specifies access control for the export
-    choices: [ root-squash, no-root-squash ]
+    choices: [ root-squash, no-root-squash, all-squash ]
     type: str
     default: no-root-squash
   nfs_permission:
@@ -157,6 +157,23 @@ options:
     default: false
     type: bool
     version_added: 1.9.0
+  anonuid:
+    description:
+    - The ID to which any users whose UID is affected by I(access) of
+      I(root_squash) or I(all-squash) will be mapped to.
+    - Clear using "".
+    type: str
+    default: "65534"
+    version_added: 1.14.0
+  anongid:
+    description:
+    - The ID to which any users whose GID is affected by I(access) of
+      I(root_squash) or I(all-squash) will be mapped to.
+    - This is ignored when I(user_mapping) is enabled.
+    - Clear using "".
+    type: str
+    default: "65534"
+    version_added: 1.14.0
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -332,6 +349,7 @@ MIN_REQUIRED_API_VERSION = "2.3"
 MIN_QUOTA_API_VERSION = "2.7"
 MIN_SUFFIX_API_VERSION = "2.9"
 USER_MAP_VERSION = "2.15"
+ALL_SQUASH_VERSION = "2.16"
 
 
 def _human_to_bytes(size):
@@ -674,7 +692,7 @@ def delete_policy(module, array):
     module.exit_json(changed=changed)
 
 
-def create_policy(module, array):
+def create_policy(module, array, all_squash):
     """Create a file system export"""
     changed = True
     if not module.check_mode:
@@ -699,11 +717,20 @@ def create_policy(module, array):
                         )
                     )
                 if module.params["client"]:
-                    rules = flasharray.PolicyrulenfsclientpostRules(
-                        access=module.params["nfs_access"],
-                        client=module.params["client"],
-                        permission=module.params["nfs_permission"],
-                    )
+                    if all_squash:
+                        rules = flasharray.PolicyrulenfsclientpostRules(
+                            access=module.params["nfs_access"],
+                            anongid=module.params["anongid"],
+                            anonuid=module.params["anonuid"],
+                            client=module.params["client"],
+                            permission=module.params["nfs_permission"],
+                        )
+                    else:
+                        rules = flasharray.PolicyrulenfsclientpostRules(
+                            access=module.params["nfs_access"],
+                            client=module.params["client"],
+                            permission=module.params["nfs_permission"],
+                        )
                     rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
                     rule_created = array.post_policies_nfs_client_rules(
                         policy_names=[module.params["name"]], rules=rule
@@ -895,7 +922,7 @@ def create_policy(module, array):
     module.exit_json(changed=changed)
 
 
-def update_policy(module, array, api_version):
+def update_policy(module, array, api_version, all_squash):
     """Update an existing policy including add/remove rules"""
     changed = (
         changed_dir
@@ -961,11 +988,20 @@ def update_policy(module, array, api_version):
                         rule_name = rules[rule].name
                         break
                 if not rule_name:
-                    rules = flasharray.PolicyrulenfsclientpostRules(
-                        permission=module.params["nfs_permission"],
-                        client=module.params["client"],
-                        access=module.params["nfs_access"],
-                    )
+                    if all_squash:
+                        rules = flasharray.PolicyrulenfsclientpostRules(
+                            permission=module.params["nfs_permission"],
+                            client=module.params["client"],
+                            anongid=module.params["anongid"],
+                            anonuid=module.params["anonuid"],
+                            access=module.params["nfs_access"],
+                        )
+                    else:
+                        rules = flasharray.PolicyrulenfsclientpostRules(
+                            permission=module.params["nfs_permission"],
+                            client=module.params["client"],
+                            access=module.params["nfs_access"],
+                        )
                     rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
                     changed_rule = True
                     if not module.check_mode:
@@ -980,11 +1016,20 @@ def update_policy(module, array, api_version):
                                 )
                             )
             else:
-                rules = flasharray.PolicyrulenfsclientpostRules(
-                    permission=module.params["nfs_permission"],
-                    client=module.params["client"],
-                    access=module.params["nfs_access"],
-                )
+                if all_squash:
+                    rules = flasharray.PolicyrulenfsclientpostRules(
+                        permission=module.params["nfs_permission"],
+                        anongid=module.params["anongid"],
+                        anonuid=module.params["anonuid"],
+                        client=module.params["client"],
+                        access=module.params["nfs_access"],
+                    )
+                else:
+                    rules = flasharray.PolicyrulenfsclientpostRules(
+                        permission=module.params["nfs_permission"],
+                        client=module.params["client"],
+                        access=module.params["nfs_access"],
+                    )
                 rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
                 changed_rule = True
                 if not module.check_mode:
@@ -1470,7 +1515,7 @@ def main():
             nfs_access=dict(
                 type="str",
                 default="no-root-squash",
-                choices=["root-squash", "no-root-squash"],
+                choices=["root-squash", "no-root-squash", "all-squash"],
             ),
             nfs_permission=dict(type="str", default="rw", choices=["rw", "ro"]),
             policy=dict(
@@ -1490,6 +1535,8 @@ def main():
             ignore_usage=dict(type="bool", default=False),
             quota_enforced=dict(type="bool", default=True),
             quota_limit=dict(type="str"),
+            anongid=dict(type="str", default="65534"),
+            anonuid=dict(type="str", default="65534"),
             quota_notifications=dict(
                 type="list", elements="str", choices=["user", "group"]
             ),
@@ -1531,6 +1578,14 @@ def main():
         module.params["quota_notifications"] = quota_notifications
     else:
         module.params["quota_notifications"] = []
+
+    if (
+        module.params["nfs_access"] == "all_squash"
+        and ALL_SQUASH_VERSION not in api_version
+    ):
+        module.fail_json(
+            msg="all_squash is not supported in this version of Purity//FA"
+        )
 
     exists = bool(array.get_policies(names=[module.params["name"]]).status_code == 200)
 
