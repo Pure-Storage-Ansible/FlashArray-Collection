@@ -119,6 +119,7 @@ options:
     description:
     - Name of exisitng, not deleted, protection group to add volume to
     - Only application for volume(s) creation
+    - Superceeded from Purity//FA 6.3.4 by I(add_to_pgs)
     type: str
     version_added: 1.8.0
   priority_operator:
@@ -133,6 +134,21 @@ options:
     type: int
     choices: [ -10, 0, 10 ]
     version_added: '1.13.0'
+  with_default_protection:
+    description:
+    - Whether to add the default container protection groups to
+      those specified in I(add_to_pgs) as the inital protection
+      of a new volume.
+    type: bool
+    default: true
+    version_added: '1.14.0'
+  add_to_pgs:
+    description:
+    - A new volume will be added to the specified protection groups
+      on creation
+    type: list
+    elements: str
+    version_added: '1.14.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -315,6 +331,7 @@ MULTI_VOLUME_VERSION = "2.2"
 PROMOTE_API_VERSION = "1.19"
 PURE_OUI = "naa.624a9370"
 PRIORITY_API_VERSION = "2.11"
+DEFAULT_API_VERSION = "2.16"
 
 
 def _create_nguid(serial):
@@ -736,7 +753,7 @@ def create_volume(module, array):
         else:
             volfact["priority_operator"] = module.params["priority_operator"]
             volfact["priority_value"] = module.params["priority_value"]
-    if module.params["pgroup"]:
+    if module.params["pgroup"] and DEFAULT_API_VERSION not in api_version:
         changed = True
         if not module.check_mode:
             try:
@@ -753,7 +770,7 @@ def create_volume(module, array):
     module.exit_json(changed=changed, volume=volfact)
 
 
-def create_multi_volume(module, array):
+def create_multi_volume(module, array, single=False):
     """Create Volume"""
     volfact = {}
     changed = True
@@ -778,14 +795,17 @@ def create_multi_volume(module, array):
             if array.get_pod(pod_name)["promotion_status"] == "demoted":
                 module.fail_json(msg="Volume cannot be created in a demoted pod")
     array = get_array(module)
-    for vol_num in range(
-        module.params["start"], module.params["count"] + module.params["start"]
-    ):
-        names.append(
-            module.params["name"]
-            + str(vol_num).zfill(module.params["digits"])
-            + module.params["suffix"]
-        )
+    if not single:
+        for vol_num in range(
+            module.params["start"], module.params["count"] + module.params["start"]
+        ):
+            names.append(
+                module.params["name"]
+                + str(vol_num).zfill(module.params["digits"])
+                + module.params["suffix"]
+            )
+    else:
+        names.append(module.params["name"])
     if module.params["bw_qos"]:
         bw_qos = int(human_to_bytes(module.params["bw_qos"]))
         if bw_qos in range(1048576, 549755813888):
@@ -821,7 +841,29 @@ def create_multi_volume(module, array):
             subtype="regular",
         )
     if not module.check_mode:
-        res = array.post_volumes(names=names, volume=vols)
+        if DEFAULT_API_VERSION in api_version:
+            if module.params["add_to_pgs"]:
+                add_to_pgs = []
+                for add_pg in range(0, len(module.params["add_to_pgs"])):
+                    add_to_pgs.append(
+                        flasharray.FixedReference(
+                            name=module.params["add_to_pgs"][add_pg]
+                        )
+                    )
+                res = array.post_volumes(
+                    names=names,
+                    volume=vols,
+                    with_default_protection=module.params["with_default_protection"],
+                    add_to_protection_groups=add_to_pgs,
+                )
+            else:
+                res = array.post_volumes(
+                    names=names,
+                    volume=vols,
+                    with_default_protection=module.params["with_default_protection"],
+                )
+        else:
+            res = array.post_volumes(names=names, volume=vols)
         if res.status_code != 200:
             module.fail_json(
                 msg="Multi-Volume {0}#{1} creation failed: {2}".format(
@@ -883,7 +925,7 @@ def create_multi_volume(module, array):
                         count
                     ].priority_adjustment.priority_adjustment_value
 
-    if module.params["pgroup"]:
+    if module.params["pgroup"] and DEFAULT_API_VERSION not in api_version:
         if not module.check_mode:
             res = array.post_protection_groups_volumes(
                 group_names=[module.params["pgroup"]], member_names=names
@@ -895,7 +937,7 @@ def create_multi_volume(module, array):
                     )
                 )
 
-    module.exit_json(changed=changed, volfact=volfact)
+    module.exit_json(changed=changed, volume=volfact)
 
 
 def copy_from_volume(module, array):
@@ -903,41 +945,120 @@ def copy_from_volume(module, array):
     volfact = []
     changed = False
     tgt = get_target(module, array)
-
+    api_version = array._list_available_rest_versions()
+    arrayv6 = get_array(module)
     if tgt is None:
         changed = True
         if not module.check_mode:
-            try:
-                volfact = array.copy_volume(
-                    module.params["name"], module.params["target"]
-                )
-                volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
-                volfact["nvme_nguid"] = _create_nguid(volfact["serial"].lower())
-                changed = True
-            except Exception:
-                module.fail_json(
-                    msg="Copy volume {0} to volume {1} failed.".format(
+            if DEFAULT_API_VERSION in api_version:
+                if module.params["add_to_pgs"]:
+                    add_to_pgs = []
+                    for add_pg in range(0, len(module.params["add_to_pgs"])):
+                        add_to_pgs.append(
+                            flasharray.FixedReference(
+                                name=module.params["add_to_pgs"][add_pg]
+                            )
+                        )
+                    res = arrayv6.post_volumes(
+                        with_default_protection=module.params[
+                            "with_default_protection"
+                        ],
+                        add_to_protection_groups=add_to_pgs,
+                        names=[module.params["target"]],
+                        volume=flasharray.VolumePost(
+                            source=flasharray.Reference(name=module.params["name"])
+                        ),
+                    )
+                else:
+                    res = arrayv6.post_volumes(
+                        with_default_protection=module.params[
+                            "with_default_protection"
+                        ],
+                        names=[module.params["target"]],
+                        volume=flasharray.VolumePost(
+                            source=flasharray.Reference(name=module.params["name"])
+                        ),
+                    )
+
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to copy volume {0} to {1}. Error: {2}".format(
+                            module.params["name"],
+                            module.params["target"],
+                            res.errors[0].message,
+                        )
+                    )
+                vol_data = list(res.items)
+                volfact = {
+                    "size": vol_data[0].provisioned,
+                    "serial": vol_data[0].serial,
+                    "created": time.strftime(
+                        "%Y-%m-%d %H:%M:%S", time.localtime(vol_data[0].created / 1000)
+                    ),
+                    "page83_naa": PURE_OUI + vol_data[0].serial.lower(),
+                    "nvme_nguid": _create_nguid(vol_data[0].serial.lower()),
+                }
+            else:
+                try:
+                    volfact = array.copy_volume(
                         module.params["name"], module.params["target"]
                     )
-                )
+                    volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
+                    volfact["nvme_nguid"] = _create_nguid(volfact["serial"].lower())
+                    changed = True
+                except Exception:
+                    module.fail_json(
+                        msg="Copy volume {0} to volume {1} failed.".format(
+                            module.params["name"], module.params["target"]
+                        )
+                    )
     elif tgt is not None and module.params["overwrite"]:
         changed = True
         if not module.check_mode:
-            try:
-                volfact = array.copy_volume(
-                    module.params["name"],
-                    module.params["target"],
-                    overwrite=module.params["overwrite"],
-                )
-                volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
-                volfact["nvme_nguid"] = _create_nguid(volfact["serial"].lower())
-                changed = True
-            except Exception:
-                module.fail_json(
-                    msg="Copy volume {0} to volume {1} failed.".format(
-                        module.params["name"], module.params["target"]
+            if DEFAULT_API_VERSION not in api_version:
+                try:
+                    volfact = array.copy_volume(
+                        module.params["name"],
+                        module.params["target"],
+                        overwrite=module.params["overwrite"],
                     )
+                    volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
+                    volfact["nvme_nguid"] = _create_nguid(volfact["serial"].lower())
+                    changed = True
+                except Exception:
+                    module.fail_json(
+                        msg="Copy volume {0} to volume {1} failed.".format(
+                            module.params["name"], module.params["target"]
+                        )
+                    )
+            else:
+                res = arrayv6.post_volume(
+                    overwrite=module.params["overwrite"],
+                    with_default_protection=module.params["with_default_protection"],
+                    add_to_protection_groups=module.params["add_to_pgs"],
+                    names=[module.params["target"]],
+                    volume=flasharray.VolumePost(
+                        source=flasharray.Reference(name=module.params["name"])
+                    ),
                 )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to copy volume {0} to {1}. Error: {2}".format(
+                            module.params["name"],
+                            module.params["target"],
+                            res.errors[0].message,
+                        )
+                    )
+                vol_data = list(res.items)
+                volfact = {
+                    "size": vol_data[0].provisioned,
+                    "serial": vol_data[0].serial,
+                    "created": time.strftime(
+                        "%Y-%m-%d %H:%M:%S", time.localtime(vol_data[0].created / 1000)
+                    ),
+                    "page83_naa": PURE_OUI + vol_data[0].serial.lower(),
+                    "nvme_nguid": _create_nguid(vol_data[0].serial.lower()),
+                }
 
     module.exit_json(changed=changed, volume=volfact)
 
@@ -1345,6 +1466,8 @@ def main():
             priority_operator=dict(type="str", choices=["+", "-", "="]),
             priority_value=dict(type="int", choices=[-10, 0, 10]),
             size=dict(type="str"),
+            with_default_protection=dict(type="bool", default=True),
+            add_to_pgs=dict(type="list", elements="str"),
         )
     )
 
@@ -1457,7 +1580,10 @@ def main():
             module.warn("Method not yet supported for multi-volume")
     else:
         if state == "present" and not volume and not destroyed and size:
-            create_volume(module, array)
+            if DEFAULT_API_VERSION in api_version:
+                create_multi_volume(module, array, True)
+            else:
+                create_volume(module, array)
         elif state == "present" and volume and (size or bw_qos or iops_qos):
             update_volume(module, array)
         elif state == "present" and not volume and module.params["move"]:
