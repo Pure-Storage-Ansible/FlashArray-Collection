@@ -123,7 +123,7 @@ def create_smtp(module, array):
                 )
             except Exception:
                 module.fail_json(msg="Set SMTP username/password failed.")
-        changed = bool(changed_sender or changed_relay or changed_creds)
+    changed = bool(changed_sender or changed_relay or changed_creds)
 
     module.exit_json(changed=changed)
 
