@@ -606,6 +606,12 @@ def generate_config_dict(module, array):
             "slp_enabled": smi_s.slp_enabled,
             "wbem_https_enabled": smi_s.wbem_https_enabled,
         }
+        # Add additional SMI-S section to help with formatting
+        # issues caused by `-` in the dict name.
+        config_info["smi_s"] = {
+            "slp_enabled": smi_s.slp_enabled,
+            "wbem_https_enabled": smi_s.wbem_https_enabled,
+        }
         if NFS_USER_MAP_VERSION in api_version:
             config_info["dns"] = {}
             dns_configs = list(arrayv6.get_dns().items)
