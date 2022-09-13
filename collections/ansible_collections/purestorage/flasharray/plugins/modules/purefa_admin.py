@@ -132,7 +132,7 @@ def main():
         if (
             max_login
             and module.params["max_login"]
-            and max_login != module.params["max_login"] * 1000
+            and max_login != module.params["max_login"]
         ):
             changed = True
             max_login = module.params["max_login"]
