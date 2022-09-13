@@ -694,6 +694,10 @@ def generate_config_dict(module, array):
     config_info["scsi_timeout"] = array.get(scsi_timeout=True)["scsi_timeout"]
     if S3_REQUIRED_API_VERSION in api_version:
         config_info["global_admin"] = array.get_global_admin_attributes()
+        if config_info["global_admin"]["lockout_duration"] > 0:
+            config_info["global_admin"]["lockout_duration"] = (
+                config_info["global_admin"]["lockout_duration"] / 1000
+            )
     return config_info
 
 
