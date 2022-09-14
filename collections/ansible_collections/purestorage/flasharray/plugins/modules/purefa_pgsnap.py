@@ -285,7 +285,9 @@ def restore_pgsnapvolume(module, array):
     api_version = array._list_available_rest_versions()
     changed = True
     if module.params["suffix"] == "latest":
-        all_snaps = array.get_pgroup(module.params["name"], snap=True, transfer=True).reverse()
+        all_snaps = array.get_pgroup(
+            module.params["name"], snap=True, transfer=True
+        ).reverse()
         for snap in all_snaps:
             if not snap["completed"]:
                 latest_snap = snap["name"]
