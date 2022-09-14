@@ -285,9 +285,17 @@ def restore_pgsnapvolume(module, array):
     api_version = array._list_available_rest_versions()
     changed = True
     if module.params["suffix"] == "latest":
-        all_snaps = array.get_pgroup(module.params["name"], snap=True)
-        latest_snap = all_snaps[len(all_snaps) - 1]["name"]
-        module.params["suffix"] = latest_snap.split(".")[1]
+        all_snaps = array.get_pgroup(
+            module.params["name"], snap=True, transfer=True
+        ).reverse()
+        for snap in all_snaps:
+            if not snap["completed"]:
+                latest_snap = snap["name"]
+                break
+        try:
+            module.params["suffix"] = latest_snap.split(".")[1]
+        except NameError:
+            module.fail_json(msg="There is no completed snapshot available.")
     if ":" in module.params["name"] and "::" not in module.params["name"]:
         if get_rpgsnapshot(module, array) is None:
             module.fail_json(
