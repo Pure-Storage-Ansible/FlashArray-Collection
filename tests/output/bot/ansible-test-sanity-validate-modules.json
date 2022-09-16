@@ -1,0 +1,10 @@
+{
+    "docs": "https://docs.ansible.com/ansible/2.10/dev_guide/testing/sanity/validate-modules.html", 
+    "results": [
+        {
+            "message": "The test `ansible-test sanity --test validate-modules` [[explain](https://docs.ansible.com/ansible/2.10/dev_guide/testing/sanity/validate-modules.html)] failed with 3 errors:", 
+            "output": "plugins/modules/purefa_kmip.py:0:0: nonexistent-parameter-documented: Argument 'certifcate' is listed in DOCUMENTATION.options, but not accepted by the module argument_spec\nplugins/modules/purefa_kmip.py:0:0: parameter-type-not-in-doc: Argument 'certificate' in argument_spec defines type as 'str' but documentation doesn't define type\nplugins/modules/purefa_kmip.py:0:0: undocumented-parameter: Argument 'certificate' is listed in the argument_spec, but not documented in the module documentation"
+        }
+    ], 
+    "verified": false
+}
