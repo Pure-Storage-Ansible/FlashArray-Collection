@@ -3,11 +3,11 @@ name: flasharray
 version: 1.13.0
 readme: README.md
 authors:
-- Pure Storage Ansible Team <pure-ansible-team@purestorage.com>
+  - Pure Storage Ansible Team <pure-ansible-team@purestorage.com>
 description: Collection of modules to manage all Pure Storage FlashArrays (including Cloud Block Store)
 license:
- - GPL-3.0-or-later
- - BSD-2-Clause
+  - GPL-3.0-or-later
+  - BSD-2-Clause
 tags:
   - purestorage
   - flasharray
