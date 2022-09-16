@@ -25,9 +25,6 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python${{ matrix.python }} -m pip install --upgrade pip
-        python -m pip install --upgrade pip
-        pip install purestorage pycodestyle flake8 py-pure-client requests
         python${{ matrix.python }} -m pip install git+https://github.com/ansible/ansible.git@devel
     - name: Run pycodestyle
       run: |
