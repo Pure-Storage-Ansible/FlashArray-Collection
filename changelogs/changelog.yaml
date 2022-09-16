@@ -131,6 +131,71 @@ releases:
       - 280_multihost_no_suffix.yaml
       - 284_volfact_for_recover.yaml
     release_date: '2022-05-02'
+  1.14.0:
+    changes:
+      bugfixes:
+        - purefa_dns - Corrects logic where API responds with an empty list rather than
+          a list with a single empty string in it.
+        - purefa_ds - Add new parameter `force_bind_password` (default = True) to allow
+          idempotency for module
+        - purefa_hg - Ensure volume disconnection from a hostgroup is idempotent
+        - purefa_ntp - Corrects workflow so that the state between desired and current
+          are checked before marking the changed flag to true during an absent run
+        - purefa_pg - Corredt issue when target for protection group is not correctly
+          amended
+        - purefa_pg - Ensure deleted protection group can be correctly recovered
+        - purefa_pg - Fix idempotency issue for protection group targets
+        - purefa_pgsched - Allow zero as a valid value for appropriate schedule parameters
+        - purefa_pgsched - Fix issue where 0 was not correctly handled for replication
+          schedule
+        - purefa_pgsnap - Resolved intermittent error where `latest` snapshot is not
+          complete and can fail. Only select latest completed snapshot to restore from.
+      minor_changes:
+        - purefa_ad - Add support for TLS and joining existing AD account
+        - purefa_dns - Support multiple DNS configurations from Puritry//FA 6.3.3
+        - purefa_info - Add NFS policy user mapping status
+        - purefa_info - Add support for Virtual Machines and Snapshots
+        - purefa_info - Ensure global admin lockout duration is measured in seconds
+        - purefa_info - Support multiple DNS configurations
+        - purefa_inventory - Add REST 2.x support and SFP details for Purity//FA 6.3.4
+          and higher
+        - purefa_inventory - Change response dict name to `purefa_inv` so doesn't clash
+          with info module response dict
+        - purefa_inventory - add chassis information to inventory
+        - purefa_pg - Changed parameter `pgroup` to `name`. Allow `pgroup` as alias
+          for backwards compatability.
+        - purefa_policy - Add ``all_squash``, ``anonuid`` and ``anongid`` to NFS client
+          rules options
+        - purefa_policy - Add support for NFS policy user mapping
+        - purefa_volume - Default Protection Group support added for volume creation
+          and copying from Purity//FA 6.3.4
+    fragments:
+      - 288_zero_params.yaml
+      - 292_fix_ds_password.yaml
+      - 293_add_chassis_inventory.yaml
+      - 294_dns_ntp_idempotency_absent.yaml
+      - 294_user_map_support.yaml
+      - 296_ad_tls.yaml
+      - 299_fix_pgsched_zero_support.yaml
+      - 302_fix_pg_recover_and_target_update.yaml
+      - 305_fix_target_dempo.yaml
+      - 307_multiple_dns.yaml
+      - 308_add_vm.yaml
+      - 310_hg_vol_idempotency.yaml
+      - 312_pg_alias.yaml
+      - 315_spf_details.yaml
+      - 317_add_all_squash.yaml
+      - 318_vol_defaults.yaml
+      - 319_lockout.yaml
+      - 320_completed_snaps.yaml
+    modules:
+      - description: Manage SafeMode default protection for a Pure Storage FlashArray
+        name: purefa_default_protection
+        namespace: ''
+      - description: List FlashArray Alert Messages
+        name: purefa_messages
+        namespace: ''
+    release_date: '2022-09-16'
   1.4.0:
     changes:
       bugfixes:
