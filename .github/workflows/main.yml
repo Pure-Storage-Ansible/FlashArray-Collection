@@ -16,9 +16,16 @@ jobs:
           - stable-2.11
           - stable-2.12
           - stable-2.13
+          - stable-2.14
+          - devel
         python-version:
           - 3.8
           - 3.9
+        exclude:
+          - python-version: 3.8
+            ansible: stable-2.14
+          - python-version: 3.8
+            ansible: devel
     steps:
     - name: Check out code
       uses: actions/checkout@v2
