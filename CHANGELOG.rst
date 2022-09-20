@@ -5,6 +5,46 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.14.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_ad - Add support for TLS and joining existing AD account
+- purefa_dns - Support multiple DNS configurations from Puritry//FA 6.3.3
+- purefa_info - Add NFS policy user mapping status
+- purefa_info - Add support for Virtual Machines and Snapshots
+- purefa_info - Ensure global admin lockout duration is measured in seconds
+- purefa_info - Support multiple DNS configurations
+- purefa_inventory - Add REST 2.x support and SFP details for Purity//FA 6.3.4 and higher
+- purefa_inventory - Change response dict name to `purefa_inv` so doesn't clash with info module response dict
+- purefa_inventory - add chassis information to inventory
+- purefa_pg - Changed parameter `pgroup` to `name`. Allow `pgroup` as alias for backwards compatability.
+- purefa_policy - Add ``all_squash``, ``anonuid`` and ``anongid`` to NFS client rules options
+- purefa_policy - Add support for NFS policy user mapping
+- purefa_volume - Default Protection Group support added for volume creation and copying from Purity//FA 6.3.4
+
+Bugfixes
+--------
+
+- purefa_dns - Corrects logic where API responds with an empty list rather than a list with a single empty string in it.
+- purefa_ds - Add new parameter `force_bind_password` (default = True) to allow idempotency for module
+- purefa_hg - Ensure volume disconnection from a hostgroup is idempotent
+- purefa_ntp - Corrects workflow so that the state between desired and current are checked before marking the changed flag to true during an absent run
+- purefa_pg - Corredt issue when target for protection group is not correctly amended
+- purefa_pg - Ensure deleted protection group can be correctly recovered
+- purefa_pg - Fix idempotency issue for protection group targets
+- purefa_pgsched - Allow zero as a valid value for appropriate schedule parameters
+- purefa_pgsched - Fix issue where 0 was not correctly handled for replication schedule
+- purefa_pgsnap - Resolved intermittent error where `latest` snapshot is not complete and can fail. Only select latest completed snapshot to restore from.
+
+New Modules
+-----------
+
+- purestorage.flasharray.purefa_default_protection - Manage SafeMode default protection for a Pure Storage FlashArray
+- purestorage.flasharray.purefa_messages - List FlashArray Alert Messages
+
 v1.13.0
 =======
 
