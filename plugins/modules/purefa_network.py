@@ -57,6 +57,16 @@ options:
     required: false
     default: 1500
     type: int
+  servicelist:
+    description:
+      - Assigns the specified (comma-separated) service list to one or more specified interfaces.
+      - Replaces the previous service list.
+      - Supported service lists depend on whether the network interface is Ethernet or Fibre Channel.
+      - Note that I(system) is only valid for Cloud Block Store.
+    elements: str
+    type: list
+    choices: [ "replication", "management", "ds", "file", "iscsi", "scsi-fc", "nvme-fc", "system"]
+    version_added: '1.15.0'
 extends_documentation_fragment:
     - purestorage.flasharray.purestorage.fa
 """
@@ -93,6 +103,14 @@ EXAMPLES = """
     gateway: 0.0.0.0
     fa_url: 10.10.10.2
     api_token: c6033033-fe69-2515-a9e8-966bb7fe4b40
+
+- name: Change service list for FC interface ct0.fc1
+  purestorage.flasharray.purefa_network:
+    name: ct0.fc1
+    servicelist:
+      - replication
+    fa_url: 10.10.10.2
+    api_token: c6033033-fe69-2515-a9e8-966bb7fe4b40
 """
 
 RETURN = """
@@ -120,6 +138,13 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 )
 
 FC_ENABLE_API = "2.4"
+
+
+def _is_cbs(array, is_cbs=False):
+    """Is the selected array a Cloud Block Store"""
+    model = array.get(controllers=True)[0]["model"]
+    is_cbs = bool("CBS" in model)
+    return is_cbs
 
 
 def _get_fc_interface(module, array):
@@ -153,31 +178,52 @@ def _get_interface(module, array):
     return interface
 
 
-def update_fc_interface(module, array, interface):
+def update_fc_interface(module, array, interface, api_version):
     """Modify FC Interface settings"""
     changed = False
-    if not interface.enabled and module.params["state"] == "present":
+    if FC_ENABLE_API in api_version:
+        if not interface.enabled and module.params["state"] == "present":
+            changed = True
+            if not module.check_mode:
+                network = NetworkInterfacePatch(enabled=True, override_npiv_check=True)
+                res = array.patch_network_interfaces(
+                    names=[module.params["name"]], network=network
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to enable interface {0}.".format(
+                            module.params["name"]
+                        )
+                    )
+        if interface.enabled and module.params["state"] == "absent":
+            changed = True
+            if not module.check_mode:
+                network = NetworkInterfacePatch(enabled=False, override_npiv_check=True)
+                res = array.patch_network_interfaces(
+                    names=[module.params["name"]], network=network
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to disable interface {0}.".format(
+                            module.params["name"]
+                        )
+                    )
+    if module.params["servicelist"] and sorted(module.params["servicelist"]) != sorted(
+        interface.services
+    ):
         changed = True
         if not module.check_mode:
-            network = NetworkInterfacePatch(enabled=True, override_npiv_check=True)
+            network = NetworkInterfacePatch(services=module.params["servicelist"])
             res = array.patch_network_interfaces(
                 names=[module.params["name"]], network=network
             )
             if res.status_code != 200:
                 module.fail_json(
-                    msg="Failed to enable interface {0}.".format(module.params["name"])
+                    msg="Failed to update interface service list {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
                 )
-    if interface.enabled and module.params["state"] == "absent":
-        changed = True
-        if not module.check_mode:
-            network = NetworkInterfacePatch(enabled=False, override_npiv_check=True)
-            res = array.patch_network_interfaces(
-                names=[module.params["name"]], network=network
-            )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to disable interface {0}.".format(module.params["name"])
-                )
+
     module.exit_json(changed=changed)
 
 
@@ -189,6 +235,7 @@ def update_interface(module, array, interface):
         "gateway": interface["gateway"],
         "address": interface["address"],
         "netmask": interface["netmask"],
+        "services": sorted(interface["services"]),
     }
     if not module.params["address"]:
         address = interface["address"]
@@ -285,6 +332,32 @@ def update_interface(module, array, interface):
                 module.fail_json(
                     msg="Failed to disable interface {0}.".format(interface["name"])
                 )
+    if (
+        module.params["servicelist"]
+        and sorted(module.params["servicelist"]) != interface["services"]
+    ):
+        api_version = array._list_available_rest_versions()
+        if FC_ENABLE_API in api_version:
+            if HAS_PYPURECLIENT:
+                array = get_array(module)
+                changed = True
+                if not module.check_mode:
+                    network = NetworkInterfacePatch(
+                        services=module.params["servicelist"]
+                    )
+                    res = array.patch_network_interfaces(
+                        names=[module.params["name"]], network=network
+                    )
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to update interface service list {0}. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
+                            )
+                        )
+            else:
+                module.warn_json(
+                    "Servicelist not update as pypureclient module is required"
+                )
 
     module.exit_json(changed=changed)
 
@@ -298,6 +371,20 @@ def main():
             address=dict(type="str"),
             gateway=dict(type="str"),
             mtu=dict(type="int", default=1500),
+            servicelist=dict(
+                type="list",
+                elements="str",
+                choices=[
+                    "replication",
+                    "management",
+                    "ds",
+                    "file",
+                    "iscsi",
+                    "scsi-fc",
+                    "nvme-fc",
+                    "system",
+                ],
+            ),
         )
     )
 
@@ -308,21 +395,21 @@ def main():
 
     array = get_system(module)
     api_version = array._list_available_rest_versions()
+    if not _is_cbs(array):
+        if "system" in module.params["servicelist"]:
+            module.fail_json(
+                msg="Only Cloud Block Store supports the 'system' service type"
+            )
     if "." in module.params["name"]:
         if module.params["name"].split(".")[1][0].lower() == "f":
-            if FC_ENABLE_API in api_version:
-                if not HAS_PYPURECLIENT:
-                    module.fail_json(msg="pypureclient module is required")
-                array = get_array(module)
-                interface = _get_fc_interface(module, array)
-                if not interface:
-                    module.fail_json(msg="Invalid network interface specified.")
-                else:
-                    update_fc_interface(module, array, interface)
+            if not HAS_PYPURECLIENT:
+                module.fail_json(msg="pypureclient module is required")
+            array = get_array(module)
+            interface = _get_fc_interface(module, array)
+            if not interface:
+                module.fail_json(msg="Invalid network interface specified.")
             else:
-                module.warn(
-                    "Purity version does not support enabling/disabling FC ports"
-                )
+                update_fc_interface(module, array, interface, api_version)
         else:
             interface = _get_interface(module, array)
             if not interface:
