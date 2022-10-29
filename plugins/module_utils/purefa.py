@@ -109,7 +109,9 @@ def get_array(module):
         versions = requests.get(
             "https://" + array_name + "/api/api_version", verify=False
         )
-        valid_versions = [x for x in versions.json()["version"] if not re.search('[a-zA-Z]', x)]
+        valid_versions = [
+            x for x in versions.json()["version"] if not re.search("[a-zA-Z]", x)
+        ]
         api_version = valid_versions[-1]
         if array_name and api:
             system = flasharray.Client(
