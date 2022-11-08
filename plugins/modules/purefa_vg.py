@@ -279,8 +279,8 @@ def make_vgroup(module, array):
         volume_group = flasharray.VolumeGroupPost(
             name=module.params["name"],
             qos=flasharray.Qos(
-                bandwidth_limit=module.params["bw_qos"],
-                iops_limit=module.params["iops_qos"],
+                bandwidth_limit=int(human_to_bytes(module.params["bw_qos"])),
+                iops_limit=int(human_to_real(module.params["iops_qos"])),
             ),
             priority_adjustment=flasharray.PriorityAdjustment(
                 priority_adjustment_operator=module.params["priority_operator"],
