@@ -28,7 +28,8 @@ options:
   name:
     description:
       - Interface name, including controller indentifier.
-      - VLANs are only supported on iSCSI physical interfaces
+      - VLANs are only supported on iSCSI, NVMe-RoCE and file
+        physical interfaces
     required: true
     type: str
   state:
@@ -244,9 +245,9 @@ def main():
         module.fail_json(msg="Invalid subnet specified.")
     if not interface:
         module.fail_json(msg="Invalid interface specified.")
-    if "iscsi" not in interface["services"]:
+    if ("iscsi" or "nvme-roce" or "file") not in interface["services"]:
         module.fail_json(
-            msg="Invalid interface specified - must have the iSCSI service enabled."
+            msg="Invalid interface specified - must have service type of iSCSI, NVMe-RoCE or file enabled."
         )
     if subnet["vlan"]:
         vif_name = module.params["name"] + "." + str(subnet["vlan"])
