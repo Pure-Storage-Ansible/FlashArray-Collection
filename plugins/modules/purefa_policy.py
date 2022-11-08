@@ -160,7 +160,7 @@ options:
   anonuid:
     description:
     - The ID to which any users whose UID is affected by I(access) of
-      I(root_squash) or I(all-squash) will be mapped to.
+      I(root-squash) or I(all-squash) will be mapped to.
     - Clear using "".
     type: str
     default: "65534"
@@ -168,7 +168,7 @@ options:
   anongid:
     description:
     - The ID to which any users whose GID is affected by I(access) of
-      I(root_squash) or I(all-squash) will be mapped to.
+      I(root-squash) or I(all-squash) will be mapped to.
     - This is ignored when I(user_mapping) is enabled.
     - Clear using "".
     type: str
