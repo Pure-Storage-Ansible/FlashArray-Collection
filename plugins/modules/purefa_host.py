@@ -156,7 +156,7 @@ options:
     - If not set or set to I(any), the host can access any VLAN.
     - If set to I(untagged), the host can only access untagged VLANs.
     - If set to a number between 1 and 4094, the host can only access the specified VLAN with that number.
-    version_added: '1.14.0'
+    version_added: '1.16.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
