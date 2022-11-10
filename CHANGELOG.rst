@@ -5,6 +5,22 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.15.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_network - Added support for servicelist updates
+- purefa_vlan - Extend VLAN support to cover NVMe-RoCE and file interfaces
+
+Bugfixes
+--------
+
+- purefa.py - Fix issue in Purity versions numbers that are for development versions
+- purefa_policy - Fixed missing parameters in function calls
+- purefa_vg - Fix typeerror when using newer Purity versions and setting VG QoS
+
 v1.14.0
 =======
 
