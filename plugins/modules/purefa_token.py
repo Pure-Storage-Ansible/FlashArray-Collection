@@ -18,7 +18,7 @@ DOCUMENTATION = r"""
 ---
 module: purefa_token
 version_added: '1.0.0'
-short_description: Create of delete an API token for an existing admin user
+short_description: Create or delete an API token for an existing admin user
 description:
 - Create or delete an API token for an existing admin user.
 - Uses username/password to create/delete the API token.
