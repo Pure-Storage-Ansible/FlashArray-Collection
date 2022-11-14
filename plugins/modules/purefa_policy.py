@@ -160,7 +160,7 @@ options:
   anonuid:
     description:
     - The ID to which any users whose UID is affected by I(access) of
-      I(root_squash) or I(all-squash) will be mapped to.
+      I(root-squash) or I(all-squash) will be mapped to.
     - Clear using "".
     type: str
     default: "65534"
@@ -168,7 +168,7 @@ options:
   anongid:
     description:
     - The ID to which any users whose GID is affected by I(access) of
-      I(root_squash) or I(all-squash) will be mapped to.
+      I(root-squash) or I(all-squash) will be mapped to.
     - This is ignored when I(user_mapping) is enabled.
     - Clear using "".
     type: str
@@ -1580,21 +1580,22 @@ def main():
         module.params["quota_notifications"] = []
 
     if (
-        module.params["nfs_access"] == "all_squash"
+        module.params["nfs_access"] == "all-squash"
         and ALL_SQUASH_VERSION not in api_version
     ):
         module.fail_json(
-            msg="all_squash is not supported in this version of Purity//FA"
+            msg="all-squash is not supported in this version of Purity//FA"
         )
 
+    all_squash = ALL_SQUASH_VERSION in api_version
     exists = bool(array.get_policies(names=[module.params["name"]]).status_code == 200)
 
     if state == "present" and not exists:
-        create_policy(module, array)
+        create_policy(module, array, all_squash)
     elif state == "present" and exists and module.params["rename"]:
         rename_policy(module, array)
     elif state == "present" and exists:
-        update_policy(module, array, api_version)
+        update_policy(module, array, api_version, all_squash)
     elif state == "absent" and exists:
         delete_policy(module, array)
 

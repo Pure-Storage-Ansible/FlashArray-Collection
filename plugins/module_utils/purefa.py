@@ -52,6 +52,7 @@ except ImportError:
 
 from os import environ
 import platform
+import re
 
 VERSION = 1.4
 USER_AGENT_BASE = "Ansible"
@@ -108,7 +109,10 @@ def get_array(module):
         versions = requests.get(
             "https://" + array_name + "/api/api_version", verify=False
         )
-        api_version = versions.json()["version"][-1]
+        valid_versions = [
+            x for x in versions.json()["version"] if not re.search("[a-zA-Z]", x)
+        ]
+        api_version = valid_versions[-1]
         if array_name and api:
             system = flasharray.Client(
                 target=array_name,
