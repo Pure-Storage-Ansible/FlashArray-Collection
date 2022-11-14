@@ -196,6 +196,24 @@ releases:
         name: purefa_messages
         namespace: ''
     release_date: '2022-09-16'
+  1.15.0:
+    changes:
+      bugfixes:
+        - purefa.py - Fix issue in Purity versions numbers that are for development
+          versions
+        - purefa_policy - Fixed missing parameters in function calls
+        - purefa_vg - Fix typeerror when using newer Purity versions and setting VG
+          QoS
+      minor_changes:
+        - purefa_network - Added support for servicelist updates
+        - purefa_vlan - Extend VLAN support to cover NVMe-RoCE and file interfaces
+    fragments:
+      - 328_policy_fix.yaml
+      - 330_extend_vlan.yaml
+      - 334_fix_vg_qos.yaml
+      - 336_add_servicelist.yaml
+      - 337_fix_non-prod_versions.yml
+    release_date: '2022-11-08'
   1.4.0:
     changes:
       bugfixes:
