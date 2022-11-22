@@ -396,8 +396,7 @@ def main():
     array = get_system(module)
     api_version = array._list_available_rest_versions()
     if not _is_cbs(array):
-        if (module.params["servicelist"] and
-            "system" in module.params["servicelist"]):
+        if module.params["servicelist"] and "system" in module.params["servicelist"]:
             module.fail_json(
                 msg="Only Cloud Block Store supports the 'system' service type"
             )
