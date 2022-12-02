@@ -51,17 +51,29 @@ options:
       - FlashArray management IPv4 address or Hostname.
     type: str
     required: true
+  timeout:
+    description:
+      - The duration of API token validity.
+      - Valid values are weeks (w), days(d), hours(h), minutes(m) and seconds(s).
+    type: str
 """
 
 EXAMPLES = r"""
-- name: Create API token
-  purefa_arrayname:
+- name: Create API token with no expiration
+  purefa_token:
     username: pureuser
     password: secret
     state: present
     fa_url: 10.10.10.2
+- name: Create API token with 23 days expiration
+  purefa_token:
+    username: pureuser
+    password: secret
+    state: present
+    timeout: 23d
+    fa_url: 10.10.10.2
 - name: Delete API token
-  purefa_arrayname:
+  purefa_token:
     username: pureuser
     password: secret
     state: absent
@@ -69,20 +81,51 @@ EXAMPLES = r"""
 """
 
 RETURN = r"""
+purefa_token:
+  description: API token for user
+  return: changed
+  type: str
+  sample: e649f439-49be-3806-f774-a35cbbc4c2d2
 """
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
+    get_array,
+)
 from os import environ
 import platform
 
 VERSION = 1.0
 USER_AGENT_BASE = "Ansible_token"
+TIMEOUT_API_VERSION = "2.2"
 
 HAS_PURESTORAGE = True
 try:
     from purestorage import purestorage
 except ImportError:
     HAS_PURESTORAGE = False
+
+HAS_PYPURECLIENT = True
+try:
+    from pypureclient import flasharray
+except ImportError:
+    HAS_PYPURECLIENT = False
+
+
+def _convert_time_to_millisecs(timeout):
+    if timeout[-1:].lower() not in ["w", "d", "h", "m", "s"]:
+        return 0
+    try:
+        if timeout[-1:].lower() == "w":
+            return int(timeout[:-1]) * 7 * 86400000
+        elif timeout[-1:].lower() == "d":
+            return int(timeout[:-1]) * 86400000
+        elif timeout[-1:].lower() == "h":
+            return int(timeout[:-1]) * 3600000
+        elif timeout[-1:].lower() == "m":
+            return int(timeout[:-1]) * 60000
+    except Exception:
+        return 0
 
 
 def get_session(module):
@@ -135,6 +178,7 @@ def main():
         password=dict(no_log=True, required=True),
         state=dict(type="str", default="present", choices=["absent", "present"]),
         recreate=dict(type="bool", default=False),
+        timeout=dict(type="str"),
     )
 
     module = AnsibleModule(argument_spec, supports_check_mode=False)
@@ -149,6 +193,7 @@ def main():
     recreate = module.params["recreate"]
 
     result = array.get_api_token(admin=username)
+    api_version = array._list_available_rest_versions()
     if state == "present" and result["api_token"] is None:
         result = array.create_api_token(admin=username)
         changed = True
@@ -162,6 +207,31 @@ def main():
 
     api_token = result["api_token"]
 
+    if (
+        TIMEOUT_API_VERSION in api_version
+        and module.params["timeout"]
+        and state == "present"
+    ):
+        if not HAS_PYPURECLIENT:
+            module.fail_json(
+                msg="py-pure-client SDK is required to support `timeout` parameter."
+            )
+        else:
+            module.params["api_token"] = api_token
+            array6 = get_array(module)
+            ttl = _convert_time_to_millisecs(module.params["timeout"])
+            if ttl != 0:
+                changed = True
+                array6.delete_admins_api_tokens(names=[username])
+                res = array6.post_admins_api_tokens(names=[username], timeout=ttl)
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to set token lifetime. Error: {0}".format(
+                            res.errors[0].message
+                        )
+                    )
+                else:
+                    api_token = list(res.items)[0].api_token.token
     module.exit_json(changed=changed, purefa_token=api_token)
 
 
