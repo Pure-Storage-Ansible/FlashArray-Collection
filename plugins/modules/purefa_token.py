@@ -83,7 +83,7 @@ EXAMPLES = r"""
 RETURN = r"""
 purefa_token:
   description: API token for user
-  return: changed
+  returned: changed
   type: str
   sample: e649f439-49be-3806-f774-a35cbbc4c2d2
 """
