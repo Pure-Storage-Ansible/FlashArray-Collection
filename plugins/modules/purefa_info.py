@@ -442,6 +442,10 @@ try:
     from packaging import version
 except ImportError:
     HAS_PACKAGING = False
+try:
+    from purestorage import purestorage
+except ImportError:
+    purestorage = None
 import time
 
 SEC_TO_DAY = 86400000
@@ -1367,7 +1371,11 @@ def generate_host_dict(array):
     for host in range(0, len(hosts)):
         hostname = hosts[host]["name"]
         tports = []
-        host_all_info = array.get_host(hostname, all=True)
+        try:
+            host_all_info = array.get_host(hostname, all=True)
+        except purestorage.PureHTTPError as err:
+            if err.code == 400:
+                continue
         if host_all_info:
             tports = host_all_info[0]["target_port"]
         host_info[hostname] = {
@@ -1418,8 +1426,15 @@ def generate_pgroups_dict(module, array):
             "targets": pgroups[pgroup]["targets"],
             "volumes": pgroups[pgroup]["volumes"],
         }
-        prot_sched = array.get_pgroup(protgroup, schedule=True)
-        prot_reten = array.get_pgroup(protgroup, retention=True)
+        try:
+            prot_sched = array.get_pgroup(protgroup, schedule=True)
+            prot_reten = array.get_pgroup(protgroup, retention=True)
+            snap_transfers = array.get_pgroup(
+                protgroup, snap=True, transfer=True, pending=True
+            )
+        except purestorage.PureHTTPError as err:
+            if err.code == 400:
+                continue
         if prot_sched["snap_enabled"] or prot_sched["replicate_enabled"]:
             pgroups_info[protgroup]["snap_frequency"] = prot_sched["snap_frequency"]
             pgroups_info[protgroup]["replicate_frequency"] = prot_sched[
@@ -1440,9 +1455,6 @@ def generate_pgroups_dict(module, array):
             pgroups_info[protgroup]["days"] = prot_reten["days"]
             pgroups_info[protgroup]["all_for"] = prot_reten["all_for"]
             pgroups_info[protgroup]["target_all_for"] = prot_reten["target_all_for"]
-        snap_transfers = array.get_pgroup(
-            protgroup, snap=True, transfer=True, pending=True
-        )
         pgroups_info[protgroup]["snaps"] = {}
         for snap_transfer in range(0, len(snap_transfers)):
             snap = snap_transfers[snap_transfer]["name"]
