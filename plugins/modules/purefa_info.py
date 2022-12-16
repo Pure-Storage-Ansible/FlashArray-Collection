@@ -221,6 +221,7 @@ purefa_info:
                 "personality": null,
                 "preferred_array": [],
                 "target_port": [],
+                "vlan": null,
                 "wwn": []
             },
             "docker-host": {
@@ -235,6 +236,7 @@ purefa_info:
                     "CT0.ETH4",
                     "CT1.ETH4"
                 ],
+                "vlan": "any",
                 "wwn": [],
             }
         },
@@ -471,6 +473,7 @@ PER_PG_VERSION = "2.13"
 SAML2_VERSION = "2.11"
 NFS_USER_MAP_VERSION = "2.15"
 VM_VERSION = "2.14"
+VLAN_VERSION = "2.17"
 
 
 def generate_default_dict(module, array):
@@ -1364,7 +1367,7 @@ def generate_vol_dict(module, array):
     return volume_info
 
 
-def generate_host_dict(array):
+def generate_host_dict(module, array):
     api_version = array._list_available_rest_versions()
     host_info = {}
     hosts = array.list_hosts()
@@ -1405,6 +1408,12 @@ def generate_host_dict(array):
         for host in range(0, len(hosts)):
             hostname = hosts[host]["name"]
             host_info[hostname]["preferred_array"] = hosts[host]["preferred_array"]
+    if VLAN_VERSION in api_version:
+        arrayv6 = get_array(module)
+        hosts = list(arrayv6.get_hosts())
+        for host in range(0, len(hosts)):
+            hostname = hosts.item[host].name
+            host_info[hostname]["vlan"] = getattr(hosts[host], "vlan", None)
     return host_info
 
 
@@ -2027,7 +2036,7 @@ def main():
     if "interfaces" in subset or "all" in subset:
         info["interfaces"] = generate_interfaces_dict(array)
     if "hosts" in subset or "all" in subset:
-        info["hosts"] = generate_host_dict(array)
+        info["hosts"] = generate_host_dict(module, array)
     if "volumes" in subset or "all" in subset:
         info["volumes"] = generate_vol_dict(module, array)
         info["deleted_volumes"] = generate_del_vol_dict(module, array)
