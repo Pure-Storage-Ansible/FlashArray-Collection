@@ -305,7 +305,7 @@ def delete_ds(module, array):
 def delete_ds_v6(module, array):
     """Delete Directory Service"""
     changed = True
-    if module.params("dstype") == "management":
+    if module.params["dstype"] == "management":
         management = flasharray.DirectoryServiceManagement(
             user_login_attribute="", user_object_class=""
         )
@@ -315,7 +315,7 @@ def delete_ds_v6(module, array):
             bind_user="",
             bind_password="",
             enabled=False,
-            services=module.params("dstype"),
+            services=module.params["dstype"],
             management=management,
         )
     else:
@@ -325,7 +325,7 @@ def delete_ds_v6(module, array):
             bind_user="",
             bind_password="",
             enabled=False,
-            services=module.params("dstype"),
+            services=module.params["dstype"],
         )
     if not module.check_mode:
         res = array.patch_directory_services(
