@@ -149,6 +149,13 @@ options:
     type: list
     elements: str
     version_added: '1.14.0'
+  promotion_state:
+    description:
+    - Promote or demote the volume so that the volume starts or
+      stops accepting write requests.
+    type: str
+    choices: [ promoted, demoted ]
+    version_added: '1.16.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -332,6 +339,7 @@ PROMOTE_API_VERSION = "1.19"
 PURE_OUI = "naa.624a9370"
 PRIORITY_API_VERSION = "2.11"
 DEFAULT_API_VERSION = "2.16"
+VOLUME_PROMOTION_API_VERSION = "2.2"
 
 
 def _create_nguid(serial):
@@ -730,6 +738,20 @@ def create_volume(module, array):
                 module.fail_json(
                     msg="Volume {0} creation failed.".format(module.params["name"])
                 )
+    if VOLUME_PROMOTION_API_VERSION in api_version and module.params["promotion_state"]:
+        arrayv6 = get_array(module)
+        volume = flasharray.VolumePatch(
+            requested_promotion_state=module.params["promotion_state"]
+        )
+        changed = True
+        if not module.check_mode:
+            res = arrayv6.patch_volumes(names=[module.params["name"]], volume=volume)
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to set Promotion State for volume {0}.".format(
+                        module.params["name"]
+                    )
+                )
     if PRIORITY_API_VERSION in api_version and module.params["priority_operator"]:
         arrayv6 = get_array(module)
         volume = flasharray.VolumePatch(
@@ -873,6 +895,20 @@ def create_multi_volume(module, array, single=False):
                 )
             )
         else:
+            if (
+                VOLUME_PROMOTION_API_VERSION in api_version
+                and module.params["promotion_state"]
+            ):
+                volume = flasharray.VolumePatch(
+                    requested_promotion_state=module.params["promotion_state"]
+                )
+                prom_res = array.patch_volumes(names=names, volume=volume)
+                if prom_res.status_code != 200:
+                    module.warn(
+                        "Failed to set promotion status on volumes. Error: {0}".format(
+                            prom_res.errors[0].message
+                        )
+                    )
             if (
                 PRIORITY_API_VERSION in api_version
                 and module.params["priority_operator"]
@@ -1167,10 +1203,31 @@ def update_volume(module, array):
                         module.params["bw_qos"]
                     )
                 )
+    if VOLUME_PROMOTION_API_VERSION in api_version and module.params["promotion_state"]:
+        arrayv6 = get_array(module)
+        vol6 = list(arrayv6.get_volumes(names=[module.params["name"]]).items)[0]
+        if module.params["promotion_state"] != vol6.promotion_status:
+            volume_patch = flasharray.VolumePatch(
+                requested_promotion_state=module.params["promotion_state"]
+            )
+            changed = True
+            if not module.check_mode:
+                prom_res = arrayv6.patch_volumes(
+                    names=[module.params["name"]], volume=volume_patch
+                )
+                if prom_res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to change promotion status for volume {0}.".format(
+                            module.params["name"]
+                        )
+                    )
+                else:
+                    if not volfact:
+                        volfact = array.get_volume(module.params["name"])
     if PRIORITY_API_VERSION in api_version and module.params["priority_operator"]:
         arrayv6 = get_array(module)
-        change_prio = False
         volv6 = list(arrayv6.get_volumes(names=[module.params["name"]]).items)[0]
+        change_prio = False
         if (
             module.params["priority_operator"]
             != volv6.priority_adjustment.priority_adjustment_operator
@@ -1468,6 +1525,7 @@ def main():
             size=dict(type="str"),
             with_default_protection=dict(type="bool", default=True),
             add_to_pgs=dict(type="list", elements="str"),
+            promotion_state=dict(type="str", choices=["promoted", "demoted"]),
         )
     )
 
