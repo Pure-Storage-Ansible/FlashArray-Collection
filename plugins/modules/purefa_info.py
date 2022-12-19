@@ -829,9 +829,9 @@ def generate_policies_dict(array, quota_available, nfs_user_mapping):
         if policies[policy].policy_type == "nfs":
             if nfs_user_mapping:
                 nfs_policy = list(array.get_policies(names=[p_name]).items)[0]
-                policy_info[p_name][
-                    "user_mapping_enabled"
-                ] = nfs_policy.user_mapping_enabled
+                policy_info[p_name]["user_mapping_enabled"] = getattr(
+                    nfs_policy, "user_mapping_enabled", ""
+                )
             rules = list(
                 array.get_policies_nfs_client_rules(policy_names=[p_name]).items
             )
