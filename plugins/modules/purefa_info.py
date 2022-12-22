@@ -472,6 +472,7 @@ SAFE_MODE_VERSION = "2.10"
 PER_PG_VERSION = "2.13"
 SAML2_VERSION = "2.11"
 NFS_USER_MAP_VERSION = "2.15"
+DEFAULT_PROT_API_VERSION = "2.16"
 VM_VERSION = "2.14"
 VLAN_VERSION = "2.17"
 
@@ -678,6 +679,28 @@ def generate_config_dict(module, array):
                     }
             except Exception:
                 module.warn("FA-Files is not enabled on this array")
+        if DEFAULT_PROT_API_VERSION in api_version:
+            config_info["default_protections"] = {}
+            default_prots = list(arrayv6.get_container_default_protections().items)
+            for prot in range(0, len(default_prots)):
+                container = getattr(default_prots[prot], "name", "-")
+                config_info["default_protections"][container] = {
+                    "protections": [],
+                    "type": getattr(default_prots[prot], "type", "array"),
+                }
+                for container_prot in range(
+                    0, len(default_prots[prot].default_protections)
+                ):
+                    config_info["default_protections"][container]["protections"].append(
+                        {
+                            "type": default_prots[prot]
+                            .default_protections[container_prot]
+                            .type,
+                            "name": default_prots[prot]
+                            .default_protections[container_prot]
+                            .name,
+                        }
+                    )
 
     else:
         config_info["directory_service"] = {}
