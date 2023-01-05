@@ -34,8 +34,8 @@ options:
         Possible values for this include all, minimum, config, performance,
         capacity, network, subnet, interfaces, hgroups, pgroups, hosts,
         admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
-        arrays, certs, kmip, clients, policies, dir_snaps, filesystems
-        and virtual_machines.
+        arrays, certs, kmip, clients, policies, dir_snaps, filesystems,
+        alerts and virtual_machines.
     type: list
     elements: str
     required: false
@@ -1979,6 +1979,61 @@ def generate_vm_dict(array):
     return vm_info
 
 
+def generate_alerts_dict(array):
+    alerts_info = {}
+    alerts = list(array.get_alerts().items)
+    for alert in range(0, len(alerts)):
+        name = alerts[alert].name
+        try:
+            notified_time = alerts[alert].notified / 1000
+            notified_datetime = time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(notified_time)
+            )
+        except AttributeError:
+            notified_datetime = ""
+        try:
+            closed_time = alerts[alert].closed / 1000
+            closed_datetime = time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(closed_time)
+            )
+        except AttributeError:
+            closed_datetime = ""
+        try:
+            updated_time = alerts[alert].updated / 1000
+            updated_datetime = time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(updated_time)
+            )
+        except AttributeError:
+            updated_datetime = ""
+        try:
+            created_time = alerts[alert].created / 1000
+            created_datetime = time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(created_time)
+            )
+        except AttributeError:
+            updated_datetime = ""
+        alerts_info[name] = {
+            "flagged": alerts[alert].flagged,
+            "category": alerts[alert].category,
+            "code": alerts[alert].code,
+            "issue": alerts[alert].issue,
+            "kb_url": alerts[alert].knowledge_base_url,
+            "summary": alerts[alert].summary,
+            "id": alerts[alert].id,
+            "state": alerts[alert].state,
+            "severity": alerts[alert].severity,
+            "component_name": alerts[alert].component_name,
+            "component_type": alerts[alert].component_type,
+            "created": created_datetime,
+            "closed": closed_datetime,
+            "notified": notified_datetime,
+            "updated": updated_datetime,
+            "actual": getattr(alerts[alert], "actual", ""),
+            "expected": getattr(alerts[alert], "expected", ""),
+        }
+    return alerts_info
+
+
 def generate_vmsnap_dict(array):
     vmsnap_info = {}
     virt_snaps = list(array.get_virtual_machine_snapshots(vm_type="vvol").items)
@@ -2119,6 +2174,8 @@ def main():
             info["dir_snaps"] = generate_dir_snaps_dict(array_v6)
         if "snapshots" in subset or "all" in subset:
             info["pg_snapshots"] = generate_pgsnaps_dict(array_v6)
+        if "alerts" in subset or "all" in subset:
+            info["alerts"] = generate_alerts_dict(array_v6)
         if VM_VERSION in api_version and (
             "virtual_machines" in subset or "all" in subset
         ):
