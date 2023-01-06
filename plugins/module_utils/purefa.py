@@ -44,15 +44,8 @@ try:
 except ImportError:
     HAS_PYPURECLIENT = False
 
-HAS_REQUESTS = True
-try:
-    import requests
-except ImportError:
-    HAS_REQUESTS = False
-
 from os import environ
 import platform
-import re
 
 VERSION = 1.4
 USER_AGENT_BASE = "Ansible"
@@ -105,7 +98,7 @@ def get_array(module):
     }
     array_name = module.params["fa_url"]
     api = module.params["api_token"]
-    if HAS_PYPURECLIENT and HAS_REQUESTS:
+    if HAS_PYPURECLIENT:
         if array_name and api:
             system = flasharray.Client(
                 target=array_name,

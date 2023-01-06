@@ -78,7 +78,8 @@ The Pure Storage Ansible modules force all host and volume names to use kebab-ca
 - purefa_smis - manage SMI-S settings on the FlashArray
 - purefa_smtp - manage SMTP settings on the FlashArray
 - purefa_snap - manage local snapshots on the FlashArray
-- purefa_snmp - manage SNMP settings on the FlashArray
+- purefa_snmp - manage SNMP Manager settings on the FlashArray
+- purefa_snmp_agent - manage SNMP Agent settings on the FlashArray
 - purefa_sso - set Single Sign-On from Pure1 Manage state
 - purefa_subnet - manage network subnets on the FlashArray
 - purefa_syslog - manage the Syslog settings on the FlashArray

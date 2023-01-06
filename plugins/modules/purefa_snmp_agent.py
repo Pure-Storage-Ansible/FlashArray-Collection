@@ -220,7 +220,6 @@ def main():
         supports_check_mode=True,
     )
 
-    state = module.params["state"]
     array = get_system(module)
     api_version = array._list_available_rest_versions()
 

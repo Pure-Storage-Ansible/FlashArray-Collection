@@ -6,6 +6,7 @@ plugins:
   callback: {}
   cliconf: {}
   connection: {}
+  filter: {}
   httpapi: {}
   inventory: {}
   lookup: {}
@@ -231,6 +232,11 @@ plugins:
       name: purefa_snmp
       namespace: ''
       version_added: 1.0.0
+    purefa_snmp_agent:
+      description: Configure the FlashArray SNMP Agent
+      name: purefa_snmp_agent
+      namespace: ''
+      version_added: 1.16.0
     purefa_sso:
       description: Configure Pure Storage FlashArray Single Sign-On
       name: purefa_sso
@@ -289,5 +295,6 @@ plugins:
   netconf: {}
   shell: {}
   strategy: {}
+  test: {}
   vars: {}
-version: 1.15.0
+version: 1.16.0
