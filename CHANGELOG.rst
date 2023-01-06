@@ -21,7 +21,7 @@ Bugfixes
 
 - purefa - Remove unneeded REST version check as causes issues with REST mismatches
 - purefa_ds - Fixed dict syntax error
-- purefa_info - Fiexed issue with DNS reporting in Purity//FA 6.4.0 with non-FA-File system
+- purefa_info - Fixed issue with DNS reporting in Purity//FA 6.4.0 with non-FA-File system
 - purefa_info - Fixed error in policies subsection due to API issue
 - purefa_info - Fixed race condition with protection groups
 - purefa_smtp - Fix parameter name
