@@ -106,19 +106,11 @@ def get_array(module):
     array_name = module.params["fa_url"]
     api = module.params["api_token"]
     if HAS_PYPURECLIENT and HAS_REQUESTS:
-        versions = requests.get(
-            "https://" + array_name + "/api/api_version", verify=False
-        )
-        valid_versions = [
-            x for x in versions.json()["version"] if not re.search("[a-zA-Z]", x)
-        ]
-        api_version = valid_versions[-1]
         if array_name and api:
             system = flasharray.Client(
                 target=array_name,
                 api_token=api,
                 user_agent=user_agent,
-                version=api_version,
             )
         elif environ.get("PUREFA_URL") and environ.get("PUREFA_API"):
             system = flasharray.Client(
