@@ -29,7 +29,8 @@ options:
   state:
     type: str
     description:
-    - Used to set or clear the SNMP v2c community string
+    - Used to set or clear the SNMP v2c community string or the SNMP v3
+      auth and privacy protocols.
     choices: [ absent, present ]
     default: present
   user:
@@ -59,6 +60,8 @@ options:
     type: str
     description:
     - SNMP v3 only. Encryption protocol to use
+    - To remove the privacy and auth protocols set I(state) to
+      I(absent) with I(version) set to I(v3)
     choices: [ MD5, SHA ]
   privacy_passphrase:
     type: str
@@ -69,6 +72,8 @@ options:
     type: str
     description:
     - SNMP v3 only. Encryption protocol to use
+    - To remove the privacy and auth protocols set I(state) to
+      I(absent) with I(version) set to I(v3)
     choices: [ AES, DES ]
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
@@ -78,6 +83,12 @@ EXAMPLES = r"""
 - name: Clear SNMP agent v2c community string
   purestorage.flasharray.purefa_snmp_agent:
     version: v2c
+    state: absent
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+- name: Clear SNMP agent v3 auth and privacy protocols
+  purestorage.flasharray.purefa_snmp_agent:
+    version: v3
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
@@ -143,7 +154,14 @@ def update_agent(module, array, agent):
                     )
                 )
     else:
-        if module.params["auth_protocol"] and module.params["privacy_protocol"]:
+        if module.params["state"] == "delete":
+            changed = True
+            v3 = flasharray.SnmpV3Patch(
+                auth_protocol="",
+                privacy_protocol="",
+                user=module.params["user"],
+            )
+        elif module.params["auth_protocol"] and module.params["privacy_protocol"]:
             changed = True
             v3 = flasharray.SnmpV3Patch(
                 auth_passphrase=module.params["auth_passphrase"],
