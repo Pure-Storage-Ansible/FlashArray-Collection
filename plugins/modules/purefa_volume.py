@@ -1642,7 +1642,11 @@ def main():
                 create_multi_volume(module, array, True)
             else:
                 create_volume(module, array)
-        elif state == "present" and volume and (size or bw_qos or iops_qos):
+        elif (
+            state == "present"
+            and volume
+            and (size or bw_qos or iops_qos or module.params["promotion_status"])
+        ):
             update_volume(module, array)
         elif state == "present" and not volume and module.params["move"]:
             module.fail_json(
