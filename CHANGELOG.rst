@@ -5,6 +5,14 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.16.1
+=======
+
+Bugfixes
+--------
+
+- purefa_volume - Fixed issue with promotion status not being called correctly
+
 v1.16.0
 =======
 

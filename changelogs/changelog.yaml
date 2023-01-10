@@ -246,6 +246,13 @@ releases:
         name: purefa_snmp_agent
         namespace: ''
     release_date: '2023-01-06'
+  1.16.1:
+    changes:
+      bugfixes:
+        - purefa_volume - Fixed issue with promotion status not being called correctly
+    fragments:
+      - 354_fix_promotion.yaml
+    release_date: '2023-01-10'
   1.4.0:
     changes:
       bugfixes:
