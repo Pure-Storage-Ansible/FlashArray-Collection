@@ -5,6 +5,40 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.16.1
+=======
+
+Bugfixes
+--------
+
+- purefa_volume - Fixed issue with promotion status not being called correctly
+
+v1.16.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_host - Add support for VLAN ID tagging for a host (Requires Purity//FA 6.3.5)
+- purefa_info - Add new subset alerts
+- purefa_info - Added default protection information to `config` section
+- purefa_volume - Added support for volume promotion/demotion
+
+Bugfixes
+--------
+
+- purefa - Remove unneeded REST version check as causes issues with REST mismatches
+- purefa_ds - Fixed dict syntax error
+- purefa_info - Fixed issue with DNS reporting in Purity//FA 6.4.0 with non-FA-File system
+- purefa_info - Fixed error in policies subsection due to API issue
+- purefa_info - Fixed race condition with protection groups
+- purefa_smtp - Fix parameter name
+
+New Modules
+-----------
+
+- purestorage.flasharray.purefa_snmp_agent - Configure the FlashArray SNMP Agent
+
 v1.15.0
 =======
 

@@ -214,6 +214,45 @@ releases:
       - 336_add_servicelist.yaml
       - 337_fix_non-prod_versions.yml
     release_date: '2022-11-08'
+  1.16.0:
+    changes:
+      bugfixes:
+        - purefa - Remove unneeded REST version check as causes issues with REST mismatches
+        - purefa_ds - Fixed dict syntax error
+        - purefa_info - Fiexed issue with DNS reporting in Purity//FA 6.4.0 with non-FA-File
+          system
+        - purefa_info - Fixed error in policies subsection due to API issue
+        - purefa_info - Fixed race condition with protection groups
+        - purefa_smtp - Fix parameter name
+      minor_changes:
+        - purefa_host - Add support for VLAN ID tagging for a host (Requires Purity//FA
+          6.3.5)
+        - purefa_info - Add new subset alerts
+        - purefa_info - Added default protection information to `config` section
+        - purefa_volume - Added support for volume promotion/demotion
+    fragments:
+      - 304_host_vlan.yaml
+      - 341_pg_400s.yaml
+      - 342_add_vol_promotion.yaml
+      - 343_fix_ds.yaml
+      - 344_fix_smtp.yaml
+      - 345_user_map.yaml
+      - 347_dns_fix.yaml
+      - 348_add_default_prot.yaml
+      - 349_add_alerts.yaml
+      - 351_fix_rest_check.yaml
+    modules:
+      - description: Configure the FlashArray SNMP Agent
+        name: purefa_snmp_agent
+        namespace: ''
+    release_date: '2023-01-06'
+  1.16.1:
+    changes:
+      bugfixes:
+        - purefa_volume - Fixed issue with promotion status not being called correctly
+    fragments:
+      - 354_fix_promotion.yaml
+    release_date: '2023-01-10'
   1.4.0:
     changes:
       bugfixes:

@@ -44,15 +44,8 @@ try:
 except ImportError:
     HAS_PYPURECLIENT = False
 
-HAS_REQUESTS = True
-try:
-    import requests
-except ImportError:
-    HAS_REQUESTS = False
-
 from os import environ
 import platform
-import re
 
 VERSION = 1.4
 USER_AGENT_BASE = "Ansible"
@@ -71,13 +64,14 @@ def get_system(module):
     if HAS_PURESTORAGE:
         if array_name and api:
             system = purestorage.FlashArray(
-                array_name, api_token=api, user_agent=user_agent
+                array_name, api_token=api, user_agent=user_agent, verify_https=False
             )
         elif environ.get("PUREFA_URL") and environ.get("PUREFA_API"):
             system = purestorage.FlashArray(
                 environ.get("PUREFA_URL"),
                 api_token=(environ.get("PUREFA_API")),
                 user_agent=user_agent,
+                verify_https=False,
             )
         else:
             module.fail_json(
@@ -105,20 +99,12 @@ def get_array(module):
     }
     array_name = module.params["fa_url"]
     api = module.params["api_token"]
-    if HAS_PYPURECLIENT and HAS_REQUESTS:
-        versions = requests.get(
-            "https://" + array_name + "/api/api_version", verify=False
-        )
-        valid_versions = [
-            x for x in versions.json()["version"] if not re.search("[a-zA-Z]", x)
-        ]
-        api_version = valid_versions[-1]
+    if HAS_PYPURECLIENT:
         if array_name and api:
             system = flasharray.Client(
                 target=array_name,
                 api_token=api,
                 user_agent=user_agent,
-                version=api_version,
             )
         elif environ.get("PUREFA_URL") and environ.get("PUREFA_API"):
             system = flasharray.Client(

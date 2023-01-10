@@ -95,14 +95,14 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Create v2c SNMP manager
-  puretorage.flasharray.urefa_snmp:
+  puretorage.flasharray.purefa_snmp:
     name: manager1
     community: public
     host: 10.21.22.23
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Create v3 SNMP manager
-  puretorage.flasharray.urefa_snmp:
+  puretorage.flasharray.purefa_snmp:
     name: manager2
     version: v3
     auth_protocol: MD5
