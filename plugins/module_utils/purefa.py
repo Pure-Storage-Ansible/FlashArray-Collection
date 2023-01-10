@@ -64,13 +64,14 @@ def get_system(module):
     if HAS_PURESTORAGE:
         if array_name and api:
             system = purestorage.FlashArray(
-                array_name, api_token=api, user_agent=user_agent
+                array_name, api_token=api, user_agent=user_agent, verify_https=False
             )
         elif environ.get("PUREFA_URL") and environ.get("PUREFA_API"):
             system = purestorage.FlashArray(
                 environ.get("PUREFA_URL"),
                 api_token=(environ.get("PUREFA_API")),
                 user_agent=user_agent,
+                verify_https=False,
             )
         else:
             module.fail_json(
