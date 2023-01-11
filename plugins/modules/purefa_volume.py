@@ -1645,7 +1645,7 @@ def main():
         elif (
             state == "present"
             and volume
-            and (size or bw_qos or iops_qos or module.params["promotion_status"])
+            and (size or bw_qos or iops_qos or module.params["promotion_state"])
         ):
             update_volume(module, array)
         elif state == "present" and not volume and module.params["move"]:
