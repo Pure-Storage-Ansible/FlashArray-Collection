@@ -253,6 +253,8 @@ releases:
     fragments:
       - 354_fix_promotion.yaml
     release_date: '2023-01-10'
+  1.16.2:
+    release_date: '2023-01-11'
   1.4.0:
     changes:
       bugfixes:
