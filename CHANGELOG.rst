@@ -8,6 +8,11 @@ Purestorage.Flasharray Release Notes
 v1.16.2
 =======
 
+Note
+----
+
+Republish
+
 v1.16.1
 =======
 
