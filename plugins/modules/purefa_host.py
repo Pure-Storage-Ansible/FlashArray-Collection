@@ -788,6 +788,7 @@ def update_host(module, array):
     """Modify a host"""
     changed = False
     renamed = False
+    vlan_changed = False
     if module.params["state"] == "present":
         if module.params["vlan"]:
             vlan_changed = _update_vlan(module)
