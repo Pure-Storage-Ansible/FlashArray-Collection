@@ -1087,10 +1087,8 @@ def copy_from_volume(module, array):
                         )
                     )
             else:
-                res = arrayv6.post_volume(
+                res = arrayv6.post_volumes(
                     overwrite=module.params["overwrite"],
-                    with_default_protection=module.params["with_default_protection"],
-                    add_to_protection_groups=module.params["add_to_pgs"],
                     names=[module.params["target"]],
                     volume=flasharray.VolumePost(
                         source=flasharray.Reference(name=module.params["name"])
