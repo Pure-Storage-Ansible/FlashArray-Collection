@@ -245,9 +245,9 @@ def main():
         module.fail_json(msg="Invalid subnet specified.")
     if not interface:
         module.fail_json(msg="Invalid interface specified.")
-    if ("iscsi" or "nvme-roce" or "file") not in interface["services"]:
+    if ("iscsi" or "nvme-roce" or "nvme-tcp" or "file") not in interface["services"]:
         module.fail_json(
-            msg="Invalid interface specified - must have service type of iSCSI, NVMe-RoCE or file enabled."
+            msg="Invalid interface specified - must have service type of iSCSI, NVMe-RoCE, NVMe-TCP or file enabled."
         )
     if subnet["vlan"]:
         vif_name = module.params["name"] + "." + str(subnet["vlan"])
