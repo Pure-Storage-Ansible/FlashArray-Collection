@@ -1411,7 +1411,8 @@ def generate_host_dict(module, array):
                 continue
         if host_all_info:
             for tport in range(0, len(host_all_info)):
-                tports.append(host_all_info[tport]["target_port"][0])
+                for itport in range(0, len(host_all_info[tport]["target_port"])):
+                    tports.append(host_all_info[tport]["target_port"][itport])
             all_tports = list(dict.fromkeys(tports))
         host_info[hostname] = {
             "hgroup": hosts[host]["hgroup"],
