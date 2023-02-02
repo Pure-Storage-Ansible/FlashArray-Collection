@@ -64,7 +64,6 @@ def update_name(module, array):
     """Change aray name"""
     changed = True
     if not module.check_mode:
-
         try:
             array.set(name=module.params["name"])
         except Exception:
