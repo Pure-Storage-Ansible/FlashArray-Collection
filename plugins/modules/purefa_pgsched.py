@@ -188,10 +188,16 @@ def get_pgroup(module, array):
     """Get Protection Group"""
     pgroup = None
     if ":" in module.params["name"]:
-        for pgrp in array.list_pgroups(on="*"):
-            if pgrp["name"] == module.params["name"]:
-                pgroup = pgrp
-                break
+        if "::" not in module.params["name"]:
+            for pgrp in array.list_pgroups(on="*"):
+                if pgrp["name"] == module.params["name"]:
+                    pgroup = pgrp
+                    break
+        else:
+            for pgrp in array.list_pgroups():
+                if pgrp["name"] == module.params["name"]:
+                    pgroup = pgrp
+                    break
     else:
         for pgrp in array.list_pgroups():
             if pgrp["name"] == module.params["name"]:
