@@ -1402,19 +1402,24 @@ def generate_host_dict(module, array):
     for host in range(0, len(hosts)):
         hostname = hosts[host]["name"]
         tports = []
+        all_tports = []
+        host_all_info = None
         try:
             host_all_info = array.get_host(hostname, all=True)
         except purestorage.PureHTTPError as err:
             if err.code == 400:
                 continue
         if host_all_info:
-            tports = host_all_info[0]["target_port"]
+            for tport in range(0, len(host_all_info)):
+                for itport in range(0, len(host_all_info[tport]["target_port"])):
+                    tports.append(host_all_info[tport]["target_port"][itport])
+            all_tports = list(dict.fromkeys(tports))
         host_info[hostname] = {
             "hgroup": hosts[host]["hgroup"],
             "iqn": hosts[host]["iqn"],
             "wwn": hosts[host]["wwn"],
             "personality": array.get_host(hostname, personality=True)["personality"],
-            "target_port": tports,
+            "target_port": all_tports,
             "volumes": [],
         }
         host_connections = array.list_host_connections(hostname)
