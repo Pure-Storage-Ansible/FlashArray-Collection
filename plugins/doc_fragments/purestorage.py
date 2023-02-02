@@ -9,7 +9,6 @@ __metaclass__ = type
 
 
 class ModuleDocFragment(object):
-
     # Standard Pure Storage documentation fragment
     DOCUMENTATION = r"""
 options:
