@@ -237,7 +237,10 @@ def main():
     argument_spec.update(
         dict(
             name=dict(required=True, type="str"),
-            role=dict(type="str", choices=["readonly", "ops_admin", "storage_admin", "array_admin"]),
+            role=dict(
+                type="str",
+                choices=["readonly", "ops_admin", "storage_admin", "array_admin"],
+            ),
             state=dict(type="str", default="present", choices=["absent", "present"]),
             password=dict(type="str", no_log=True),
             old_password=dict(type="str", no_log=True),
