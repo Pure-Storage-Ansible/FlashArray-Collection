@@ -461,7 +461,7 @@ def _set_preferred_array(module, array):
             module.params["name"], preferred_array=module.params["preferred_array"]
         )
     else:
-        array.set_host(module.params["name"], personality="")
+        array.set_host(module.params["name"], preferred_array=[])
 
 
 def _set_chap_security(module, array):
