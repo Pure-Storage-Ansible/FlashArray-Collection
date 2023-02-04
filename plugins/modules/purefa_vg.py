@@ -90,12 +90,14 @@ options:
     - DMM Priority Adjustment operator
     type: str
     choices: [ +, '-' ]
+    default: +
     version_added: '1.13.0'
   priority_value:
     description:
     - DMM Priority Adjustment value
     type: int
     choices: [ 0, 10 ]
+    default: 0
     version_added: '1.13.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
@@ -274,29 +276,7 @@ def make_vgroup(module, array):
     """Create Volume Group"""
     changed = True
     api_version = array._list_available_rest_versions()
-    if PRIORITY_API_VERSION in api_version:
-        array = get_array(module)
-        volume_group = flasharray.VolumeGroupPost(
-            name=module.params["name"],
-            qos=flasharray.Qos(
-                bandwidth_limit=int(human_to_bytes(module.params["bw_qos"])),
-                iops_limit=int(human_to_real(module.params["iops_qos"])),
-            ),
-            priority_adjustment=flasharray.PriorityAdjustment(
-                priority_adjustment_operator=module.params["priority_operator"],
-                priority_adjustment_value=module.params["priority_value"],
-            ),
-        )
-        changed = True
-        if not module.check_mode:
-            res = array.post_volume_groups(volume_group=volume_group)
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to create volume group {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
-    elif (
+    if (
         module.params["bw_qos"]
         or module.params["iops_qos"]
         and VG_IOPS_VERSION in api_version
@@ -376,15 +356,34 @@ def make_vgroup(module, array):
                         module.params["name"]
                     )
                 )
+    if PRIORITY_API_VERSION in api_version:
+        array = get_array(module)
+        volume_group = flasharray.VolumeGroup(
+            priority_adjustment=flasharray.PriorityAdjustment(
+                priority_adjustment_operator=module.params["priority_operator"],
+                priority_adjustment_value=module.params["priority_value"],
+            ),
+        )
+        if not module.check_mode:
+            res = array.patch_volume_groups(
+                names=[module.params["name"]], volume_group=volume_group
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to set priority adjustment for volume group {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
 
     module.exit_json(changed=changed)
 
 
-def make_multi_vgroups(module):
+def make_multi_vgroups(module, array):
     """Create multiple Volume Groups"""
     changed = True
     bw_qos_size = iops_qos_size = 0
     names = []
+    api_version = array._list_available_rest_versions()
     array = get_array(module)
     for vg_num in range(
         module.params["start"], module.params["count"] + module.params["start"]
@@ -430,6 +429,22 @@ def make_multi_vgroups(module):
                     res.errors[0].message,
                 )
             )
+        if PRIORITY_API_VERSION in api_version:
+            volume_group = flasharray.VolumeGroup(
+                priority_adjustment=flasharray.PriorityAdjustment(
+                    priority_adjustment_operator=module.params["priority_operator"],
+                    priority_adjustment_value=module.params["priority_value"],
+                ),
+            )
+            res = array.patch_volume_groups(names=names, volume_group=volume_group)
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to set priority adjustments for multi-vgroup {0}#{1}. Error: {2}".format(
+                        module.params["name"],
+                        module.params["suffix"],
+                        res.errors[0].message,
+                    )
+                )
     module.exit_json(changed=changed)
 
 
@@ -612,8 +627,8 @@ def main():
             start=dict(type="int", default=0),
             digits=dict(type="int", default=1),
             suffix=dict(type="str"),
-            priority_operator=dict(type="str", choices=["+", "-"]),
-            priority_value=dict(type="int", choices=[0, 10]),
+            priority_operator=dict(type="str", choices=["+", "-"], default="+"),
+            priority_value=dict(type="int", choices=[0, 10], default=0),
             eradicate=dict(type="bool", default=False),
         )
     )
@@ -644,7 +659,7 @@ def main():
             module.fail_json(msg="'start' must be a positive number")
         vgroup = get_multi_vgroups(module)
         if state == "present" and not vgroup:
-            make_multi_vgroups(module)
+            make_multi_vgroups(module, array)
         elif state == "absent" and not vgroup:
             module.exit_json(changed=False)
         else:

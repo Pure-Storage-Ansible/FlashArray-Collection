@@ -149,6 +149,13 @@ options:
     type: list
     elements: str
     version_added: '1.14.0'
+  promotion_state:
+    description:
+    - Promote or demote the volume so that the volume starts or
+      stops accepting write requests.
+    type: str
+    choices: [ promoted, demoted ]
+    version_added: '1.16.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -332,6 +339,7 @@ PROMOTE_API_VERSION = "1.19"
 PURE_OUI = "naa.624a9370"
 PRIORITY_API_VERSION = "2.11"
 DEFAULT_API_VERSION = "2.16"
+VOLUME_PROMOTION_API_VERSION = "2.2"
 
 
 def _create_nguid(serial):
@@ -730,6 +738,27 @@ def create_volume(module, array):
                 module.fail_json(
                     msg="Volume {0} creation failed.".format(module.params["name"])
                 )
+    if VOLUME_PROMOTION_API_VERSION in api_version and module.params["promotion_state"]:
+        arrayv6 = get_array(module)
+        volume = flasharray.VolumePatch(
+            requested_promotion_state=module.params["promotion_state"]
+        )
+        changed = True
+        if not module.check_mode:
+            res = arrayv6.patch_volumes(names=[module.params["name"]], volume=volume)
+            if res.status_code != 200:
+                arrayv6.patch_volumes(
+                    names=[module.params["name"]],
+                    volume=flasharray.VolumePatch(destroyed=True),
+                )
+                arrayv6.delete_volumes(names=[module.params["name"]])
+                module.fail_json(
+                    msg="Failed to set Promotion State for volume {0}.".format(
+                        module.params["name"]
+                    )
+                )
+            else:
+                volfact["promotion_state"] = module.params["promotion_state"]
     if PRIORITY_API_VERSION in api_version and module.params["priority_operator"]:
         arrayv6 = get_array(module)
         volume = flasharray.VolumePatch(
@@ -874,6 +903,25 @@ def create_multi_volume(module, array, single=False):
             )
         else:
             if (
+                VOLUME_PROMOTION_API_VERSION in api_version
+                and module.params["promotion_state"]
+            ):
+                volume = flasharray.VolumePatch(
+                    requested_promotion_state=module.params["promotion_state"]
+                )
+                prom_res = array.patch_volumes(names=names, volume=volume)
+                if prom_res.status_code != 200:
+                    array.patch_volumes(
+                        names=names,
+                        volume=flasharray.VolumePatch(destroyed=True),
+                    )
+                    array.delete_volumes(names=names)
+                    module.warn(
+                        "Failed to set promotion status on volumes. Error: {0}".format(
+                            prom_res.errors[0].message
+                        )
+                    )
+            if (
                 PRIORITY_API_VERSION in api_version
                 and module.params["priority_operator"]
             ):
@@ -914,6 +962,13 @@ def create_multi_volume(module, array, single=False):
                     ].qos.bandwidth_limit
                 if iops_qos_size != 0:
                     volfact[vol_name]["iops_limit"] = temp[count].qos.iops_limit
+                if (
+                    VOLUME_PROMOTION_API_VERSION in api_version
+                    and module.params["promotion_state"]
+                ):
+                    volfact[vol_name]["promotion_status"] = prio_temp[
+                        count
+                    ].promotion_status
                 if (
                     PRIORITY_API_VERSION in api_version
                     and module.params["priority_operator"]
@@ -1032,10 +1087,8 @@ def copy_from_volume(module, array):
                         )
                     )
             else:
-                res = arrayv6.post_volume(
+                res = arrayv6.post_volumes(
                     overwrite=module.params["overwrite"],
-                    with_default_protection=module.params["with_default_protection"],
-                    add_to_protection_groups=module.params["add_to_pgs"],
                     names=[module.params["target"]],
                     volume=flasharray.VolumePost(
                         source=flasharray.Reference(name=module.params["name"])
@@ -1099,7 +1152,9 @@ def update_volume(module, array):
                             )
                         )
     if module.params["bw_qos"] and QOS_API_VERSION in api_version:
-        if human_to_bytes(module.params["bw_qos"]) != vol_qos["bandwidth_limit"]:
+        if int(human_to_bytes(module.params["bw_qos"])) != int(
+            vol_qos["bandwidth_limit"]
+        ):
             if module.params["bw_qos"] == "0":
                 changed = True
                 if not module.check_mode:
@@ -1136,7 +1191,7 @@ def update_volume(module, array):
                     )
                 )
     if module.params["iops_qos"] and IOPS_API_VERSION in api_version:
-        if human_to_real(module.params["iops_qos"]) != vol_qos["iops_limit"]:
+        if int(human_to_real(module.params["iops_qos"])) != int(vol_qos["iops_limit"]):
             if module.params["iops_qos"] == "0":
                 changed = True
                 if not module.check_mode:
@@ -1167,10 +1222,32 @@ def update_volume(module, array):
                         module.params["bw_qos"]
                     )
                 )
+    if VOLUME_PROMOTION_API_VERSION in api_version and module.params["promotion_state"]:
+        arrayv6 = get_array(module)
+        vol6 = list(arrayv6.get_volumes(names=[module.params["name"]]).items)[0]
+        if module.params["promotion_state"] != vol6.promotion_status:
+            volume_patch = flasharray.VolumePatch(
+                requested_promotion_state=module.params["promotion_state"]
+            )
+            changed = True
+            if not module.check_mode:
+                prom_res = arrayv6.patch_volumes(
+                    names=[module.params["name"]], volume=volume_patch
+                )
+                if prom_res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to change promotion status for volume {0}.".format(
+                            module.params["name"]
+                        )
+                    )
+                else:
+                    if not volfact:
+                        volfact = array.get_volume(module.params["name"])
+                        volfact["promotion_status"] = module.params["promotion_state"]
     if PRIORITY_API_VERSION in api_version and module.params["priority_operator"]:
         arrayv6 = get_array(module)
-        change_prio = False
         volv6 = list(arrayv6.get_volumes(names=[module.params["name"]]).items)[0]
+        change_prio = False
         if (
             module.params["priority_operator"]
             != volv6.priority_adjustment.priority_adjustment_operator
@@ -1468,6 +1545,7 @@ def main():
             size=dict(type="str"),
             with_default_protection=dict(type="bool", default=True),
             add_to_pgs=dict(type="list", elements="str"),
+            promotion_state=dict(type="str", choices=["promoted", "demoted"]),
         )
     )
 
@@ -1584,7 +1662,11 @@ def main():
                 create_multi_volume(module, array, True)
             else:
                 create_volume(module, array)
-        elif state == "present" and volume and (size or bw_qos or iops_qos):
+        elif (
+            state == "present"
+            and volume
+            and (size or bw_qos or iops_qos or module.params["promotion_state"])
+        ):
             update_volume(module, array)
         elif state == "present" and not volume and module.params["move"]:
             module.fail_json(

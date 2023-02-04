@@ -149,6 +149,14 @@ options:
     - Password length between 12 and 255 characters
     - To clear the username/password pair use I(clear) as the password
     - SETTING A PASSWORD IS NON-IDEMPOTENT
+  vlan:
+    type: str
+    description:
+    - The VLAN ID that the host is associated with.
+    - If not set or set to I(any), the host can access any VLAN.
+    - If set to I(untagged), the host can only access untagged VLANs.
+    - If set to a number between 1 and 4094, the host can only access the specified VLAN with that number.
+    version_added: '1.16.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -307,6 +315,7 @@ AC_REQUIRED_API_VERSION = "1.14"
 PREFERRED_ARRAY_API_VERSION = "1.15"
 NVME_API_VERSION = "1.16"
 MULTI_HOST_VERSION = "2.2"
+VLAN_VERSION = "2.16"
 
 
 def _is_cbs(array, is_cbs=False):
@@ -452,7 +461,7 @@ def _set_preferred_array(module, array):
             module.params["name"], preferred_array=module.params["preferred_array"]
         )
     else:
-        array.set_host(module.params["name"], personality="")
+        array.set_host(module.params["name"], preferred_array=[])
 
 
 def _set_chap_security(module, array):
@@ -625,6 +634,40 @@ def _update_preferred_array(module, array, answer=False):
     return answer
 
 
+def _set_vlan(module):
+    array = get_array(module)
+    res = array.patch_hosts(
+        names=[module.params["name"]],
+        host=flasharray.HostPatch(vlan=module.params["vlan"]),
+    )
+    if res.status_code != 200:
+        module.warn(
+            "Failed to set host VLAN ID. Error: {0}".format(res.errors[0].message)
+        )
+
+
+def _update_vlan(module):
+    changed = False
+    array = get_array(module)
+    host_vlan = getattr(
+        list(array.get_hosts(names=[module.params["name"]]).items)[0], "vlan", None
+    )
+    if module.params["vlan"] != host_vlan:
+        changed = True
+        if not module.check_mode:
+            res = array.patch_hosts(
+                names=[module.params["name"]],
+                host=flasharray.HostPatch(vlan=module.params["vlan"]),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to update host VLAN ID. Error: {0}".format(
+                        res.errors[0].message
+                    )
+                )
+    return changed
+
+
 def get_multi_hosts(module):
     """Return True is all hosts exist"""
     hosts = []
@@ -712,6 +755,8 @@ def make_host(module, array):
                 msg="Host {0} creation failed.".format(module.params["name"])
             )
         try:
+            if module.params["vlan"]:
+                _set_vlan(module)
             _set_host_initiators(module, array)
             api_version = array._list_available_rest_versions()
             if AC_REQUIRED_API_VERSION in api_version and module.params["personality"]:
@@ -743,10 +788,12 @@ def update_host(module, array):
     """Modify a host"""
     changed = False
     renamed = False
+    vlan_changed = False
     if module.params["state"] == "present":
+        if module.params["vlan"]:
+            vlan_changed = _update_vlan(module)
         if module.params["rename"]:
             if not rename_exists(module, array):
-                changed = True
                 if not module.check_mode:
                     try:
                         array.rename_host(
@@ -788,6 +835,7 @@ def update_host(module, array):
             or pers_changed
             or pref_changed
             or chap_changed
+            or vlan_changed
             or renamed
         )
     else:
@@ -860,6 +908,7 @@ def main():
                 ],
             ),
             preferred_array=dict(type="list", elements="str"),
+            vlan=dict(type="str"),
         )
     )
 
@@ -900,6 +949,26 @@ def main():
         suffix_len = len(module.params["suffix"])
     else:
         suffix_len = 0
+    if module.params["vlan"]:
+        if not HAS_PURESTORAGE:
+            module.fail_json(
+                msg="py-pure-client sdk is required to support 'vlan' parameter"
+            )
+        if VLAN_VERSION not in api_version:
+            module.fail_json(
+                msg="'vlan' parameter is not supported until Purity//FA 6.3.4 or higher"
+            )
+        if not module.params["vlan"] in ["any", "untagged"]:
+            try:
+                vlan = int(module.params["vlan"])
+                if vlan not in range(1, 4094):
+                    module.fail_json(
+                        msg="VLAN must be set to a number between 1 and 4094"
+                    )
+            except Exception:
+                module.fail_json(
+                    msg="Invalid string for VLAN. Must be 'any', 'untagged' or a number between 1 and 4094"
+                )
     if module.params["count"]:
         if not HAS_PURESTORAGE:
             module.fail_json(

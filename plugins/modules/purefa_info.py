@@ -34,8 +34,8 @@ options:
         Possible values for this include all, minimum, config, performance,
         capacity, network, subnet, interfaces, hgroups, pgroups, hosts,
         admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
-        arrays, certs, kmip, clients, policies, dir_snaps, filesystems
-        and virtual_machines.
+        arrays, certs, kmip, clients, policies, dir_snaps, filesystems,
+        alerts and virtual_machines.
     type: list
     elements: str
     required: false
@@ -221,6 +221,7 @@ purefa_info:
                 "personality": null,
                 "preferred_array": [],
                 "target_port": [],
+                "vlan": null,
                 "wwn": []
             },
             "docker-host": {
@@ -235,6 +236,7 @@ purefa_info:
                     "CT0.ETH4",
                     "CT1.ETH4"
                 ],
+                "vlan": "any",
                 "wwn": [],
             }
         },
@@ -442,6 +444,10 @@ try:
     from packaging import version
 except ImportError:
     HAS_PACKAGING = False
+try:
+    from purestorage import purestorage
+except ImportError:
+    purestorage = None
 import time
 
 SEC_TO_DAY = 86400000
@@ -466,7 +472,9 @@ SAFE_MODE_VERSION = "2.10"
 PER_PG_VERSION = "2.13"
 SAML2_VERSION = "2.11"
 NFS_USER_MAP_VERSION = "2.15"
+DEFAULT_PROT_API_VERSION = "2.16"
 VM_VERSION = "2.14"
+VLAN_VERSION = "2.17"
 
 
 def generate_default_dict(module, array):
@@ -617,10 +625,15 @@ def generate_config_dict(module, array):
             dns_configs = list(arrayv6.get_dns().items)
             for config in range(0, len(dns_configs)):
                 config_info["dns"][dns_configs[config].services[0]] = {
-                    "source": dns_configs[config].source.name,
                     "nameservers": dns_configs[config].nameservers,
                     "domain": dns_configs[config].domain,
                 }
+                try:
+                    config_info["dns"][dns_configs[config].services[0]][
+                        "source"
+                    ] = dns_configs[config].source["name"]
+                except Exception:
+                    pass
         if SAML2_VERSION in api_version:
             config_info["saml2sso"] = {}
             saml2 = list(arrayv6.get_sso_saml2_idps().items)
@@ -666,6 +679,28 @@ def generate_config_dict(module, array):
                     }
             except Exception:
                 module.warn("FA-Files is not enabled on this array")
+        if DEFAULT_PROT_API_VERSION in api_version:
+            config_info["default_protections"] = {}
+            default_prots = list(arrayv6.get_container_default_protections().items)
+            for prot in range(0, len(default_prots)):
+                container = getattr(default_prots[prot], "name", "-")
+                config_info["default_protections"][container] = {
+                    "protections": [],
+                    "type": getattr(default_prots[prot], "type", "array"),
+                }
+                for container_prot in range(
+                    0, len(default_prots[prot].default_protections)
+                ):
+                    config_info["default_protections"][container]["protections"].append(
+                        {
+                            "type": default_prots[prot]
+                            .default_protections[container_prot]
+                            .type,
+                            "name": default_prots[prot]
+                            .default_protections[container_prot]
+                            .name,
+                        }
+                    )
 
     else:
         config_info["directory_service"] = {}
@@ -821,7 +856,7 @@ def generate_policies_dict(array, quota_available, nfs_user_mapping):
                 policy_info[p_name]["rules"].append(smb_rules_dict)
         if policies[policy].policy_type == "nfs":
             if nfs_user_mapping:
-                nfs_policy = list(array.get_policies(names=[p_name]).items)[0]
+                nfs_policy = list(array.get_policies_nfs(names=[p_name]).items)[0]
                 policy_info[p_name][
                     "user_mapping_enabled"
                 ] = nfs_policy.user_mapping_enabled
@@ -1360,22 +1395,31 @@ def generate_vol_dict(module, array):
     return volume_info
 
 
-def generate_host_dict(array):
+def generate_host_dict(module, array):
     api_version = array._list_available_rest_versions()
     host_info = {}
     hosts = array.list_hosts()
     for host in range(0, len(hosts)):
         hostname = hosts[host]["name"]
         tports = []
-        host_all_info = array.get_host(hostname, all=True)
+        all_tports = []
+        host_all_info = None
+        try:
+            host_all_info = array.get_host(hostname, all=True)
+        except purestorage.PureHTTPError as err:
+            if err.code == 400:
+                continue
         if host_all_info:
-            tports = host_all_info[0]["target_port"]
+            for tport in range(0, len(host_all_info)):
+                for itport in range(0, len(host_all_info[tport]["target_port"])):
+                    tports.append(host_all_info[tport]["target_port"][itport])
+            all_tports = list(dict.fromkeys(tports))
         host_info[hostname] = {
             "hgroup": hosts[host]["hgroup"],
             "iqn": hosts[host]["iqn"],
             "wwn": hosts[host]["wwn"],
             "personality": array.get_host(hostname, personality=True)["personality"],
-            "target_port": tports,
+            "target_port": all_tports,
             "volumes": [],
         }
         host_connections = array.list_host_connections(hostname)
@@ -1397,6 +1441,12 @@ def generate_host_dict(array):
         for host in range(0, len(hosts)):
             hostname = hosts[host]["name"]
             host_info[hostname]["preferred_array"] = hosts[host]["preferred_array"]
+    if VLAN_VERSION in api_version:
+        arrayv6 = get_array(module)
+        hosts = list(arrayv6.get_hosts().items)
+        for host in range(0, len(hosts)):
+            hostname = hosts[host].name
+            host_info[hostname]["vlan"] = getattr(hosts[host], "vlan", None)
     return host_info
 
 
@@ -1418,8 +1468,15 @@ def generate_pgroups_dict(module, array):
             "targets": pgroups[pgroup]["targets"],
             "volumes": pgroups[pgroup]["volumes"],
         }
-        prot_sched = array.get_pgroup(protgroup, schedule=True)
-        prot_reten = array.get_pgroup(protgroup, retention=True)
+        try:
+            prot_sched = array.get_pgroup(protgroup, schedule=True)
+            prot_reten = array.get_pgroup(protgroup, retention=True)
+            snap_transfers = array.get_pgroup(
+                protgroup, snap=True, transfer=True, pending=True
+            )
+        except purestorage.PureHTTPError as err:
+            if err.code == 400:
+                continue
         if prot_sched["snap_enabled"] or prot_sched["replicate_enabled"]:
             pgroups_info[protgroup]["snap_frequency"] = prot_sched["snap_frequency"]
             pgroups_info[protgroup]["replicate_frequency"] = prot_sched[
@@ -1440,9 +1497,6 @@ def generate_pgroups_dict(module, array):
             pgroups_info[protgroup]["days"] = prot_reten["days"]
             pgroups_info[protgroup]["all_for"] = prot_reten["all_for"]
             pgroups_info[protgroup]["target_all_for"] = prot_reten["target_all_for"]
-        snap_transfers = array.get_pgroup(
-            protgroup, snap=True, transfer=True, pending=True
-        )
         pgroups_info[protgroup]["snaps"] = {}
         for snap_transfer in range(0, len(snap_transfers)):
             snap = snap_transfers[snap_transfer]["name"]
@@ -1930,6 +1984,61 @@ def generate_vm_dict(array):
     return vm_info
 
 
+def generate_alerts_dict(array):
+    alerts_info = {}
+    alerts = list(array.get_alerts().items)
+    for alert in range(0, len(alerts)):
+        name = alerts[alert].name
+        try:
+            notified_time = alerts[alert].notified / 1000
+            notified_datetime = time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(notified_time)
+            )
+        except AttributeError:
+            notified_datetime = ""
+        try:
+            closed_time = alerts[alert].closed / 1000
+            closed_datetime = time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(closed_time)
+            )
+        except AttributeError:
+            closed_datetime = ""
+        try:
+            updated_time = alerts[alert].updated / 1000
+            updated_datetime = time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(updated_time)
+            )
+        except AttributeError:
+            updated_datetime = ""
+        try:
+            created_time = alerts[alert].created / 1000
+            created_datetime = time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(created_time)
+            )
+        except AttributeError:
+            updated_datetime = ""
+        alerts_info[name] = {
+            "flagged": alerts[alert].flagged,
+            "category": alerts[alert].category,
+            "code": alerts[alert].code,
+            "issue": alerts[alert].issue,
+            "kb_url": alerts[alert].knowledge_base_url,
+            "summary": alerts[alert].summary,
+            "id": alerts[alert].id,
+            "state": alerts[alert].state,
+            "severity": alerts[alert].severity,
+            "component_name": alerts[alert].component_name,
+            "component_type": alerts[alert].component_type,
+            "created": created_datetime,
+            "closed": closed_datetime,
+            "notified": notified_datetime,
+            "updated": updated_datetime,
+            "actual": getattr(alerts[alert], "actual", ""),
+            "expected": getattr(alerts[alert], "expected", ""),
+        }
+    return alerts_info
+
+
 def generate_vmsnap_dict(array):
     vmsnap_info = {}
     virt_snaps = list(array.get_virtual_machine_snapshots(vm_type="vvol").items)
@@ -2015,7 +2124,7 @@ def main():
     if "interfaces" in subset or "all" in subset:
         info["interfaces"] = generate_interfaces_dict(array)
     if "hosts" in subset or "all" in subset:
-        info["hosts"] = generate_host_dict(array)
+        info["hosts"] = generate_host_dict(module, array)
     if "volumes" in subset or "all" in subset:
         info["volumes"] = generate_vol_dict(module, array)
         info["deleted_volumes"] = generate_del_vol_dict(module, array)
@@ -2070,6 +2179,8 @@ def main():
             info["dir_snaps"] = generate_dir_snaps_dict(array_v6)
         if "snapshots" in subset or "all" in subset:
             info["pg_snapshots"] = generate_pgsnaps_dict(array_v6)
+        if "alerts" in subset or "all" in subset:
+            info["alerts"] = generate_alerts_dict(array_v6)
         if VM_VERSION in api_version and (
             "virtual_machines" in subset or "all" in subset
         ):
