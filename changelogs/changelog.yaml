@@ -255,6 +255,31 @@ releases:
     release_date: '2023-01-10'
   1.16.2:
     release_date: '2023-01-11'
+  1.17.0:
+    changes:
+      bugfixes:
+        - purefa_host - Fixed parameter name
+        - purefa_info - Fix missing FC target ports for host
+        - purefa_pgsched - Fix error when setting schedule for pod based protection
+          group
+        - purefa_vg - Fix issue with VG creation on newer Purity versions
+        - purefa_volume - Ensure promotion_stateus is returned correctly on creation
+        - purefa_volume - Fix bug when overwriting volume using invalid parmaeters
+        - purefa_volume - Fixed idempotency bug when creating volumes with QoS
+      minor_changes:
+        - purefa_network - Added support for NVMe-RoCE and NVMe-TCP service types
+        - purefa_user - Added Ops Admin role to choices
+        - purefa_vlan - Added support for NVMe-TCP service type
+    fragments:
+      - 360_fix_volume.yaml
+      - 363_overwrite_combo.yaml
+      - 364_fc_targets.yaml
+      - 365_pod_pgsched.yaml
+      - 366_add_nvme_types.yaml
+      - 367_fix_vg.yaml
+      - 369_fix_host.yaml
+      - 370_add_user_role.yaml
+    release_date: '2023-02-16'
   1.4.0:
     changes:
       bugfixes:
