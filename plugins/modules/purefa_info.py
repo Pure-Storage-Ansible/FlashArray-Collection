@@ -792,8 +792,11 @@ def generate_pgsnaps_dict(array):
             "suffix": snapshots[snapshot].suffix,
             "snapshot_space": snapshots[snapshot].space.snapshots,
         }
-        if pgsnaps_info[s_name]["destroyed"]:
-            pgsnaps_info[s_name]["time_remaining"] = snapshots[snapshot].time_remaining
+        try:
+            if pgsnaps_info[s_name]["destroyed"]:
+                pgsnaps_info[s_name]["time_remaining"] = snapshots[snapshot].time_remaining
+        except AttributeError:
+            pass
         try:
             pgsnaps_info[s_name]["manual_eradication"] = snapshots[
                 snapshot
