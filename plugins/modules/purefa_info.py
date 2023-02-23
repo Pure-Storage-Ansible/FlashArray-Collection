@@ -794,7 +794,9 @@ def generate_pgsnaps_dict(array):
         }
         try:
             if pgsnaps_info[s_name]["destroyed"]:
-                pgsnaps_info[s_name]["time_remaining"] = snapshots[snapshot].time_remaining
+                pgsnaps_info[s_name]["time_remaining"] = snapshots[
+                    snapshot
+                ].time_remaining
         except AttributeError:
             pass
         try:
