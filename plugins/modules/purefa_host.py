@@ -461,7 +461,7 @@ def _set_preferred_array(module, array):
             module.params["name"], preferred_array=module.params["preferred_array"]
         )
     else:
-        array.set_host(module.params["name"], personality="")
+        array.set_host(module.params["name"], preferred_array=[])
 
 
 def _set_chap_security(module, array):
@@ -788,6 +788,7 @@ def update_host(module, array):
     """Modify a host"""
     changed = False
     renamed = False
+    vlan_changed = False
     if module.params["state"] == "present":
         if module.params["vlan"]:
             vlan_changed = _update_vlan(module)

@@ -65,7 +65,7 @@ options:
       - Note that I(system) is only valid for Cloud Block Store.
     elements: str
     type: list
-    choices: [ "replication", "management", "ds", "file", "iscsi", "scsi-fc", "nvme-fc", "system"]
+    choices: [ "replication", "management", "ds", "file", "iscsi", "scsi-fc", "nvme-fc", "nvme-tcp", "nvme-roce", "system"]
     version_added: '1.15.0'
 extends_documentation_fragment:
     - purestorage.flasharray.purestorage.fa
@@ -382,6 +382,8 @@ def main():
                     "iscsi",
                     "scsi-fc",
                     "nvme-fc",
+                    "nvme-tcp",
+                    "nvme-roce",
                     "system",
                 ],
             ),

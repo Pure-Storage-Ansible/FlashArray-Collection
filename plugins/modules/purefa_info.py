@@ -792,8 +792,13 @@ def generate_pgsnaps_dict(array):
             "suffix": snapshots[snapshot].suffix,
             "snapshot_space": snapshots[snapshot].space.snapshots,
         }
-        if pgsnaps_info[s_name]["destroyed"]:
-            pgsnaps_info[s_name]["time_remaining"] = snapshots[snapshot].time_remaining
+        try:
+            if pgsnaps_info[s_name]["destroyed"]:
+                pgsnaps_info[s_name]["time_remaining"] = snapshots[
+                    snapshot
+                ].time_remaining
+        except AttributeError:
+            pass
         try:
             pgsnaps_info[s_name]["manual_eradication"] = snapshots[
                 snapshot
@@ -1402,19 +1407,24 @@ def generate_host_dict(module, array):
     for host in range(0, len(hosts)):
         hostname = hosts[host]["name"]
         tports = []
+        all_tports = []
+        host_all_info = None
         try:
             host_all_info = array.get_host(hostname, all=True)
         except purestorage.PureHTTPError as err:
             if err.code == 400:
                 continue
         if host_all_info:
-            tports = host_all_info[0]["target_port"]
+            for tport in range(0, len(host_all_info)):
+                for itport in range(0, len(host_all_info[tport]["target_port"])):
+                    tports.append(host_all_info[tport]["target_port"][itport])
+            all_tports = list(dict.fromkeys(tports))
         host_info[hostname] = {
             "hgroup": hosts[host]["hgroup"],
             "iqn": hosts[host]["iqn"],
             "wwn": hosts[host]["wwn"],
             "personality": array.get_host(hostname, personality=True)["personality"],
-            "target_port": tports,
+            "target_port": all_tports,
             "volumes": [],
         }
         host_connections = array.list_host_connections(hostname)
@@ -1438,9 +1448,9 @@ def generate_host_dict(module, array):
             host_info[hostname]["preferred_array"] = hosts[host]["preferred_array"]
     if VLAN_VERSION in api_version:
         arrayv6 = get_array(module)
-        hosts = list(arrayv6.get_hosts())
+        hosts = list(arrayv6.get_hosts().items)
         for host in range(0, len(hosts)):
-            hostname = hosts.item[host].name
+            hostname = hosts[host].name
             host_info[hostname]["vlan"] = getattr(hosts[host], "vlan", None)
     return host_info
 

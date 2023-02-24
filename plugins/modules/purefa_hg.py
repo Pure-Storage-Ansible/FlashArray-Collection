@@ -147,7 +147,6 @@ def rename_exists(module, array):
 
 
 def get_hostgroup(module, array):
-
     hostgroup = None
 
     for host in array.list_hgroups():

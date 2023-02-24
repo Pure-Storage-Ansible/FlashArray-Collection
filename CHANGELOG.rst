@@ -5,6 +5,32 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.17.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_network - Added support for NVMe-RoCE and NVMe-TCP service types
+- purefa_user - Added Ops Admin role to choices
+- purefa_vlan - Added support for NVMe-TCP service type
+
+Bugfixes
+--------
+
+- purefa_host - Fixed parameter name
+- purefa_info - Fix missing FC target ports for host
+- purefa_pgsched - Fix error when setting schedule for pod based protection group
+- purefa_vg - Fix issue with VG creation on newer Purity versions
+- purefa_volume - Ensure promotion_status is returned correctly on creation
+- purefa_volume - Fix bug when overwriting volume using invalid parmaeters
+- purefa_volume - Fixed idempotency bug when creating volumes with QoS
+
+v1.16.2
+=======
+
+- Republish
+
 v1.16.1
 =======
 
@@ -29,7 +55,7 @@ Bugfixes
 
 - purefa - Remove unneeded REST version check as causes issues with REST mismatches
 - purefa_ds - Fixed dict syntax error
-- purefa_info - Fixed issue with DNS reporting in Purity//FA 6.4.0 with non-FA-File system
+- purefa_info - Fiexed issue with DNS reporting in Purity//FA 6.4.0 with non-FA-File system
 - purefa_info - Fixed error in policies subsection due to API issue
 - purefa_info - Fixed race condition with protection groups
 - purefa_smtp - Fix parameter name
