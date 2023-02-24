@@ -1450,8 +1450,9 @@ def generate_host_dict(module, array):
         arrayv6 = get_array(module)
         hosts = list(arrayv6.get_hosts().items)
         for host in range(0, len(hosts)):
-            hostname = hosts[host].name
-            host_info[hostname]["vlan"] = getattr(hosts[host], "vlan", None)
+            if hosts[host].is_local:
+                hostname = hosts[host].name
+                host_info[hostname]["vlan"] = getattr(hosts[host], "vlan", None)
     return host_info
 
 
