@@ -256,7 +256,7 @@ def get_pending_pgroup(module, array):
     if ":" in module.params["name"]:
         if "::" not in module.params["name"]:
             for pgrp in array.list_pgroups(pending=True, on="*"):
-                if pgrp["name"] == module.params["name"] and pgrp["time_remaining"]:
+                if pgrp["name"] == module.params["name"]:
                     pgroup = pgrp
                     break
         else:
