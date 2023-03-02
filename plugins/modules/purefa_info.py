@@ -994,18 +994,18 @@ def generate_capacity_dict(module, array):
     capacity_info = {}
     api_version = array._list_available_rest_versions()
     if V6_MINIMUM_API_VERSION in api_version:
-        old_version = bool(SHARED_CAP_API_VERSION in api_version)
+        new_version = bool(SHARED_CAP_API_VERSION in api_version)
         arrayv6 = get_array(module)
         total_capacity = list(arrayv6.get_arrays().items)[0].capacity
         capacity = list(arrayv6.get_arrays_space().items)[0]
-        capacity_info["provisioned_space"] = getattr(
-            capacity.space, "total_provisioned", 0
-        )
-        capacity_info["free_space"] = total_capacity - getattr(
-            capacity.space, "total_physical", 0
-        )
         capacity_info["total_capacity"] = total_capacity
-        if old_version:
+        if new_version:
+            capacity_info["provisioned_space"] = getattr(
+                capacity.space, "total_provisioned", 0
+            )
+            capacity_info["free_space"] = total_capacity - getattr(
+                capacity.space, "total_physical", 0
+            )
             capacity_info["data_reduction"] = getattr(
                 capacity.space, "data_reduction", 0
             )
@@ -1033,6 +1033,8 @@ def generate_capacity_dict(module, array):
                 capacity.space, "total_effective", 0
             )
         else:
+            capacity_info["provisioned_space"] = capacity.space["total_provisioned"]
+            capacity_info["free_space"] = total_capacity - capacity.space["total_physical"]
             capacity_info["data_reduction"] = capacity.space["data_reduction"]
             capacity_info["system_space"] = capacity.space["system"]
             capacity_info["volume_space"] = capacity.space["unique"]
