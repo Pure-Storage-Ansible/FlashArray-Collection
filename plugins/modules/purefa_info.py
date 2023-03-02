@@ -1034,7 +1034,9 @@ def generate_capacity_dict(module, array):
             )
         else:
             capacity_info["provisioned_space"] = capacity.space["total_provisioned"]
-            capacity_info["free_space"] = total_capacity - capacity.space["total_physical"]
+            capacity_info["free_space"] = (
+                total_capacity - capacity.space["total_physical"]
+            )
             capacity_info["data_reduction"] = capacity.space["data_reduction"]
             capacity_info["system_space"] = capacity.space["system"]
             capacity_info["volume_space"] = capacity.space["unique"]
