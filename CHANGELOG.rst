@@ -5,6 +5,9 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.17.2
+=======
+
 v1.17.1
 =======
 
