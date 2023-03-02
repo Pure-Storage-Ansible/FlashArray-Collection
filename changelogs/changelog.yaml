@@ -296,6 +296,8 @@ releases:
       - 375_fix_remote_hosts.yaml
       - 379_cap_compat.yaml
     release_date: '2023-03-02'
+  1.17.2:
+    release_date: '2023-03-02'
   1.4.0:
     changes:
       bugfixes:
