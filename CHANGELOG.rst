@@ -5,6 +5,17 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.17.1
+=======
+
+Bugfixes
+--------
+
+- purefa_info - Fix REST response backwards compatibility issue for array capacity REST response
+- purefa_info - Resolves issue with destroyed pgroup snapshot on an offload target not have a time remaining value
+- purefa_info - Resolves issue in AC environment where REST v2 host list mismatches REST v1 due to remote hosts.
+- purefa_pg - Resolves issue with destroyed pgroup snapshot on an offload target not have a time remaining value
+
 v1.17.0
 =======
 
@@ -28,8 +39,6 @@ Bugfixes
 
 v1.16.2
 =======
-
-- Republish
 
 v1.16.1
 =======
