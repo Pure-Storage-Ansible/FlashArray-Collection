@@ -234,7 +234,7 @@ EXAMPLES = r"""
     name: export1
     policy: smb
     smb_encrypt: true
-    smb_anon_allowed: no
+    smb_anon_allowed: false
     client: client1
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
