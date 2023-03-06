@@ -91,7 +91,7 @@ options:
     - Enables SafeMode restrictions on the protection group
     - B(Once set disabling this can only be performed by Pure Technical Support)
     type: bool
-    default: False
+    default: false
     version_added: '1.13.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
