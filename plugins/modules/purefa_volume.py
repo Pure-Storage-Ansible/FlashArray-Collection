@@ -49,12 +49,12 @@ options:
     description:
     - Define whether to eradicate the volume on delete or leave in trash.
     type: bool
-    default: 'no'
+    default: false
   overwrite:
     description:
     - Define whether to overwrite a target volume if it already exisits.
     type: bool
-    default: 'no'
+    default: false
   size:
     description:
     - Volume size in M, G, T or P units.
@@ -213,7 +213,7 @@ EXAMPLES = r"""
 - name: Delete and eradicate volume named foo
   purestorage.flasharray.purefa_volume:
     name: foo
-    eradicate: yes
+    eradicate: true
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
@@ -230,7 +230,7 @@ EXAMPLES = r"""
   purestorage.flasharray.purefa_volume:
     name: foo
     target: bar
-    overwrite: yes
+    overwrite: true
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: present
