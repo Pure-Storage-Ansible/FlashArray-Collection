@@ -40,7 +40,7 @@ options:
   enabled:
     description:
       - whether the subnet should be enabled or not
-    default: True
+    default: true
     type: bool
   prefix:
     description:
