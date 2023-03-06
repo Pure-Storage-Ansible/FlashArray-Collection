@@ -60,7 +60,7 @@ options:
     description:
     - Specifies whether the remote client is required to use SMB encryption
     type: bool
-    default: False
+    default: false
   nfs_access:
     description:
     - Specifies access control for the export
