@@ -233,7 +233,7 @@ EXAMPLES = r"""
   purestorage.flasharray.purefa_policy:
     name: export1
     policy: smb
-    smb_encrypt: yes
+    smb_encrypt: true
     smb_anon_allowed: no
     client: client1
     fa_url: 10.10.10.2
