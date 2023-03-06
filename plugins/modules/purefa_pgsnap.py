@@ -48,7 +48,7 @@ options:
     description:
     - Define whether to eradicate the snapshot on delete or leave in trash.
     type: bool
-    default: 'no'
+    default: false
   restore:
     description:
     - Restore a specific volume from a protection group snapshot.
@@ -59,7 +59,7 @@ options:
     description:
     - Define whether to overwrite the target volume if it already exists.
     type: bool
-    default: 'no'
+    default: false
   target:
     description:
     - Volume to restore a specified volume to.
@@ -141,8 +141,8 @@ EXAMPLES = r"""
   purestorage.flasharray.purefa_pgsnap:
     name: pgname
     suffix: force
-    now: True
-    apply_retention: True
+    now: true
+    apply_retention: true
     remote: True
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
