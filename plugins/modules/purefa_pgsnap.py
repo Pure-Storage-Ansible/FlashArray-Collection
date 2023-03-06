@@ -74,17 +74,17 @@ options:
     description:
     - Whether to initiate a snapshot of the protection group immeadiately
     type: bool
-    default: False
+    default: false
   apply_retention:
     description:
     - Apply retention schedule settings to the snapshot
     type: bool
-    default: False
+    default: false
   remote:
     description:
     - Force immeadiate snapshot to remote targets
     type: bool
-    default: False
+    default: false
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
