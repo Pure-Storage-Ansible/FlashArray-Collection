@@ -64,12 +64,12 @@ options:
     description:
     - Define whether to eradicate the protection group on delete and leave in trash.
     type : bool
-    default: 'no'
+    default: false
   enabled:
     description:
     - Define whether to enabled snapshots for the protection group.
     type : bool
-    default: 'yes'
+    default: true
   target:
     description:
     - List of remote arrays or offload target for replication protection group
