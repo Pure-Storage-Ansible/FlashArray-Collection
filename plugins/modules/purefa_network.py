@@ -237,6 +237,10 @@ def update_interface(module, array, interface):
         "netmask": interface["netmask"],
         "services": sorted(interface["services"]),
     }
+    if not module.params["servicelist"]:
+        services = sorted(interface["services"])
+    else:
+        services = sorted(module.params["servicelist"])
     if not module.params["address"]:
         address = interface["address"]
     else:
@@ -282,6 +286,7 @@ def update_interface(module, array, interface):
         "mtu": mtu,
         "gateway": gateway,
         "netmask": netmask,
+        "services": services,
     }
     if new_state != current_state:
         changed = True
