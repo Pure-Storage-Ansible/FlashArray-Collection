@@ -1118,9 +1118,12 @@ def copy_from_volume(module, array):
 
 def update_volume(module, array):
     """Update Volume size and/or QoS"""
-    volfact = []
+    volfact = {}
     changed = False
+    arrayv6 = None
     api_version = array._list_available_rest_versions()
+    if MULTI_VOLUME_VERSION in api_version:
+        arrayv6 = get_array(module)
     vol = array.get_volume(module.params["name"])
     vol_qos = array.get_volume(module.params["name"], qos=True)
     if QOS_API_VERSION in api_version:
@@ -1223,7 +1226,6 @@ def update_volume(module, array):
                     )
                 )
     if VOLUME_PROMOTION_API_VERSION in api_version and module.params["promotion_state"]:
-        arrayv6 = get_array(module)
         vol6 = list(arrayv6.get_volumes(names=[module.params["name"]]).items)[0]
         if module.params["promotion_state"] != vol6.promotion_status:
             volume_patch = flasharray.VolumePatch(
@@ -1245,7 +1247,6 @@ def update_volume(module, array):
                         volfact = array.get_volume(module.params["name"])
                         volfact["promotion_status"] = module.params["promotion_state"]
     if PRIORITY_API_VERSION in api_version and module.params["priority_operator"]:
-        arrayv6 = get_array(module)
         volv6 = list(arrayv6.get_volumes(names=[module.params["name"]]).items)[0]
         change_prio = False
         if (
@@ -1293,9 +1294,21 @@ def update_volume(module, array):
                     volfact = array.get_volume(module.params["name"])
                 volfact["priority_operator"] = module.params["priority_operator"]
                 volfact["priority_value"] = module.params["priority_value"]
-    if not changed:
-        volfact = array.get_volume(module.params["name"])
-    module.exit_json(changed=changed, volume=volfact)
+    if MULTI_VOLUME_VERSION in api_version:
+        volume_data = list(arrayv6.get_volumes(names=[module.params["name"]]).items)[0]
+        updatefacts = {
+            "size": volume_data.provisioned,
+            "serial": volume_data.serial,
+            "created": time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(volume_data.created / 1000)
+            ),
+            "page83_naa": PURE_OUI + volume_data.serial.lower(),
+            "nvme_nguid": _create_nguid(volume_data.serial.lower()),
+        }
+    else:
+        updatefacts = array.get_volume(module.params["name"])
+    vol_fact = {**volfact, **updatefacts}
+    module.exit_json(changed=changed, volume=vol_fact)
 
 
 def rename_volume(module, array):
