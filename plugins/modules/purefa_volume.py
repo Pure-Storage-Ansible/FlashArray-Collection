@@ -1297,6 +1297,7 @@ def update_volume(module, array):
     if MULTI_VOLUME_VERSION in api_version:
         volume_data = list(arrayv6.get_volumes(names=[module.params["name"]]).items)[0]
         updatefacts = {
+            "name": volume_data.name,
             "size": volume_data.provisioned,
             "serial": volume_data.serial,
             "created": time.strftime(
