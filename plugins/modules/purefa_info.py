@@ -1362,7 +1362,7 @@ def generate_vol_dict(module, array):
             volume = vvols[vvol]["name"]
             volume_info[volume] = {
                 "protocol_endpoint": True,
-                "host_encryption_key_status", None,
+                "host_encryption_key_status": None,
                 "source": vvols[vvol]["source"],
                 "serial": vvols[vvol]["serial"],
                 "nvme_nguid": "eui.00"
