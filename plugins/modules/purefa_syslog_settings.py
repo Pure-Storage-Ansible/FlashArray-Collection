@@ -40,7 +40,7 @@ options:
     - To delete the existing CA certifcate use the special string `DELETE`
   tls_audit:
     type: bool
-    default: True
+    default: true
     description:
     - If messages that are necessary in order to audit TLS negotiations
       performed by the array are forwared to the syslog servers.

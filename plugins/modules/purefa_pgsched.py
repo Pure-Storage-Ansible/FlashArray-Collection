@@ -40,12 +40,12 @@ options:
     - Which schedule to change.
     type: str
     choices: ['replication', 'snapshot']
-    required: True
+    required: true
   enabled:
     description:
     - Enable the schedule being configured.
     type: bool
-    default: True
+    default: true
   replicate_at:
     description:
     - Specifies the preferred time as HH:MM:SS, using 24-hour clock, at which to generate snapshots.

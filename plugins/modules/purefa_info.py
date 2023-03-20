@@ -994,27 +994,32 @@ def generate_capacity_dict(module, array):
     capacity_info = {}
     api_version = array._list_available_rest_versions()
     if V6_MINIMUM_API_VERSION in api_version:
+        new_version = bool(SHARED_CAP_API_VERSION in api_version)
         arrayv6 = get_array(module)
         total_capacity = list(arrayv6.get_arrays().items)[0].capacity
         capacity = list(arrayv6.get_arrays_space().items)[0]
-        capacity_info["provisioned_space"] = getattr(
-            capacity.space, "total_provisioned", 0
-        )
-        capacity_info["free_space"] = total_capacity - getattr(
-            capacity.space, "total_physical", 0
-        )
         capacity_info["total_capacity"] = total_capacity
-        capacity_info["data_reduction"] = getattr(capacity.space, "data_reduction", 0)
-        capacity_info["system_space"] = getattr(capacity.space, "system", 0)
-        capacity_info["volume_space"] = getattr(capacity.space, "unique", 0)
-        capacity_info["shared_space"] = getattr(capacity.space, "shared", 0)
-        capacity_info["snapshot_space"] = getattr(capacity.space, "snapshots", 0)
-        capacity_info["thin_provisioning"] = getattr(
-            capacity.space, "thin_provisioning", 0
-        )
-        capacity_info["total_reduction"] = getattr(capacity.space, "total_reduction", 0)
-        capacity_info["replication"] = getattr(capacity.space, "replication", 0)
-        if SHARED_CAP_API_VERSION in api_version:
+        if new_version:
+            capacity_info["provisioned_space"] = getattr(
+                capacity.space, "total_provisioned", 0
+            )
+            capacity_info["free_space"] = total_capacity - getattr(
+                capacity.space, "total_physical", 0
+            )
+            capacity_info["data_reduction"] = getattr(
+                capacity.space, "data_reduction", 0
+            )
+            capacity_info["system_space"] = getattr(capacity.space, "system", 0)
+            capacity_info["volume_space"] = getattr(capacity.space, "unique", 0)
+            capacity_info["shared_space"] = getattr(capacity.space, "shared", 0)
+            capacity_info["snapshot_space"] = getattr(capacity.space, "snapshots", 0)
+            capacity_info["thin_provisioning"] = getattr(
+                capacity.space, "thin_provisioning", 0
+            )
+            capacity_info["total_reduction"] = getattr(
+                capacity.space, "total_reduction", 0
+            )
+            capacity_info["replication"] = getattr(capacity.space, "replication", 0)
             capacity_info["shared_effective"] = getattr(
                 capacity.space, "shared_effective", 0
             )
@@ -1027,6 +1032,19 @@ def generate_capacity_dict(module, array):
             capacity_info["total_effective"] = getattr(
                 capacity.space, "total_effective", 0
             )
+        else:
+            capacity_info["provisioned_space"] = capacity.space["total_provisioned"]
+            capacity_info["free_space"] = (
+                total_capacity - capacity.space["total_physical"]
+            )
+            capacity_info["data_reduction"] = capacity.space["data_reduction"]
+            capacity_info["system_space"] = capacity.space["system"]
+            capacity_info["volume_space"] = capacity.space["unique"]
+            capacity_info["shared_space"] = capacity.space["shared"]
+            capacity_info["snapshot_space"] = capacity.space["snapshots"]
+            capacity_info["thin_provisioning"] = capacity.space["thin_provisioning"]
+            capacity_info["total_reduction"] = capacity.space["total_reduction"]
+            capacity_info["replication"] = capacity.space["replication"]
     elif CAP_REQUIRED_API_VERSION in api_version:
         volumes = array.list_volumes(pending=True)
         capacity_info["provisioned_space"] = sum(item["size"] for item in volumes)
@@ -1450,8 +1468,9 @@ def generate_host_dict(module, array):
         arrayv6 = get_array(module)
         hosts = list(arrayv6.get_hosts().items)
         for host in range(0, len(hosts)):
-            hostname = hosts[host].name
-            host_info[hostname]["vlan"] = getattr(hosts[host], "vlan", None)
+            if hosts[host].is_local:
+                hostname = hosts[host].name
+                host_info[hostname]["vlan"] = getattr(hosts[host], "vlan", None)
     return host_info
 
 

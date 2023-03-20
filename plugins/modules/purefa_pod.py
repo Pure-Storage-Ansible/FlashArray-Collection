@@ -101,7 +101,7 @@ EXAMPLES = r"""
 - name: Delete and eradicate pod named foo
   purestorage.flasharray.purefa_pod:
     name: foo
-    eradicate: yes
+    eradicate: true
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent

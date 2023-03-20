@@ -34,7 +34,7 @@ options:
     description:
     - Name od app
     type: str
-    required: True
+    required: true
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
