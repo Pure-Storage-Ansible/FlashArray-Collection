@@ -31,7 +31,7 @@ options:
   name:
     description:
     - Name of SNMP Manager
-    required: True
+    required: true
     type: str
   state:
     description:

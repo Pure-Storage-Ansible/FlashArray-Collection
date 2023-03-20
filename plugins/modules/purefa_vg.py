@@ -43,7 +43,7 @@ options:
     description:
     - Define whether to eradicate the volume group on delete and leave in trash.
     type : bool
-    default: 'no'
+    default: false
   bw_qos:
     description:
     - Bandwidth limit for vgroup in M or G units.

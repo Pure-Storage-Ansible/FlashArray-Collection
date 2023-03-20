@@ -64,12 +64,12 @@ options:
     description:
     - Define whether to eradicate the protection group on delete and leave in trash.
     type : bool
-    default: 'no'
+    default: false
   enabled:
     description:
     - Define whether to enabled snapshots for the protection group.
     type : bool
-    default: 'yes'
+    default: true
   target:
     description:
     - List of remote arrays or offload target for replication protection group
@@ -91,7 +91,7 @@ options:
     - Enables SafeMode restrictions on the protection group
     - B(Once set disabling this can only be performed by Pure Technical Support)
     type: bool
-    default: False
+    default: false
     version_added: '1.13.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
@@ -256,7 +256,7 @@ def get_pending_pgroup(module, array):
     if ":" in module.params["name"]:
         if "::" not in module.params["name"]:
             for pgrp in array.list_pgroups(pending=True, on="*"):
-                if pgrp["name"] == module.params["name"] and pgrp["time_remaining"]:
+                if pgrp["name"] == module.params["name"]:
                     pgroup = pgrp
                     break
         else:

@@ -255,6 +255,49 @@ releases:
     release_date: '2023-01-10'
   1.16.2:
     release_date: '2023-01-11'
+  1.17.0:
+    changes:
+      bugfixes:
+        - purefa_host - Fixed parameter name
+        - purefa_info - Fix missing FC target ports for host
+        - purefa_pgsched - Fix error when setting schedule for pod based protection
+          group
+        - purefa_vg - Fix issue with VG creation on newer Purity versions
+        - purefa_volume - Ensure promotion_stateus is returned correctly on creation
+        - purefa_volume - Fix bug when overwriting volume using invalid parmaeters
+        - purefa_volume - Fixed idempotency bug when creating volumes with QoS
+      minor_changes:
+        - purefa_network - Added support for NVMe-RoCE and NVMe-TCP service types
+        - purefa_user - Added Ops Admin role to choices
+        - purefa_vlan - Added support for NVMe-TCP service type
+    fragments:
+      - 360_fix_volume.yaml
+      - 363_overwrite_combo.yaml
+      - 364_fc_targets.yaml
+      - 365_pod_pgsched.yaml
+      - 366_add_nvme_types.yaml
+      - 367_fix_vg.yaml
+      - 369_fix_host.yaml
+      - 370_add_user_role.yaml
+    release_date: '2023-02-16'
+  1.17.1:
+    changes:
+      bugfixes:
+        - purefa_info - Resolves issue in AC environment where REST v2 host list mismatches
+          REST v1 due to remote hosts.
+        - purefa_info - Fix REST response backwards compatibility issue for array capacity
+          REST response
+        - purefa_info - Resolves issue with destroyed pgroup snapshot on an offload
+          target not have a time remaining value
+        - purefa_pg - Resolves issue with destroyed pgroup snapshot on an offload target
+          not have a time remaining value
+    fragments:
+      - 374_offload_pgsnap.yaml
+      - 375_fix_remote_hosts.yaml
+      - 379_cap_compat.yaml
+    release_date: '2023-03-02'
+  1.17.2:
+    release_date: '2023-03-02'
   1.4.0:
     changes:
       bugfixes:
