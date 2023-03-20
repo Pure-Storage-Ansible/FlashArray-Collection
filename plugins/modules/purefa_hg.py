@@ -412,7 +412,7 @@ def main():
             for vol in module.params["volume"]:
                 array.get_volume(vol)
         except Exception:
-            module.fail_json(msg="Volume {0} not found".format(vol))
+            module.exit_json(changed=False)
 
     if hostgroup and state == "present":
         update_hostgroup(module, array)
