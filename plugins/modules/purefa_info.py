@@ -401,7 +401,6 @@ purefa_info:
         "volumes": {
             "@offload_boot": {
                 "bandwidth": null,
-                "host_encryption_key_status": null,
                 "hosts": [
                     [
                         "@offload",
@@ -416,7 +415,6 @@ purefa_info:
             },
             "docker-store": {
                 "bandwidth": null,
-                "host_encryption_key_status": null,
                 "hosts": [
                     [
                         "docker-host",
