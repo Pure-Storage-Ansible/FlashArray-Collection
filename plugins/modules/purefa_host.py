@@ -1019,9 +1019,7 @@ def main():
             try:
                 array.get_volume(module.params["volume"])
             except Exception:
-                module.fail_json(
-                    msg="Volume {0} not found".format(module.params["volume"])
-                )
+                module.exit_json(changed=False)
         if module.params["preferred_array"]:
             try:
                 if module.params["preferred_array"] != ["delete"]:
