@@ -529,8 +529,6 @@ def main():
         argument_spec, mutually_exclusive=mutually_exclusive, supports_check_mode=True
     )
 
-    module.params["name"] = module.params["name"].lower()
-
     state = module.params["state"]
     array = get_system(module)
 
