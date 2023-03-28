@@ -256,17 +256,23 @@ def get_pending_pgroup(module, array):
     if ":" in module.params["name"]:
         if "::" not in module.params["name"]:
             for pgrp in array.list_pgroups(pending=True, on="*"):
-                if pgrp["name"] == module.params["name"]:
+                if pgrp["name"].casefold() == module.params["name"].casefold():
                     pgroup = pgrp
                     break
         else:
             for pgrp in array.list_pgroups(pending=True):
-                if pgrp["name"] == module.params["name"] and pgrp["time_remaining"]:
+                if (
+                    pgrp["name"].casefold() == module.params["name"].casefold()
+                    and pgrp["time_remaining"]
+                ):
                     pgroup = pgrp
                     break
     else:
         for pgrp in array.list_pgroups(pending=True):
-            if pgrp["name"] == module.params["name"] and pgrp["time_remaining"]:
+            if (
+                pgrp["name"].casefold() == module.params["name"].casefold()
+                and pgrp["time_remaining"]
+            ):
                 pgroup = pgrp
                 break
 
@@ -279,17 +285,17 @@ def get_pgroup(module, array):
     if ":" in module.params["name"]:
         if "::" not in module.params["name"]:
             for pgrp in array.list_pgroups(on="*"):
-                if pgrp["name"] == module.params["name"]:
+                if pgrp["name"].casefold() == module.params["name"].casefold():
                     pgroup = pgrp
                     break
         else:
             for pgrp in array.list_pgroups():
-                if pgrp["name"] == module.params["name"]:
+                if pgrp["name"].casefold() == module.params["name"].casefold():
                     pgroup = pgrp
                     break
     else:
         for pgrp in array.list_pgroups():
-            if pgrp["name"] == module.params["name"]:
+            if pgrp["name"].casefold() == module.params["name"].casefold():
                 pgroup = pgrp
                 break
 
