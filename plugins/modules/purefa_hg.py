@@ -150,7 +150,7 @@ def get_hostgroup(module, array):
     hostgroup = None
 
     for host in array.list_hgroups():
-        if host["name"] == module.params["hostgroup"]:
+        if host["name"].casefold() == module.params["hostgroup"].casefold():
             hostgroup = host
             break
 
