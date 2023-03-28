@@ -307,7 +307,7 @@ def get_pgroup_sched(module, array):
     pgroup = None
 
     for pgrp in array.list_pgroups(schedule=True):
-        if pgrp["name"] == module.params["name"]:
+        if pgrp["name"].casefold() == module.params["name"].casefold():
             pgroup = pgrp
             break
 
