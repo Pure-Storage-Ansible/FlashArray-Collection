@@ -140,7 +140,7 @@ def rename_exists(module, array):
     exists = False
     new_name = module.params["rename"]
     for hgroup in array.list_hgroups():
-        if hgroup["name"].lower() == new_name.lower():
+        if hgroup["name"].casefold() == new_name.casefold():
             exists = True
             break
     return exists
@@ -150,7 +150,7 @@ def get_hostgroup(module, array):
     hostgroup = None
 
     for host in array.list_hgroups():
-        if host["name"] == module.params["hostgroup"]:
+        if host["name"].casefold() == module.params["hostgroup"].casefold():
             hostgroup = host
             break
 
@@ -224,8 +224,8 @@ def update_hostgroup(module, array):
                     )
                 )
         if module.params["host"]:
-            cased_hosts = [host.lower() for host in module.params["host"]]
-            cased_hghosts = [host.lower() for host in hgroup["hosts"]]
+            cased_hosts = list(module.params["host"])
+            cased_hghosts = list(hgroup["hosts"])
             new_hosts = list(set(cased_hosts).difference(cased_hghosts))
             if new_hosts:
                 try:
@@ -236,8 +236,8 @@ def update_hostgroup(module, array):
                     module.fail_json(msg="Failed to add host(s) to hostgroup")
         if module.params["volume"]:
             if volumes:
-                current_vols = [vol["vol"].lower() for vol in volumes]
-                cased_vols = [vol.lower() for vol in module.params["volume"]]
+                current_vols = [vol["vol"] for vol in volumes]
+                cased_vols = list(module.params["volume"])
                 new_volumes = list(set(cased_vols).difference(set(current_vols)))
                 if len(new_volumes) == 1 and module.params["lun"]:
                     try:
@@ -296,8 +296,8 @@ def update_hostgroup(module, array):
                             )
     else:
         if module.params["host"]:
-            cased_old_hosts = [host.lower() for host in module.params["host"]]
-            cased_hosts = [host.lower() for host in hgroup["hosts"]]
+            cased_old_hosts = list(module.params["host"])
+            cased_hosts = list(hgroup["hosts"])
             old_hosts = list(set(cased_old_hosts).intersection(cased_hosts))
             if old_hosts:
                 try:
@@ -311,7 +311,7 @@ def update_hostgroup(module, array):
                         )
                     )
         if module.params["volume"]:
-            cased_old_vols = [vol.lower() for vol in module.params["volume"]]
+            cased_old_vols = list(module.params["volume"])
             old_volumes = list(
                 set(cased_old_vols).intersection(
                     set([vol["vol"].lower() for vol in volumes])
