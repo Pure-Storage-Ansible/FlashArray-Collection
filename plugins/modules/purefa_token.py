@@ -105,12 +105,6 @@ try:
 except ImportError:
     HAS_PURESTORAGE = False
 
-HAS_PYPURECLIENT = True
-try:
-    from pypureclient import flasharray
-except ImportError:
-    HAS_PYPURECLIENT = False
-
 
 def _convert_time_to_millisecs(timeout):
     if timeout[-1:].lower() not in ["w", "d", "h", "m", "s"]:
@@ -212,26 +206,21 @@ def main():
         and module.params["timeout"]
         and state == "present"
     ):
-        if not HAS_PYPURECLIENT:
-            module.fail_json(
-                msg="py-pure-client SDK is required to support `timeout` parameter."
-            )
-        else:
-            module.params["api_token"] = api_token
-            array6 = get_array(module)
-            ttl = _convert_time_to_millisecs(module.params["timeout"])
-            if ttl != 0:
-                changed = True
-                array6.delete_admins_api_tokens(names=[username])
-                res = array6.post_admins_api_tokens(names=[username], timeout=ttl)
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to set token lifetime. Error: {0}".format(
-                            res.errors[0].message
-                        )
+        module.params["api_token"] = api_token
+        array6 = get_array(module)
+        ttl = _convert_time_to_millisecs(module.params["timeout"])
+        if ttl != 0:
+            changed = True
+            array6.delete_admins_api_tokens(names=[username])
+            res = array6.post_admins_api_tokens(names=[username], timeout=ttl)
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to set token lifetime. Error: {0}".format(
+                        res.errors[0].message
                     )
-                else:
-                    api_token = list(res.items)[0].api_token.token
+                )
+            else:
+                api_token = list(res.items)[0].api_token.token
     module.exit_json(changed=changed, purefa_token=api_token)
 
 
