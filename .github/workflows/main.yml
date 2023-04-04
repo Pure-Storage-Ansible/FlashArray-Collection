@@ -17,6 +17,7 @@ jobs:
           - stable-2.12
           - stable-2.13
           - stable-2.14
+          - stable-2.15
           - devel
         python-version:
           - 3.8
@@ -34,6 +35,8 @@ jobs:
             ansible: stable-2.11
           - python-version: 3.8
             ansible: stable-2.14
+          - python-version: 3.8
+            ansible: stable-2.15
           - python-version: 3.8
             ansible: devel
     steps:
