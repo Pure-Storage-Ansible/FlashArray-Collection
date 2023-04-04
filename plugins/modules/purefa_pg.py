@@ -256,17 +256,23 @@ def get_pending_pgroup(module, array):
     if ":" in module.params["name"]:
         if "::" not in module.params["name"]:
             for pgrp in array.list_pgroups(pending=True, on="*"):
-                if pgrp["name"] == module.params["name"]:
+                if pgrp["name"].casefold() == module.params["name"].casefold():
                     pgroup = pgrp
                     break
         else:
             for pgrp in array.list_pgroups(pending=True):
-                if pgrp["name"] == module.params["name"] and pgrp["time_remaining"]:
+                if (
+                    pgrp["name"].casefold() == module.params["name"].casefold()
+                    and pgrp["time_remaining"]
+                ):
                     pgroup = pgrp
                     break
     else:
         for pgrp in array.list_pgroups(pending=True):
-            if pgrp["name"] == module.params["name"] and pgrp["time_remaining"]:
+            if (
+                pgrp["name"].casefold() == module.params["name"].casefold()
+                and pgrp["time_remaining"]
+            ):
                 pgroup = pgrp
                 break
 
@@ -279,17 +285,17 @@ def get_pgroup(module, array):
     if ":" in module.params["name"]:
         if "::" not in module.params["name"]:
             for pgrp in array.list_pgroups(on="*"):
-                if pgrp["name"] == module.params["name"]:
+                if pgrp["name"].casefold() == module.params["name"].casefold():
                     pgroup = pgrp
                     break
         else:
             for pgrp in array.list_pgroups():
-                if pgrp["name"] == module.params["name"]:
+                if pgrp["name"].casefold() == module.params["name"].casefold():
                     pgroup = pgrp
                     break
     else:
         for pgrp in array.list_pgroups():
-            if pgrp["name"] == module.params["name"]:
+            if pgrp["name"].casefold() == module.params["name"].casefold():
                 pgroup = pgrp
                 break
 
@@ -301,7 +307,7 @@ def get_pgroup_sched(module, array):
     pgroup = None
 
     for pgrp in array.list_pgroups(schedule=True):
-        if pgrp["name"] == module.params["name"]:
+        if pgrp["name"].casefold() == module.params["name"].casefold():
             pgroup = pgrp
             break
 
@@ -440,7 +446,7 @@ def rename_exists(module, array):
         if "::" in module.params["name"]:
             new_name = container + "::" + module.params["rename"]
     for pgroup in array.list_pgroups(pending=True):
-        if pgroup["name"].lower() == new_name.lower():
+        if pgroup["name"].casefold() == new_name.casefold():
             exists = True
             break
     return exists
@@ -538,8 +544,8 @@ def update_pgroup(module, array):
                         )
                     )
         else:
-            cased_vols = [vol.lower() for vol in module.params["volume"]]
-            cased_pgvols = [vol.lower() for vol in get_pgroup(module, array)["volumes"]]
+            cased_vols = list(module.params["volume"])
+            cased_pgvols = list(get_pgroup(module, array)["volumes"])
             if not all(x in cased_pgvols for x in cased_vols):
                 if not module.check_mode:
                     changed = True
@@ -573,10 +579,8 @@ def update_pgroup(module, array):
                         )
                     )
         else:
-            cased_hosts = [host.lower() for host in module.params["host"]]
-            cased_pghosts = [
-                host.lower() for host in get_pgroup(module, array)["hosts"]
-            ]
+            cased_hosts = list(module.params["host"])
+            cased_pghosts = list(get_pgroup(module, array)["hosts"])
             if not all(x in cased_pghosts for x in cased_hosts):
                 if not module.check_mode:
                     changed = True
@@ -610,10 +614,8 @@ def update_pgroup(module, array):
                         )
                     )
         else:
-            cased_hostg = [hostg.lower() for hostg in module.params["hostgroup"]]
-            cased_pghostg = [
-                hostg.lower() for hostg in get_pgroup(module, array)["hgroups"]
-            ]
+            cased_hostg = list(module.params["hostgroup"])
+            cased_pghostg = list(get_pgroup(module, array)["hgroups"])
             if not all(x in cased_pghostg for x in cased_hostg):
                 if not module.check_mode:
                     changed = True
@@ -811,7 +813,6 @@ def main():
     array = get_system(module)
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
     if module.params["rename"]:
-        module.params["rename"] = module.params["rename"].lower()
         if not pattern.match(module.params["rename"]):
             module.fail_json(
                 msg="Rename value {0} does not conform to naming convention".format(
