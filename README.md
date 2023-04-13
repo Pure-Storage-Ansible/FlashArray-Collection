@@ -85,6 +85,7 @@ The Pure Storage Ansible modules force all host and volume names to use kebab-ca
 - purefa_subnet - manage network subnets on the FlashArray
 - purefa_syslog - manage the Syslog settings on the FlashArray
 - purefa_syslog_settings - manage the global syslog server settings on the FlashArray
+- purefa_token - manage FlashArray user API tokens
 - purefa_timeout - manage the GUI idle timeout on the FlashArray
 - purefa_user - manage local user accounts on the FlashArray
 - purefa_vg - manage volume groups on the FlashArray
