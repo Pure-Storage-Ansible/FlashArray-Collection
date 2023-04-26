@@ -266,6 +266,7 @@ def create_snapshot(module, array, arrayv6):
     """Create Snapshot"""
     changed = False
     if module.params["offload"]:
+        module.params["suffix"] = None
         changed = True
         if not module.check_mode:
             res = arrayv6.post_remote_volume_snapshots(
@@ -277,6 +278,9 @@ def create_snapshot(module, array, arrayv6):
                         module.params["name"], res.errors[0].message
                     )
                 )
+            else:
+                remote_snap = list(res.items)[0].name
+                module.params["suffix"] = remote_snap.split(".")[1]
     else:
         changed = True
         if not module.check_mode:
@@ -285,7 +289,7 @@ def create_snapshot(module, array, arrayv6):
                     module.params["name"], suffix=module.params["suffix"]
                 )
             except Exception:
-                pass
+                module.fail_json(msg="Failed to create snapshot for volume {0}".format(module.params["name"]))
     module.exit_json(changed=changed)
 
 
@@ -555,7 +559,8 @@ def main():
             msg="Snapshot copy is not supported when an offload target is defined"
         )
     destroyed = False
-    array_snap = offload_snap = False
+    array_snap = False
+    offload_snap = False
     volume = get_volume(module, array)
     if module.params["offload"] and not _check_target(module, arrayv6):
         offload_snap = _check_offload_snapshot(module, arrayv6)
