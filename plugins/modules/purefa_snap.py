@@ -488,8 +488,8 @@ def main():
     module = AnsibleModule(
         argument_spec, required_if=required_if, supports_check_mode=True
     )
-    pattern1 = (
-        re.compile("^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$")
+    pattern1 = re.compile(
+        "^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$"
     )
     pattern2 = re.compile("^([1-9])([0-9]{0,63}[0-9])?$")
 
