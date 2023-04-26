@@ -266,22 +266,17 @@ def create_snapshot(module, array, arrayv6):
     """Create Snapshot"""
     changed = False
     if module.params["offload"]:
-        if module.params["suffix"]:
-            module.warn(
-                "Suffix not supported for Remote Volume Offload Snapshot. Using next incremental integer"
+        changed = True
+        if not module.check_mode:
+            res = arrayv6.post_remote_volume_snapshots(
+                source_names=[module.params["name"]], on=module.params["offload"]
             )
-            module.params["suffix"] = None
-            changed = True
-            if not module.check_mode:
-                res = arrayv6.post_remote_volume_snapshots(
-                    source_names=[module.params["name"]], on=module.params["offload"]
-                )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to crete remote snapshot for volume {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to create remote snapshot for volume {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
                     )
+                )
     else:
         changed = True
         if not module.check_mode:
