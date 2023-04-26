@@ -514,7 +514,7 @@ def main():
                     )
                 )
     if state == "rename" and module.params["target"] is not None:
-        if not pattern.match(module.params["target"]):
+        if not pattern1.match(module.params["target"]):
             module.fail_json(
                 msg="Suffix target {0} does not conform to suffix name rules".format(
                     module.params["target"]
