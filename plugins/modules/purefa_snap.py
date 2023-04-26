@@ -289,8 +289,12 @@ def create_snapshot(module, array, arrayv6):
                     module.params["name"], suffix=module.params["suffix"]
                 )
             except Exception:
-                module.fail_json(msg="Failed to create snapshot for volume {0}".format(module.params["name"]))
-    module.exit_json(changed=changed)
+                module.fail_json(
+                    msg="Failed to create snapshot for volume {0}".format(
+                        module.params["name"]
+                    )
+                )
+    module.exit_json(changed=changed, suffix=module.params["suffix"])
 
 
 def create_from_snapshot(module, array):
@@ -593,3 +597,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
