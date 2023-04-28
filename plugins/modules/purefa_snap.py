@@ -151,6 +151,12 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
+HAS_PUREERROR = True
+try:
+    from purestorage import PureHTTPError
+except ImportError:
+    HAS_PUREERROR = False
+
 HAS_PURESTORAGE = True
 try:
     from pypureclient import flasharray
@@ -428,10 +434,16 @@ def delete_snapshot(module, array, arrayv6):
                 if module.params["eradicate"]:
                     try:
                         array.eradicate_volume(snapname)
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+                    except PureHTTPError as err:
+                        module.fail_json(
+                            msg="Error eradicating snapshot. Error: {0}".format(
+                                err.text
+                            )
+                        )
+            except PureHTTPError as err:
+                module.fail_json(
+                    msg="Error deleting snapshot. Error: {0}".format(err.text)
+                )
     module.exit_json(changed=changed)
 
 
@@ -492,6 +504,9 @@ def main():
     )
 
     required_if = [("state", "copy", ["target", "suffix"])]
+
+    if not HAS_PUREERROR:
+        module.fail_json(msg="purestorage sdk is required for this module")
 
     module = AnsibleModule(
         argument_spec, required_if=required_if, supports_check_mode=True
