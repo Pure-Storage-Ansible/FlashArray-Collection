@@ -531,12 +531,11 @@ def main():
 
     required_if = [("state", "copy", ["target", "suffix"])]
 
-    if not HAS_PUREERROR:
-        module.fail_json(msg="purestorage sdk is required for this module")
-
     module = AnsibleModule(
         argument_spec, required_if=required_if, supports_check_mode=True
     )
+    if not HAS_PUREERROR:
+        module.fail_json(msg="purestorage sdk is required for this module")
     pattern1 = re.compile(
         "^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$"
     )
