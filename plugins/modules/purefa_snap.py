@@ -429,21 +429,47 @@ def delete_snapshot(module, array, arrayv6):
     else:
         changed = True
         if not module.check_mode:
-            try:
-                array.destroy_volume(snapname)
+            api_version = array._list_available_rest_versions()
+            if GET_SEND_API in api_version:
+                module.warn("here")
+                res = arrayv6.patch_volume_snapshots(
+                    names=[snapname],
+                    volume_snapshot=flasharray.DestroyedPatchPost(destroyed=True),
+                    replication_snapshot=module.params["ignore_repl"],
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to delete remote snapshot {0}. Error: {1}".format(
+                            snapname, res.errors[0].message
+                        )
+                    )
                 if module.params["eradicate"]:
-                    try:
-                        array.eradicate_volume(snapname)
-                    except PureHTTPError as err:
+                    res = arrayv6.delete_volume_snapshots(
+                        names=[snapname],
+                        replication_snapshot=module.params["ignore_repl"],
+                    )
+                    if res.status_code != 200:
                         module.fail_json(
-                            msg="Error eradicating snapshot. Error: {0}".format(
-                                err.text
+                            msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
+                                snapname, res.errors[0].message
                             )
                         )
-            except PureHTTPError as err:
-                module.fail_json(
-                    msg="Error deleting snapshot. Error: {0}".format(err.text)
-                )
+            else:
+                try:
+                    array.destroy_volume(snapname)
+                    if module.params["eradicate"]:
+                        try:
+                            array.eradicate_volume(snapname)
+                        except PureHTTPError as err:
+                            module.fail_json(
+                                msg="Error eradicating snapshot. Error: {0}".format(
+                                    err.text
+                                )
+                            )
+                except PureHTTPError as err:
+                    module.fail_json(
+                        msg="Error deleting snapshot. Error: {0}".format(err.text)
+                    )
     module.exit_json(changed=changed)
 
 
@@ -505,13 +531,12 @@ def main():
 
     required_if = [("state", "copy", ["target", "suffix"])]
 
-    module = AnsibleModule(
-        argument_spec, required_if=required_if, supports_check_mode=True
-    )
-
     if not HAS_PUREERROR:
         module.fail_json(msg="purestorage sdk is required for this module")
 
+    module = AnsibleModule(
+        argument_spec, required_if=required_if, supports_check_mode=True
+    )
     pattern1 = re.compile(
         "^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$"
     )
@@ -591,11 +616,12 @@ def main():
     else:
         array_snap = get_snapshot(module, array)
     snap = array_snap or offload_snap
+
     if not snap:
         destroyed = get_deleted_snapshot(module, array, arrayv6)
     if state == "present" and volume and not destroyed:
         create_snapshot(module, array, arrayv6)
-    elif state == "present" and volume and destroyed:
+    elif state == "present" and destroyed:
         recover_snapshot(module, array, arrayv6)
     elif state == "rename" and volume and snap:
         update_snapshot(module, arrayv6)
