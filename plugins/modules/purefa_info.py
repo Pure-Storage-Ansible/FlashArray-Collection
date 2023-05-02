@@ -475,6 +475,7 @@ NFS_USER_MAP_VERSION = "2.15"
 DEFAULT_PROT_API_VERSION = "2.16"
 VM_VERSION = "2.14"
 VLAN_VERSION = "2.17"
+NEIGHBOR_API_VERSION = "2.22"
 
 
 def generate_default_dict(module, array):
@@ -963,8 +964,9 @@ def generate_subnet_dict(array):
     return sub_info
 
 
-def generate_network_dict(array):
+def generate_network_dict(module, array):
     net_info = {}
+    api_version = array._list_available_rest_versions()
     ports = array.list_network_interfaces()
     for port in range(0, len(ports)):
         int_name = ports[port]["name"]
@@ -987,6 +989,137 @@ def generate_network_dict(array):
                     "prefix": subnets["prefix"],
                     "vlan": subnets["vlan"],
                 }
+    if NEIGHBOR_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        neighbors = list(arrayv6.get_network_interfaces_neighbors().items)
+        for neighbor in range(0, len(neighbors)):
+            neighbor_info = neighbors[neighbor]
+            int_name = neighbor_info.local_port.name
+            net_info[int_name].update(
+                {
+                    "neighbor": {
+                        "initial_ttl_in_sec": neighbor_info.initial_ttl_in_sec,
+                        "neighbor_port": {
+                            "description": getattr(
+                                neighbor_info.neighbor_port, "description", None
+                            ),
+                            "name": getattr(
+                                neighbor_info.neighbor_chassis, "name", None
+                            ),
+                            "id": getattr(
+                                neighbor_info.neighbor_port.id, "value", None
+                            ),
+                        },
+                        "neighbor_chassis": {
+                            "addresses": getattr(
+                                neighbor_info.neighbor_chassis, "addresses", None
+                            ),
+                            "description": getattr(
+                                neighbor_info.neighbor_chassis, "description", None
+                            ),
+                            "name": getattr(
+                                neighbor_info.neighbor_chassis, "name", None
+                            ),
+                            "bridge": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.bridge,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.bridge,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "repeater": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.repeater,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.repeater,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "router": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.router,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.router,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "station_only": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.station_only,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.station_only,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "telephone": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.telephone,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.telephone,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "wlan_access_point": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.wlan_access_point,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.wlan_access_point,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "docsis_cable_device": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.docsis_cable_device,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.docsis_cable_device,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "id": {
+                                "type": getattr(
+                                    neighbor_info.neighbor_chassis.id,
+                                    "type",
+                                    None,
+                                ),
+                                "value": getattr(
+                                    neighbor_info.neighbor_chassis.id,
+                                    "value",
+                                    None,
+                                ),
+                            },
+                        },
+                    }
+                }
+            )
     return net_info
 
 
@@ -2134,7 +2267,7 @@ def main():
     if "capacity" in subset or "all" in subset:
         info["capacity"] = generate_capacity_dict(module, array)
     if "network" in subset or "all" in subset:
-        info["network"] = generate_network_dict(array)
+        info["network"] = generate_network_dict(module, array)
     if "subnet" in subset or "all" in subset:
         info["subnet"] = generate_subnet_dict(array)
     if "interfaces" in subset or "all" in subset:
