@@ -475,6 +475,8 @@ NFS_USER_MAP_VERSION = "2.15"
 DEFAULT_PROT_API_VERSION = "2.16"
 VM_VERSION = "2.14"
 VLAN_VERSION = "2.17"
+NEIGHBOR_API_VERSION = "2.22"
+POD_QUOTA_VERSION = "2.23"
 
 
 def generate_default_dict(module, array):
@@ -760,6 +762,9 @@ def generate_filesystems_dict(array):
                 "virtual_space": directories[directory].space.virtual,
                 "destroyed": directories[directory].destroyed,
                 "full_name": directories[directory].name,
+                "used_provisioned": getattr(
+                    directories[directory].space, "used_provisioned", None
+                ),
                 "exports": {},
             }
             exports = list(
@@ -791,6 +796,9 @@ def generate_pgsnaps_dict(array):
             "source": snapshots[snapshot].source.name,
             "suffix": snapshots[snapshot].suffix,
             "snapshot_space": snapshots[snapshot].space.snapshots,
+            "used_provisioned": getattr(
+                snapshots[snapshot].space, "used_provisioned", None
+            ),
         }
         try:
             if pgsnaps_info[s_name]["destroyed"]:
@@ -821,6 +829,9 @@ def generate_dir_snaps_dict(array):
             "snapshot_space": snapshots[snapshot].space.snapshots,
             "total_physical_space": snapshots[snapshot].space.total_physical,
             "unique_space": snapshots[snapshot].space.unique,
+            "used_provisioned": getattr(
+                snapshots[snapshot].space, "used_provisioned", None
+            ),
         }
         try:
             dir_snaps_info[s_name]["policy"] = snapshots[snapshot].policy.name
@@ -963,8 +974,9 @@ def generate_subnet_dict(array):
     return sub_info
 
 
-def generate_network_dict(array):
+def generate_network_dict(module, array):
     net_info = {}
+    api_version = array._list_available_rest_versions()
     ports = array.list_network_interfaces()
     for port in range(0, len(ports)):
         int_name = ports[port]["name"]
@@ -987,6 +999,137 @@ def generate_network_dict(array):
                     "prefix": subnets["prefix"],
                     "vlan": subnets["vlan"],
                 }
+    if NEIGHBOR_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        neighbors = list(arrayv6.get_network_interfaces_neighbors().items)
+        for neighbor in range(0, len(neighbors)):
+            neighbor_info = neighbors[neighbor]
+            int_name = neighbor_info.local_port.name
+            net_info[int_name].update(
+                {
+                    "neighbor": {
+                        "initial_ttl_in_sec": neighbor_info.initial_ttl_in_sec,
+                        "neighbor_port": {
+                            "description": getattr(
+                                neighbor_info.neighbor_port, "description", None
+                            ),
+                            "name": getattr(
+                                neighbor_info.neighbor_chassis, "name", None
+                            ),
+                            "id": getattr(
+                                neighbor_info.neighbor_port.id, "value", None
+                            ),
+                        },
+                        "neighbor_chassis": {
+                            "addresses": getattr(
+                                neighbor_info.neighbor_chassis, "addresses", None
+                            ),
+                            "description": getattr(
+                                neighbor_info.neighbor_chassis, "description", None
+                            ),
+                            "name": getattr(
+                                neighbor_info.neighbor_chassis, "name", None
+                            ),
+                            "bridge": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.bridge,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.bridge,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "repeater": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.repeater,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.repeater,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "router": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.router,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.router,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "station_only": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.station_only,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.station_only,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "telephone": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.telephone,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.telephone,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "wlan_access_point": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.wlan_access_point,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.wlan_access_point,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "docsis_cable_device": {
+                                "enabled": getattr(
+                                    neighbor_info.neighbor_chassis.docsis_cable_device,
+                                    "enabled",
+                                    False,
+                                ),
+                                "supported": getattr(
+                                    neighbor_info.neighbor_chassis.docsis_cable_device,
+                                    "supported",
+                                    False,
+                                ),
+                            },
+                            "id": {
+                                "type": getattr(
+                                    neighbor_info.neighbor_chassis.id,
+                                    "type",
+                                    None,
+                                ),
+                                "value": getattr(
+                                    neighbor_info.neighbor_chassis.id,
+                                    "value",
+                                    None,
+                                ),
+                            },
+                        },
+                    }
+                }
+            )
     return net_info
 
 
@@ -1031,6 +1174,9 @@ def generate_capacity_dict(module, array):
             )
             capacity_info["total_effective"] = getattr(
                 capacity.space, "total_effective", 0
+            )
+            capacity_info["used_provisioned"] = getattr(
+                capacity.space, "used_provisioned", 0
             )
         else:
             capacity_info["provisioned_space"] = capacity.space["total_provisioned"]
@@ -1083,6 +1229,9 @@ def generate_snap_dict(module, array):
         for snap in range(0, len(snapsv6)):
             snapshot = snapsv6[snap].name
             snap_info[snapshot]["snapshot_space"] = snapsv6[snap].space.snapshots
+            snap_info[snapshot]["used_provisioned"] = (
+                getattr(snapsv6[snap].space, "used_provisioned", None),
+            )
             snap_info[snapshot]["total_physical"] = snapsv6[snap].space.total_physical
             snap_info[snapshot]["total_provisioned"] = snapsv6[
                 snap
@@ -1167,6 +1316,9 @@ def generate_del_snap_dict(module, array):
         for snap in range(0, len(snapsv6)):
             snapshot = snapsv6[snap].name
             snap_info[snapshot]["snapshot_space"] = snapsv6[snap].space.snapshots
+            snap_info[snapshot]["used_provisioned"] = (
+                getattr(snapsv6[snap].space, "used_provisioned", None),
+            )
             snap_info[snapshot]["total_physical"] = snapsv6[snap].space.total_physical
             snap_info[snapshot]["total_provisioned"] = snapsv6[
                 snap
@@ -1275,6 +1427,9 @@ def generate_del_vol_dict(module, array):
                 volume_info[name]["unique_effective"] = vols_space[
                     vol
                 ].space.unique_effective
+                volume_info[name]["used_provisioned"] = (
+                    getattr(vols_space[vol].space, "used_provisioned", None),
+                )
     if ACTIVE_DR_API in api_version:
         voltags = array.list_volumes(tags=True, pending_only=True)
         for voltag in range(0, len(voltags)):
@@ -1348,6 +1503,9 @@ def generate_vol_dict(module, array):
                 volume_info[name]["total_effective"] = vols_space[
                     vol
                 ].space.total_effective
+                volume_info[name]["used_provisioned"] = (
+                    getattr(vols_space[vol].space, "used_provisioned", None),
+                )
     if AC_REQUIRED_API_VERSION in api_version:
         qvols = array.list_volumes(qos=True)
         for qvol in range(0, len(qvols)):
@@ -1550,6 +1708,43 @@ def generate_pgroups_dict(module, array):
                 )[0].eradication_config.manual_eradication
             except Exception:
                 pass
+    if V6_MINIMUM_API_VERSION in api_version:
+        pgroups = list(array_v6.get_protection_groups().items)
+        for pgroup in range(0, len(pgroups)):
+            name = pgroups[pgroup].name
+            pgroups_info[name]["snapshots"] = getattr(
+                pgroups[pgroup].space, "snapshots", None
+            )
+            pgroups_info[name]["shared"] = getattr(
+                pgroups[pgroup].space, "shared", None
+            )
+            pgroups_info[name]["data_reduction"] = getattr(
+                pgroups[pgroup].space, "data_reduction", None
+            )
+            pgroups_info[name]["thin_provisioning"] = getattr(
+                pgroups[pgroup].space, "thin_provisioning", None
+            )
+            pgroups_info[name]["total_physical"] = getattr(
+                pgroups[pgroup].space, "total_physical", None
+            )
+            pgroups_info[name]["total_provisioned"] = getattr(
+                pgroups[pgroup].space, "total_provisioned", None
+            )
+            pgroups_info[name]["total_reduction"] = getattr(
+                pgroups[pgroup].space, "total_reduction", None
+            )
+            pgroups_info[name]["unique"] = getattr(
+                pgroups[pgroup].space, "unique", None
+            )
+            pgroups_info[name]["virtual"] = getattr(
+                pgroups[pgroup].space, "virtual", None
+            )
+            pgroups_info[name]["replication"] = getattr(
+                pgroups[pgroup].space, "replication", None
+            )
+            pgroups_info[name]["used_provisioned"] = getattr(
+                pgroups[pgroup].space, "used_provisioned", None
+            )
     return pgroups_info
 
 
@@ -1578,7 +1773,7 @@ def generate_rl_dict(module, array):
     return rl_info
 
 
-def generate_del_pods_dict(array):
+def generate_del_pods_dict(module, array):
     pods_info = {}
     api_version = array._list_available_rest_versions()
     if AC_REQUIRED_API_VERSION in api_version:
@@ -1612,10 +1807,30 @@ def generate_del_pods_dict(array):
                 pods_info[acpod]["failover_preference"] = pods_fp[pod][
                     "failover_preference"
                 ]
+        if V6_MINIMUM_API_VERSION in api_version:
+            arrayv6 = get_array(module)
+            pods = list(arrayv6.get_pods(destroyed=True).items)
+            for pod in range(0, len(pods)):
+                name = pods[pod].name
+                pods_info[name]["snapshots"] = pods[pod].space.snapshots
+                pods_info[name]["shared"] = pods[pod].space.shared
+                pods_info[name]["data_reduction"] = pods[pod].space.data_reduction
+                pods_info[name]["thin_provisioning"] = pods[pod].space.thin_provisioning
+                pods_info[name]["total_physical"] = pods[pod].space.total_physical
+                pods_info[name]["total_provisioned"] = pods[pod].space.total_provisioned
+                pods_info[name]["total_reduction"] = pods[pod].space.total_reduction
+                pods_info[name]["unique"] = pods[pod].space.unique
+                pods_info[name]["virtual"] = pods[pod].space.virtual
+                pods_info[name]["replication"] = pods[pod].space.replication
+                pods_info[name]["used_provisioned"] = getattr(
+                    pods[pod].space, "used_provisioned", None
+                )
+                if POD_QUOTA_VERSION in api_version:
+                    pods_info[name]["quota_limit"] = pods[pod].quota_limit
     return pods_info
 
 
-def generate_pods_dict(array):
+def generate_pods_dict(module, array):
     pods_info = {}
     api_version = array._list_available_rest_versions()
     if AC_REQUIRED_API_VERSION in api_version:
@@ -1648,6 +1863,38 @@ def generate_pods_dict(array):
                 pods_info[acpod]["failover_preference"] = pods_fp[pod][
                     "failover_preference"
                 ]
+        if V6_MINIMUM_API_VERSION in api_version:
+            arrayv6 = get_array(module)
+            pods = list(arrayv6.get_pods(destroyed=False).items)
+            for pod in range(0, len(pods)):
+                name = pods[pod].name
+                pods_info[name]["snapshots"] = getattr(
+                    pods[pod].space, "snapshots", None
+                )
+                pods_info[name]["shared"] = getattr(pods[pod].space, "shared", None)
+                pods_info[name]["data_reduction"] = getattr(
+                    pods[pod].space, "data_reduction", None
+                )
+                pods_info[name]["thin_provisioning"] = getattr(
+                    pods[pod].space, "thin_provisioning", None
+                )
+                pods_info[name]["total_physical"] = getattr(
+                    pods[pod].space, "total_physical", None
+                )
+                pods_info[name]["total_provisioned"] = getattr(
+                    pods[pod].space, "total_provisioned", None
+                )
+                pods_info[name]["total_reduction"] = getattr(
+                    pods[pod].space, "total_reduction", None
+                )
+                pods_info[name]["unique"] = getattr(pods[pod].space, "unique", None)
+                pods_info[name]["virtual"] = getattr(pods[pod].space, "virtual", None)
+                pods_info[name]["replication"] = getattr(
+                    pods[pod].space, "replication", None
+                )
+                pods_info[name]["used_provisioned"] = getattr(
+                    pods[pod].space, "used_provisioned", None
+                )
     return pods_info
 
 
@@ -1774,6 +2021,9 @@ def generate_vgroups_dict(module, array):
             vgroups_info[name]["thin_provisioning"] = vgroups[
                 vgroup
             ].space.thin_provisioning
+            vgroups_info[name]["used_provisioned"] = (
+                getattr(vgroups[vgroup].space, "used_provisioned", None),
+            )
             vgroups_info[name]["bandwidth_limit"] = getattr(
                 vgroups[vgroup].qos, "bandwidth_limit", ""
             )
@@ -1821,6 +2071,9 @@ def generate_del_vgroups_dict(module, array):
             vgroups_info[name]["thin_provisioning"] = vgroups[
                 vgroup
             ].space.thin_provisioning
+            vgroups_info[name]["used_provisioned"] = (
+                getattr(vgroups[vgroup].space, "used_provisioned", None),
+            )
             vgroups_info[name]["time_remaining"] = (vgroups[vgroup].time_remaining,)
             vgroups_info[name]["bandwidth_limit"] = getattr(
                 vgroups[vgroup].qos, "bandwidth_limit", ""
@@ -1887,7 +2140,7 @@ def generate_kmip_dict(array):
     return kmip_info
 
 
-def generate_nfs_offload_dict(array):
+def generate_nfs_offload_dict(module, array):
     offload_info = {}
     api_version = array._list_available_rest_versions()
     if AC_REQUIRED_API_VERSION in api_version:
@@ -1901,10 +2154,48 @@ def generate_nfs_offload_dict(array):
                 "mount_options": offload[target]["mount_options"],
                 "address": offload[target]["address"],
             }
+    if V6_MINIMUM_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        offloads = list(arrayv6.get_offloads(protocol="nfs").items)
+        for offload in range(0, len(offloads)):
+            name = offloads[offload].name
+            offload_info[name]["snapshots"] = getattr(
+                offloads[offload].space, "snapshots", None
+            )
+            offload_info[name]["shared"] = getattr(
+                offloads[offload].space, "shared", None
+            )
+            offload_info[name]["data_reduction"] = getattr(
+                offloads[offload].space, "data_reduction", None
+            )
+            offload_info[name]["thin_provisioning"] = getattr(
+                offloads[offload].space, "thin_provisioning", None
+            )
+            offload_info[name]["total_physical"] = getattr(
+                offloads[offload].space, "total_physical", None
+            )
+            offload_info[name]["total_provisioned"] = getattr(
+                offloads[offload].space, "total_provisioned", None
+            )
+            offload_info[name]["total_reduction"] = getattr(
+                offloads[offload].space, "total_reduction", None
+            )
+            offload_info[name]["unique"] = getattr(
+                offloads[offload].space, "unique", None
+            )
+            offload_info[name]["virtual"] = getattr(
+                offloads[offload].space, "virtual", None
+            )
+            offload_info[name]["replication"] = getattr(
+                offloads[offload].space, "replication", None
+            )
+            offload_info[name]["used_provisioned"] = getattr(
+                offloads[offload].space, "used_provisioned", None
+            )
     return offload_info
 
 
-def generate_s3_offload_dict(array):
+def generate_s3_offload_dict(module, array):
     offload_info = {}
     api_version = array._list_available_rest_versions()
     if S3_REQUIRED_API_VERSION in api_version:
@@ -1921,10 +2212,48 @@ def generate_s3_offload_dict(array):
                 offload_info[offloadt]["placement_strategy"] = offload[target][
                     "placement_strategy"
                 ]
+    if V6_MINIMUM_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        offloads = list(arrayv6.get_offloads(protocol="s3").items)
+        for offload in range(0, len(offloads)):
+            name = offloads[offload].name
+            offload_info[name]["snapshots"] = getattr(
+                offloads[offload].space, "snapshots", None
+            )
+            offload_info[name]["shared"] = getattr(
+                offloads[offload].space, "shared", None
+            )
+            offload_info[name]["data_reduction"] = getattr(
+                offloads[offload].space, "data_reduction", None
+            )
+            offload_info[name]["thin_provisioning"] = getattr(
+                offloads[offload].space, "thin_provisioning", None
+            )
+            offload_info[name]["total_physical"] = getattr(
+                offloads[offload].space, "total_physical", None
+            )
+            offload_info[name]["total_provisioned"] = getattr(
+                offloads[offload].space, "total_provisioned", None
+            )
+            offload_info[name]["total_reduction"] = getattr(
+                offloads[offload].space, "total_reduction", None
+            )
+            offload_info[name]["unique"] = getattr(
+                offloads[offload].space, "unique", None
+            )
+            offload_info[name]["virtual"] = getattr(
+                offloads[offload].space, "virtual", None
+            )
+            offload_info[name]["replication"] = getattr(
+                offloads[offload].space, "replication", None
+            )
+            offload_info[name]["used_provisioned"] = getattr(
+                offloads[offload].space, "used_provisioned", None
+            )
     return offload_info
 
 
-def generate_azure_offload_dict(array):
+def generate_azure_offload_dict(module, array):
     offload_info = {}
     api_version = array._list_available_rest_versions()
     if P53_API_VERSION in api_version:
@@ -1938,11 +2267,82 @@ def generate_azure_offload_dict(array):
                 "secret_access_key": offload[target]["secret_access_key"],
                 "container_name": offload[target]["container_name"],
             }
+    if V6_MINIMUM_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        offloads = list(arrayv6.get_offloads(protocol="azure").items)
+        for offload in range(0, len(offloads)):
+            name = offloads[offload].name
+            offload_info[name]["snapshots"] = getattr(
+                offloads[offload].space, "snapshots", None
+            )
+            offload_info[name]["shared"] = getattr(
+                offloads[offload].space, "shared", None
+            )
+            offload_info[name]["data_reduction"] = getattr(
+                offloads[offload].space, "data_reduction", None
+            )
+            offload_info[name]["thin_provisioning"] = getattr(
+                offloads[offload].space, "thin_provisioning", None
+            )
+            offload_info[name]["total_physical"] = getattr(
+                offloads[offload].space, "total_physical", None
+            )
+            offload_info[name]["total_provisioned"] = getattr(
+                offloads[offload].space, "total_provisioned", None
+            )
+            offload_info[name]["total_reduction"] = getattr(
+                offloads[offload].space, "total_reduction", None
+            )
+            offload_info[name]["unique"] = getattr(
+                offloads[offload].space, "unique", None
+            )
+            offload_info[name]["virtual"] = getattr(
+                offloads[offload].space, "virtual", None
+            )
+            offload_info[name]["replication"] = getattr(
+                offloads[offload].space, "replication", None
+            )
+            offload_info[name]["used_provisioned"] = getattr(
+                offloads[offload].space, "used_provisioned", None
+            )
     return offload_info
 
 
-def generate_hgroups_dict(array):
+def generate_google_offload_dict(array):
+    offload_info = {}
+    offloads = list(array.get_offloads(protocol="google-cloud").items)
+    for offload in range(0, len(offloads)):
+        name = offloads[offload].name
+        offload_info[name] = {
+            # "access_key_id": offloads[offload].google-cloud.access_key_id,
+            # "bucket": offloads[offload].google-cloud.bucket,
+            # "auth_region": offloads[offload].google-cloud.auth_region,
+            "snapshots": getattr(offloads[offload].space, "snapshots", None),
+            "shared": getattr(offloads[offload].space, "shared", None),
+            "data_reduction": getattr(offloads[offload].space, "data_reduction", None),
+            "thin_provisioning": getattr(
+                offloads[offload].space, "thin_provisioning", None
+            ),
+            "total_physical": getattr(offloads[offload].space, "total_physical", None),
+            "total_provisioned": getattr(
+                offloads[offload].space, "total_provisioned", None
+            ),
+            "total_reduction": getattr(
+                offloads[offload].space, "total_reduction", None
+            ),
+            "unique": getattr(offloads[offload].space, "unique", None),
+            "virtual": getattr(offloads[offload].space, "virtual", None),
+            "replication": getattr(offloads[offload].space, "replication", None),
+            "used_provisioned": getattr(
+                offloads[offload].space, "used_provisioned", None
+            ),
+        }
+    return offload_info
+
+
+def generate_hgroups_dict(module, array):
     hgroups_info = {}
+    api_version = array._list_available_rest_versions()
     hgroups = array.list_hgroups()
     for hgroup in range(0, len(hgroups)):
         hostgroup = hgroups[hgroup]["name"]
@@ -1960,6 +2360,28 @@ def generate_hgroups_dict(array):
         pgname = volhgroups[pgvol]["name"]
         volpgdict = [volhgroups[pgvol]["vol"], volhgroups[pgvol]["lun"]]
         hgroups_info[pgname]["vols"].append(volpgdict)
+    if V6_MINIMUM_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        hgroups = list(arrayv6.get_host_groups().items)
+        for hgroup in range(0, len(hgroups)):
+            name = hgroups[hgroup].name
+            hgroups_info[name]["snapshots"] = hgroups[hgroup].space.snapshots
+            hgroups_info[name]["data_reduction"] = hgroups[hgroup].space.data_reduction
+            hgroups_info[name]["thin_provisioning"] = hgroups[
+                hgroup
+            ].space.thin_provisioning
+            hgroups_info[name]["total_physical"] = hgroups[hgroup].space.total_physical
+            hgroups_info[name]["total_provisioned"] = hgroups[
+                hgroup
+            ].space.total_provisioned
+            hgroups_info[name]["total_reduction"] = hgroups[
+                hgroup
+            ].space.total_reduction
+            hgroups_info[name]["unique"] = hgroups[hgroup].space.unique
+            hgroups_info[name]["virtual"] = hgroups[hgroup].space.virtual
+            hgroups_info[name]["used_provisioned"] = getattr(
+                hgroups[hgroup].space, "used_provisioned", None
+            )
     return hgroups_info
 
 
@@ -2134,7 +2556,7 @@ def main():
     if "capacity" in subset or "all" in subset:
         info["capacity"] = generate_capacity_dict(module, array)
     if "network" in subset or "all" in subset:
-        info["network"] = generate_network_dict(array)
+        info["network"] = generate_network_dict(module, array)
     if "subnet" in subset or "all" in subset:
         info["subnet"] = generate_subnet_dict(array)
     if "interfaces" in subset or "all" in subset:
@@ -2148,7 +2570,7 @@ def main():
         info["snapshots"] = generate_snap_dict(module, array)
         info["deleted_snapshots"] = generate_del_snap_dict(module, array)
     if "hgroups" in subset or "all" in subset:
-        info["hgroups"] = generate_hgroups_dict(array)
+        info["hgroups"] = generate_hgroups_dict(module, array)
     if "pgroups" in subset or "all" in subset:
         info["pgroups"] = generate_pgroups_dict(module, array)
     if "pods" in subset or "all" in subset or "replication" in subset:
@@ -2161,9 +2583,10 @@ def main():
         info["vgroups"] = generate_vgroups_dict(module, array)
         info["deleted_vgroups"] = generate_del_vgroups_dict(module, array)
     if "offload" in subset or "all" in subset:
-        info["azure_offload"] = generate_azure_offload_dict(array)
-        info["nfs_offload"] = generate_nfs_offload_dict(array)
-        info["s3_offload"] = generate_s3_offload_dict(array)
+        info["azure_offload"] = generate_azure_offload_dict(module, array)
+        info["nfs_offload"] = generate_nfs_offload_dict(module, array)
+        info["s3_offload"] = generate_s3_offload_dict(module, array)
+        info["google_offload"] = generate_google_offload_dict(array)
     if "apps" in subset or "all" in subset:
         if "CBS" not in info["default"]["array_model"]:
             info["apps"] = generate_apps_dict(array)
