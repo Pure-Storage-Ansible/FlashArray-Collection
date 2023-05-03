@@ -151,6 +151,12 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
+HAS_PUREERROR = True
+try:
+    from purestorage import PureHTTPError
+except ImportError:
+    HAS_PUREERROR = False
+
 HAS_PURESTORAGE = True
 try:
     from pypureclient import flasharray
@@ -266,22 +272,21 @@ def create_snapshot(module, array, arrayv6):
     """Create Snapshot"""
     changed = False
     if module.params["offload"]:
-        if module.params["suffix"]:
-            module.warn(
-                "Suffix not supported for Remote Volume Offload Snapshot. Using next incremental integer"
+        module.params["suffix"] = None
+        changed = True
+        if not module.check_mode:
+            res = arrayv6.post_remote_volume_snapshots(
+                source_names=[module.params["name"]], on=module.params["offload"]
             )
-            module.params["suffix"] = None
-            changed = True
-            if not module.check_mode:
-                res = arrayv6.post_remote_volume_snapshots(
-                    source_names=[module.params["name"]], on=module.params["offload"]
-                )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to crete remote snapshot for volume {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to create remote snapshot for volume {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
                     )
+                )
+            else:
+                remote_snap = list(res.items)[0].name
+                module.params["suffix"] = remote_snap.split(".")[1]
     else:
         changed = True
         if not module.check_mode:
@@ -290,8 +295,12 @@ def create_snapshot(module, array, arrayv6):
                     module.params["name"], suffix=module.params["suffix"]
                 )
             except Exception:
-                pass
-    module.exit_json(changed=changed)
+                module.fail_json(
+                    msg="Failed to create snapshot for volume {0}".format(
+                        module.params["name"]
+                    )
+                )
+    module.exit_json(changed=changed, suffix=module.params["suffix"])
 
 
 def create_from_snapshot(module, array):
@@ -420,15 +429,47 @@ def delete_snapshot(module, array, arrayv6):
     else:
         changed = True
         if not module.check_mode:
-            try:
-                array.destroy_volume(snapname)
+            api_version = array._list_available_rest_versions()
+            if GET_SEND_API in api_version:
+                module.warn("here")
+                res = arrayv6.patch_volume_snapshots(
+                    names=[snapname],
+                    volume_snapshot=flasharray.DestroyedPatchPost(destroyed=True),
+                    replication_snapshot=module.params["ignore_repl"],
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to delete remote snapshot {0}. Error: {1}".format(
+                            snapname, res.errors[0].message
+                        )
+                    )
                 if module.params["eradicate"]:
-                    try:
-                        array.eradicate_volume(snapname)
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+                    res = arrayv6.delete_volume_snapshots(
+                        names=[snapname],
+                        replication_snapshot=module.params["ignore_repl"],
+                    )
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
+                                snapname, res.errors[0].message
+                            )
+                        )
+            else:
+                try:
+                    array.destroy_volume(snapname)
+                    if module.params["eradicate"]:
+                        try:
+                            array.eradicate_volume(snapname)
+                        except PureHTTPError as err:
+                            module.fail_json(
+                                msg="Error eradicating snapshot. Error: {0}".format(
+                                    err.text
+                                )
+                            )
+                except PureHTTPError as err:
+                    module.fail_json(
+                        msg="Error deleting snapshot. Error: {0}".format(err.text)
+                    )
     module.exit_json(changed=changed)
 
 
@@ -493,7 +534,12 @@ def main():
     module = AnsibleModule(
         argument_spec, required_if=required_if, supports_check_mode=True
     )
-    pattern = re.compile("^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$")
+    if not HAS_PUREERROR:
+        module.fail_json(msg="purestorage sdk is required for this module")
+    pattern1 = re.compile(
+        "^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$"
+    )
+    pattern2 = re.compile("^([1-9])([0-9]{0,63}[0-9])?$")
 
     state = module.params["state"]
     if module.params["suffix"] is None:
@@ -503,7 +549,10 @@ def main():
         module.params["suffix"] = suffix.replace(".", "")
     else:
         if not module.params["offload"]:
-            if not pattern.match(module.params["suffix"]) and state not in [
+            if not (
+                pattern1.match(module.params["suffix"])
+                or pattern2.match(module.params["suffix"])
+            ) and state not in [
                 "absent",
                 "rename",
             ]:
@@ -513,7 +562,7 @@ def main():
                     )
                 )
     if state == "rename" and module.params["target"] is not None:
-        if not pattern.match(module.params["target"]):
+        if not pattern1.match(module.params["target"]):
             module.fail_json(
                 msg="Suffix target {0} does not conform to suffix name rules".format(
                     module.params["target"]
@@ -554,7 +603,8 @@ def main():
             msg="Snapshot copy is not supported when an offload target is defined"
         )
     destroyed = False
-    array_snap = offload_snap = False
+    array_snap = False
+    offload_snap = False
     volume = get_volume(module, array)
     if module.params["offload"] and not _check_target(module, arrayv6):
         offload_snap = _check_offload_snapshot(module, arrayv6)
@@ -565,11 +615,12 @@ def main():
     else:
         array_snap = get_snapshot(module, array)
     snap = array_snap or offload_snap
+
     if not snap:
         destroyed = get_deleted_snapshot(module, array, arrayv6)
     if state == "present" and volume and not destroyed:
         create_snapshot(module, array, arrayv6)
-    elif state == "present" and volume and destroyed:
+    elif state == "present" and destroyed:
         recover_snapshot(module, array, arrayv6)
     elif state == "rename" and volume and snap:
         update_snapshot(module, arrayv6)
