@@ -86,6 +86,25 @@ options:
       - This will default to True
     required: false
     type: bool
+  quota:
+    description:
+      - Logical quota limit of the pod in K, M, G, T or P units, or bytes.
+    type: str
+    version_added: '1.18.0'
+  ignore_usage:
+    description:
+    -  Flag used to override checks for quota management
+       operations.
+    - If set to true, pod usage is not checked against the
+      quota_limits that are set.
+    - If set to false, the actual logical bytes in use are prevented
+      from exceeding the limits set on the pod.
+    - Client operations might be impacted.
+    - If the limit exceeds the quota, the operation is not allowed.
+    default: false
+    type: bool
+    version_added: '1.18.0'
+
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -148,14 +167,48 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
+HAS_PURESTORAGE = True
+try:
+    from pypureclient import flasharray
+except ImportError:
+    HAS_PURESTORAGE = False
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_system,
+    get_array,
     purefa_argument_spec,
 )
 
 
 POD_API_VERSION = "1.13"
+POD_QUOTA_VERSION = "2.23"
+
+
+def human_to_bytes(size):
+    """Given a human-readable byte string (e.g. 2G, 30M),
+    return the number of bytes.  Will return 0 if the argument has
+    unexpected form.
+    """
+    bytes = size[:-1]
+    unit = size[-1].upper()
+    if bytes.isdigit():
+        bytes = int(bytes)
+        if unit == "P":
+            bytes *= 1125899906842624
+        elif unit == "T":
+            bytes *= 1099511627776
+        elif unit == "G":
+            bytes *= 1073741824
+        elif unit == "M":
+            bytes *= 1048576
+        elif unit == "K":
+            bytes *= 1024
+        else:
+            bytes = 0
+    else:
+        bytes = 0
+    return bytes
 
 
 def get_pod(module, array):
@@ -270,6 +323,20 @@ def create_pod(module, array):
                             module.params["name"], module.params["stretch"]
                         )
                     )
+        if module.params["quota"]:
+            arrayv6 = get_array(module)
+            res = arrayv6.patch_pods(
+                names=[module.params["name"]],
+                pod=flasharray.PodPatch(
+                    quota_limit=human_to_bytes(module.params["quota"])
+                ),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to apply quota to pod {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
@@ -409,6 +476,26 @@ def update_pod(module, array):
                     module.fail_json(
                         msg="Failed to demote pod {0}.".format(module.params["name"])
                     )
+    if module.params["quota"]:
+        arrayv6 = get_array(module)
+        current_pod = list(arrayv6.get_pods(names=[module.params["name"]]).items)[0]
+        quota = human_to_bytes(module.params["quota"])
+        if current_pod.quota_limit != quota:
+            changed = True
+            if not module.check_mode:
+                res = arrayv6.patch_pods(
+                    names=[module.params["name"]],
+                    pod=flasharray.PodPatch(
+                        quota_limit=quota, ignore_usage=module.params["ignore_usage"]
+                    ),
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to update quota on pod {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+
     module.exit_json(changed=changed)
 
 
@@ -512,6 +599,8 @@ def main():
             quiesce=dict(type="bool"),
             eradicate=dict(type="bool", default=False),
             state=dict(type="str", default="present", choices=["absent", "present"]),
+            quota=dict(type="str"),
+            ignore_usage=dict(type="bool", default=False),
         )
     )
 
@@ -539,6 +628,11 @@ def main():
             "Minimum version required: {0}".format(POD_API_VERSION)
         )
 
+    if module.params["quota"] and POD_QUOTA_VERSION in api_version:
+        if not HAS_PURESTORAGE:
+            module.fail_json(
+                msg="py-pure-client sdk is required to support 'count' parameter"
+            )
     pod = get_pod(module, array)
     destroyed = ""
     if not pod:
