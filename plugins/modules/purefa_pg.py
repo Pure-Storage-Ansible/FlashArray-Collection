@@ -230,7 +230,9 @@ def get_targets(array):
         return None
 
     for targetcnt in range(0, len(target_details)):
-        if target_details[targetcnt]["status"] in ["connected", "partially_connected"]:
+        if target_details[targetcnt]["status"] in [
+            "connected", "partially_connected"
+        ]:
             targets.append(target_details[targetcnt]["name"])
     return targets
 
