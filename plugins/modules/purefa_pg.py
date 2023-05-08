@@ -243,7 +243,8 @@ def get_arrays(array):
     for arraycnt in range(0, len(array_details)):
         if P53_API_VERSION in api_version:
             if array_details[arraycnt]["status"] in [
-                "connected", "partially_connected"
+                "connected",
+                "partially_connected"
             ]:
                 arrays.append(array_details[arraycnt]["array_name"])
         else:
