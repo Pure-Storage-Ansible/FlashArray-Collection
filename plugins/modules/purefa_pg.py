@@ -230,9 +230,7 @@ def get_targets(array):
         return None
 
     for targetcnt in range(0, len(target_details)):
-        if target_details[targetcnt]["status"] in [
-            "connected", "partially_connected"
-        ]:
+        if target_details[targetcnt]["status"] in ["connected", "partially_connected"]:
             targets.append(target_details[targetcnt]["name"])
     return targets
 
@@ -244,7 +242,9 @@ def get_arrays(array):
     api_version = array._list_available_rest_versions()
     for arraycnt in range(0, len(array_details)):
         if P53_API_VERSION in api_version:
-            if array_details[arraycnt]["status"] in ["connected", "partially_connected"]:
+            if array_details[arraycnt]["status"] in [
+                "connected", "partially_connected"
+            ]:
                 arrays.append(array_details[arraycnt]["array_name"])
         else:
             if array_details[arraycnt]["connected"]:
