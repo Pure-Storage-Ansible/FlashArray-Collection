@@ -314,10 +314,7 @@ def update_hostgroup(module, array):
         if module.params["volume"]:
             cased_old_vols = list(module.params["volume"])
             old_volumes = list(
-                set(cased_old_vols).intersection(
-                    set([vol["vol"] for vol in volumes])
-                )
-            )
+                set(cased_old_vols).intersection(set([vol["vol"] for vol in volumes])))
             if old_volumes:
                 changed = True
                 for cvol in old_volumes:
