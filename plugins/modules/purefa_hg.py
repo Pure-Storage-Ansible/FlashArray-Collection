@@ -24,11 +24,12 @@ description:
 author:
 - Pure Storage ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
-  hostgroup:
+  name:
     description:
     - The name of the hostgroup.
     type: str
     required: true
+    aliases: [ hostgroup ]
   state:
     description:
     - Define whether the hostgroup should exist or not.
@@ -68,13 +69,13 @@ extends_documentation_fragment:
 EXAMPLES = r"""
 - name: Create empty hostgroup
   purestorage.flasharray.purefa_hg:
-    hostgroup: foo
+    name: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Add hosts and volumes to existing or new hostgroup
   purestorage.flasharray.purefa_hg:
-    hostgroup: foo
+    name: foo
     host:
       - host1
       - host2
@@ -86,7 +87,7 @@ EXAMPLES = r"""
 
 - name: Delete hosts and volumes from hostgroup
   purestorage.flasharray.purefa_hg:
-    hostgroup: foo
+    name: foo
     host:
       - host1
       - host2
@@ -100,21 +101,21 @@ EXAMPLES = r"""
 # This will disconnect all hosts and volumes in the hostgroup
 - name: Delete hostgroup
   purestorage.flasharray.purefa_hg:
-    hostgroup: foo
+    name: foo
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
 
 - name: Rename hostgroup
   purestorage.flasharray.purefa_hg:
-    hostgroup: foo
+    name: foo
     rename: bar
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create host group with hosts and volumes
   purestorage.flasharray.purefa_hg:
-    hostgroup: bar
+    name: bar
     host:
       - host1
       - host2
@@ -150,7 +151,7 @@ def get_hostgroup(module, array):
     hostgroup = None
 
     for host in array.list_hgroups():
-        if host["name"].casefold() == module.params["hostgroup"].casefold():
+        if host["name"].casefold() == module.params["name"].casefold():
             hostgroup = host
             break
 
@@ -161,24 +162,24 @@ def make_hostgroup(module, array):
     if module.params["rename"]:
         module.fail_json(
             msg="Hostgroup {0} does not exist - rename failed.".format(
-                module.params["hostgroup"]
+                module.params["name"]
             )
         )
     changed = True
     if not module.check_mode:
         try:
-            array.create_hgroup(module.params["hostgroup"])
+            array.create_hgroup(module.params["name"])
         except Exception:
             module.fail_json(
-                msg="Failed to create hostgroup {0}".format(module.params["hostgroup"])
+                msg="Failed to create hostgroup {0}".format(module.params["name"])
             )
         if module.params["host"]:
-            array.set_hgroup(module.params["hostgroup"], hostlist=module.params["host"])
+            array.set_hgroup(module.params["name"], hostlist=module.params["host"])
         if module.params["volume"]:
             if len(module.params["volume"]) == 1 and module.params["lun"]:
                 try:
                     array.connect_hgroup(
-                        module.params["hostgroup"],
+                        module.params["name"],
                         module.params["volume"][0],
                         lun=module.params["lun"],
                     )
@@ -191,7 +192,7 @@ def make_hostgroup(module, array):
             else:
                 for vol in module.params["volume"]:
                     try:
-                        array.connect_hgroup(module.params["hostgroup"], vol)
+                        array.connect_hgroup(module.params["name"], vol)
                     except Exception:
                         module.fail_json(msg="Failed to add volume to hostgroup")
     module.exit_json(changed=changed)
@@ -201,15 +202,15 @@ def update_hostgroup(module, array):
     changed = False
     renamed = False
     hgroup = get_hostgroup(module, array)
-    current_hostgroup = module.params["hostgroup"]
-    volumes = array.list_hgroup_connections(module.params["hostgroup"])
+    current_hostgroup = module.params["name"]
+    volumes = array.list_hgroup_connections(module.params["name"])
     if module.params["state"] == "present":
         if module.params["rename"]:
             if not rename_exists(module, array):
                 try:
                     if not module.check_mode:
                         array.rename_hgroup(
-                            module.params["hostgroup"], module.params["rename"]
+                            module.params["name"], module.params["rename"]
                         )
                     current_hostgroup = module.params["rename"]
                     renamed = True
@@ -313,9 +314,7 @@ def update_hostgroup(module, array):
         if module.params["volume"]:
             cased_old_vols = list(module.params["volume"])
             old_volumes = list(
-                set(cased_old_vols).intersection(
-                    set([vol["vol"] for vol in volumes])
-                )
+                set(cased_old_vols).intersection(set([vol["vol"] for vol in volumes]))
             )
             if old_volumes:
                 changed = True
@@ -336,7 +335,7 @@ def update_hostgroup(module, array):
 def delete_hostgroup(module, array):
     changed = True
     try:
-        vols = array.list_hgroup_connections(module.params["hostgroup"])
+        vols = array.list_hgroup_connections(module.params["name"])
     except Exception:
         module.fail_json(
             msg="Failed to get volume connection for hostgroup {0}".format(
@@ -346,29 +345,29 @@ def delete_hostgroup(module, array):
     if not module.check_mode:
         for vol in vols:
             try:
-                array.disconnect_hgroup(module.params["hostgroup"], vol["vol"])
+                array.disconnect_hgroup(module.params["name"], vol["vol"])
             except Exception:
                 module.fail_json(
                     msg="Failed to disconnect volume {0} from hostgroup {1}".format(
-                        vol["vol"], module.params["hostgroup"]
+                        vol["vol"], module.params["name"]
                     )
                 )
-        host = array.get_hgroup(module.params["hostgroup"])
+        host = array.get_hgroup(module.params["name"])
         if not module.check_mode:
             try:
-                array.set_hgroup(module.params["hostgroup"], remhostlist=host["hosts"])
+                array.set_hgroup(module.params["name"], remhostlist=host["hosts"])
                 try:
-                    array.delete_hgroup(module.params["hostgroup"])
+                    array.delete_hgroup(module.params["name"])
                 except Exception:
                     module.fail_json(
                         msg="Failed to delete hostgroup {0}".format(
-                            module.params["hostgroup"]
+                            module.params["name"]
                         )
                     )
             except Exception:
                 module.fail_json(
                     msg="Failed to remove hosts {0} from hostgroup {1}".format(
-                        host["hosts"], module.params["hostgroup"]
+                        host["hosts"], module.params["name"]
                     )
                 )
     module.exit_json(changed=changed)
@@ -378,7 +377,7 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
-            hostgroup=dict(type="str", required=True),
+            name=dict(type="str", required=True, aliases=["hostgroup"]),
             state=dict(type="str", default="present", choices=["absent", "present"]),
             host=dict(type="list", elements="str"),
             lun=dict(type="int"),
