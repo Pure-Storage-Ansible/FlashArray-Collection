@@ -29,7 +29,7 @@ options:
     - The name of the hostgroup.
     type: str
     required: true
-    aliasese: [ hostgroup ]
+    aliases: [ hostgroup ]
   state:
     description:
     - Define whether the hostgroup should exist or not.
