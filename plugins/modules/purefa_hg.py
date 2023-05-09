@@ -379,7 +379,7 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
-            name=dict(type="str", required=True, aliases=["name"]),
+            name=dict(type="str", required=True, aliases=["hostgroup"]),
             state=dict(type="str", default="present", choices=["absent", "present"]),
             host=dict(type="list", elements="str"),
             lun=dict(type="int"),
