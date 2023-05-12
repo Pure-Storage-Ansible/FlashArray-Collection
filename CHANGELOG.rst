@@ -5,6 +5,34 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.18.0
+=======
+
+Release Summary
+---------------
+
+| FlashArray Collection v1.18 removes module-side support for Python 2.7.
+| The minimum required Python version for the FlashArray Collection is Python 3.6.
+
+
+Minor Changes
+-------------
+
+- purefa_hg - Changed parameter hostgroup to name for consistency. Added hostgroup as an alias for backwards compatability.
+- purefa_hg - Exit gracefully, rather than failing when a specified volume does not exist
+- purefa_host - Exit gracefully, rather than failing when a specified volume does not exist
+- purefa_info - Added network neighbors info to `network` subset
+- purefa_pod - Added support for pod quotas (from REST 2.23)
+- purefa_snap - New response of 'suffix' when snapshot has been created.
+- purefa_volume - Added additional volume facts for volume update, or for no change
+
+Bugfixes
+--------
+
+- purefa_network - Resolves network port setting idempotency issue
+- purefa_pg - Fixed issue where volumes could not be added to a PG when one of the arrays was undergoing a failover.
+- purefa_snap - Fixed issue system generated suffixes not being allowed and removed unnecessary warning message.
+
 v1.17.2
 =======
 
@@ -15,8 +43,8 @@ Bugfixes
 --------
 
 - purefa_info - Fix REST response backwards compatibility issue for array capacity REST response
-- purefa_info - Resolves issue with destroyed pgroup snapshot on an offload target not have a time remaining value
 - purefa_info - Resolves issue in AC environment where REST v2 host list mismatches REST v1 due to remote hosts.
+- purefa_info - Resolves issue with destroyed pgroup snapshot on an offload target not have a time remaining value
 - purefa_pg - Resolves issue with destroyed pgroup snapshot on an offload target not have a time remaining value
 
 v1.17.0
@@ -36,7 +64,7 @@ Bugfixes
 - purefa_info - Fix missing FC target ports for host
 - purefa_pgsched - Fix error when setting schedule for pod based protection group
 - purefa_vg - Fix issue with VG creation on newer Purity versions
-- purefa_volume - Ensure promotion_status is returned correctly on creation
+- purefa_volume - Ensure promotion_stateus is returned correctly on creation
 - purefa_volume - Fix bug when overwriting volume using invalid parmaeters
 - purefa_volume - Fixed idempotency bug when creating volumes with QoS
 
