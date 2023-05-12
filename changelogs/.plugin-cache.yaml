@@ -262,6 +262,11 @@ plugins:
       name: purefa_timeout
       namespace: ''
       version_added: 1.0.0
+    purefa_token:
+      description: Create or delete an API token for an existing admin user
+      name: purefa_token
+      namespace: ''
+      version_added: 1.0.0
     purefa_user:
       description: Create, modify or delete FlashArray local user account
       name: purefa_user
@@ -297,4 +302,4 @@ plugins:
   strategy: {}
   test: {}
   vars: {}
-version: 1.17.1
+version: 1.18.0
