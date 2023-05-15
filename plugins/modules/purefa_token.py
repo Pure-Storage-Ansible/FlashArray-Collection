@@ -40,17 +40,14 @@ options:
     description:
     - Username of the admin user to create API token for
     type: str
-    required: true
   password:
     description:
     - Password of the admin user to create API token for.
     type: str
-    required: true
   fa_url:
     description:
       - FlashArray management IPv4 address or Hostname.
     type: str
-    required: true
   timeout:
     description:
       - The duration of API token validity.
