@@ -167,9 +167,9 @@ def get_session(module):
 
 def main():
     argument_spec = dict(
-        fa_url=dict(required=True),
-        username=dict(type="str", required=True),
-        password=dict(no_log=True, required=True),
+        fa_url=dict(required=False),
+        username=dict(type="str", required=False),
+        password=dict(no_log=True, required=False),
         state=dict(type="str", default="present", choices=["absent", "present"]),
         recreate=dict(type="bool", default=False),
         timeout=dict(type="str"),
