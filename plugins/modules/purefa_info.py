@@ -2227,8 +2227,8 @@ def main():
         info["pgroups"] = generate_pgroups_dict(module, array)
     if "pods" in subset or "all" in subset or "replication" in subset:
         info["replica_links"] = generate_rl_dict(module, array)
-        info["pods"] = generate_pods_dict(array)
-        info["deleted_pods"] = generate_del_pods_dict(array)
+        info["pods"] = generate_pods_dict(module, array)
+        info["deleted_pods"] = generate_del_pods_dict(module, array)
     if "admins" in subset or "all" in subset:
         info["admins"] = generate_admin_dict(array)
     if "vgroups" in subset or "all" in subset:
