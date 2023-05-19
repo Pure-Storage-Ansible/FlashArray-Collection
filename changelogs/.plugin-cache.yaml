@@ -136,6 +136,11 @@ plugins:
       name: purefa_kmip
       namespace: ''
       version_added: 1.10.0
+    purefa_logging:
+      description: Manage Pure Storage FlashArray Audit and Session logs
+      name: purefa_logging
+      namespace: ''
+      version_added: 1.19.0
     purefa_maintenance:
       description: Configure Pure Storage FlashArray Maintence Windows
       name: purefa_maintenance
@@ -302,4 +307,4 @@ plugins:
   strategy: {}
   test: {}
   vars: {}
-version: 1.18.0
+version: 1.19.0
