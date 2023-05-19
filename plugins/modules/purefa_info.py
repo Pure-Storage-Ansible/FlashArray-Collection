@@ -1923,7 +1923,7 @@ def generate_azure_offload_dict(module, array):
         arrayv6 = get_array(module)
         offloads = list(arrayv6.get_offloads(protocol="azure").items)
         for offload in range(0, len(offloads)):
-            name = offloads[offload].name
+            name = offloads[offload].name/
             offload_info[name]["snapshots"] = getattr(
                 offloads[offload].space, "snapshots", None
             )
@@ -2238,7 +2238,6 @@ def main():
         info["azure_offload"] = generate_azure_offload_dict(module, array)
         info["nfs_offload"] = generate_nfs_offload_dict(module, array)
         info["s3_offload"] = generate_s3_offload_dict(module, array)
-        info["google_offload"] = generate_google_offload_dict(array)
     if "apps" in subset or "all" in subset:
         if "CBS" not in info["default"]["array_model"]:
             info["apps"] = generate_apps_dict(array)
@@ -2252,6 +2251,8 @@ def main():
         info["kmip"] = generate_kmip_dict(array)
     if FILES_API_VERSION in api_version:
         array_v6 = get_array(module)
+        if "offload" in subset or "all" in subset:
+            info["google_offload"] = generate_google_offload_dict(array_v6)
         if "filesystems" in subset or "all" in subset:
             info["filesystems"] = generate_filesystems_dict(array_v6)
         if "policies" in subset or "all" in subset:
