@@ -5,6 +5,17 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.19.0
+=======
+
+v1.18.1
+=======
+
+New Modules
+-----------
+
+- purestorage.flasharray.purefa_logging - Manage Pure Storage FlashArray Audit and Session logs
+
 v1.18.0
 =======
 
