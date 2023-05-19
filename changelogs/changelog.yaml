@@ -337,13 +337,16 @@ releases:
     - 397_parialconnect_bug.yaml
     - 398_hgoup_alias.yaml
     release_date: '2023-05-12'
-  1.18.1:
+  1.19.0:
     modules:
     - description: Manage Pure Storage FlashArray Audit and Session logs
       name: purefa_logging
       namespace: ''
     release_date: '2023-05-19'
-  1.19.0:
+  1.19.1:
+    changes:
+      bugfixes:
+      - purefa_info - Fixed missing arguments for google_offload and pods
     release_date: '2023-05-19'
   1.4.0:
     changes:
