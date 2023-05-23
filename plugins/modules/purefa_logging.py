@@ -151,9 +151,7 @@ def main():
                         "command": all_audits[audit].command,
                         "subcommand": all_audits[audit].subcommand,
                         "user": all_audits[audit].user,
-                        "origin": getattr(
-                            all_audits[audit].origin, "name", None
-                        ),
+                        "origin": getattr(all_audits[audit].origin, "name", None),
                     }
                 audits.append(data)
     else:
