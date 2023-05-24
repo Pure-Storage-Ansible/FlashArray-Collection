@@ -1464,21 +1464,35 @@ def generate_del_pods_dict(module, array):
             pods = list(arrayv6.get_pods(destroyed=True).items)
             for pod in range(0, len(pods)):
                 name = pods[pod].name
-                pods_info[name]["snapshots"] = pods[pod].space.snapshots
-                pods_info[name]["shared"] = pods[pod].space.shared
-                pods_info[name]["data_reduction"] = pods[pod].space.data_reduction
-                pods_info[name]["thin_provisioning"] = pods[pod].space.thin_provisioning
-                pods_info[name]["total_physical"] = pods[pod].space.total_physical
-                pods_info[name]["total_provisioned"] = pods[pod].space.total_provisioned
-                pods_info[name]["total_reduction"] = pods[pod].space.total_reduction
-                pods_info[name]["unique"] = pods[pod].space.unique
-                pods_info[name]["virtual"] = pods[pod].space.virtual
+                pods_info[name]["snapshots"] = getattr(
+                    pods[pod].space, "snapshots", None
+                )
+                pods_info[name]["shared"] = getattr(pods[pod].space, "shared", None)
+                pods_info[name]["data_reduction"] = getattr(
+                    pods[pod].space, "data_reduction", None
+                )
+                pods_info[name]["thin_provisioning"] = getattr(
+                    pods[pod].space, "thin_provisioning", None
+                )
+                pods_info[name]["total_physical"] = getattr(
+                    pods[pod].space, "total_physical", None
+                )
+                pods_info[name]["total_provisioned"] = getattr(
+                    pods[pod].space, "total_provisioned", None
+                )
+                pods_info[name]["total_reduction"] = getattr(
+                    pods[pod].space, "total_reduction", None
+                )
+                pods_info[name]["unique"] = getattr(pods[pod].space, "unique", None)
+                pods_info[name]["virtual"] = getattr(pods[pod].space, "virtual", None)
                 pods_info[name]["replication"] = pods[pod].space.replication
                 pods_info[name]["used_provisioned"] = getattr(
                     pods[pod].space, "used_provisioned", None
                 )
                 if POD_QUOTA_VERSION in api_version:
-                    pods_info[name]["quota_limit"] = pods[pod].quota_limit
+                    pods_info[name]["quota_limit"] = getattr(
+                        pods[pod], "quota_limit", None
+                    )
     return pods_info
 
 
@@ -2017,20 +2031,30 @@ def generate_hgroups_dict(module, array):
         hgroups = list(arrayv6.get_host_groups().items)
         for hgroup in range(0, len(hgroups)):
             name = hgroups[hgroup].name
-            hgroups_info[name]["snapshots"] = hgroups[hgroup].space.snapshots
-            hgroups_info[name]["data_reduction"] = hgroups[hgroup].space.data_reduction
-            hgroups_info[name]["thin_provisioning"] = hgroups[
-                hgroup
-            ].space.thin_provisioning
-            hgroups_info[name]["total_physical"] = hgroups[hgroup].space.total_physical
-            hgroups_info[name]["total_provisioned"] = hgroups[
-                hgroup
-            ].space.total_provisioned
-            hgroups_info[name]["total_reduction"] = hgroups[
-                hgroup
-            ].space.total_reduction
-            hgroups_info[name]["unique"] = hgroups[hgroup].space.unique
-            hgroups_info[name]["virtual"] = hgroups[hgroup].space.virtual
+            hgroups_info[name]["snapshots"] = getattr(
+                hgroups[hgroup].space, "snapshots", None
+            )
+            hgroups_info[name]["data_reduction"] = getattr(
+                hgroups[hgroup].space, "data_reduction", None
+            )
+            hgroups_info[name]["thin_provisioning"] = getattr(
+                hgroups[hgroup].space, "thin_provisioning", None
+            )
+            hgroups_info[name]["total_physical"] = getattr(
+                hgroups[hgroup].space, "total_physical", None
+            )
+            hgroups_info[name]["total_provisioned"] = getattr(
+                hgroups[hgroup].space, "total_provisioned", None
+            )
+            hgroups_info[name]["total_reduction"] = getattr(
+                hgroups[hgroup].space, "total_reduction", None
+            )
+            hgroups_info[name]["unique"] = getattr(
+                hgroups[hgroup].space, "unique", None
+            )
+            hgroups_info[name]["virtual"] = getattr(
+                hgroups[hgroup].space, "virtual", None
+            )
             hgroups_info[name]["used_provisioned"] = getattr(
                 hgroups[hgroup].space, "used_provisioned", None
             )
