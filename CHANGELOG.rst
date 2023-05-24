@@ -5,6 +5,14 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.19.1
+=======
+
+Bugfixes
+--------
+
+- purefa_info - Fixed missing arguments for google_offload and pods
+
 v1.19.0
 =======
 
@@ -12,11 +20,6 @@ New Modules
 -----------
 
 - purestorage.flasharray.purefa_logging - Manage Pure Storage FlashArray Audit and Session logs
-
-Bugfixes
---------
-
-- purefa_info - Fixed missing arguments for pods and google_offload
 
 v1.18.0
 =======
