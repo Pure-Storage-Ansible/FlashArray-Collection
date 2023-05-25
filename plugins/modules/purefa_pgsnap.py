@@ -285,11 +285,10 @@ def restore_pgsnapvolume(module, array):
     api_version = array._list_available_rest_versions()
     changed = True
     if module.params["suffix"] == "latest":
-        all_snaps = array.get_pgroup(
-            module.params["name"], snap=True, transfer=True
-        ).reverse()
+        all_snaps = array.get_pgroup(module.params["name"], snap=True, transfer=True)
+        all_snaps.reverse()
         for snap in all_snaps:
-            if not snap["completed"]:
+            if snap["completed"]:
                 latest_snap = snap["name"]
                 break
         try:
@@ -434,7 +433,6 @@ def main():
     module = AnsibleModule(
         argument_spec, required_if=required_if, supports_check_mode=True
     )
-    pattern = re.compile("^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$")
     state = module.params["state"]
     if state == "present":
         if module.params["suffix"] is None:
@@ -443,6 +441,14 @@ def main():
             )
             module.params["suffix"] = suffix.replace(".", "")
         else:
+            if module.params["restore"]:
+                pattern = re.compile(
+                    "^[0-9]{0,63}$|^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$"
+                )
+            else:
+                pattern = re.compile(
+                    "^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$"
+                )
             if not pattern.match(module.params["suffix"]):
                 module.fail_json(
                     msg="Suffix name {0} does not conform to suffix name rules".format(
