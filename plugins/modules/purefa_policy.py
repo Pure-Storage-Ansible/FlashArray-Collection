@@ -77,6 +77,7 @@ options:
     description:
     - Defines if user mapping is enabled
     type: bool
+    default: true
     version_added: 1.14.0
   snap_at:
     description:
@@ -1540,7 +1541,7 @@ def main():
             quota_notifications=dict(
                 type="list", elements="str", choices=["user", "group"]
             ),
-            user_mapping=dict(type="bool"),
+            user_mapping=dict(type="bool", default=True),
             directory=dict(type="list", elements="str"),
         )
     )
