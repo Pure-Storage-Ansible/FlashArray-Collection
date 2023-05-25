@@ -432,9 +432,13 @@ def main():
             module.params["suffix"] = suffix.replace(".", "")
         else:
             if module.params["restore"]:
-                pattern = re.compile("^[0-9]{0,63}$|^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$")
+                pattern = re.compile(
+                    "^[0-9]{0,63}$|^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$"
+                )
             else:
-                pattern = re.compile("^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$")
+                pattern = re.compile(
+                    "^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$"
+                )
             if not pattern.match(module.params["suffix"]):
                 module.fail_json(
                     msg="Suffix name {0} does not conform to suffix name rules".format(
