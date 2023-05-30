@@ -27,15 +27,14 @@ options:
   severity:
     description:
     - severity of the alerts to show
-    type: list
-    elements: str
-    choices: [ all, critical, warning, info ]
-    default: [ all ]
+    type: str
+    choices: [ critical, warning, info ]
+    default: info
   state:
     description:
     - State of alerts to show
     default: open
-    choices: [ all, open, closed ]
+    choices: [ open, closed ]
     type: str
   flagged:
     description:
@@ -57,8 +56,7 @@ EXAMPLES = r"""
   purefa_messages:
     history: 4w
     flagged : false
-    severity:
-    - critical
+    severity: critical
     fa_url: 10.10.10.2
     api_token: 89a9356f-c203-d263-8a89-c229486a13ba
 """
@@ -101,14 +99,13 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
-            state=dict(type="str", default="open", choices=["all", "open", "closed"]),
+            state=dict(type="str", default="open", choices=["open", "closed"]),
             history=dict(type="str", default="1w"),
             flagged=dict(type="bool", default=False),
             severity=dict(
-                type="list",
-                elements="str",
-                default=["all"],
-                choices=["all", "critical", "warning", "info"],
+                type="str",
+                default="info",
+                choices=["critical", "warning", "info"],
             ),
         )
     )
@@ -131,27 +128,9 @@ def main():
     else:
         flagged = " and flagged='False'"
 
-    multi_sev = False
-    if len(module.params["severity"]) > 1:
-        if "all" in module.params["severity"]:
-            module.params["severity"] = ["*"]
-        else:
-            multi_sev = True
-    if multi_sev:
-        severity = " and ("
-        for level in range(0, len(module.params["severity"])):
-            severity += "severity='" + str(module.params["severity"][level]) + "' or "
-        severity = severity[0:-4] + ")"
-    else:
-        if module.params["severity"] == ["all"]:
-            severity = " and severity='*'"
-        else:
-            severity = " and severity='" + str(module.params["severity"][0]) + "'"
     messages = {}
-    if module.params["state"] == "all":
-        state = " and state='*'"
-    else:
-        state = " and state='" + module.params["state"] + "'"
+    severity = " and severity='" + module.params["severity"] + "'"
+    state = " and state='" + module.params["state"] + "'"
     filter_string = "notified>" + since_time + state + flagged + severity
     try:
         res = array_v6.get_alerts(filter=filter_string)
