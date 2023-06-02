@@ -38,7 +38,7 @@ options:
   policy:
     description:
     - The type of policy to use
-    choices: [ nfs, smb, snapshot, quota ]
+    choices: [ nfs, smb, snapshot, quota, autodir ]
     required: true
     type: str
   enabled:
@@ -351,6 +351,7 @@ MIN_QUOTA_API_VERSION = "2.7"
 MIN_SUFFIX_API_VERSION = "2.9"
 USER_MAP_VERSION = "2.15"
 ALL_SQUASH_VERSION = "2.16"
+AUTODIR_VERSION = "2.24"
 
 
 def _human_to_bytes(size):
@@ -561,7 +562,7 @@ def delete_policy(module, array):
                         if module.params["directory"][old_dir] in dirs:
                             old_dirs.append(module.params["directory"][old_dir])
                 else:
-                    old_dirs = module.params["directory"]
+                    pass
                 if old_dirs:
                     changed = True
                     for rem_dir in range(0, len(old_dirs)):
@@ -608,7 +609,51 @@ def delete_policy(module, array):
                                     deleted.errors[0].message,
                                 )
                             )
-        else:
+        elif module.params["policy"] == "autodir":
+            if not module.params["directory"]:
+                res = array.delete_policies_autodir(names=[module.params["name"]])
+                if res.status_code == 200:
+                    changed = True
+                else:
+                    module.fail_json(
+                        msg="Deletion of Autodir policy {0} failed. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+            if module.params["directory"]:
+                dirs = []
+                old_dirs = []
+                current_dirs = list(
+                    array.get_directories_policies_autodir(
+                        policy_names=[module.params["name"]]
+                    ).items
+                )
+                if current_dirs:
+                    for current_dir in range(0, len(current_dirs)):
+                        dirs.append(current_dirs[current_dir].member.name)
+                    for old_dir in range(0, len(module.params["directory"])):
+                        if module.params["directory"][old_dir] in dirs:
+                            old_dirs.append(module.params["directory"][old_dir])
+                else:
+                    pass
+                if old_dirs:
+                    changed = True
+                    for rem_dir in range(0, len(old_dirs)):
+                        if not module.check_mode:
+                            directory_removed = (
+                                array.delete_directories_policies_autodir(
+                                    member_names=[old_dirs[rem_dir]],
+                                    policy_names=module.params["name"],
+                                )
+                            )
+                            if directory_removed.status_code != 200:
+                                module.fail_json(
+                                    msg="Failed to remove directory from Autodir policy {0}. Error: {1}".format(
+                                        module.params["name"],
+                                        directory_removed.errors[0].message,
+                                    )
+                                )
+        else:  # quota
             if module.params["quota_limit"]:
                 quota_limit = _human_to_bytes(module.params["quota_limit"])
                 rules = list(
@@ -864,7 +909,38 @@ def create_policy(module, array, all_squash):
                         module.params["name"], created.errors[0].message
                     )
                 )
-        else:
+        elif module.params["policy"] == "autodir":
+            created = array.post_policies_autodir(
+                names=[module.params["name"]],
+                policy=flasharray.PolicyPost(enabled=module.params["enabled"]),
+            )
+            if created.status_code == 200:
+                changed = True
+                if module.params["directory"]:
+                    policies = flasharray.DirectoryPolicyPost(
+                        policies=[
+                            flasharray.DirectorypolicypostPolicies(
+                                policy=flasharray.Reference(name=module.params["name"])
+                            )
+                        ]
+                    )
+                    directory_added = array.post_directories_policies_autodir(
+                        member_names=module.params["directory"], policies=policies
+                    )
+                    if directory_added.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to add directory for Autodir policy {0}. Error: {1}".format(
+                                module.params["name"],
+                                directory_added.errors[0].message,
+                            )
+                        )
+            else:
+                module.fail_json(
+                    msg="Failed to create Autodir policy {0}. Error: {1}".format(
+                        module.params["name"], created.errors[0].message
+                    )
+                )
+        else:  # quota
             created = array.post_policies_quota(
                 names=[module.params["name"]],
                 policy=flasharray.PolicyPost(enabled=module.params["enabled"]),
@@ -1318,7 +1394,69 @@ def update_policy(module, array, api_version, all_squash):
                                 rule_created.errors[err_no].message,
                             )
                         )
-    else:
+    elif module.params["policy"] == "autodir":
+        try:
+            current_enabled = list(
+                array.get_policies_autodir(names=[module.params["name"]]).items
+            )[0].enabled
+        except Exception:
+            module.fail_json(
+                msg="Incorrect policy type specified for existing policy {0}".format(
+                    module.params["name"]
+                )
+            )
+        if current_enabled != module.params["enabled"]:
+            changed_enable = True
+            if not module.check_mode:
+                res = array.patch_policies_autodir(
+                    names=[module.params["name"]],
+                    policy=flasharray.PolicyPatch(enabled=module.params["enabled"]),
+                )
+                if res.status_code != 200:
+                    module.exit_json(
+                        msg="Failed to enable/disable autodir policy {0}".format(
+                            module.params["name"]
+                        )
+                    )
+        if module.params["directory"]:
+            dirs = []
+            new_dirs = []
+            current_dirs = list(
+                array.get_directories_policies_autodir(
+                    policy_names=[module.params["name"]]
+                ).items
+            )
+            if current_dirs:
+                for current_dir in range(0, len(current_dirs)):
+                    dirs.append(current_dirs[current_dir].member.name)
+                for new_dir in range(0, len(module.params["directory"])):
+                    if module.params["directory"][new_dir] not in dirs:
+                        changed_dir = True
+                        new_dirs.append(module.params["directory"][new_dir])
+            else:
+                new_dirs = module.params["directory"]
+            if new_dirs:
+                policies = flasharray.DirectoryPolicyPost(
+                    policies=[
+                        flasharray.DirectorypolicypostPolicies(
+                            policy=flasharray.Reference(name=module.params["name"])
+                        )
+                    ]
+                )
+                changed_dir = True
+                for add_dir in range(0, len(new_dirs)):
+                    if not module.check_mode:
+                        directory_added = array.post_directories_policies_autodir(
+                            member_names=[new_dirs[add_dir]], policies=policies
+                        )
+                        if directory_added.status_code != 200:
+                            module.fail_json(
+                                msg="Failed to add new directory to Autodir policy {0}. Error: {1}".format(
+                                    module.params["name"],
+                                    directory_added.errors[0].message,
+                                )
+                            )
+    else:  # quota
         current_enabled = list(
             array.get_policies_quota(names=[module.params["name"]]).items
         )[0].enabled
@@ -1520,7 +1658,9 @@ def main():
             ),
             nfs_permission=dict(type="str", default="rw", choices=["rw", "ro"]),
             policy=dict(
-                type="str", required=True, choices=["nfs", "smb", "snapshot", "quota"]
+                type="str",
+                required=True,
+                choices=["nfs", "smb", "snapshot", "quota", "autodir"],
             ),
             name=dict(type="str", required=True),
             rename=dict(type="str"),
@@ -1565,6 +1705,11 @@ def main():
         module.fail_json(
             msg="FlashArray REST version not supportedi for directory quotas. "
             "Minimum version required: {0}".format(MIN_QUOTA_API_VERSION)
+        )
+    if module.params["policy"] == "autodir" and AUTODIR_VERSION not in api_version:
+        module.fail_json(
+            msg="FlashArray REST version not supported for autodir policies. "
+            "Minimum version required: {0}".format(AUTODIR_VERSION)
         )
     array = get_array(module)
     state = module.params["state"]
