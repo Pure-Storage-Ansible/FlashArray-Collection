@@ -129,6 +129,7 @@ VM_VERSION = "2.14"
 VLAN_VERSION = "2.17"
 NEIGHBOR_API_VERSION = "2.22"
 POD_QUOTA_VERSION = "2.23"
+AUTODIR_API_VERSION = "2.24"
 
 
 def generate_default_dict(module, array):
@@ -496,7 +497,7 @@ def generate_dir_snaps_dict(array):
     return dir_snaps_info
 
 
-def generate_policies_dict(array, quota_available, nfs_user_mapping):
+def generate_policies_dict(array, quota_available, autodir_available, nfs_user_mapping):
     policy_info = {}
     policies = list(array.get_policies().items)
     for policy in range(0, len(policies)):
@@ -576,6 +577,8 @@ def generate_policies_dict(array, quota_available, nfs_user_mapping):
                     "notifications": rules[rule].notifications,
                 }
                 policy_info[p_name]["rules"].append(quota_rules_dict)
+        if policies[policy].policy_type == "autodir" and autodir_available:
+            pass  # there are currently no rules for autodir policies
     return policy_info
 
 
@@ -2288,7 +2291,13 @@ def main():
                 quota = True
             else:
                 quota = False
-            info["policies"] = generate_policies_dict(array_v6, quota, user_map)
+            if AUTODIR_API_VERSION in api_version:
+                autodir = True
+            else:
+                autodir = False
+            info["policies"] = generate_policies_dict(
+                array_v6, quota, autodir, user_map
+            )
         if "clients" in subset or "all" in subset:
             info["clients"] = generate_clients_dict(array_v6)
         if "dir_snaps" in subset or "all" in subset:
