@@ -39,7 +39,7 @@ jobs:
             ansible: stable-2.15
           - python-version: 3.8
             ansible: devel
-          - python_version: 3.9
+          - python-version: 3.9
             ansible: devel
     steps:
     - name: Check out code
