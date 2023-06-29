@@ -36,7 +36,7 @@ options:
     choices: [http, https ]
     default: https
     type: str
-    verson_added: '1.20.0'
+    version_added: '1.20.0'
   host:
     description:
     - The proxy host name.
