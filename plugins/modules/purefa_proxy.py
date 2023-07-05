@@ -30,6 +30,13 @@ options:
     default: present
     type: str
     choices: [ absent, present ]
+  protocol:
+    description:
+    - The proxy protocol.
+    choices: [http, https ]
+    default: https
+    type: str
+    version_added: '1.20.0'
   host:
     description:
     - The proxy host name.
@@ -87,7 +94,11 @@ def create_proxy(module, array):
     current_proxy = array.get(proxy=True)
     if current_proxy is not None:
         new_proxy = (
-            "https://" + module.params["host"] + ":" + str(module.params["port"])
+            module.params["protocol"]
+            + "://"
+            + module.params["host"]
+            + ":"
+            + str(module.params["port"])
         )
         if new_proxy != current_proxy["proxy"]:
             changed = True
@@ -105,6 +116,7 @@ def main():
     argument_spec.update(
         dict(
             state=dict(type="str", default="present", choices=["absent", "present"]),
+            protocol=dict(type="str", default="https", choices=["http", "https"]),
             host=dict(type="str"),
             port=dict(type="int"),
         )

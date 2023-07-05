@@ -245,7 +245,7 @@ def get_pgsnapshot(module, array):
         snapname = module.params["name"] + "." + module.params["suffix"]
         for snap in array.get_pgroup(module.params["name"], pending=True, snap=True):
             if snap["name"] == snapname:
-                return snapname
+                return snap
     except Exception:
         return None
 
@@ -396,6 +396,18 @@ def delete_pgsnapshot(module, array):
     module.exit_json(changed=changed)
 
 
+def eradicate_pgsnapshot(module, array):
+    """Eradicate Protection Group Snapshot"""
+    changed = True
+    if not module.check_mode:
+        snapname = module.params["name"] + "." + module.params["suffix"]
+        try:
+            array.eradicate_pgroup(snapname)
+        except Exception:
+            module.fail_json(msg="Failed to eradicate pgroup {0}".format(snapname))
+    module.exit_json(changed=changed)
+
+
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
@@ -459,6 +471,10 @@ def main():
             msg="Protection Group {0} does not exist.".format(module.params["name"])
         )
     pgsnap = get_pgsnapshot(module, array)
+    if pgsnap:
+        pgsnap_deleted = bool(pgsnap["time_remaining"])
+    else:
+        pgsnap_deleted = False
     if state != "absent" and module.params["offload"]:
         module.fail_json(
             msg="offload parameter not supported for state {0}".format(state)
@@ -477,6 +493,8 @@ def main():
         delete_offload_snapshot(module, array)
     elif state == "absent" and pgsnap:
         delete_pgsnapshot(module, array)
+    elif state == "absent" and pgsnap and pgsnap_deleted and module.params["eradicate"]:
+        eradicate_pgsnapshot(module, array)
     elif state == "absent" and not pgsnap:
         module.exit_json(changed=False)
 
