@@ -348,6 +348,27 @@ releases:
       bugfixes:
       - purefa_info - Fixed missing arguments for google_offload and pods
     release_date: '2023-05-19'
+  1.20.0:
+    changes:
+      bugfixes:
+      - purefa_pgsched - Resolved idempotency issue with snap and replication enabled
+        flags
+      - purefa_pgsnap - Fixed issue with eradicating deleted pgsnapshot
+      - purefa_pgsnap - Update the accepted suffixes to include also numbers only.
+        Fixed the logic to retrieve the latest completed snapshot
+      - purefa_policy - Set user_mapping parameter default to True
+      minor_changes:
+      - purefa_info - Added support for autodir policies
+      - purefa_policy - Added support for autodir policies
+      - purefa_proxy - Add new protocol parameter, defaults to https
+    fragments:
+    - 411_nfs_user_mapping.yaml
+    - 412_fix_snapshot_suffix_handling.yaml
+    - 413_eradicate_pgsnap.yaml
+    - 415_autodir_policies.yaml
+    - 420_proxy_protocol.yaml
+    - 422_sched_enable_fix.yaml
+    release_date: '2023-07-10'
   1.4.0:
     changes:
       bugfixes:

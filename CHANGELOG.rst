@@ -5,6 +5,24 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.20.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_info - Added support for autodir policies
+- purefa_policy - Added support for autodir policies
+- purefa_proxy - Add new protocol parameter, defaults to https
+
+Bugfixes
+--------
+
+- purefa_pgsched - Resolved idempotency issue with snap and replication enabled flags
+- purefa_pgsnap - Fixed issue with eradicating deleted pgsnapshot
+- purefa_pgsnap - Update the accepted suffixes to include also numbers only. Fixed the logic to retrieve the latest completed snapshot
+- purefa_policy - Set user_mapping parameter default to True
+
 v1.19.1
 =======
 
