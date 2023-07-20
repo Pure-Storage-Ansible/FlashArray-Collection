@@ -1,6 +1,6 @@
 name: Pure Storage Ansible CI
 
-on:
+"on":
   pull_request:
   push:
   schedule:
