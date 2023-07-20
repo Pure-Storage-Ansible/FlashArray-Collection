@@ -394,8 +394,8 @@ def create_csr(module, array):
     except AttributeError:
         pass
     try:
-        if module.params["org_unit"] != current_attr.organization_unit:
-            module.params["org_unit"] = current_attr.organization_unit
+        if module.params["org_unit"] != current_attr.organizational_unit:
+            module.params["org_unit"] = current_attr.organizational_unit
     except AttributeError:
         pass
     if not module.check_mode:
@@ -407,7 +407,7 @@ def create_csr(module, array):
             locality=module.params["locality"],
             state=module.params["province"],
             organization=module.params["organization"],
-            organization_unit=module.params["org_unit"],
+            organizational_unit=module.params["org_unit"],
         )
         csr = list(
             array.post_certificates_certificate_signing_requests(
