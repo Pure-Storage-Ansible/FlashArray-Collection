@@ -1053,6 +1053,9 @@ def generate_del_vol_dict(module, array):
             + vols[vol]["serial"][-10:].lower(),
             "time_remaining": vols[vol]["time_remaining"],
             "tags": [],
+            "promotion_status": "",
+            "requested_promotion_state": "",
+            "subtype": "",
         }
     if V6_MINIMUM_API_VERSION in api_version:
         arrayv6 = get_array(module)
@@ -1101,6 +1104,11 @@ def generate_del_vol_dict(module, array):
         volumes = list(arrayv6.get_volumes(destroyed=True).items)
         for vol in range(0, len(volumes)):
             name = volumes[vol].name
+            volume_info[name]["promotion_status"] = volumes[vol].promotion_status
+            volume_info[name]["requested_promotion_state"] = volumes[
+                vol
+            ].requested_promotion_state
+            volume_info[name]["subtype"] = volumes[vol].subtype
             volume_info[name]["priority"] = volumes[vol].priority
             volume_info[name]["priority_adjustment"] = volumes[
                 vol
@@ -1130,6 +1138,9 @@ def generate_vol_dict(module, array):
             "hosts": [],
             "bandwidth": "",
             "iops_limit": "",
+            "promotion_status": "",
+            "requested_promotion_state": "",
+            "subtype": "",
             "data_reduction": vols_space[vol]["data_reduction"],
             "thin_provisioning": vols_space[vol]["thin_provisioning"],
             "total_reduction": vols_space[vol]["total_reduction"],
@@ -1179,9 +1190,9 @@ def generate_vol_dict(module, array):
                 "source": vvols[vvol]["source"],
                 "serial": vvols[vvol]["serial"],
                 "nvme_nguid": "eui.00"
-                + vols[vol]["serial"][0:14].lower()
+                + vvols[vvol]["serial"][0:14].lower()
                 + "24a937"
-                + vols[vol]["serial"][-10:].lower(),
+                + vvols[vvol]["serial"][-10:].lower(),
                 "page83_naa": PURE_OUI + vvols[vvol]["serial"],
                 "tags": [],
                 "hosts": [],
@@ -1197,6 +1208,11 @@ def generate_vol_dict(module, array):
         volumes = list(arrayv6.get_volumes(destroyed=False).items)
         for vol in range(0, len(volumes)):
             name = volumes[vol].name
+            volume_info[name]["promotion_status"] = volumes[vol].promotion_status
+            volume_info[name]["requested_promotion_state"] = volumes[
+                vol
+            ].requested_promotion_state
+            volume_info[name]["subtype"] = volumes[vol].subtype
             volume_info[name]["priority"] = volumes[vol].priority
             volume_info[name]["priority_adjustment"] = volumes[
                 vol
