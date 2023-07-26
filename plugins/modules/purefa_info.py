@@ -1242,6 +1242,9 @@ def generate_vol_dict(module, array):
 def generate_host_dict(module, array, balance):
     api_version = array._list_available_rest_versions()
     host_info = {}
+        if FC_REPL_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        hostsv6 = list(arrayv6.get_hosts().items)
     hosts = array.list_hosts()
     for host in range(0, len(hosts)):
         hostname = hosts[host]["name"]
