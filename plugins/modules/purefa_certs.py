@@ -151,6 +151,13 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
+- name: Request CSR with updated fields
+  purestorage.flasharray.purefa_certs:
+    state: sign
+    org_unit: Development
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
 - name: Regenerate key for SSL foo
   purestorage.flasharray.purefa_certs:
     generate: true
@@ -197,71 +204,83 @@ MIN_REQUIRED_API_VERSION = "2.4"
 
 def update_cert(module, array):
     """Update existing SSL Certificate"""
-    changed = True
+    changed = False
     current_cert = list(array.get_certificates(names=[module.params["name"]]).items)[0]
-    try:
-        if module.params["common_name"] != current_cert.common_name:
-            module.params["common_name"] = current_cert.common_name
-    except AttributeError:
-        pass
-    try:
-        if module.params["country"] != current_cert.country:
-            module.params["country"] = current_cert.country
-    except AttributeError:
-        pass
-    try:
-        if module.params["email"] != current_cert.email:
-            module.params["email"] = current_cert.email
-    except AttributeError:
-        pass
-    try:
-        if module.params["key_size"] != current_cert.key_size:
-            module.params["key_size"] = current_cert.key_size
-    except AttributeError:
-        pass
-    try:
-        if module.params["locality"] != current_cert.locality:
-            module.params["locality"] = current_cert.locality
-    except AttributeError:
-        pass
-    try:
-        if module.params["province"] != current_cert.state:
-            module.params["province"] = current_cert.state
-    except AttributeError:
-        pass
-    try:
-        if module.params["organization"] != current_cert.organization:
-            module.params["organization"] = current_cert.organization
-    except AttributeError:
-        pass
-    try:
-        if module.params["org_unit"] != current_cert.organizational_unit:
-            module.params["org_unit"] = current_cert.organizational_unit
-    except AttributeError:
-        pass
-    certificate = flasharray.CertificatePost(
-        common_name=module.params["common_name"],
-        country=module.params["country"],
-        email=module.params["email"],
-        key_size=module.params["key_size"],
-        locality=module.params["locality"],
-        organization=module.params["organization"],
-        organizational_unit=module.params["org_unit"],
-        state=module.params["province"],
-        days=module.params["days"],
-    )
-    if not module.check_mode:
-        res = array.patch_certificates(
-            names=[module.params["name"]],
-            certificate=certificate,
-            generate_new_key=module.params["generate"],
+    new_cert = current_cert
+    if module.params["common_name"] and module.params["common_name"] != getattr(
+        current_cert, "common_name", None
+    ):
+        new_cert.common_name = module.params["common_name"]
+    else:
+        new_cert.common_name = getattr(current_cert, "common_name", None)
+    if module.params["country"] and module.params["country"] != getattr(
+        current_cert, "country", None
+    ):
+        new_cert.country = module.params["country"]
+    else:
+        new_cert.country = getattr(current_cert, "country")
+    if module.params["email"] and module.params["email"] != getattr(
+        current_cert, "email", None
+    ):
+        new_cert.email = module.params["email"]
+    else:
+        new_cert.email = getattr(current_cert, "email", None)
+    if module.params["key_size"] and module.params["key_size"] != getattr(
+        current_cert, "key_size", None
+    ):
+        new_cert.key_size = module.params["key_size"]
+    else:
+        new_cert.key_size = getattr(current_cert, "key_size", None)
+    if module.params["locality"] and module.params["locality"] != getattr(
+        current_cert, "locality", None
+    ):
+        new_cert.locality = module.params["locality"]
+    else:
+        new_cert.locality = getattr(current_cert, "locality", None)
+    if module.params["province"] and module.params["province"] != getattr(
+        current_cert, "state", None
+    ):
+        new_cert.state = module.params["province"]
+    else:
+        new_cert.state = getattr(current_cert, "state", None)
+    if module.params["organization"] and module.params["organization"] != getattr(
+        current_cert, "organization", None
+    ):
+        new_cert.organization = module.params["organization"]
+    else:
+        new_cert.organization = getattr(current_cert, "organization", None)
+    if module.params["org_unit"] and module.params["org_unit"] != getattr(
+        current_cert, "organizational_unit", None
+    ):
+        new_cert.organizational_unit = module.params["org_unit"]
+    else:
+        new_cert.organizational_unit = getattr(
+            current_cert, "organizational_unit", None
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Updating existing SSL certificate {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
+    if new_cert != current_cert:
+        changed = True
+        certificate = flasharray.CertificatePost(
+            common_name=new_cert.common_name,
+            country=getattr(new_cert, "country", None),
+            email=getattr(new_cert, "email", None),
+            key_size=getattr(new_cert, "key_size", None),
+            locality=getattr(new_cert, "locality", None),
+            organization=getattr(new_cert, "organization", None),
+            organizational_unit=getattr(new_cert, "organizational_unit", None),
+            state=getattr(new_cert, "state", None),
+        )
+        if not module.check_mode:
+            res = array.patch_certificates(
+                names=[module.params["name"]],
+                certificate=certificate,
+                generate_new_key=module.params["generate"],
             )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Updating existing SSL certificate {0} failed. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
 
     module.exit_json(changed=changed)
 
@@ -364,50 +383,68 @@ def create_csr(module, array):
     changed = True
     current_attr = list(array.get_certificates(names=[module.params["name"]]).items)[0]
     try:
-        if module.params["common_name"] != current_attr.common_name:
-            module.params["common_name"] = current_attr.common_name
+        if (
+            module.params["common_name"]
+            and module.params["common_name"] != current_attr.common_name
+        ):
+            current_attr.common_name = module.params["common_name"]
     except AttributeError:
         pass
     try:
-        if module.params["country"] != current_attr.country:
-            module.params["country"] = current_attr.country
+        if (
+            module.params["country"]
+            and module.params["country"] != current_attr.country
+        ):
+            current_attr.country = module.params["country"]
     except AttributeError:
         pass
     try:
-        if module.params["email"] != current_attr.email:
-            module.params["email"] = current_attr.email
+        if module.params["email"] and module.params["email"] != current_attr.email:
+            current_attr.email = module.params["email"]
     except AttributeError:
         pass
     try:
-        if module.params["locality"] != current_attr.locality:
-            module.params["locality"] = current_attr.locality
+        if (
+            module.params["locality"]
+            and module.params["locality"] != current_attr.locality
+        ):
+            current_attr.locality = module.params["locality"]
     except AttributeError:
         pass
     try:
-        if module.params["province"] != current_attr.state:
-            module.params["province"] = current_attr.state
+        if (
+            module.params["province"]
+            and module.params["province"] != current_attr.state
+        ):
+            current_attr.state = module.params["province"]
     except AttributeError:
         pass
     try:
-        if module.params["organization"] != current_attr.organization:
-            module.params["organization"] = current_attr.organization
+        if (
+            module.params["organization"]
+            and module.params["organization"] != current_attr.organization
+        ):
+            current_attr.organization = module.params["organization"]
     except AttributeError:
         pass
     try:
-        if module.params["org_unit"] != current_attr.organizational_unit:
-            module.params["org_unit"] = current_attr.organizational_unit
+        if (
+            module.params["org_unit"]
+            and module.params["org_unit"] != current_attr.organizational_unit
+        ):
+            current_attr.organizational_unit = module.params["org_unit"]
     except AttributeError:
         pass
     if not module.check_mode:
         certificate = flasharray.CertificateSigningRequestPost(
             certificate={"name": "management"},
-            common_name=module.params["common_name"],
-            country=module.params["country"],
-            email=module.params["email"],
-            locality=module.params["locality"],
-            state=module.params["province"],
-            organization=module.params["organization"],
-            organizational_unit=module.params["org_unit"],
+            common_name=getattr(current_attr, "common_name", None),
+            country=getattr(current_attr, "country", None),
+            email=getattr(current_attr, "email", None),
+            locality=getattr(current_attr, "locality", None),
+            state=getattr(current_attr, "state", None),
+            organization=getattr(current_attr, "organization", None),
+            organizational_unit=getattr(current_attr, "organizational_unit", None),
         )
         csr = list(
             array.post_certificates_certificate_signing_requests(
@@ -452,6 +489,7 @@ def main():
     required_if = [
         ["state", "import", ["certificate"]],
         ["state", "export", ["export_file"]],
+        ["state", "sign", ["export_file"]],
     ]
 
     module = AnsibleModule(
@@ -493,7 +531,7 @@ def main():
                 )
             )
     state = module.params["state"]
-    if state in ["present", "sign"]:
+    if state in ["present"]:
         if not module.params["common_name"]:
             module.params["common_name"] = list(array.get_arrays().items)[0].name
         module.params["common_name"] = module.params["common_name"][:64]
