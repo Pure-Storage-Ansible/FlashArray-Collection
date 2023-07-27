@@ -71,6 +71,12 @@ options:
     - If set to false, allow destruction/eradication of snapshots not in use by replication
     type: bool
     default: false
+  throttle:
+    description:
+    -  If set to true, allows snapshot to fail if array health is not optimal.
+    type: bool
+    default: false
+    version_added: '1.21.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -173,6 +179,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from datetime import datetime
 
 GET_SEND_API = "2.4"
+THROTTLE_API = "2.25"
 
 
 def _check_offload(module, array):
@@ -275,9 +282,17 @@ def create_snapshot(module, array, arrayv6):
         module.params["suffix"] = None
         changed = True
         if not module.check_mode:
-            res = arrayv6.post_remote_volume_snapshots(
-                source_names=[module.params["name"]], on=module.params["offload"]
-            )
+            api_version = array._list_available_rest_versions()
+            if THROTTLE_API in api_version:
+                res = arrayv6.post_remote_volume_snapshots(
+                    source_names=[module.params["name"]], on=module.params["offload"]
+                )
+            else:
+                res = arrayv6.post_remote_volume_snapshots(
+                    source_names=[module.params["name"]],
+                    on=module.params["offload"],
+                    allow_throttle=module.params["throttle"],
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to create remote snapshot for volume {0}. Error: {1}".format(
@@ -518,6 +533,7 @@ def main():
             suffix=dict(type="str"),
             target=dict(type="str"),
             offload=dict(type="str"),
+            throttle=dict(type="bool", default=False),
             ignore_repl=dict(type="bool", default=False),
             overwrite=dict(type="bool", default=False),
             eradicate=dict(type="bool", default=False),

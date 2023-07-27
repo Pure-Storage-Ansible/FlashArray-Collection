@@ -85,6 +85,12 @@ options:
     - Force immeadiate snapshot to remote targets
     type: bool
     default: false
+  throttle:
+    description:
+    - If set to true, allows snapshot to fail if array health is not optimal.
+    type: bool
+    default: false
+    version_added: '1.21.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -161,10 +167,17 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import ProtectionGroupSnapshot
+except ImportError:
+    HAS_PURESTORAGE = False
+
 import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_system,
+    get_array,
     purefa_argument_spec,
 )
 
@@ -172,6 +185,7 @@ from datetime import datetime
 
 OFFLOAD_API = "1.16"
 POD_SNAPSHOT = "2.4"
+THROTTLE_API = "2.25"
 
 
 def _check_offload(module, array):
@@ -252,31 +266,61 @@ def get_pgsnapshot(module, array):
 
 def create_pgsnapshot(module, array):
     """Create Protection Group Snapshot"""
+    api_version = array._list_available_rest_versions()
     changed = True
     if not module.check_mode:
-        try:
+        if THROTTLE_API not in api_version:
+            try:
+                if (
+                    module.params["now"]
+                    and array.get_pgroup(module.params["name"])["targets"] is not None
+                ):
+                    array.create_pgroup_snapshot(
+                        source=module.params["name"],
+                        suffix=module.params["suffix"],
+                        snap=True,
+                        apply_retention=module.params["apply_retention"],
+                        replicate_now=module.params["remote"],
+                    )
+                else:
+                    array.create_pgroup_snapshot(
+                        source=module.params["name"],
+                        suffix=module.params["suffix"],
+                        snap=True,
+                        apply_retention=module.params["apply_retention"],
+                    )
+            except Exception:
+                module.fail_json(
+                    msg="Snapshot of pgroup {0} failed.".format(module.params["name"])
+                )
+        else:
+            arrayv6 = get_array(module)
+            suffix = ProtectionGroupSnapshot(suffix=module.params["suffix"])
             if (
                 module.params["now"]
                 and array.get_pgroup(module.params["name"])["targets"] is not None
             ):
-                array.create_pgroup_snapshot(
-                    source=module.params["name"],
-                    suffix=module.params["suffix"],
-                    snap=True,
+                res = arrayv6.post_protection_group_snapshots(
+                    source_names=[module.params["name"]],
                     apply_retention=module.params["apply_retention"],
                     replicate_now=module.params["remote"],
+                    throttle=module.params["throttle"],
+                    protection_group_snapshot=suffix,
                 )
             else:
-                array.create_pgroup_snapshot(
-                    source=module.params["name"],
-                    suffix=module.params["suffix"],
-                    snap=True,
+                res = arrayv6.post_protection_group_snapshots(
+                    source_names=[module.params["name"]],
+                    replicate=True,
                     apply_retention=module.params["apply_retention"],
+                    throttle=module.params["throttle"],
+                    protection_group_snapshot=suffix,
                 )
-        except Exception:
-            module.fail_json(
-                msg="Snapshot of pgroup {0} failed.".format(module.params["name"])
-            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Snapshot of pgroup {0} failed. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
@@ -416,6 +460,7 @@ def main():
             suffix=dict(type="str"),
             restore=dict(type="str"),
             offload=dict(type="str"),
+            throttle=dict(type="bool", default=False),
             overwrite=dict(type="bool", default=False),
             target=dict(type="str"),
             eradicate=dict(type="bool", default=False),
@@ -461,6 +506,10 @@ def main():
 
     array = get_system(module)
     api_version = array._list_available_rest_versions()
+    if not HAS_PURESTORAGE and module.params["throttle"]:
+        module.warn(
+            "Throttle capability disable as py-pure-client sdk is not installed"
+        )
     if OFFLOAD_API not in api_version and module.params["offload"]:
         module.fail_json(
             msg="Minimum version {0} required for offload support".format(OFFLOAD_API)
