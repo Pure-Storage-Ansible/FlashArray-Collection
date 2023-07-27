@@ -35,7 +35,7 @@ options:
         capacity, network, subnet, interfaces, hgroups, pgroups, hosts,
         admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
         arrays, certs, kmip, clients, policies, dir_snaps, filesystems,
-        alerts and virtual_machines.
+        alerts, virtual_machines and hosts_balance.
     type: list
     elements: str
     required: false
@@ -1053,6 +1053,9 @@ def generate_del_vol_dict(module, array):
             + vols[vol]["serial"][-10:].lower(),
             "time_remaining": vols[vol]["time_remaining"],
             "tags": [],
+            "promotion_status": "",
+            "requested_promotion_state": "",
+            "subtype": "",
         }
     if V6_MINIMUM_API_VERSION in api_version:
         arrayv6 = get_array(module)
@@ -1101,6 +1104,11 @@ def generate_del_vol_dict(module, array):
         volumes = list(arrayv6.get_volumes(destroyed=True).items)
         for vol in range(0, len(volumes)):
             name = volumes[vol].name
+            volume_info[name]["promotion_status"] = volumes[vol].promotion_status
+            volume_info[name]["requested_promotion_state"] = volumes[
+                vol
+            ].requested_promotion_state
+            volume_info[name]["subtype"] = volumes[vol].subtype
             volume_info[name]["priority"] = volumes[vol].priority
             volume_info[name]["priority_adjustment"] = volumes[
                 vol
@@ -1130,6 +1138,9 @@ def generate_vol_dict(module, array):
             "hosts": [],
             "bandwidth": "",
             "iops_limit": "",
+            "promotion_status": "",
+            "requested_promotion_state": "",
+            "subtype": "",
             "data_reduction": vols_space[vol]["data_reduction"],
             "thin_provisioning": vols_space[vol]["thin_provisioning"],
             "total_reduction": vols_space[vol]["total_reduction"],
@@ -1179,9 +1190,9 @@ def generate_vol_dict(module, array):
                 "source": vvols[vvol]["source"],
                 "serial": vvols[vvol]["serial"],
                 "nvme_nguid": "eui.00"
-                + vols[vol]["serial"][0:14].lower()
+                + vvols[vvol]["serial"][0:14].lower()
                 + "24a937"
-                + vols[vol]["serial"][-10:].lower(),
+                + vvols[vvol]["serial"][-10:].lower(),
                 "page83_naa": PURE_OUI + vvols[vvol]["serial"],
                 "tags": [],
                 "hosts": [],
@@ -1197,6 +1208,11 @@ def generate_vol_dict(module, array):
         volumes = list(arrayv6.get_volumes(destroyed=False).items)
         for vol in range(0, len(volumes)):
             name = volumes[vol].name
+            volume_info[name]["promotion_status"] = volumes[vol].promotion_status
+            volume_info[name]["requested_promotion_state"] = volumes[
+                vol
+            ].requested_promotion_state
+            volume_info[name]["subtype"] = volumes[vol].subtype
             volume_info[name]["priority"] = volumes[vol].priority
             volume_info[name]["priority_adjustment"] = volumes[
                 vol
@@ -1223,9 +1239,12 @@ def generate_vol_dict(module, array):
     return volume_info
 
 
-def generate_host_dict(module, array):
+def generate_host_dict(module, array, balance):
     api_version = array._list_available_rest_versions()
     host_info = {}
+    if FC_REPL_API_VERSION in api_version:
+        arrayv6 = get_array(module)
+        hostsv6 = list(arrayv6.get_hosts().items)
     hosts = array.list_hosts()
     for host in range(0, len(hosts)):
         hostname = hosts[host]["name"]
@@ -1269,6 +1288,34 @@ def generate_host_dict(module, array):
         for host in range(0, len(hosts)):
             hostname = hosts[host]["name"]
             host_info[hostname]["preferred_array"] = hosts[host]["preferred_array"]
+    if FC_REPL_API_VERSION in api_version:
+        for host in range(0, len(hostsv6)):
+            host_info[hostsv6[host].name]["port_connectivity"] = hostsv6[
+                host
+            ].port_connectivity.details
+        if balance:
+            hosts_balance = list(arrayv6.get_hosts_performance_balance().items)
+            for host in range(0, len(hosts)):
+                host_perf_balance = []
+                for balance in range(0, len(hosts_balance)):
+                    if hosts[host]["name"] == hosts_balance[balance].name:
+                        host_balance = {
+                            "fraction_relative_to_max": getattr(
+                                hosts_balance[balance], "fraction_relative_to_max", None
+                            ),
+                            "op_count": getattr(hosts_balance[balance], "op_count", 0),
+                            "target": getattr(
+                                hosts_balance[balance].target, "name", None
+                            ),
+                            "failed": bool(
+                                getattr(hosts_balance[balance].target, "failover", 0)
+                            ),
+                        }
+                        if host_balance["target"]:
+                            host_perf_balance.append(host_balance)
+                host_info[hosts[host]["name"]]["performance_balance"].append(
+                    host_perf_balance
+                )
     if VLAN_VERSION in api_version:
         arrayv6 = get_array(module)
         hosts = list(arrayv6.get_hosts().items)
@@ -2216,6 +2263,7 @@ def main():
         "dir_snaps",
         "filesystems",
         "virtual_machines",
+        "hosts_balance",
     )
     subset_test = (test in valid_subsets for test in subset)
     if not all(subset_test):
@@ -2241,7 +2289,7 @@ def main():
     if "interfaces" in subset or "all" in subset:
         info["interfaces"] = generate_interfaces_dict(array)
     if "hosts" in subset or "all" in subset:
-        info["hosts"] = generate_host_dict(module, array)
+        info["hosts"] = generate_host_dict(module, array, "hosts_balance" in subset)
     if "volumes" in subset or "all" in subset:
         info["volumes"] = generate_vol_dict(module, array)
         info["deleted_volumes"] = generate_del_vol_dict(module, array)

@@ -260,6 +260,11 @@ def update_schedule(module, array):
             else:
                 snap_frequency = module.params["snap_frequency"]
 
+        if not module.params["enabled"]:
+            snap_enabled = current_snap["snap_enabled"]
+        else:
+            snap_enabled = module.params["enabled"]
+
         if not module.params["snap_at"]:
             snap_at = current_snap["snap_at"]
         else:
@@ -294,7 +299,7 @@ def update_schedule(module, array):
         new_snap = {
             "days": days,
             "snap_frequency": snap_frequency,
-            "snap_enabled": module.params["enabled"],
+            "snap_enabled": snap_enabled,
             "snap_at": snap_at,
             "per_day": per_day,
             "all_for": all_for,
@@ -343,6 +348,11 @@ def update_schedule(module, array):
                 else:
                     replicate_frequency = module.params["replicate_frequency"]
 
+        if not module.params["replicate_enabled"]:
+            replicate_enabled = current_repl["replicate_enabled"]
+        else:
+            replicate_enabled = module.params["enabled"]
+
         if not module.params["replicate_at"]:
             replicate_at = current_repl["replicate_at"]
         else:
@@ -388,7 +398,7 @@ def update_schedule(module, array):
 
         new_repl = {
             "replicate_frequency": replicate_frequency,
-            "replicate_enabled": module.params["enabled"],
+            "replicate_enabled": replicate_enabled,
             "target_days": target_days,
             "replicate_at": replicate_at,
             "target_per_day": target_per_day,

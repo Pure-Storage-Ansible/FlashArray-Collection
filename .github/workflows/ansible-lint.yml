@@ -1,5 +1,5 @@
-name: Ansible Lint # feel free to pick your own name
-on: [push, pull_request]
+name: Ansible Lint  # feel free to pick your own name
+"on": [push, pull_request]
 
 jobs:
   build:
@@ -7,4 +7,4 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Run ansible-lint
-        uses: ansible-community/ansible-lint-action@main
+        uses: ansible/ansible-lint-action@main
