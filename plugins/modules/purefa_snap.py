@@ -268,9 +268,10 @@ def get_snapshot(module, array):
     """Return Snapshot or None"""
     try:
         snapname = module.params["name"] + "." + module.params["suffix"]
-        for snaps in array.get_volume(module.params["name"], snap=True, pending=False):
+        for snaps in array.get_volume(snapname, snap=True, pending=False):
             if snaps["name"] == snapname:
                 return True
+            return False
     except Exception:
         return False
 
