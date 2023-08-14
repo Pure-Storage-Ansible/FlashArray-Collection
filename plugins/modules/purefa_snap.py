@@ -269,9 +269,9 @@ def get_snapshot(module, array):
     try:
         snapname = module.params["name"] + "." + module.params["suffix"]
         name = module.params["name"]
-        if len(name.split(':')) == 2:
+        if len(name.split(":")) == 2:
             # API 1.x raises exception if name is a remote snap
-            name = module.params["name"] + '*'
+            name = module.params["name"] + "*"
         for snaps in array.get_volume(name, snap=True, pending=False):
             if snaps["name"] == snapname:
                 return True
