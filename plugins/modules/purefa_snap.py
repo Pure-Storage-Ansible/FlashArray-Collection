@@ -265,7 +265,7 @@ def get_deleted_snapshot(module, array, arrayv6):
 
 
 def get_snapshot(module, array):
-    """Return True if snapshot exists, False otehrwise"""
+    """Return True if snapshot exists, False otherwise"""
     try:
         snapname = module.params["name"] + "." + module.params["suffix"]
         name = module.params["name"]
