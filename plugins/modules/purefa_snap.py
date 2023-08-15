@@ -265,10 +265,14 @@ def get_deleted_snapshot(module, array, arrayv6):
 
 
 def get_snapshot(module, array):
-    """Return Snapshot or None"""
+    """Return True if snapshot exists, False otherwise"""
     try:
         snapname = module.params["name"] + "." + module.params["suffix"]
-        for snaps in array.get_volume(module.params["name"], snap=True, pending=False):
+        name = module.params["name"]
+        if len(name.split(":")) == 2:
+            # API 1.x raises exception if name is a remote snap
+            name = module.params["name"] + "*"
+        for snaps in array.get_volume(name, snap=True, pending=False):
             if snaps["name"] == snapname:
                 return True
     except Exception:
