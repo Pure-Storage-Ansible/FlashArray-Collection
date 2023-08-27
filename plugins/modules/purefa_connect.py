@@ -56,12 +56,19 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: Create an async connection to remote array
+- name: Create an IPv4 async connection to remote array
   purestorage.flasharray.purefa_connect:
     target_url: 10.10.10.20
     target_api: 9c0b56bc-f941-f7a6-9f85-dcc3e9a8f7d6
     connection: async
     fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+- name: Create an IPv6 async connection to remote array
+  purestorage.flasharray.purefa_connect:
+    target_url: "[2001:db8:abcd:12::10]"
+    target_api: 9c0b56bc-f941-f7a6-9f85-dcc3e9a8f7d6
+    connection: async
+    fa_url: "[2001:db8:abcd:12::13]"
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Delete connection to remote array
   purestorage.flasharray.purefa_connect:
@@ -107,14 +114,14 @@ def _check_connected(module, array):
         if P53_API_VERSION in api_version:
             if (
                 connected_arrays[target]["management_address"]
-                == module.params["target_url"]
+                == module.params["target_url"].strip("[]")
                 and "connected" in connected_arrays[target]["status"]
             ):
                 return connected_arrays[target]
         else:
             if (
                 connected_arrays[target]["management_address"]
-                == module.params["target_url"]
+                == module.params["target_url"].strip("[]")
                 and connected_arrays[target]["connected"]
             ):
                 return connected_arrays[target]
@@ -171,7 +178,7 @@ def create_connection(module, array):
                 )
             array_connection = flasharray.ArrayConnectionPost(
                 type="sync-replication",
-                management_address=module.params["target_url"],
+                management_address=module.params["target_url"].strip("[]"),
                 replication_transport="fc",
                 connection_key=connection_key,
             )
@@ -187,7 +194,7 @@ def create_connection(module, array):
         else:
             if not module.check_mode:
                 array.connect_array(
-                    module.params["target_url"],
+                    module.params["target_url"].strip("[]"),
                     connection_key,
                     [module.params["connection"]],
                 )
