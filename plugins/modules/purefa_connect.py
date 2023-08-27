@@ -107,14 +107,14 @@ def _check_connected(module, array):
         if P53_API_VERSION in api_version:
             if (
                 connected_arrays[target]["management_address"]
-                == module.params["target_url"]
+                == module.params["target_url"].strip("[]")
                 and "connected" in connected_arrays[target]["status"]
             ):
                 return connected_arrays[target]
         else:
             if (
                 connected_arrays[target]["management_address"]
-                == module.params["target_url"]
+                == module.params["target_url"].strip("[]")
                 and connected_arrays[target]["connected"]
             ):
                 return connected_arrays[target]
@@ -171,7 +171,7 @@ def create_connection(module, array):
                 )
             array_connection = flasharray.ArrayConnectionPost(
                 type="sync-replication",
-                management_address=module.params["target_url"],
+                management_address=module.params["target_url"].strip("[]"),
                 replication_transport="fc",
                 connection_key=connection_key,
             )
@@ -187,7 +187,7 @@ def create_connection(module, array):
         else:
             if not module.check_mode:
                 array.connect_array(
-                    module.params["target_url"],
+                    module.params["target_url"].strip("[]"),
                     connection_key,
                     [module.params["connection"]],
                 )
