@@ -86,6 +86,7 @@ options:
       See associated descriptions
     - Only supported from Purity//FA v6.0.0 and higher
     type: str
+    default: ""
   bw_qos:
     description:
     - Bandwidth limit for volume in M or G units.
@@ -1553,7 +1554,7 @@ def main():
             count=dict(type="int"),
             start=dict(type="int", default=0),
             digits=dict(type="int", default=1),
-            suffix=dict(type="str"),
+            suffix=dict(type="str", default=""),
             priority_operator=dict(type="str", choices=["+", "-", "="]),
             priority_value=dict(type="int", choices=[-10, 0, 10]),
             size=dict(type="str"),
