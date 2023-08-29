@@ -99,11 +99,12 @@ except ImportError:
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
     get_array,
     purefa_argument_spec,
 )
-
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
 
 DEFAULT_API_VERSION = "2.16"
 
@@ -282,14 +283,13 @@ def main():
         module.fail_json(
             msg="py-pure-client sdk is required to support 'count' parameter"
         )
-    arrayv5 = get_system(module)
     module.params["name"] = sorted(module.params["name"])
-    api_version = arrayv5._list_available_rest_versions()
-    if DEFAULT_API_VERSION not in api_version:
+    array = get_array(module)
+    api_version = array.get_rest_version()
+    if LooseVersion(DEFAULT_API_VERSION) > LooseVersion(api_version):
         module.fail_json(
             msg="Default Protection is not supported. Purity//FA 6.3.4, or higher, is required."
         )
-    array = get_array(module)
     if module.params["scope"] == "pod":
         if not _get_pod(module, array):
             module.fail_json(

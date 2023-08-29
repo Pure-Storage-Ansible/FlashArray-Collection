@@ -4,4 +4,3 @@ python >= 3.6
 netaddr
 requests
 pycountry
-packaging

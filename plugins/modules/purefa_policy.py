@@ -350,17 +350,14 @@ try:
 except ImportError:
     HAS_PURESTORAGE = False
 
-HAS_PACKAGING = True
-try:
-    from packaging import version
-except ImportError:
-    HAS_PACKAGING = False
-
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_system,
     get_array,
     purefa_argument_spec,
+)
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
 )
 
 MIN_REQUIRED_API_VERSION = "2.3"
@@ -769,14 +766,14 @@ def create_policy(module, array, all_squash):
             )
 
             if created.status_code == 200:
-                if version.parse(NFS_VERSION) > version.parse(array.get_rest_version()):
+                if LooseVersion(NFS_VERSION) > LooseVersion(array.get_rest_version()):
                     policy = flasharray.PolicyNfsPost(
                         user_mapping_enabled=module.params["user_mapping"],
                     )
                 elif (
-                    version.parse(SECURITY_VERSION)
-                    > version.parse(array.get_rest_version())
-                    <= version.parse(NFS_VERSION)
+                    LooseVersion(SECURITY_VERSION)
+                    > LooseVersion(array.get_rest_version())
+                    <= LooseVersion(NFS_VERSION)
                 ):
                     policy = flasharray.PolicyNfsPost(
                         user_mapping_enabled=module.params["user_mapping"],
@@ -865,12 +862,10 @@ def create_policy(module, array, all_squash):
                     )
                 )
         elif module.params["policy"] == "snapshot":
-            if HAS_PACKAGING:
-                suffix_enabled = version.parse(
-                    array.get_rest_version()
-                ) >= version.parse(MIN_SUFFIX_API_VERSION)
-            else:
-                suffix_enabled = False
+            suffix_enabled = bool(
+                LooseVersion(array.get_rest_version())
+                >= LooseVersion(MIN_SUFFIX_API_VERSION)
+            )
             created = array.post_policies_snapshot(
                 names=[module.params["name"]],
                 policy=flasharray.PolicyPost(enabled=module.params["enabled"]),
@@ -1106,7 +1101,7 @@ def update_policy(module, array, api_version, all_squash):
                         rule_name = rules[rule].name
                         break
                 if not rule_name:
-                    if version.parse(NFS_VERSION) > version.parse(
+                    if LooseVersion(NFS_VERSION) > LooseVersion(
                         array.get_rest_version()
                     ):
                         if all_squash:
@@ -1125,9 +1120,9 @@ def update_policy(module, array, api_version, all_squash):
                                 nfs_version=module.params["nfs_version"],
                             )
                     elif (
-                        version.parse(SECURITY_VERSION)
-                        > version.parse(array.get_rest_version())
-                        <= version.parse(NFS_VERSION)
+                        LooseVersion(SECURITY_VERSION)
+                        > LooseVersion(array.get_rest_version())
+                        <= LooseVersion(NFS_VERSION)
                     ):
                         if all_squash:
                             rules = flasharray.PolicyrulenfsclientpostRules(
@@ -1293,12 +1288,10 @@ def update_policy(module, array, api_version, all_squash):
                             )
                         )
     elif module.params["policy"] == "snapshot":
-        if HAS_PACKAGING:
-            suffix_enabled = version.parse(array.get_rest_version()) >= version.parse(
-                MIN_SUFFIX_API_VERSION
-            )
-        else:
-            suffix_enabled = False
+        suffix_enabled = bool(
+            LooseVersion(array.get_rest_version())
+            >= LooseVersion(MIN_SUFFIX_API_VERSION)
+        )
         try:
             current_enabled = list(
                 array.get_policies_snapshot(names=[module.params["name"]]).items

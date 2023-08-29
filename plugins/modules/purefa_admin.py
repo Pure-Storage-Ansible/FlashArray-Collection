@@ -70,9 +70,11 @@ except ImportError:
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
     get_array,
     purefa_argument_spec,
+)
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
 )
 
 MIN_API_VERSION = "2.2"
@@ -95,11 +97,10 @@ def main():
         module.fail_json(msg="py-pure-client sdk is required for this module")
     if module.params["lockout"] and not 1 <= module.params["lockout"] <= 7776000:
         module.fail_json(msg="Lockout must be between 1 and 7776000 seconds")
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
+    array = get_array(module)
+    api_version = array.get_rest_version()
     changed = False
-    if MIN_API_VERSION in api_version:
-        array = get_array(module)
+    if LooseVersion(MIN_API_VERSION) <= LooseVersion(api_version):
         current_settings = list(array.get_admins_settings().items)[0]
         if (
             module.params["sso"]

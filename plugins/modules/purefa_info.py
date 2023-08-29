@@ -90,12 +90,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_system,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
 
-HAS_PACKAGING = True
-try:
-    from packaging import version
-except ImportError:
-    HAS_PACKAGING = False
 try:
     from purestorage import purestorage
 except ImportError:
@@ -442,9 +440,7 @@ def generate_filesystems_dict(array):
                 ),
                 "exports": {},
             }
-            if version.parse(SUBS_API_VERSION) <= version.parse(
-                array.get_rest_version()
-            ):
+            if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
                 files_info[fs_name]["directories"][d_name]["total_used"] = directories[
                     directory
                 ].space.total_used
@@ -514,7 +510,7 @@ def generate_dir_snaps_dict(array):
                 snapshots[snapshot].space, "used_provisioned", None
             ),
         }
-        if version.parse(SUBS_API_VERSION) <= version.parse(array.get_rest_version()):
+        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
             dir_snaps_info[s_name]["total_used"] = snapshots[snapshot].space.total_used
         try:
             dir_snaps_info[s_name]["policy"] = snapshots[snapshot].policy.name
@@ -559,13 +555,13 @@ def generate_policies_dict(array, quota_available, autodir_available, nfs_user_m
                 policy_info[p_name][
                     "user_mapping_enabled"
                 ] = nfs_policy.user_mapping_enabled
-                if version.parse(SUBS_API_VERSION) <= version.parse(
+                if LooseVersion(SUBS_API_VERSION) <= LooseVersion(
                     array.get_rest_version()
                 ):
                     policy_info[p_name]["nfs_version"] = getattr(
                         nfs_policy, "nfs_version", None
                     )
-                if version.parse(NFS_SECURITY_VERSION) <= version.parse(
+                if LooseVersion(NFS_SECURITY_VERSION) <= LooseVersion(
                     array.get_rest_version()
                 ):
                     policy_info[p_name]["security"] = getattr(
@@ -580,18 +576,16 @@ def generate_policies_dict(array, quota_available, autodir_available, nfs_user_m
                     "permission": rules[rule].permission,
                     "client": rules[rule].client,
                 }
-                if version.parse(SUBS_API_VERSION) <= version.parse(
+                if LooseVersion(SUBS_API_VERSION) <= LooseVersion(
                     array.get_rest_version()
                 ):
                     nfs_rules_dict["nfs_version"] = rules[rule].nfs_version
                 policy_info[p_name]["rules"].append(nfs_rules_dict)
         if policies[policy].policy_type == "snapshot":
-            if HAS_PACKAGING:
-                suffix_enabled = version.parse(
-                    array.get_rest_version()
-                ) >= version.parse(SHARED_CAP_API_VERSION)
-            else:
-                suffix_enabled = False
+            suffix_enabled = bool(
+                LooseVersion(array.get_rest_version())
+                >= LooseVersion(SHARED_CAP_API_VERSION)
+            )
             rules = list(array.get_policies_snapshot_rules(policy_names=[p_name]).items)
             for rule in range(0, len(rules)):
                 try:
@@ -2273,7 +2267,7 @@ def generate_google_offload_dict(array):
                 offloads[offload].space, "used_provisioned", None
             ),
         }
-        if version.parse(SUBS_API_VERSION) <= version.parse(array.get_rest_version()):
+        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
             offload_info[name]["total_used"] = offloads[offload].space.total_used
     return offload_info
 
