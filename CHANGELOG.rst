@@ -5,6 +5,27 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.21.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_info - Add `hosts_balance` subset
+- purefa_info - Add `port_connectivity` information for hosts
+- purefa_info - Add promotion status information for volumes
+- purefa_offload - Added a new profile parameter.
+- purefa_pgsnap - Added new parameter to support snapshot throttling
+- purefa_snap - Added new parameter to support snapshot throttling
+
+Bugfixes
+--------
+
+- purefa_certs - Resolved CSR issue and require export_file for state sign.
+- purefa_info - Fix serial number generation issue for vVols
+- purefa_snap - Fixed issue with remote snapshot retrieve. Mainly a workaround to an issue with Purity REST 1.x when remote snapshots are searched.
+- purefa_volume - Fixed bug with NULL suffix for multiple volume creation.
+
 v1.20.0
 =======
 

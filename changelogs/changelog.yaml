@@ -369,6 +369,30 @@ releases:
     - 420_proxy_protocol.yaml
     - 422_sched_enable_fix.yaml
     release_date: '2023-07-10'
+  1.21.0:
+    changes:
+      bugfixes:
+      - purefa_certs - Resolved CSR issue and require export_file for state sign.
+      - purefa_info - Fix serial number generation issue for vVols
+      - purefa_snap - Fixed issue with remote snapshot retrieve. Mainly a workaround
+        to an issue with Purity REST 1.x when remote snapshots are searched.
+      - purefa_volume - Fixed bug with NULL suffix for multiple volume creation.
+      minor_changes:
+      - purefa_info - Add `hosts_balance` subset
+      - purefa_info - Add `port_connectivity` information for hosts
+      - purefa_info - Add promotion status information for volumes
+      - purefa_offload - Added a new profile parameter.
+      - purefa_pgsnap - Added new parameter to support snapshot throttling
+      - purefa_snap - Added new parameter to support snapshot throttling
+    fragments:
+    - 428_promotion.yaml
+    - 429_host_balance.yaml
+    - 430_throttle_support.yaml
+    - 431_offload_profile.yaml
+    - 433_certs.yaml
+    - 436_snap_fix.yaml
+    - 440_null_suffix.yaml
+    release_date: '2023-09-06'
   1.4.0:
     changes:
       bugfixes:
