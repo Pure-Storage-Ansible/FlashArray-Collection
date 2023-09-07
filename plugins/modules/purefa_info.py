@@ -283,12 +283,9 @@ def generate_config_dict(module, array):
                     "nameservers": dns_configs[config].nameservers,
                     "domain": dns_configs[config].domain,
                 }
-                try:
-                    config_info["dns"][dns_configs[config].services[0]][
-                        "source"
-                    ] = dns_configs[config].source["name"]
-                except Exception:
-                    pass
+                config_info["dns"][dns_configs[config].services[0]]["source"] = getattr(
+                    dns_configs[config].source, "name", None
+                )
         if SAML2_VERSION in api_version:
             config_info["saml2sso"] = {}
             saml2 = list(arrayv6.get_sso_saml2_idps().items)
