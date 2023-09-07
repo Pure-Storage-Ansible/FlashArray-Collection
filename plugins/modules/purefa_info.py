@@ -893,9 +893,9 @@ def generate_snap_dict(module, array):
             ].space.total_provisioned
             snap_info[snapshot]["unique_space"] = snapsv6[snap].space.unique
             if SHARED_CAP_API_VERSION in api_version:
-                snap_info[snapshot]["snapshots_effective"] = snapsv6[
-                    snap
-                ].space.snapshots_effective
+                snap_info[snapshot]["snapshots_effective"] = getattr(
+                    snapsv6[snap].space, "snapshots_effective", None
+                )
         offloads = list(arrayv6.get_offloads().items)
         for offload in range(0, len(offloads)):
             offload_name = offloads[offload].name
@@ -1076,12 +1076,12 @@ def generate_del_vol_dict(module, array):
                 vol
             ].space.thin_provisioning
             if SHARED_CAP_API_VERSION in api_version:
-                volume_info[name]["snapshots_effective"] = vols_space[
-                    vol
-                ].space.snapshots_effective
-                volume_info[name]["unique_effective"] = vols_space[
-                    vol
-                ].space.unique_effective
+                volume_info[name]["snapshots_effective"] = getattr(
+                    vols_space[vol].space, "snapshots_effective", None
+                )
+                volume_info[name]["unique_effective"] = getattr(
+                    vols_space[vol].space, "unique_effective", None
+                )
                 volume_info[name]["used_provisioned"] = (
                     getattr(vols_space[vol].space, "used_provisioned", None),
                 )
@@ -1155,15 +1155,15 @@ def generate_vol_dict(module, array):
                 vol
             ].space.total_physical
             if SHARED_CAP_API_VERSION in api_version:
-                volume_info[name]["snapshots_effective"] = vols_space[
-                    vol
-                ].space.snapshots_effective
-                volume_info[name]["unique_effective"] = vols_space[
-                    vol
-                ].space.unique_effective
-                volume_info[name]["total_effective"] = vols_space[
-                    vol
-                ].space.total_effective
+                volume_info[name]["snapshots_effective"] = getattr(
+                    vols_space[vol].space, "snapshots_effective", None
+                )
+                volume_info[name]["unique_effective"] = getattr(
+                    vols_space[vol].space, "unique_effective", None
+                )
+                volume_info[name]["total_effective"] = getattr(
+                    vols_space[vol].space, "total_effective", None
+                )
                 volume_info[name]["used_provisioned"] = (
                     getattr(vols_space[vol].space, "used_provisioned", None),
                 )
