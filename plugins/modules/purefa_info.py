@@ -2073,7 +2073,7 @@ def generate_hgroups_dict(module, array):
         arrayv6 = get_array(module)
         hgroups = list(arrayv6.get_host_groups().items)
         for hgroup in range(0, len(hgroups)):
-            if hgroups[group].is_local:
+            if hgroups[hgroup].is_local:
                 name = hgroups[hgroup].name
                 hgroups_info[name]["snapshots"] = getattr(
                     hgroups[hgroup].space, "snapshots", None
