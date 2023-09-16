@@ -2073,34 +2073,35 @@ def generate_hgroups_dict(module, array):
         arrayv6 = get_array(module)
         hgroups = list(arrayv6.get_host_groups().items)
         for hgroup in range(0, len(hgroups)):
-            name = hgroups[hgroup].name
-            hgroups_info[name]["snapshots"] = getattr(
-                hgroups[hgroup].space, "snapshots", None
-            )
-            hgroups_info[name]["data_reduction"] = getattr(
-                hgroups[hgroup].space, "data_reduction", None
-            )
-            hgroups_info[name]["thin_provisioning"] = getattr(
-                hgroups[hgroup].space, "thin_provisioning", None
-            )
-            hgroups_info[name]["total_physical"] = getattr(
-                hgroups[hgroup].space, "total_physical", None
-            )
-            hgroups_info[name]["total_provisioned"] = getattr(
-                hgroups[hgroup].space, "total_provisioned", None
-            )
-            hgroups_info[name]["total_reduction"] = getattr(
-                hgroups[hgroup].space, "total_reduction", None
-            )
-            hgroups_info[name]["unique"] = getattr(
-                hgroups[hgroup].space, "unique", None
-            )
-            hgroups_info[name]["virtual"] = getattr(
-                hgroups[hgroup].space, "virtual", None
-            )
-            hgroups_info[name]["used_provisioned"] = getattr(
-                hgroups[hgroup].space, "used_provisioned", None
-            )
+            if hgroups[group].is_local:
+                name = hgroups[hgroup].name
+                hgroups_info[name]["snapshots"] = getattr(
+                    hgroups[hgroup].space, "snapshots", None
+                )
+                hgroups_info[name]["data_reduction"] = getattr(
+                    hgroups[hgroup].space, "data_reduction", None
+                )
+                hgroups_info[name]["thin_provisioning"] = getattr(
+                    hgroups[hgroup].space, "thin_provisioning", None
+                )
+                hgroups_info[name]["total_physical"] = getattr(
+                    hgroups[hgroup].space, "total_physical", None
+                )
+                hgroups_info[name]["total_provisioned"] = getattr(
+                    hgroups[hgroup].space, "total_provisioned", None
+                )
+                hgroups_info[name]["total_reduction"] = getattr(
+                    hgroups[hgroup].space, "total_reduction", None
+                )
+                hgroups_info[name]["unique"] = getattr(
+                    hgroups[hgroup].space, "unique", None
+                )
+                hgroups_info[name]["virtual"] = getattr(
+                    hgroups[hgroup].space, "virtual", None
+                )
+                hgroups_info[name]["used_provisioned"] = getattr(
+                    hgroups[hgroup].space, "used_provisioned", None
+                )
     return hgroups_info
 
 
