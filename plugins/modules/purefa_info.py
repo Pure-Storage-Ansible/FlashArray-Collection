@@ -1283,32 +1283,40 @@ def generate_host_dict(module, array, balance):
             host_info[hostname]["preferred_array"] = hosts[host]["preferred_array"]
     if FC_REPL_API_VERSION in api_version:
         for host in range(0, len(hostsv6)):
-            host_info[hostsv6[host].name]["port_connectivity"] = hostsv6[
-                host
-            ].port_connectivity.details
+            if hostsv6[host].is_local:
+                host_info[hostsv6[host].name]["port_connectivity"] = hostsv6[
+                    host
+                ].port_connectivity.details
         if balance:
             hosts_balance = list(arrayv6.get_hosts_performance_balance().items)
             for host in range(0, len(hosts)):
-                host_perf_balance = []
-                for balance in range(0, len(hosts_balance)):
-                    if hosts[host]["name"] == hosts_balance[balance].name:
-                        host_balance = {
-                            "fraction_relative_to_max": getattr(
-                                hosts_balance[balance], "fraction_relative_to_max", None
-                            ),
-                            "op_count": getattr(hosts_balance[balance], "op_count", 0),
-                            "target": getattr(
-                                hosts_balance[balance].target, "name", None
-                            ),
-                            "failed": bool(
-                                getattr(hosts_balance[balance].target, "failover", 0)
-                            ),
-                        }
-                        if host_balance["target"]:
-                            host_perf_balance.append(host_balance)
-                host_info[hosts[host]["name"]]["performance_balance"].append(
-                    host_perf_balance
-                )
+                if hosts[host].is_local:
+                    host_perf_balance = []
+                    for balance in range(0, len(hosts_balance)):
+                        if hosts[host]["name"] == hosts_balance[balance].name:
+                            host_balance = {
+                                "fraction_relative_to_max": getattr(
+                                    hosts_balance[balance],
+                                    "fraction_relative_to_max",
+                                    None,
+                                ),
+                                "op_count": getattr(
+                                    hosts_balance[balance], "op_count", 0
+                                ),
+                                "target": getattr(
+                                    hosts_balance[balance].target, "name", None
+                                ),
+                                "failed": bool(
+                                    getattr(
+                                        hosts_balance[balance].target, "failover", 0
+                                    )
+                                ),
+                            }
+                            if host_balance["target"]:
+                                host_perf_balance.append(host_balance)
+                    host_info[hosts[host]["name"]]["performance_balance"].append(
+                        host_perf_balance
+                    )
     if VLAN_VERSION in api_version:
         arrayv6 = get_array(module)
         hosts = list(arrayv6.get_hosts().items)
@@ -2282,7 +2290,7 @@ def main():
         info["subnet"] = generate_subnet_dict(array)
     if "interfaces" in subset or "all" in subset:
         info["interfaces"] = generate_interfaces_dict(array)
-    if "hosts" in subset or "all" in subset:
+    if ("hosts" or "hosts_balance" or "all") in subset:
         info["hosts"] = generate_host_dict(module, array, "hosts_balance" in subset)
     if "volumes" in subset or "all" in subset:
         info["volumes"] = generate_vol_dict(module, array)
