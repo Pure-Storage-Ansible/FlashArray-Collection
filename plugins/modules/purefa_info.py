@@ -24,7 +24,7 @@ description:
     Purity//FA operating system. By default, the module will collect basic
     information including hosts, host groups, protection
     groups and volume counts. Additional information can be collected
-    based on the configured set of arguements.
+    based on the configured set of arguments.
 author:
   - Pure Storage ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
@@ -35,7 +35,7 @@ options:
         capacity, network, subnet, interfaces, hgroups, pgroups, hosts,
         admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
         arrays, certs, kmip, clients, policies, dir_snaps, filesystems,
-        alerts, virtual_machines and hosts_balance.
+        alerts, virtual_machines, hosts_balance and subscriptions.
     type: list
     elements: str
     required: false
@@ -130,6 +130,7 @@ VLAN_VERSION = "2.17"
 NEIGHBOR_API_VERSION = "2.22"
 POD_QUOTA_VERSION = "2.23"
 AUTODIR_API_VERSION = "2.24"
+SUBS_API_VERSION = "2.26"
 
 
 def generate_default_dict(module, array):
@@ -2217,6 +2218,17 @@ def generate_vmsnap_dict(array):
     return vmsnap_info
 
 
+def generate_subs_dict(array):
+    subs_info = {}
+    subs = list(array.get_subscription_assets().items)
+    for sub in range(0, len(subs)):
+        name = subs[sub].name
+        subs_info[name] = {
+            "subscription_id": subs[sub].subscription.id,
+        }
+    return subs_info
+
+
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
@@ -2257,6 +2269,7 @@ def main():
         "filesystems",
         "virtual_machines",
         "hosts_balance",
+        "subscriptions",
     )
     subset_test = (test in valid_subsets for test in subset)
     if not all(subset_test):
@@ -2347,6 +2360,10 @@ def main():
             info["pg_snapshots"] = generate_pgsnaps_dict(array_v6)
         if "alerts" in subset or "all" in subset:
             info["alerts"] = generate_alerts_dict(array_v6)
+        if SUBS_API_VERSION in api_version and (
+            "subscriptions" in subset or "all" in subset
+        ):
+            info["subscriptions"] = generate_subs_dict(array_v6)
         if VM_VERSION in api_version and (
             "virtual_machines" in subset or "all" in subset
         ):
