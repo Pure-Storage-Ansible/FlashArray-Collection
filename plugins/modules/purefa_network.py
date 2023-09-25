@@ -244,7 +244,7 @@ def update_interface(module, array, interface):
     if not module.params["address"]:
         address = interface["address"]
     else:
-        if module.params["gateway"]:
+        if module.params["gateway"] and module.params["gateway"] != "0.0.0.0":
             if module.params["gateway"] and module.params["gateway"] not in IPNetwork(
                 module.params["address"]
             ):
@@ -273,6 +273,8 @@ def update_interface(module, array, interface):
         netmask = interface["netmask"]
     if not module.params["gateway"]:
         gateway = interface["gateway"]
+    elif module.params["gateway"] == "0.0.0.0":
+        gateway = module.params["gateway"]
     else:
         cidr = str(IPAddress(netmask).netmask_bits())
         full_addr = address + "/" + cidr
