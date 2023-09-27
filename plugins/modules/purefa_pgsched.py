@@ -348,7 +348,7 @@ def update_schedule(module, array):
                 else:
                     replicate_frequency = module.params["replicate_frequency"]
 
-        if not module.params["replicate_enabled"]:
+        if not module.params["enabled"]:
             replicate_enabled = current_repl["replicate_enabled"]
         else:
             replicate_enabled = module.params["enabled"]
