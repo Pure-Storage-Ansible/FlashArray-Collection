@@ -1,0 +1,2 @@
+minor_changes:
+ - purefa_info - Add vchosts subset. Requires Purity//FA 6.4.10 or higher.
