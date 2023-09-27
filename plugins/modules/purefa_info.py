@@ -35,7 +35,7 @@ options:
         capacity, network, subnet, interfaces, hgroups, pgroups, hosts,
         admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
         arrays, certs, kmip, clients, policies, dir_snaps, filesystems,
-        alerts, virtual_machines, hosts_balance and subscriptions.
+        alerts, virtual_machines, hosts_balance, subscriptions and vchosts.
     type: list
     elements: str
     required: false
@@ -2238,6 +2238,40 @@ def generate_subs_dict(array):
     return subs_info
 
 
+def generate_vchosts_dict(array):
+    vchosts_info = {}
+    vchosts = list(array.get_vchosts().items)
+    vccerts = list(array.get_vchosts_certificates().items)
+    vcendpoints = list(array.get_vchosts_endpoints().items)
+    for vchost in range(0, len(vchosts)):
+        name = vchosts[vchost].name
+        vchosts_info[name] = {
+            "vcuuid": vchosts[vchost].vcuuid,
+            "certificates": [],
+            "endpoints": [],
+        }
+        for vccert in range(0, len(vccerts)):
+            if vccerts[vccert].vchost.name == name:
+                vchosts_info[name]["certificates"].append(
+                    {
+                        "name": vccerts[vccert].certificate.name,
+                        "endpoints": vccerts[vccert].endpoints,
+                    }
+                )
+        for endpoint in range(0, len(vcendpoints)):
+            if vcendpoints[endpoint].vchost.name == name:
+                vchosts_info[name]["endpoints"].append(
+                    {"address": vcendpoints[endpoint].endpoint, "certificates": []}
+                )
+                for cert in range(0, len(vcendpoints[endpoint].certificates)):
+                    if vcendpoints[endpoint].vchost.name == name:
+                        vchosts_info[name]["endpoints"][endpoint][
+                            "certificates"
+                        ].append(vcendpoints[endpoint].certificates[cert].name)
+
+    return vchosts_info
+
+
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
@@ -2279,6 +2313,7 @@ def main():
         "virtual_machines",
         "hosts_balance",
         "subscriptions",
+        "vchosts",
     )
     subset_test = (test in valid_subsets for test in subset)
     if not all(subset_test):
@@ -2373,6 +2408,8 @@ def main():
             "subscriptions" in subset or "all" in subset
         ):
             info["subscriptions"] = generate_subs_dict(array_v6)
+        if SUBS_API_VERSION in api_version and ("vchosts" in subset or "all" in subset):
+            info["vchosts"] = generate_vchosts_dict(array_v6)
         if VM_VERSION in api_version and (
             "virtual_machines" in subset or "all" in subset
         ):
