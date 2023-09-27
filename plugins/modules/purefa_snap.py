@@ -282,21 +282,14 @@ def get_snapshot(module, array):
 def create_snapshot(module, array, arrayv6):
     """Create Snapshot"""
     changed = False
+    api_version = array._list_available_rest_versions()
     if module.params["offload"]:
         module.params["suffix"] = None
         changed = True
         if not module.check_mode:
-            api_version = array._list_available_rest_versions()
-            if THROTTLE_API in api_version:
-                res = arrayv6.post_remote_volume_snapshots(
-                    source_names=[module.params["name"]], on=module.params["offload"]
-                )
-            else:
-                res = arrayv6.post_remote_volume_snapshots(
-                    source_names=[module.params["name"]],
-                    on=module.params["offload"],
-                    allow_throttle=module.params["throttle"],
-                )
+            res = arrayv6.post_remote_volume_snapshots(
+                source_names=[module.params["name"]], on=module.params["offload"]
+            )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to create remote snapshot for volume {0}. Error: {1}".format(
@@ -309,16 +302,31 @@ def create_snapshot(module, array, arrayv6):
     else:
         changed = True
         if not module.check_mode:
-            try:
-                array.create_snapshot(
-                    module.params["name"], suffix=module.params["suffix"]
+            if THROTTLE_API in api_version:
+                res = arrayv6.post_volume_snapshots(
+                    allow_throttle=module.params["throttle"],
+                    volume_snapshot=flasharray.VolumeSnapshotPost(
+                        suffix=module.params["suffix"]
+                    ),
+                    source_names=[module.params["name"]],
                 )
-            except Exception:
-                module.fail_json(
-                    msg="Failed to create snapshot for volume {0}".format(
-                        module.params["name"]
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to create snapshot for volume {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
                     )
-                )
+            else:
+                try:
+                    array.create_snapshot(
+                        module.params["name"], suffix=module.params["suffix"]
+                    )
+                except Exception:
+                    module.fail_json(
+                        msg="Failed to create snapshot for volume {0}".format(
+                            module.params["name"]
+                        )
+                    )
     module.exit_json(changed=changed, suffix=module.params["suffix"])
 
 
