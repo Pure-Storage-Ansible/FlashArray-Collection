@@ -166,9 +166,18 @@ def generate_default_dict(module, array):
                 default_info["encryption_algorithm"] = encryption.data_at_rest.algorithm
                 default_info["encryption_module_version"] = encryption.module_version
             eradication = array_data.eradication_config
-            default_info["eradication_days_timer"] = int(
-                eradication.eradication_delay / SEC_TO_DAY
-            )
+            if SUBS_API_VERSION in api_version:
+                default_info["eradication_disabled_days_timer"] = int(
+                    eradication.disabled_delay / SEC_TO_DAY
+                )
+                default_info["eradication_enabled_days_timer"] = int(
+                    eradication.enabled_delay / SEC_TO_DAY
+                )
+            eradication_delay = getattr(eradication, "eradication_delay", None)
+            if eradication_delay is not None:
+                default_info["eradication_days_timer"] = int(
+                    eradication_delay / SEC_TO_DAY
+                )
             if SAFE_MODE_VERSION in api_version:
                 if eradication.manual_eradication == "all-enabled":
                     default_info["safe_mode"] = "Disabled"
