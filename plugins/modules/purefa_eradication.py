@@ -31,6 +31,24 @@ options:
     - Allowed values are integers from 1 to 30. Default is 1
     default: 1
     type: int
+  disabled_delay:
+    description:
+    - Configures the eradication delay
+      for destroyed objects that I(are) protected by SafeMode (objects for which
+      eradication is disabled)
+    - Allowed values are integers from 1 to 30. Default is 1
+    default: 1
+    type: int
+    version_added: "1.22.0"
+  enabled_delay:
+    description:
+    - Configures the eradication delay
+      for destroyed objects that I(are not) protected by SafeMode (objects for which
+      eradication is disabled)
+    - Allowed values are integers from 1 to 30. Default is 1
+    default: 1
+    type: int
+    version_added: "1.22.0"
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -67,32 +85,57 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 SEC_PER_DAY = 86400000
 ERADICATION_API_VERSION = "2.6"
+DELAY_API_VERSION = "2.26"
 
 
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
-            timer=dict(type="int", default="1"),
+            timer=dict(type="int", default=1),
+            disabled_delay=dict(type="int", default=1),
+            enabled_delay=dict(type="int", default=1),
         )
     )
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
     if not 30 >= module.params["timer"] >= 1:
         module.fail_json(msg="Eradication Timer must be between 1 and 30 days.")
+    if not 30 >= module.params["disabled_delay"] >= 1:
+        module.fail_json(msg="disabled_delay must be between 1 and 30 days.")
+    if not 30 >= module.params["enabled_delay"] >= 1:
+        module.fail_json(msg="enabled_delay must be between 1 and 30 days.")
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
     array = get_system(module)
     api_version = array._list_available_rest_versions()
     changed = False
+    current_disabled = None
+    current_enabled = None
     if ERADICATION_API_VERSION in api_version:
         array = get_array(module)
-        current_timer = (
-            list(array.get_arrays().items)[0].eradication_config.eradication_delay
-            / SEC_PER_DAY
+        base_eradication_timer = getattr(
+            list(array.get_arrays().items)[0].eradication_config,
+            "eradication_delay",
+            None,
         )
-        if module.params["timer"] != current_timer:
+        if base_eradication_timer:
+            current_eradication_timer = base_eradication_timer / SEC_PER_DAY
+        if DELAY_API_VERSION in api_version and not base_eradication_timer:
+            current_disabled = (
+                list(array.get_arrays().items)[0].eradication_config.disabled_delay
+                / SEC_PER_DAY
+            )
+            current_enabled = (
+                list(array.get_arrays().items)[0].eradication_config.enabled_delay
+                / SEC_PER_DAY
+            )
+
+        if (
+            base_eradication_timer
+            and module.params["timer"] != current_eradication_timer
+        ):
             changed = True
             if not module.check_mode:
                 new_timer = SEC_PER_DAY * module.params["timer"]
@@ -103,6 +146,26 @@ def main():
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Failed to change Eradication Timer. Error: {0}".format(
+                            res.errors[0].message
+                        )
+                    )
+        if current_disabled and (
+            module.params["enabled_delay"] != current_enabled
+            or module.params["disabled_delay"] != current_disabled
+        ):
+            changed = True
+            if not module.check_mode:
+                new_disabled = SEC_PER_DAY * module.params["disabled_delay"]
+                new_enabled = SEC_PER_DAY * module.params["enabled_delay"]
+                eradication_config = EradicationConfig(
+                    enabled_delay=new_enabled, disabled_delay=new_disabled
+                )
+                res = array.patch_arrays(
+                    array=Arrays(eradication_config=eradication_config)
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to change Eradication Timers. Error: {0}".format(
                             res.errors[0].message
                         )
                     )
