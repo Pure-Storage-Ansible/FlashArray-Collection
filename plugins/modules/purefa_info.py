@@ -354,6 +354,11 @@ def generate_config_dict(module, array):
                             .name,
                         }
                     )
+        if SUBS_API_VERSION in api_version:
+            array_info = list(arrayv6.get_arrays().items)[0]
+            config_info["ntp_keys"] = bool(
+                getattr(array_info, "ntp_symmetric_key", None)
+            )
 
     else:
         config_info["directory_service"] = {}

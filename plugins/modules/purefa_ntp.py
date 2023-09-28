@@ -40,6 +40,15 @@ options:
     - If more than 4 servers are provided, only the first 4 unique
       nameservers will be used.
     - if no servers are given a default of I(0.pool.ntp.org) will be used.
+  ntp_key:
+    type: str
+    description:
+    - The NTP symmetric key to be used for NTP authentication.
+    - If it is an ASCII string, it cannot contain the character "#"
+      and cannot be longer than 20 characters.
+    - If it is a hex-encoded string, it cannot be longer than 64 characters.
+    - Setting this parameter is not idempotent.
+    version_added: "1.22.0"
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -69,8 +78,19 @@ RETURN = r"""
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_system,
+    get_array,
     purefa_argument_spec,
 )
+
+
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import Arrays
+except ImportError:
+    HAS_PURESTORAGE = False
+
+
+KEY_API_VERSION = "2.26"
 
 
 def _is_cbs(array, is_cbs=False):
@@ -115,35 +135,75 @@ def create_ntp(module, array):
     module.exit_json(changed=changed)
 
 
+def update_ntp_key(module, array):
+    """Update NTP Symmetric Key"""
+    if module.params["ntp_key"] == "" and not getattr(
+        list(array.get_arrays().items)[0], "ntp_symmetric_key", None
+    ):
+        changed = False
+    else:
+        try:
+            int(module.params["ntp_key"], 16)
+            if len(module.params["ntp_key"]) > 64:
+                module.fail_json(msg="HEX string cannot be longer than 64 characters")
+        except ValueError:
+            if len(module.params["ntp_key"]) > 20:
+                module.fail_json(msg="ASCII string cannot be longer than 20 characters")
+            if "#" in module.params["ntp_key"]:
+                module.fail_json(msg="ASCII string cannot contain # character")
+            if not all(ord(c) < 128 for c in module.params["ntp_key"]):
+                module.fail_json(msg="NTP key is non-ASCII")
+        changed = True
+        res = array.patch_arrays(
+            array=Arrays(ntp_symmetric_key=module.params["ntp_key"])
+        )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Failed to update NTP Symmetric Key. Error: {0}".format(
+                    res.errors[0].message
+                )
+            )
+    module.exit_json(changed=changed)
+
+    if len(module.params["ntp_key"]) > 20:
+        # Must be HEX string is greter than 20 characters
+        try:
+            int(module.params["ntp_key"], 16)
+        except ValueError:
+            module.fail_json(msg="NTP key is not HEX")
+
+
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
             ntp_servers=dict(type="list", elements="str"),
+            ntp_key=dict(type="str", no_log=True),
             state=dict(type="str", default="present", choices=["absent", "present"]),
         )
     )
 
-    required_if = [["state", "present", ["ntp_servers"]]]
-
-    module = AnsibleModule(
-        argument_spec, required_if=required_if, supports_check_mode=True
-    )
+    module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     array = get_system(module)
+    api_version = array._list_available_rest_versions()
     if _is_cbs(array):
         module.warn("NTP settings are not necessary for a CBS array - ignoring...")
         module.exit_json(changed=False)
 
     if module.params["state"] == "absent":
         delete_ntp(module, array)
-    else:
+    elif module.params["ntp_servers"]:
         module.params["ntp_servers"] = remove(module.params["ntp_servers"])
         if sorted(array.get(ntpserver=True)["ntpserver"]) != sorted(
             module.params["ntp_servers"][0:4]
         ):
             create_ntp(module, array)
-
+    if (module.params["ntp_key"] or module.params["ntp_key"] == "") and HAS_PURESTORAGE:
+        if KEY_API_VERSION not in api_version:
+            module.fail_json(msg="REST API does not support setting NTP Symmetric Key")
+        else:
+            update_ntp_key(module, get_array(module))
     module.exit_json(changed=False)
 
 
