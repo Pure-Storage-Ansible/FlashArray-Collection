@@ -73,6 +73,14 @@ options:
     choices: [ ro, rw ]
     default: rw
     type: str
+  nfs_version:
+    description:
+    - NFS protocol version allowed for the export
+    type: list
+    elements: str
+    choices: [ nfsv3, nfsv4 ]
+    default: nfsv3
+    version_added: "1.22.0"
   user_mapping:
     description:
     - Defines if user mapping is enabled
@@ -352,6 +360,7 @@ MIN_SUFFIX_API_VERSION = "2.9"
 USER_MAP_VERSION = "2.15"
 ALL_SQUASH_VERSION = "2.16"
 AUTODIR_VERSION = "2.24"
+NFS_VERSION = "2.26"
 
 
 def _human_to_bytes(size):
@@ -750,9 +759,15 @@ def create_policy(module, array, all_squash):
             )
 
             if created.status_code == 200:
-                policy = flasharray.PolicyNfsPost(
-                    user_mapping_enabled=module.params["user_mapping"],
-                )
+                if version.parse(NFS_VERSION) > version.parse(array.get_rest_version()):
+                    policy = flasharray.PolicyNfsPost(
+                        user_mapping_enabled=module.params["user_mapping"],
+                    )
+                else:
+                    policy = flasharray.PolicyNfsPost(
+                        user_mapping_enabled=module.params["user_mapping"],
+                        nfs_version=module.params["nfs_version"],
+                    )
                 res = array.patch_policies_nfs(
                     names=[module.params["name"]], policy=policy
                 )
@@ -1065,20 +1080,40 @@ def update_policy(module, array, api_version, all_squash):
                         rule_name = rules[rule].name
                         break
                 if not rule_name:
-                    if all_squash:
-                        rules = flasharray.PolicyrulenfsclientpostRules(
-                            permission=module.params["nfs_permission"],
-                            client=module.params["client"],
-                            anongid=module.params["anongid"],
-                            anonuid=module.params["anonuid"],
-                            access=module.params["nfs_access"],
-                        )
+                    if version.parse(NFS_VERSION) > version.parse(
+                        array.get_rest_version()
+                    ):
+                        if all_squash:
+                            rules = flasharray.PolicyrulenfsclientpostRules(
+                                permission=module.params["nfs_permission"],
+                                client=module.params["client"],
+                                anongid=module.params["anongid"],
+                                anonuid=module.params["anonuid"],
+                                access=module.params["nfs_access"],
+                            )
+                        else:
+                            rules = flasharray.PolicyrulenfsclientpostRules(
+                                permission=module.params["nfs_permission"],
+                                client=module.params["client"],
+                                access=module.params["nfs_access"],
+                                nfs_version=module.params["nfs_version"],
+                            )
                     else:
-                        rules = flasharray.PolicyrulenfsclientpostRules(
-                            permission=module.params["nfs_permission"],
-                            client=module.params["client"],
-                            access=module.params["nfs_access"],
-                        )
+                        if all_squash:
+                            rules = flasharray.PolicyrulenfsclientpostRules(
+                                permission=module.params["nfs_permission"],
+                                client=module.params["client"],
+                                anongid=module.params["anongid"],
+                                anonuid=module.params["anonuid"],
+                                access=module.params["nfs_access"],
+                                nfs_version=module.params["nfs_version"],
+                            )
+                        else:
+                            rules = flasharray.PolicyrulenfsclientpostRules(
+                                permission=module.params["nfs_permission"],
+                                client=module.params["client"],
+                                access=module.params["nfs_access"],
+                            )
                     rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
                     changed_rule = True
                     if not module.check_mode:
@@ -1683,6 +1718,12 @@ def main():
             ),
             user_mapping=dict(type="bool", default=True),
             directory=dict(type="list", elements="str"),
+            nfs_version=dict(
+                type="list",
+                elements="str",
+                choices=["nfsv3", "nfsv4"],
+                default=["nfsv3"],
+            ),
         )
     )
 
