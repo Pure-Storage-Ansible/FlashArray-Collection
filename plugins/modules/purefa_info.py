@@ -131,7 +131,6 @@ NEIGHBOR_API_VERSION = "2.22"
 POD_QUOTA_VERSION = "2.23"
 AUTODIR_API_VERSION = "2.24"
 SUBS_API_VERSION = "2.26"
-OBJECT_SAFE_MODE_API_VERSION = "2.26"
 
 
 def generate_default_dict(module, array):
@@ -167,16 +166,17 @@ def generate_default_dict(module, array):
                 default_info["encryption_algorithm"] = encryption.data_at_rest.algorithm
                 default_info["encryption_module_version"] = encryption.module_version
             eradication = array_data.eradication_config
-            if OBJECT_SAFE_MODE_API_VERSION in api_version:
+            if SUBS_API_VERSION in api_version:
                 default_info["eradication_safe_mode_disabled_days_timer"] = int(
                     eradication.disabled_delay / SEC_TO_DAY
                 )
                 default_info["eradication_safe_mode_enabled_days_timer"] = int(
                     eradication.enabled_delay / SEC_TO_DAY
                 )
-            else:
+            eradication_delay = getattr(eradication, "eradication_delay", None)
+            if eradication_delay is not None:
                 default_info["eradication_days_timer"] = int(
-                    eradication.eradication_delay / SEC_TO_DAY
+                    eradication_delay / SEC_TO_DAY
                 )
             if SAFE_MODE_VERSION in api_version:
                 if eradication.manual_eradication == "all-enabled":
