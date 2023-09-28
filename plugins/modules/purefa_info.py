@@ -368,6 +368,7 @@ def generate_config_dict(module, array):
             config_info["ntp_keys"] = bool(
                 getattr(array_info, "ntp_symmetric_key", None)
             )
+            config_info["timezone"] = array_info.time_zone
 
     else:
         config_info["directory_service"] = {}
@@ -432,6 +433,12 @@ def generate_filesystems_dict(array):
                 ),
                 "exports": {},
             }
+            if version.parse(SUBS_API_VERSION) <= version.parse(
+                array.get_rest_version()
+            ):
+                files_info[fs_name]["directories"][d_name]["total_used"] = directories[
+                    directory
+                ].space.total_used
             exports = list(
                 array.get_directory_exports(
                     directory_names=[
@@ -498,6 +505,8 @@ def generate_dir_snaps_dict(array):
                 snapshots[snapshot].space, "used_provisioned", None
             ),
         }
+        if version.parse(SUBS_API_VERSION) <= version.parse(array.get_rest_version()):
+            dir_snaps_info[s_name]["total_used"] = snapshots[snapshot].space.total_used
         try:
             dir_snaps_info[s_name]["policy"] = snapshots[snapshot].policy.name
         except Exception:
@@ -541,6 +550,12 @@ def generate_policies_dict(array, quota_available, autodir_available, nfs_user_m
                 policy_info[p_name][
                     "user_mapping_enabled"
                 ] = nfs_policy.user_mapping_enabled
+                if version.parse(SUBS_API_VERSION) <= version.parse(
+                    array.get_rest_version()
+                ):
+                    policy_info[p_name]["nfs_version"] = getattr(
+                        nfs_policy, "nfs_version", None
+                    )
             rules = list(
                 array.get_policies_nfs_client_rules(policy_names=[p_name]).items
             )
@@ -550,6 +565,10 @@ def generate_policies_dict(array, quota_available, autodir_available, nfs_user_m
                     "permission": rules[rule].permission,
                     "client": rules[rule].client,
                 }
+                if version.parse(SUBS_API_VERSION) <= version.parse(
+                    array.get_rest_version()
+                ):
+                    nfs_rules_dict["nfs_version"] = rules[rule].nfs_version
                 policy_info[p_name]["rules"].append(nfs_rules_dict)
         if policies[policy].policy_type == "snapshot":
             if HAS_PACKAGING:
@@ -845,6 +864,8 @@ def generate_capacity_dict(module, array):
             capacity_info["used_provisioned"] = getattr(
                 capacity.space, "used_provisioned", 0
             )
+            if SUBS_API_VERSION in api_version:
+                capacity_info["total_used"] = capacity.space.total_used
         else:
             capacity_info["provisioned_space"] = capacity.space["total_provisioned"]
             capacity_info["free_space"] = (
@@ -908,6 +929,8 @@ def generate_snap_dict(module, array):
                 snap_info[snapshot]["snapshots_effective"] = getattr(
                     snapsv6[snap].space, "snapshots_effective", None
                 )
+            if SUBS_API_VERSION in api_version:
+                snap_info[snapshot]["total_used"] = snapsv6[snap].space.total_used
         offloads = list(arrayv6.get_offloads().items)
         for offload in range(0, len(offloads)):
             offload_name = offloads[offload].name
@@ -991,6 +1014,8 @@ def generate_del_snap_dict(module, array):
                 snap
             ].space.total_provisioned
             snap_info[snapshot]["unique_space"] = snapsv6[snap].space.unique
+            if SUBS_API_VERSION in api_version:
+                snap_info[snapshot]["total_used"] = snapsv6[snap].space.total_used
         offloads = list(arrayv6.get_offloads().items)
         for offload in range(0, len(offloads)):
             offload_name = offloads[offload].name
@@ -1097,6 +1122,8 @@ def generate_del_vol_dict(module, array):
                 volume_info[name]["used_provisioned"] = (
                     getattr(vols_space[vol].space, "used_provisioned", None),
                 )
+            if SUBS_API_VERSION in api_version:
+                volume_info[name]["total_used"] = vols_space[vol].space.total_used
     if ACTIVE_DR_API in api_version:
         voltags = array.list_volumes(tags=True, pending_only=True)
         for voltag in range(0, len(voltags)):
@@ -1179,6 +1206,8 @@ def generate_vol_dict(module, array):
                 volume_info[name]["used_provisioned"] = (
                     getattr(vols_space[vol].space, "used_provisioned", None),
                 )
+            if SUBS_API_VERSION in api_version:
+                volume_info[name]["total_used"] = vols_space[vol].space.total_used
     if AC_REQUIRED_API_VERSION in api_version:
         qvols = array.list_volumes(qos=True)
         for qvol in range(0, len(qvols)):
@@ -1474,14 +1503,19 @@ def generate_rl_dict(module, array):
             rlinks = array.list_pod_replica_links()
             for rlink in range(0, len(rlinks)):
                 link_name = rlinks[rlink]["local_pod_name"]
-                since_epoch = rlinks[rlink]["recovery_point"] / 1000
-                recovery_datatime = time.strftime(
-                    "%Y-%m-%d %H:%M:%S", time.localtime(since_epoch)
-                )
+                if rlinks[rlink]["recovery_point"]:
+                    since_epoch = rlinks[rlink]["recovery_point"] / 1000
+                    recovery_datatime = time.strftime(
+                        "%Y-%m-%d %H:%M:%S", time.localtime(since_epoch)
+                    )
+                else:
+                    recovery_datatime = None
+                if rlinks[rlink]["lag"]:
+                    lag = str(rlinks[rlink]["lag"] / 1000) + "s"
                 rl_info[link_name] = {
                     "status": rlinks[rlink]["status"],
                     "direction": rlinks[rlink]["direction"],
-                    "lag": str(rlinks[rlink]["lag"] / 1000) + "s",
+                    "lag": lag,
                     "remote_pod_name": rlinks[rlink]["remote_pod_name"],
                     "remote_names": rlinks[rlink]["remote_names"],
                     "recovery_point": recovery_datatime,
@@ -1559,6 +1593,8 @@ def generate_del_pods_dict(module, array):
                     pods_info[name]["quota_limit"] = getattr(
                         pods[pod], "quota_limit", None
                     )
+                if SUBS_API_VERSION in api_version:
+                    pods_info[name]["total_used"] = pods[pod].space.total_used
     return pods_info
 
 
@@ -1627,6 +1663,8 @@ def generate_pods_dict(module, array):
                 pods_info[name]["used_provisioned"] = getattr(
                     pods[pod].space, "used_provisioned", None
                 )
+                if SUBS_API_VERSION in api_version:
+                    pods_info[name]["total_used"] = pods[pod].space.total_used
     return pods_info
 
 
@@ -1762,6 +1800,10 @@ def generate_vgroups_dict(module, array):
             vgroups_info[name]["iops_limit"] = getattr(
                 vgroups[vgroup].qos, "iops_limit", ""
             )
+            if SUBS_API_VERSION in api_version:
+                vgroups_info[name]["total_used"] = getattr(
+                    vgroups[vgroup].space, "total_used", None
+                )
         if SAFE_MODE_VERSION in api_version:
             for vgroup in range(0, len(vgroups)):
                 name = vgroups[vgroup].name
@@ -1924,6 +1966,8 @@ def generate_nfs_offload_dict(module, array):
             offload_info[name]["used_provisioned"] = getattr(
                 offloads[offload].space, "used_provisioned", None
             )
+            if SUBS_API_VERSION in api_version:
+                offload_info[name]["total_used"] = offloads[offload].space.total_used
     return offload_info
 
 
@@ -1982,6 +2026,8 @@ def generate_s3_offload_dict(module, array):
             offload_info[name]["used_provisioned"] = getattr(
                 offloads[offload].space, "used_provisioned", None
             )
+            if SUBS_API_VERSION in api_version:
+                offload_info[name]["total_used"] = offloads[offload].space.total_used
     return offload_info
 
 
@@ -2037,6 +2083,8 @@ def generate_azure_offload_dict(module, array):
             offload_info[name]["used_provisioned"] = getattr(
                 offloads[offload].space, "used_provisioned", None
             )
+            if SUBS_API_VERSION in api_version:
+                offload_info[name]["total_used"] = offloads[offload].space.total_used
     return offload_info
 
 
@@ -2069,6 +2117,8 @@ def generate_google_offload_dict(array):
                 offloads[offload].space, "used_provisioned", None
             ),
         }
+        if version.parse(SUBS_API_VERSION) <= version.parse(array.get_rest_version()):
+            offload_info[name]["total_used"] = offloads[offload].space.total_used
     return offload_info
 
 
@@ -2125,6 +2175,8 @@ def generate_hgroups_dict(module, array):
                 hgroups_info[name]["used_provisioned"] = getattr(
                     hgroups[hgroup].space, "used_provisioned", None
                 )
+                if SUBS_API_VERSION in api_version:
+                    hgroups_info[name]["total_used"] = hgroups[hgroup].space.total_used
     return hgroups_info
 
 
