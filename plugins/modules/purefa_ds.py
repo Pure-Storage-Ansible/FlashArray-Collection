@@ -434,8 +434,8 @@ def update_ds_v6(module, array):
         base_dn = module.params["base_dn"]
         ds_change = True
     if module.params["bind_user"] != "":
-        bind_user = module.params["bind_user"]
         if module.params["bind_user"] != bind_user:
+            bind_user = module.params["bind_user"]
             password_required = True
             ds_change = True
         elif module.params["force_bind_password"]:
