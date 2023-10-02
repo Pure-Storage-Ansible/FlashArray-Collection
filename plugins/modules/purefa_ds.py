@@ -433,6 +433,10 @@ def update_ds_v6(module, array):
     if module.params["base_dn"] != "" and module.params["base_dn"] != base_dn:
         base_dn = module.params["base_dn"]
         ds_change = True
+    if module.params["enable"] != current_ds.enabled:
+        ds_change = True
+        if getattr(current_ds, "bind_password", None) is None:
+            password_required = True
     if module.params["bind_user"] != "":
         if module.params["bind_user"] != bind_user:
             bind_user = module.params["bind_user"]
@@ -443,8 +447,6 @@ def update_ds_v6(module, array):
             ds_change = True
     if module.params["bind_password"] is not None and password_required:
         bind_password = module.params["bind_password"]
-        ds_change = True
-    if module.params["enable"] != current_ds.enabled:
         ds_change = True
     if password_required and not module.params["bind_password"]:
         module.fail_json(msg="'bind_password' must be provided for this task")
