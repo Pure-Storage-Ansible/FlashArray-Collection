@@ -446,6 +446,8 @@ def update_ds_v6(module, array):
         ds_change = True
     if module.params["enable"] != current_ds.enabled:
         ds_change = True
+        if getattr(current_ds, "bind_password") is None:
+            password_required = True
     if password_required and not module.params["bind_password"]:
         module.fail_json(msg="'bind_password' must be provided for this task")
     if module.params["dstype"] == "management":
