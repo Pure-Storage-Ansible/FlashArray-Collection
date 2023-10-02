@@ -2376,6 +2376,7 @@ def main():
         "policies",
         "dir_snaps",
         "filesystems",
+        "alerts",
         "virtual_machines",
         "hosts_balance",
         "subscriptions",
