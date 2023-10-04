@@ -97,7 +97,7 @@ RETURN = """
 """
 
 try:
-    from netaddr import IPNetwork
+    from netaddr import IPNetwork, valid_ipv4, valid_ipv6
 
     HAS_NETADDR = True
 except ImportError:
@@ -130,22 +130,38 @@ def update_subnet(module, array, subnet):
         "prefix": subnet["prefix"],
         "gateway": subnet["gateway"],
     }
+    address = str(subnet["prefix"].split("/", 1)[0])
+    if not current_state["vlan"]:
+        current_state["vlan"] = 0
+    if not current_state["gateway"]:
+        if valid_ipv4(address):
+            current_state["gateway"] = "0.0.0.0"
+        elif valid_ipv6(address):
+            current_state["gateway"] = "::"
+        else:
+            module.fail_json(msg="Prefix address is not valid IPv4 or IPv6")
+
     if not module.params["prefix"]:
         prefix = subnet["prefix"]
     else:
-        if module.params["gateway"] and module.params["gateway"] not in IPNetwork(
-            module.params["prefix"]
+        if module.params["gateway"] and not (
+            module.params["gateway"] in ["0.0.0.0", "::"]
         ):
-            module.fail_json(msg="Gateway and subnet are not compatible.")
-        elif (
-            not module.params["gateway"]
-            and subnet["gateway"]
-            and subnet["gateway"] not in IPNetwork(module.params["prefix"])
-        ):
-            module.fail_json(msg="Gateway and subnet are not compatible.")
+            if module.params["gateway"] and module.params["gateway"] not in IPNetwork(
+                module.params["prefix"]
+            ):
+                module.fail_json(msg="Gateway and subnet are not compatible.")
+            elif (
+                not module.params["gateway"]
+                and subnet["gateway"]
+                and subnet["gateway"] not in IPNetwork(module.params["prefix"])
+            ):
+                module.fail_json(msg="Gateway and subnet are not compatible.")
         prefix = module.params["prefix"]
     if not module.params["vlan"]:
         vlan = subnet["vlan"]
+        if not vlan:
+            vlan = 0
     else:
         if not 0 <= module.params["vlan"] <= 4094:
             module.fail_json(
@@ -165,8 +181,11 @@ def update_subnet(module, array, subnet):
     if not module.params["gateway"]:
         gateway = subnet["gateway"]
     else:
-        if module.params["gateway"] not in IPNetwork(prefix):
-            module.fail_json(msg="Gateway and subnet are not compatible.")
+        if module.params["gateway"] and not (
+            module.params["gateway"] in ["0.0.0.0", "::"]
+        ):
+            if module.params["gateway"] not in IPNetwork(prefix):
+                module.fail_json(msg="Gateway and subnet are not compatible.")
         gateway = module.params["gateway"]
     new_state = {"prefix": prefix, "mtu": mtu, "gateway": gateway, "vlan": vlan}
     if new_state != current_state:
@@ -214,10 +233,13 @@ def create_subnet(module, array):
     if not module.params["prefix"]:
         module.fail_json(msg="Prefix required when creating subnet.")
     else:
-        if module.params["gateway"] and module.params["gateway"] not in IPNetwork(
-            module.params["prefix"]
+        if module.params["gateway"] and not (
+            module.params["gateway"] in ["0.0.0.0", "::"]
         ):
-            module.fail_json(msg="Gateway and subnet are not compatible.")
+            if module.params["gateway"] and module.params["gateway"] not in IPNetwork(
+                module.params["prefix"]
+            ):
+                module.fail_json(msg="Gateway and subnet are not compatible.")
         prefix = module.params["prefix"]
     if module.params["vlan"]:
         if not 0 <= module.params["vlan"] <= 4094:
@@ -235,7 +257,7 @@ def create_subnet(module, array):
             )
         else:
             mtu = module.params["mtu"]
-    if module.params["gateway"]:
+    if module.params["gateway"] and not (module.params["gateway"] in ["0.0.0.0", "::"]):
         if module.params["gateway"] not in IPNetwork(prefix):
             module.fail_json(msg="Gateway and subnet are not compatible.")
         gateway = module.params["gateway"]
@@ -313,6 +335,10 @@ def main():
     state = module.params["state"]
     array = get_system(module)
     subnet = _get_subnet(module, array)
+    if module.params["prefix"]:
+        module.params["prefix"] = module.params["prefix"].strip("[]")
+    if module.params["gateway"]:
+        module.params["gateway"] = module.params["gateway"].strip("[]")
     if state == "present" and not subnet:
         create_subnet(module, array)
     if state == "present" and subnet:
