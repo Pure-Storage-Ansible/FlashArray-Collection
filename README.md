@@ -52,6 +52,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_eradication - manage eradication timer for deleted items
 - purefa_eula - sign, or resign, FlashArray EULA
 - purefa_export - manage FlashArrray managed file system exports
+- purefa_file - copy file between managed directories
 - purefa_fs - manage FlashArray managed file systems
 - purefa_hg - manage hostgroups on the FlashArray
 - purefa_host - manage hosts on the FlashArray
