@@ -99,6 +99,11 @@ options:
     choices: [ 0, 10 ]
     default: 0
     version_added: '1.13.0'
+  rename:
+    description:
+    - Value to rename the specified volume group to
+    type: str
+    version_added: '1.22.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -160,6 +165,13 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
+
+- name: Rename volume group foo to bar
+  purestorage.flasharray.purefa_vg:
+    name: foo
+    rename: bar
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
 
 RETURN = r"""
@@ -233,6 +245,17 @@ def human_to_real(iops):
     return digit
 
 
+def rename_exists(module, array):
+    """Determine if rename target already exists"""
+    exists = False
+    new_name = module.params["rename"]
+    for vgroup in array.list_vgroups():
+        if vgroup["name"].casefold() == new_name.casefold():
+            exists = True
+            break
+    return exists
+
+
 def get_multi_vgroups(module, destroyed=False):
     """Return True is all volume groups exist or None"""
     names = []
@@ -270,6 +293,25 @@ def get_vgroup(module, array):
             break
 
     return vgroup
+
+
+def rename_vgroup(module, array):
+    changed = True
+    if not rename_exists(module, array):
+        try:
+            if not module.check_mode:
+                array.rename_vgroup(module.params["name"], module.params["rename"])
+        except Exception:
+            module.fail_json(
+                msg="Rename to {0} failed.".format(module.params["rename"])
+            )
+    else:
+        module.warn(
+            "Rename failed. Volume Group {0} already exists.".format(
+                module.params["rename"]
+            )
+        )
+    module.exit_json(changed=changed)
 
 
 def make_vgroup(module, array):
@@ -630,6 +672,7 @@ def main():
             priority_operator=dict(type="str", choices=["+", "-"], default="+"),
             priority_value=dict(type="int", choices=[0, 10], default=0),
             eradicate=dict(type="bool", default=False),
+            rename=dict(type="str"),
         )
     )
 
@@ -673,6 +716,8 @@ def main():
             eradicate_vgroup(module, array)
         elif not vgroup and not xvgroup and state == "present":
             make_vgroup(module, array)
+        elif state == "present" and vgroup and module.params["rename"] and not xvgroup:
+            rename_vgroup(module.array)
         elif vgroup and state == "present":
             update_vgroup(module, array)
         elif vgroup is None and state == "absent":
