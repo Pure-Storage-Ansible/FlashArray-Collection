@@ -48,8 +48,9 @@ options:
     default: true
   replicate_at:
     description:
-    - Specifies the preferred time as HH:MM:SS, using 24-hour clock, at which to generate snapshots.
-    type: int
+    - Provide a time in 12-hour AM/PM format, eg. 11AM
+    - Only valid if I(replicate_frequency) is an exact multiple of 86400, ie 1 day.
+    type: str
   blackout_start:
     description:
     - Specifies the time at which to suspend replication.
@@ -68,9 +69,9 @@ options:
     type: int
   snap_at:
     description:
-    - Specifies the preferred time as HH:MM:SS, using 24-hour clock, at which to generate snapshots.
+    - Provide a time in 12-hour AM/PM format, eg. 11AM
     - Only valid if I(snap_frequency) is an exact multiple of 86400, ie 1 day.
-    type: int
+    type: str
   snap_frequency:
     description:
     - Specifies the snapshot frequency in seconds.
@@ -120,7 +121,7 @@ EXAMPLES = r"""
     schedule: snapshot
     enabled: true
     snap_frequency: 86400
-    snap_at: 15:30:00
+    snap_at: 3PM
     per_day: 5
     all_for: 5
     fa_url: 10.10.10.2
@@ -132,7 +133,7 @@ EXAMPLES = r"""
     schedule: replication
     enabled: true
     replicate_frequency: 86400
-    replicate_at: 15:30:00
+    replicate_at: 3PM
     target_per_day: 5
     target_all_for: 5
     blackout_start: 2AM
@@ -217,7 +218,7 @@ def _convert_to_minutes(hour):
     return (int(hour[:-2]) + 12) * 3600
 
 
-def update_schedule(module, array):
+def update_schedule(module, array, snap_time, repl_time):
     """Update Protection Group Schedule"""
     changed = False
     try:
@@ -268,7 +269,7 @@ def update_schedule(module, array):
         if not module.params["snap_at"]:
             snap_at = current_snap["snap_at"]
         else:
-            snap_at = module.params["snap_at"]
+            snap_at = _convert_to_minutes(module.params["snap_at"].upper())
 
         if not module.params["days"]:
             if isinstance(module.params["days"], int):
@@ -304,6 +305,7 @@ def update_schedule(module, array):
             "per_day": per_day,
             "all_for": all_for,
         }
+        module.warn("current {0}; new: {1}".format(current_snap, new_snap))
         if current_snap != new_snap:
             changed = True
             if not module.check_mode:
@@ -311,11 +313,17 @@ def update_schedule(module, array):
                     array.set_pgroup(
                         module.params["name"], snap_enabled=module.params["enabled"]
                     )
-                    array.set_pgroup(
-                        module.params["name"],
-                        snap_frequency=snap_frequency,
-                        snap_at=snap_at,
-                    )
+                    if snap_time:
+                        array.set_pgroup(
+                            module.params["name"],
+                            snap_frequency=snap_frequency,
+                            snap_at=snap_at,
+                        )
+                    else:
+                        array.set_pgroup(
+                            module.params["name"],
+                            snap_frequency=snap_frequency,
+                        )
                     array.set_pgroup(
                         module.params["name"],
                         days=days,
@@ -356,7 +364,7 @@ def update_schedule(module, array):
         if not module.params["replicate_at"]:
             replicate_at = current_repl["replicate_at"]
         else:
-            replicate_at = module.params["replicate_at"]
+            replicate_at = _convert_to_minutes(module.params["replicate_at"].upper())
 
         if not module.params["target_days"]:
             if isinstance(module.params["target_days"], int):
@@ -390,11 +398,13 @@ def update_schedule(module, array):
         if not module.params["blackout_end"]:
             blackout_end = current_repl["blackout_start"]
         else:
-            blackout_end = _convert_to_minutes(module.params["blackout_end"])
+            blackout_end = _convert_to_minutes(module.params["blackout_end"].upper())
         if not module.params["blackout_start"]:
             blackout_start = current_repl["blackout_start"]
         else:
-            blackout_start = _convert_to_minutes(module.params["blackout_start"])
+            blackout_start = _convert_to_minutes(
+                module.params["blackout_start"].upper()
+            )
 
         new_repl = {
             "replicate_frequency": replicate_frequency,
@@ -415,11 +425,17 @@ def update_schedule(module, array):
                         module.params["name"],
                         replicate_enabled=module.params["enabled"],
                     )
-                    array.set_pgroup(
-                        module.params["name"],
-                        replicate_frequency=replicate_frequency,
-                        replicate_at=replicate_at,
-                    )
+                    if repl_time:
+                        array.set_pgroup(
+                            module.params["name"],
+                            replicate_frequency=replicate_frequency,
+                            replicate_at=replicate_at,
+                        )
+                    else:
+                        array.set_pgroup(
+                            module.params["name"],
+                            replicate_frequency=replicate_frequency,
+                        )
                     if blackout_start == 0:
                         array.set_pgroup(module.params["name"], replicate_blackout=None)
                     else:
@@ -492,8 +508,8 @@ def main():
             ),
             blackout_start=dict(type="str"),
             blackout_end=dict(type="str"),
-            snap_at=dict(type="int"),
-            replicate_at=dict(type="int"),
+            snap_at=dict(type="str"),
+            replicate_at=dict(type="str"),
             replicate_frequency=dict(type="int"),
             snap_frequency=dict(type="int"),
             all_for=dict(type="int"),
@@ -516,13 +532,23 @@ def main():
     array = get_system(module)
 
     pgroup = get_pgroup(module, array)
+    repl_time = False
+    if module.params["replicate_at"] and module.params["replicate_frequency"]:
+        if not module.params["replicate_frequency"] % 86400 == 0:
+            module.fail_json(
+                msg="replicate_at not valid unless replicate frequency is measured in days, ie. a multiple of 86400"
+            )
+        repl_time = True
+    repl_time = False
+    snap_time = False
     if module.params["snap_at"] and module.params["snap_frequency"]:
         if not module.params["snap_frequency"] % 86400 == 0:
             module.fail_json(
                 msg="snap_at not valid unless snapshot frequency is measured in days, ie. a multiple of 86400"
             )
+        snap_time = True
     if pgroup and state == "present":
-        update_schedule(module, array)
+        update_schedule(module, array, snap_time, repl_time)
     elif pgroup and state == "absent":
         delete_schedule(module, array)
     elif pgroup is None:
