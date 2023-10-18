@@ -524,7 +524,9 @@ def _update_chap_security(module, array, answer=False):
                         host_password=module.params["host_password"],
                     )
                 except Exception:
-                    module.fail_json(msg="Failed to set CHAP host username and password")
+                    module.fail_json(
+                        msg="Failed to set CHAP host username and password"
+                    )
     if module.params["target_user"]:
         if module.params["target_password"] == "clear":
             if chap["target_user"]:
@@ -550,7 +552,9 @@ def _update_chap_security(module, array, answer=False):
                         target_password=module.params["target_password"],
                     )
                 except Exception:
-                    module.fail_json(msg="Failed to set CHAP target username and password")
+                    module.fail_json(
+                        msg="Failed to set CHAP target username and password"
+                    )
     return answer
 
 
