@@ -224,7 +224,7 @@ def get_pgroupvolume(module, array):
 
 
 def get_rpgsnapshot(module, array):
-    """Return iReplicated Snapshot or None"""
+    """Return Replicated Snapshot or None"""
     try:
         snapname = (
             module.params["name"]
@@ -271,17 +271,23 @@ def create_pgsnapshot(module, array):
     if not module.check_mode:
         if THROTTLE_API not in api_version:
             try:
-                if (
-                    module.params["now"]
-                    and array.get_pgroup(module.params["name"])["targets"] is not None
-                ):
-                    array.create_pgroup_snapshot(
-                        source=module.params["name"],
-                        suffix=module.params["suffix"],
-                        snap=True,
-                        apply_retention=module.params["apply_retention"],
-                        replicate_now=module.params["remote"],
-                    )
+                if array.get_pgroup(module.params["name"])["targets"] is not None:
+                    if module.params["now"]:
+                        array.create_pgroup_snapshot(
+                            source=module.params["name"],
+                            suffix=module.params["suffix"],
+                            snap=True,
+                            apply_retention=module.params["apply_retention"],
+                            replicate_now=True,
+                        )
+                    else:
+                        array.create_pgroup_snapshot(
+                            source=module.params["name"],
+                            suffix=module.params["suffix"],
+                            snap=True,
+                            apply_retention=module.params["apply_retention"],
+                            replicate=module.params["remote"],
+                        )
                 else:
                     array.create_pgroup_snapshot(
                         source=module.params["name"],
@@ -296,25 +302,31 @@ def create_pgsnapshot(module, array):
         else:
             arrayv6 = get_array(module)
             suffix = ProtectionGroupSnapshot(suffix=module.params["suffix"])
-            if (
-                module.params["now"]
-                and array.get_pgroup(module.params["name"])["targets"] is not None
-            ):
-                res = arrayv6.post_protection_group_snapshots(
-                    source_names=[module.params["name"]],
-                    apply_retention=module.params["apply_retention"],
-                    replicate_now=module.params["remote"],
-                    throttle=module.params["throttle"],
-                    protection_group_snapshot=suffix,
-                )
+            if array.get_pgroup(module.params["name"])["targets"] is not None:
+                if module.params["now"]:
+                    res = arrayv6.post_protection_group_snapshots(
+                        source_names=[module.params["name"]],
+                        apply_retention=module.params["apply_retention"],
+                        replicate_now=True,
+                        throttle=module.params["throttle"],
+                        protection_group_snapshot=suffix,
+                    )
+                else:
+                    res = arrayv6.post_protection_group_snapshots(
+                        source_names=[module.params["name"]],
+                        apply_retention=module.params["apply_retention"],
+                        throttle=module.params["throttle"],
+                        protection_group_snapshot=suffix,
+                        replicate=module.params["remote"],
+                    )
             else:
                 res = arrayv6.post_protection_group_snapshots(
                     source_names=[module.params["name"]],
-                    replicate=True,
                     apply_retention=module.params["apply_retention"],
                     throttle=module.params["throttle"],
                     protection_group_snapshot=suffix,
                 )
+
             if res.status_code != 200:
                 module.fail_json(
                     msg="Snapshot of pgroup {0} failed. Error: {1}".format(
@@ -474,9 +486,13 @@ def main():
     )
 
     required_if = [("state", "copy", ["suffix", "restore"])]
+    mutually_exclusive = [["now", "remote"]]
 
     module = AnsibleModule(
-        argument_spec, required_if=required_if, supports_check_mode=True
+        argument_spec,
+        required_if=required_if,
+        mutually_exclusive=mutually_exclusive,
+        supports_check_mode=True,
     )
     state = module.params["state"]
     if state == "present":
