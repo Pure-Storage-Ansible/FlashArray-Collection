@@ -42,7 +42,7 @@ options:
       Copy (added in 2.7) will create a full read/write clone of the
       snapshot.
     type: str
-    choices: [ absent, present, copy ]
+    choices: [ absent, present, copy, rename ]
     default: present
   eradicate:
     description:
@@ -64,6 +64,7 @@ options:
     description:
     - Volume to restore a specified volume to.
     - If not supplied this will default to the volume defined in I(restore)
+    - Name of new snapshot suffix if renaming a snapshot
     type: str
   offload:
     description:
@@ -162,6 +163,15 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
+
+- name: Rename protection group snapshot foo.fred to foo.dave
+  purestorage.flasharray.purefa_pgsnap:
+    name: foo
+    suffix: fred
+    target: dave
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+    state: rename
 """
 
 RETURN = r"""
@@ -169,7 +179,10 @@ RETURN = r"""
 
 HAS_PURESTORAGE = True
 try:
-    from pypureclient.flasharray import ProtectionGroupSnapshot
+    from pypureclient.flasharray import (
+        ProtectionGroupSnapshot,
+        ProtectionGroupSnapshotPatch,
+    )
 except ImportError:
     HAS_PURESTORAGE = False
 
@@ -464,6 +477,26 @@ def eradicate_pgsnapshot(module, array):
     module.exit_json(changed=changed)
 
 
+def update_pgsnapshot(module):
+    """Update Protection Group Snapshot - basically just rename..."""
+    array = get_array(module)
+    changed = True
+    if not module.check_mode:
+        current_name = module.params["name"] + "." + module.params["suffix"]
+        new_name = module.params["name"] + "." + module.params["target"]
+        res = array.patch_protection_group_snapshots(
+            names=[current_name],
+            protection_group_snapshot=ProtectionGroupSnapshotPatch(name=new_name),
+        )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Failed to rename {0} to {1}. Error: {2}".format(
+                    current_name, new_name, res.errors[0].message
+                )
+            )
+    module.exit_json(changed=changed)
+
+
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
@@ -480,7 +513,9 @@ def main():
             apply_retention=dict(type="bool", default=False),
             remote=dict(type="bool", default=False),
             state=dict(
-                type="str", default="present", choices=["absent", "present", "copy"]
+                type="str",
+                default="present",
+                choices=["absent", "present", "copy", "rename"],
             ),
         )
     )
@@ -495,6 +530,7 @@ def main():
         supports_check_mode=True,
     )
     state = module.params["state"]
+    pattern = re.compile("^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$")
     if state == "present":
         if module.params["suffix"] is None:
             suffix = "snap-" + str(
@@ -506,10 +542,6 @@ def main():
                 pattern = re.compile(
                     "^[0-9]{0,63}$|^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$"
                 )
-            else:
-                pattern = re.compile(
-                    "^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$"
-                )
             if not pattern.match(module.params["suffix"]):
                 module.fail_json(
                     msg="Suffix name {0} does not conform to suffix name rules".format(
@@ -520,6 +552,13 @@ def main():
     if not module.params["target"] and module.params["restore"]:
         module.params["target"] = module.params["restore"]
 
+    if state == "rename" and module.params["target"] is not None:
+        if not pattern.match(module.params["target"]):
+            module.fail_json(
+                msg="Suffix target {0} does not conform to suffix name rules".format(
+                    module.params["target"]
+                )
+            )
     array = get_system(module)
     api_version = array._list_available_rest_versions()
     if not HAS_PURESTORAGE and module.params["throttle"]:
@@ -529,6 +568,10 @@ def main():
     if OFFLOAD_API not in api_version and module.params["offload"]:
         module.fail_json(
             msg="Minimum version {0} required for offload support".format(OFFLOAD_API)
+        )
+    if POD_SNAPSHOT not in api_version and state == "offload":
+        module.fail_json(
+            msg="Minimum version {0} required for rename".format(POD_SNAPSHOT)
         )
     pgroup = get_pgroup(module, array)
     if pgroup is None:
@@ -556,6 +599,8 @@ def main():
         and get_offload_snapshot(module, array)
     ):
         delete_offload_snapshot(module, array)
+    elif state == "rename" and pgsnap:
+        update_pgsnapshot(module)
     elif state == "absent" and pgsnap:
         delete_pgsnapshot(module, array)
     elif state == "absent" and pgsnap and pgsnap_deleted and module.params["eradicate"]:
