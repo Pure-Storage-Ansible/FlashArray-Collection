@@ -539,7 +539,6 @@ def main():
                 msg="replicate_at not valid unless replicate frequency is measured in days, ie. a multiple of 86400"
             )
         repl_time = True
-    repl_time = False
     snap_time = False
     if module.params["snap_at"] and module.params["snap_frequency"]:
         if not module.params["snap_frequency"] % 86400 == 0:
