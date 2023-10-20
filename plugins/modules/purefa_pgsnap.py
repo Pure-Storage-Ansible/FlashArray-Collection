@@ -601,7 +601,7 @@ def main():
         delete_offload_snapshot(module, array)
     elif state == "rename" and pgsnap:
         update_pgsnapshot(module)
-    elif state == "absent" and pgsnap:
+    elif state == "absent" and pgsnap and not pgsnap_deleted:
         delete_pgsnapshot(module, array)
     elif state == "absent" and pgsnap and pgsnap_deleted and module.params["eradicate"]:
         eradicate_pgsnapshot(module, array)
