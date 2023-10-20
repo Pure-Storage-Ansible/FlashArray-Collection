@@ -717,7 +717,7 @@ def main():
         elif not vgroup and not xvgroup and state == "present":
             make_vgroup(module, array)
         elif state == "present" and vgroup and module.params["rename"] and not xvgroup:
-            rename_vgroup(module.array)
+            rename_vgroup(module, array)
         elif vgroup and state == "present":
             update_vgroup(module, array)
         elif vgroup is None and state == "absent":
