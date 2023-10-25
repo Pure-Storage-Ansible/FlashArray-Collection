@@ -11,7 +11,6 @@ v1.21.0
 Minor Changes
 -------------
 
-- purefa_info - Add `hosts_balance` subset
 - purefa_info - Add `port_connectivity` information for hosts
 - purefa_info - Add promotion status information for volumes
 - purefa_offload - Added a new profile parameter.
