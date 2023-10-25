@@ -106,6 +106,11 @@ plugins:
       name: purefa_export
       namespace: ''
       version_added: 1.5.0
+    purefa_file:
+      description: Manage FlashArray File Copies
+      name: purefa_file
+      namespace: ''
+      version_added: 1.22.0
     purefa_fs:
       description: Manage FlashArray File Systems
       name: purefa_fs
@@ -307,4 +312,4 @@ plugins:
   strategy: {}
   test: {}
   vars: {}
-version: 1.21.0
+version: 1.22.0
