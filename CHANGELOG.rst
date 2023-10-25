@@ -5,6 +5,56 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.22.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_eradication - Added support for disabled and enabled timers from Purity//FA 6.4.10
+- purefa_info - Add array subscription data
+- purefa_info - Added `nfs_version` to policies and rules from Purity//FA 6.4.10
+- purefa_info - Added `total_used` to multiple sections from Purity//FA 6.4.10
+- purefa_info - Prive array timezone from Purity//FA 6.4.10
+- purefa_info - Report NTP Symmetric key presence from Purity//FA 6.4.10
+- purefa_network - Add support for creating/modifying VIF and LACP_BOND interfaces
+- purefa_network - `enabled` option added. This must now be used instead of state=absent to disable a physical interface as state=absent can now fully delete a non-physical interface
+- purefa_ntp - Added support for NTP Symmetric Key from Purity//FA 6.4.10s
+- purefa_pgsnap - Add protection group snapshot rename functionality
+- purefa_policy - Added support for multiple NFS versions from Purity//FA 6.4.10
+- purefa_vg - Add rename parameter
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- purefa_pgsched - Change `snap_at` and `replicate_at` to be AM or PM hourly number rather than 24-hour time.
+- purefa_pgsnap - `now` and `remote` are now mutually exclusive.
+
+Bugfixes
+--------
+
+- purefa_ds - Fixes error when enabling directory services while a bind_user is set on the array and a bind_password is not.
+- purefa_ds - Fixes issue with creating a new ds configuration while setting force_bind_password as "false".
+- purefa_host - Fix incorrect calling of "module.params".
+- purefa_info - Added missing alerts subset name
+- purefa_info - Fixed attribute errors after EUC changes
+- purefa_info - Fixed issue with replica links in unknown state
+- purefa_info - Fixed parameter error when enabled and disabled timers are different values on purity 6.4.10+ arrays.
+- purefa_info - Fixed py39 specific bug with multiple DNS entries
+- purefa_network - Allow `gateway` to be set as `0.0.0.0` to remove an existing gateway address
+- purefa_network - Fixed IPv6 support issues
+- purefa_network - Fixed idempotency issue when gateway not modified
+- purefa_pgsched - Fixed bug with an unnecessary substitution
+- purefa_pgsnap - Enabled to eradicate destroyed snapshots.
+- purefa_snap - Fixed incorrect calling logic causing failure on remote snapshot creation
+- purefa_subnet - Fixed IPv4 gateway removal issue.
+- purefa_subnet - Fixed IPv6 support issues.
+
+New Modules
+-----------
+
+- purestorage.flasharray.purefa_file - Manage FlashArray File Copies
+
 v1.21.0
 =======
 

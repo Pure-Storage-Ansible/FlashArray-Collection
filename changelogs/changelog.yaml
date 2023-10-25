@@ -392,6 +392,78 @@ releases:
     - 436_snap_fix.yaml
     - 440_null_suffix.yaml
     release_date: '2023-09-06'
+  1.22.0:
+    changes:
+      breaking_changes:
+      - purefa_pgsched - Change `snap_at` and `replicate_at` to be AM or PM hourly
+        number rather than 24-hour time.
+      - purefa_pgsnap - `now` and `remote` are now mutually exclusive.
+      bugfixes:
+      - purefa_ds - Fixes error when enabling directory services while a bind_user
+        is set on the array and a bind_password is not.
+      - purefa_ds - Fixes issue with creating a new ds configuration while setting
+        force_bind_password as "false".
+      - purefa_host - Fix incorrect calling of "module.params".
+      - purefa_info - Added missing alerts subset name
+      - purefa_info - Fixed attribute errors after EUC changes
+      - purefa_info - Fixed issue with replica links in unknown state
+      - purefa_info - Fixed parameter error when enabled and disabled timers are different
+        values on purity 6.4.10+ arrays.
+      - purefa_info - Fixed py39 specific bug with multiple DNS entries
+      - purefa_network - Allow `gateway` to be set as `0.0.0.0` to remove an existing
+        gateway address
+      - purefa_network - Fixed IPv6 support issues
+      - purefa_network - Fixed idempotency issue when gateway not modified
+      - purefa_pgsched - Fixed bug with an unnecessary substitution
+      - purefa_pgsnap - Enabled to eradicate destroyed snapshots.
+      - purefa_snap - Fixed incorrect calling logic causing failure on remote snapshot
+        creation
+      - purefa_subnet - Fixed IPv4 gateway removal issue.
+      - purefa_subnet - Fixed IPv6 support issues.
+      minor_changes:
+      - purefa_eradication - Added support for disabled and enabled timers from Purity//FA
+        6.4.10
+      - purefa_info - Add array subscription data
+      - purefa_info - Added `nfs_version` to policies and rules from Purity//FA 6.4.10
+      - purefa_info - Added `total_used` to multiple sections from Purity//FA 6.4.10
+      - purefa_info - Prive array timezone from Purity//FA 6.4.10
+      - purefa_info - Report NTP Symmetric key presence from Purity//FA 6.4.10
+      - purefa_network - Add support for creating/modifying VIF and LACP_BOND interfaces
+      - purefa_network - `enabled` option added. This must now be used instead of state=absent
+        to disable a physical interface as state=absent can now fully delete a non-physical
+        interface
+      - purefa_ntp - Added support for NTP Symmetric Key from Purity//FA 6.4.10s
+      - purefa_pgsnap - Add protection group snapshot rename functionality
+      - purefa_policy - Added support for multiple NFS versions from Purity//FA 6.4.10
+      - purefa_vg - Add rename parameter
+    fragments:
+    - 444_euc_fix.yaml
+    - 445_py39.yaml
+    - 448_add_subs.yaml
+    - 450_no_gateway.yaml
+    - 452_throttle_fix.yaml
+    - 459_fix_eradication_timer_info.yaml
+    - 460_eradicaton.yaml
+    - 461_ntp_keys.yaml
+    - 462_info_update.yaml
+    - 463_nfs_version.yaml
+    - 464_fix_ds_add.yaml
+    - 468_missing_subset.yaml
+    - 469_fix_missing_bind_password.yaml
+    - 471_fix_ip_protocol.yaml
+    - 474_network_fixes.yaml
+    - 480_rename_vg.yaml
+    - 482_schedule.yaml
+    - 483_missing_replicate.yaml
+    - 484_fix_repl_sched.yaml
+    - 485_fix_host.yaml
+    - 487_pgrename.yaml
+    - 488_fix_pgsnap_eradication.yaml
+    modules:
+    - description: Manage FlashArray File Copies
+      name: purefa_file
+      namespace: ''
+    release_date: '2023-10-25'
   1.4.0:
     changes:
       bugfixes:
