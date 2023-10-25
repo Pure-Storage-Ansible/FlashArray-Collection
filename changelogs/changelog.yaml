@@ -378,7 +378,6 @@ releases:
         to an issue with Purity REST 1.x when remote snapshots are searched.
       - purefa_volume - Fixed bug with NULL suffix for multiple volume creation.
       minor_changes:
-      - purefa_info - Add `hosts_balance` subset
       - purefa_info - Add `port_connectivity` information for hosts
       - purefa_info - Add promotion status information for volumes
       - purefa_offload - Added a new profile parameter.
