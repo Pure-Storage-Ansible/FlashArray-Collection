@@ -383,13 +383,6 @@ def create_csr(module, array):
     changed = True
     current_attr = list(array.get_certificates(names=[module.params["name"]]).items)[0]
     try:
-        if module.params["name"] and module.params["name"] != getattr(
-            current_attr, "name", None
-        ):
-            current_attr.name = module.params["name"]
-    except AttributeError:
-        pass
-    try:
         if module.params["common_name"] and module.params["common_name"] != getattr(
             current_attr, "common_name", None
         ):
@@ -440,7 +433,7 @@ def create_csr(module, array):
         pass
     if not module.check_mode:
         certificate = flasharray.CertificateSigningRequestPost(
-            certificate={"name": getattr(current_attr, "name", "management")},
+            certificate={"name": module.params["name"]},
             common_name=getattr(current_attr, "common_name", None),
             country=getattr(current_attr, "country", None),
             email=getattr(current_attr, "email", None),
