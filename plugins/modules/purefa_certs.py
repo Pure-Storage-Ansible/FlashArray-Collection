@@ -425,7 +425,7 @@ def create_csr(module, array):
     try:
         if (
             module.params["province"]
-            and module.params["province"] != getattr(current_attr, "province", None)
+            and module.params["province"] != getattr(current_attr, "state", None)
         ):
             current_attr.state = module.params["province"]
     except AttributeError:
@@ -433,7 +433,7 @@ def create_csr(module, array):
     try:
         if (
             module.params["organization"]
-            and module.params["organization"] != getattr(current_attr, "orgnaization", None)
+            and module.params["organization"] != getattr(current_attr, "organization", None)
         ):
             current_attr.organization = module.params["organization"]
     except AttributeError:
@@ -441,7 +441,7 @@ def create_csr(module, array):
     try:
         if (
             module.params["org_unit"]
-            and module.params["org_unit"] != getattr(current_attr, "org_unit", None)
+            and module.params["org_unit"] != getattr(current_attr, "organizational_unit", None)
         ):
             current_attr.organizational_unit = module.params["org_unit"]
     except AttributeError:
