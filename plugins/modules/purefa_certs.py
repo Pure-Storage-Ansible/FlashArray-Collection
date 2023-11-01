@@ -384,8 +384,16 @@ def create_csr(module, array):
     current_attr = list(array.get_certificates(names=[module.params["name"]]).items)[0]
     try:
         if (
+            module.params["name"]
+            and module.params["name"] != getattr(current_attr, "name", None)
+        ):
+            current_attr.name = module.params["name"]
+    except AttributeError:
+        pass
+    try:
+        if (
             module.params["common_name"]
-            and module.params["common_name"] != current_attr.common_name
+            and module.params["common_name"] != getattr(current_attr, "common_name", None)
         ):
             current_attr.common_name = module.params["common_name"]
     except AttributeError:
@@ -393,20 +401,23 @@ def create_csr(module, array):
     try:
         if (
             module.params["country"]
-            and module.params["country"] != current_attr.country
+            and module.params["country"] != getattr(current_attr, "country", None)
         ):
             current_attr.country = module.params["country"]
     except AttributeError:
         pass
     try:
-        if module.params["email"] and module.params["email"] != current_attr.email:
+        if (
+            module.params["email"]
+            and module.params["email"] != getattr(current_attr, "email", None)
+        ):
             current_attr.email = module.params["email"]
     except AttributeError:
         pass
     try:
         if (
             module.params["locality"]
-            and module.params["locality"] != current_attr.locality
+            and module.params["locality"] != getattr(current_attr, "locality", None)
         ):
             current_attr.locality = module.params["locality"]
     except AttributeError:
@@ -414,7 +425,7 @@ def create_csr(module, array):
     try:
         if (
             module.params["province"]
-            and module.params["province"] != current_attr.state
+            and module.params["province"] != getattr(current_attr, "province", None)
         ):
             current_attr.state = module.params["province"]
     except AttributeError:
@@ -422,7 +433,7 @@ def create_csr(module, array):
     try:
         if (
             module.params["organization"]
-            and module.params["organization"] != current_attr.organization
+            and module.params["organization"] != getattr(current_attr, "orgnaization", None)
         ):
             current_attr.organization = module.params["organization"]
     except AttributeError:
@@ -430,14 +441,14 @@ def create_csr(module, array):
     try:
         if (
             module.params["org_unit"]
-            and module.params["org_unit"] != current_attr.organizational_unit
+            and module.params["org_unit"] != getattr(current_attr, "org_unit", None)
         ):
             current_attr.organizational_unit = module.params["org_unit"]
     except AttributeError:
         pass
     if not module.check_mode:
         certificate = flasharray.CertificateSigningRequestPost(
-            certificate={"name": "management"},
+            certificate={"name": getattr(current_attr, "name", "management")},
             common_name=getattr(current_attr, "common_name", None),
             country=getattr(current_attr, "country", None),
             email=getattr(current_attr, "email", None),
