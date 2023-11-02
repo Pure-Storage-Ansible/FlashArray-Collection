@@ -374,68 +374,65 @@ def make_pgroup(module, array):
                 module.fail_json(
                     msg="Creation of pgroup {0} failed.".format(module.params["name"])
                 )
+    if not module.check_mode:
+        try:
+            if module.params["target"]:
+                array.set_pgroup(
+                    module.params["name"],
+                    replicate_enabled=module.params["enabled"],
+                )
+            else:
+                array.set_pgroup(
+                    module.params["name"], snap_enabled=module.params["enabled"]
+                )
+        except Exception:
+            module.fail_json(
+                msg="Enabling pgroup {0} failed.".format(module.params["name"])
+            )
+        if module.params["volume"]:
             try:
-                if module.params["target"]:
-                    array.set_pgroup(
-                        module.params["name"],
-                        replicate_enabled=module.params["enabled"],
-                    )
-                else:
-                    array.set_pgroup(
-                        module.params["name"], snap_enabled=module.params["enabled"]
-                    )
+                array.set_pgroup(module.params["name"], vollist=module.params["volume"])
             except Exception:
                 module.fail_json(
-                    msg="Enabling pgroup {0} failed.".format(module.params["name"])
+                    msg="Adding volumes to pgroup {0} failed.".format(
+                        module.params["name"]
+                    )
                 )
-            if module.params["volume"]:
-                try:
-                    array.set_pgroup(
-                        module.params["name"], vollist=module.params["volume"]
+        if module.params["host"]:
+            try:
+                array.set_pgroup(module.params["name"], hostlist=module.params["host"])
+            except Exception:
+                module.fail_json(
+                    msg="Adding hosts to pgroup {0} failed.".format(
+                        module.params["name"]
                     )
-                except Exception:
-                    module.fail_json(
-                        msg="Adding volumes to pgroup {0} failed.".format(
-                            module.params["name"]
-                        )
+                )
+        if module.params["hostgroup"]:
+            try:
+                array.set_pgroup(
+                    module.params["name"], hgrouplist=module.params["hostgroup"]
+                )
+            except Exception:
+                module.fail_json(
+                    msg="Adding hostgroups to pgroup {0} failed.".format(
+                        module.params["name"]
                     )
-            if module.params["host"]:
-                try:
-                    array.set_pgroup(
-                        module.params["name"], hostlist=module.params["host"]
+                )
+        if module.params["safe_mode"]:
+            arrayv6 = get_array(module)
+            try:
+                arrayv6.patch_protection_groups(
+                    names=[module.params["name"]],
+                    protection_group=flasharray.ProtectionGroup(
+                        retention_lock="ratcheted"
+                    ),
+                )
+            except Exception:
+                module.fail_json(
+                    msg="Failed to set SafeMode on pgroup {0}".format(
+                        module.params["name"]
                     )
-                except Exception:
-                    module.fail_json(
-                        msg="Adding hosts to pgroup {0} failed.".format(
-                            module.params["name"]
-                        )
-                    )
-            if module.params["hostgroup"]:
-                try:
-                    array.set_pgroup(
-                        module.params["name"], hgrouplist=module.params["hostgroup"]
-                    )
-                except Exception:
-                    module.fail_json(
-                        msg="Adding hostgroups to pgroup {0} failed.".format(
-                            module.params["name"]
-                        )
-                    )
-            if module.params["safe_mode"]:
-                arrayv6 = get_array(module)
-                try:
-                    arrayv6.patch_protection_groups(
-                        names=[module.params["name"]],
-                        protection_group=flasharray.ProtectionGroup(
-                            retention_lock="ratcheted"
-                        ),
-                    )
-                except Exception:
-                    module.fail_json(
-                        msg="Failed to set SafeMode on pgroup {0}".format(
-                            module.params["name"]
-                        )
-                    )
+                )
     module.exit_json(changed=changed)
 
 
