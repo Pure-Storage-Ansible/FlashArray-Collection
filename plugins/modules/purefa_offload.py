@@ -40,6 +40,7 @@ options:
   protocol:
     description:
     - Define which protocol the offload engine uses
+    - NFS is not a supported protocl from Purity//FA 6.6.0 and higher
     default: nfs
     choices: [ nfs, s3, azure, gcp ]
     type: str
@@ -176,6 +177,7 @@ GCP_API_VERSION = "2.3"
 MULTIOFFLOAD_API_VERSION = "2.11"
 MULTIOFFLOAD_LIMIT = 5
 PROFILE_API_VERSION = "2.25"
+NO_SNAP2NFS_VERSION = "2.27"
 
 
 def get_target(module, array):
@@ -448,6 +450,10 @@ def main():
     array = get_system(module)
     api_version = array._list_available_rest_versions()
 
+    if NO_SNAP2NFS_VERSION in api_version and module.params["protocol"] == "nfs":
+        module.fail_json(
+            msg="NFS offload target is not supported from Purity//FA 6.6.0 and higher"
+        )
     if (
         (
             module.params["protocol"].lower() == "azure"
