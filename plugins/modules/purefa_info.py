@@ -131,6 +131,7 @@ NEIGHBOR_API_VERSION = "2.22"
 POD_QUOTA_VERSION = "2.23"
 AUTODIR_API_VERSION = "2.24"
 SUBS_API_VERSION = "2.26"
+NSID_API_VERSION = "2.27"
 
 
 def generate_default_dict(module, array):
@@ -1307,14 +1308,29 @@ def generate_host_dict(module, array):
             "volumes": [],
             "performance_balance": [],
         }
-        host_connections = array.list_host_connections(hostname)
-        for connection in range(0, len(host_connections)):
-            connection_dict = {
-                "hostgroup": host_connections[connection]["hgroup"],
-                "volume": host_connections[connection]["vol"],
-                "lun": host_connections[connection]["lun"],
-            }
-            host_info[hostname]["volumes"].append(connection_dict)
+        if FC_REPL_API_VERSION in api_version:
+            host_connections = list(
+                arrayv6.get_connections(host_names=[hostname]).items
+            )
+            for connection in range(0, len(host_connections)):
+                connection_dict = {
+                    "hostgroup": getattr(
+                        host_connections[connection].host_group, "name", ""
+                    ),
+                    "volume": host_connections[connection].volume.name,
+                    "lun": host_connections[connection].lun,
+                    "nsid": getattr(host_connections[connection], "nsid", ""),
+                }
+                host_info[hostname]["volumes"].append(connection_dict)
+        else:
+            host_connections = array.list_host_connections(hostname)
+            for connection in range(0, len(host_connections)):
+                connection_dict = {
+                    "hostgroup": host_connections[connection]["hgroup"],
+                    "volume": host_connections[connection]["vol"],
+                    "lun": host_connections[connection]["lun"],
+                }
+                host_info[hostname]["volumes"].append(connection_dict)
         if host_info[hostname]["iqn"]:
             chap_data = array.get_host(hostname, chap=True)
             host_info[hostname]["target_user"] = chap_data["target_user"]
