@@ -20,15 +20,11 @@ Minor Changes
 - purefa_network - Add support for creating/modifying VIF and LACP_BOND interfaces
 - purefa_network - `enabled` option added. This must now be used instead of state=absent to disable a physical interface as state=absent can now fully delete a non-physical interface
 - purefa_ntp - Added support for NTP Symmetric Key from Purity//FA 6.4.10s
+- purefa_pgsched - Change `snap_at` and `replicate_at` to be AM or PM hourly number rather than 24-hour time.
 - purefa_pgsnap - Add protection group snapshot rename functionality
 - purefa_policy - Added support for multiple NFS versions from Purity//FA 6.4.10
 - purefa_vg - Add rename parameter
-
-Breaking Changes / Porting Guide
---------------------------------
-
 - purefa_pgsched - Change `snap_at` and `replicate_at` to be AM or PM hourly number rather than 24-hour time.
-- purefa_pgsnap - `now` and `remote` are now mutually exclusive.
 
 Bugfixes
 --------
@@ -46,6 +42,7 @@ Bugfixes
 - purefa_network - Fixed idempotency issue when gateway not modified
 - purefa_pgsched - Fixed bug with an unnecessary substitution
 - purefa_pgsnap - Enabled to eradicate destroyed snapshots.
+- purefa_pgsnap - Ensure that `now` and `remote` are mutually exclusive.
 - purefa_snap - Fixed incorrect calling logic causing failure on remote snapshot creation
 - purefa_subnet - Fixed IPv4 gateway removal issue.
 - purefa_subnet - Fixed IPv6 support issues.

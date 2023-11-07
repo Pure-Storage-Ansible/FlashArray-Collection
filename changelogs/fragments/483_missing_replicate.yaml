@@ -1,2 +1,2 @@
-breaking_changes:
- - purefa_pgsnap - `now` and `remote` are now mutually exclusive.
+bugfixes:
+ - purefa_pgsnap - Ensure that `now` and `remote` are mutually exclusive.
