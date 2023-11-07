@@ -426,9 +426,9 @@ releases:
       - purefa_info - Prive array timezone from Purity//FA 6.4.10
       - purefa_info - Report NTP Symmetric key presence from Purity//FA 6.4.10
       - purefa_network - Add support for creating/modifying VIF and LACP_BOND interfaces
-      - purefa_network - `enabled` option added. This must now be used instead of state=absent
-        to disable a physical interface as state=absent can now fully delete a non-physical
-        interface
+      - purefa_network - `enabled` option added. This must now be used instead of
+        state=absent to disable a physical interface as state=absent can now fully
+        delete a non-physical interface
       - purefa_ntp - Added support for NTP Symmetric Key from Purity//FA 6.4.10s
       - purefa_pgsched - Change `snap_at` and `replicate_at` to be AM or PM hourly
       - purefa_pgsnap - Add protection group snapshot rename functionality
@@ -462,6 +462,24 @@ releases:
       name: purefa_file
       namespace: ''
     release_date: '2023-10-25'
+  1.23.0:
+    changes:
+      bugfixes:
+      - purefa_cert - Fixed issue where parts of the subject where not included in
+        the CSR if they did not exist in the currently used cert.
+      - purefa_pg - Allows a protection group to be correctly created when `target`
+        is specified as well as other objects, such as `volumes` or `hosts`
+      minor_changes:
+      - purefa_info - Add NSID value for NVMe namespace in `hosts` response
+      - purefa_info - Subset `pgroups` now also provides a new dict called `deleted_pgroups`
+      - purefa_offload - Remove `nfs` as an option when Purity//FA 6.6.0 or higher
+        is detected
+    fragments:
+    - 495_add_del_pgroup_info.yaml
+    - 496_fix_cert_signing.yaml
+    - 498_fix_pg_creation.yaml
+    - 499_rest_227.yaml
+    release_date: '2023-11-07'
   1.4.0:
     changes:
       bugfixes:

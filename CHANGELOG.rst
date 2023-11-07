@@ -5,6 +5,22 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.23.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_info - Add NSID value for NVMe namespace in `hosts` response
+- purefa_info - Subset `pgroups` now also provides a new dict called `deleted_pgroups`
+- purefa_offload - Remove `nfs` as an option when Purity//FA 6.6.0 or higher is detected
+
+Bugfixes
+--------
+
+- purefa_cert - Fixed issue where parts of the subject where not included in the CSR if they did not exist in the currently used cert.
+- purefa_pg - Allows a protection group to be correctly created when `target` is specified as well as other objects, such as `volumes` or `hosts`
+
 v1.22.0
 =======
 
@@ -20,11 +36,10 @@ Minor Changes
 - purefa_network - Add support for creating/modifying VIF and LACP_BOND interfaces
 - purefa_network - `enabled` option added. This must now be used instead of state=absent to disable a physical interface as state=absent can now fully delete a non-physical interface
 - purefa_ntp - Added support for NTP Symmetric Key from Purity//FA 6.4.10s
-- purefa_pgsched - Change `snap_at` and `replicate_at` to be AM or PM hourly number rather than 24-hour time.
+- purefa_pgsched - Change `snap_at` and `replicate_at` to be AM or PM hourly
 - purefa_pgsnap - Add protection group snapshot rename functionality
 - purefa_policy - Added support for multiple NFS versions from Purity//FA 6.4.10
 - purefa_vg - Add rename parameter
-- purefa_pgsched - Change `snap_at` and `replicate_at` to be AM or PM hourly number rather than 24-hour time.
 
 Bugfixes
 --------
