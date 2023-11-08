@@ -1318,7 +1318,8 @@ def generate_host_dict(module, array):
                         host_connections[connection].host_group, "name", ""
                     ),
                     "volume": host_connections[connection].volume.name,
-                    "lun": host_connections[connection].lun,
+                    "lun": getattr(
+                        host_connections[connection], "lun", ""),
                     "nsid": getattr(host_connections[connection], "nsid", ""),
                 }
                 host_info[hostname]["volumes"].append(connection_dict)
