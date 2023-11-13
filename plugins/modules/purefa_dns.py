@@ -207,7 +207,7 @@ def delete_multi_dns(module, array):
     """Delete a DNS configuration"""
     changed = True
     if module.params["name"] == "management":
-        res = array.update_dns(
+        res = array.patch_dns(
             names=[module.params["name"]],
             dns=flasharray.DnsPatch(
                 domain=module.params["domain"],
