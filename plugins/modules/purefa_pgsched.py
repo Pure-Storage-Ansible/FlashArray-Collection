@@ -261,7 +261,7 @@ def update_schedule(module, array, snap_time, repl_time):
             else:
                 snap_frequency = module.params["snap_frequency"]
 
-        if not module.params["enabled"]:
+        if module.params["enabled"] is None:
             snap_enabled = current_snap["snap_enabled"]
         else:
             snap_enabled = module.params["enabled"]
@@ -356,7 +356,7 @@ def update_schedule(module, array, snap_time, repl_time):
                 else:
                     replicate_frequency = module.params["replicate_frequency"]
 
-        if not module.params["enabled"]:
+        if module.params["enabled"] is None:
             replicate_enabled = current_repl["replicate_enabled"]
         else:
             replicate_enabled = module.params["enabled"]
