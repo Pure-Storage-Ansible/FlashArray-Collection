@@ -209,10 +209,7 @@ def delete_multi_dns(module, array):
     if module.params["name"] == "management":
         res = array.patch_dns(
             names=[module.params["name"]],
-            dns=flasharray.DnsPatch(
-                domain=module.params["domain"],
-                nameservers=module.params["nameservers"],
-            ),
+            dns=flasharray.DnsPatch(domain="", nameservers=[]),
         )
         if res.status_code != 200:
             module.fail_json(
