@@ -139,6 +139,23 @@ options:
       I(shadowAccount) for OpenLDAP servers dependent on the group type
       of the server, or person for all other directory servers.
     - Supported from Purity 6.0 or higher.
+  check_peer:
+    type: bool
+    description:
+    - Whether or not server authenticity is enforced when a certificate
+      is provided
+    default: false
+    version_added: 1.24.0
+  certificate:
+    type: str
+    description:
+    - The certificate of the Certificate Authority (CA) that signed the
+      certificates of the directory servers, which is used to validate the
+      authenticity of the configured servers
+    - A valid signed certicate in PEM format (Base64 encoded)
+    - Includes the "-----BEGIN CERTIFICATE-----" and "-----END CERTIFICATE-----" lines
+    - Does not exceed 3000 characters in length
+    version_added: 1.24.0
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -207,6 +224,15 @@ EXAMPLES = r"""
     base_dn: "DC=lab,DC=purestorage,DC=com"
     bind_user: Administrator
     bind_password: password
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Upload CA certificate for management DNS and check peer
+  purestorage.flasharray.purefa_ds:
+    enable: true
+    dstype: management
+    certificate: "{{lookup('file', 'ca_cert.pem') }}"
+    check_peer: True
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
@@ -422,14 +448,10 @@ def update_ds_v6(module, array):
         ds_change = True
     else:
         uris = current_ds.uris
-    try:
-        base_dn = current_ds.base_dn
-    except AttributeError:
-        base_dn = ""
-    try:
-        bind_user = current_ds.bind_user
-    except AttributeError:
-        bind_user = ""
+
+    base_dn = getattr(current_ds, "base_dn", "")
+    bind_user = getattr(current_ds, "bind_user", "")
+    cert = getattr(current_ds, "ca_certificate", None)
     if module.params["base_dn"] != "" and module.params["base_dn"] != base_dn:
         base_dn = module.params["base_dn"]
         ds_change = True
@@ -451,14 +473,20 @@ def update_ds_v6(module, array):
     if password_required and not module.params["bind_password"]:
         module.fail_json(msg="'bind_password' must be provided for this task")
     if module.params["dstype"] == "management":
-        try:
-            user_login = current_ds.management.user_login_attribute
-        except AttributeError:
-            user_login = ""
-        try:
-            user_object = current_ds.management.user_object_class
-        except AttributeError:
-            user_object = ""
+        if module.params["certificate"]:
+            if cert is None:
+                cert = module.params["certificate"]
+                ds_change = True
+            elif module.params["certificate"] != cert:
+                cert = module.params["certificate"]
+                ds_change = True
+        if module.params["check_peer"] and not cert:
+            module.warn(
+                msg="Cannot check_peer without a CA certificate. Disabling check_peer"
+            )
+            module.params["check_peer"] = False
+        user_login = getattr(current_ds.management, "user_login_attribute", "")
+        user_object = getattr(current_ds.management, "user_object_class", "")
         if (
             module.params["user_object"] is not None
             and user_object != module.params["user_object"]
@@ -483,6 +511,8 @@ def update_ds_v6(module, array):
                 enabled=module.params["enable"],
                 services=module.params["dstype"],
                 management=management,
+                check_peer=module.params["check_peer"],
+                ca_certificate=cert,
             )
         else:
             directory_service = flasharray.DirectoryService(
@@ -492,6 +522,8 @@ def update_ds_v6(module, array):
                 enabled=module.params["enable"],
                 services=module.params["dstype"],
                 management=management,
+                check_peer=module.params["check_peer"],
+                ca_certificate=cert,
             )
     else:
         if password_required:
@@ -502,6 +534,8 @@ def update_ds_v6(module, array):
                 bind_password=bind_password,
                 enabled=module.params["enable"],
                 services=module.params["dstype"],
+                check_peer=module.params["check_peer"],
+                ca_certificate=cert,
             )
         else:
             directory_service = flasharray.DirectoryService(
@@ -510,6 +544,8 @@ def update_ds_v6(module, array):
                 bind_user=bind_user,
                 enabled=module.params["enable"],
                 services=module.params["dstype"],
+                check_peer=module.params["check_peer"],
+                ca_certificate=cert,
             )
     if ds_change:
         changed = True
@@ -546,6 +582,8 @@ def main():
             dstype=dict(
                 type="str", default="management", choices=["management", "data"]
             ),
+            check_peer=dict(type="bool", default=False),
+            certificate=dict(type="str"),
         )
     )
 
