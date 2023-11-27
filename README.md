@@ -54,6 +54,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_export - manage FlashArrray managed file system exports
 - purefa_file - copy file between managed directories
 - purefa_fs - manage FlashArray managed file systems
+- purefa_hardware - manage component identification LEDs
 - purefa_hg - manage hostgroups on the FlashArray
 - purefa_host - manage hosts on the FlashArray
 - purefa_info - get information regarding the configuration of the Flasharray
