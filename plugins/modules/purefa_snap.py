@@ -32,7 +32,6 @@ options:
   suffix:
     description:
     - Suffix of snapshot name.
-    - Not used during creation if I(offload) is provided.
     type: str
   target:
     description:
@@ -51,7 +50,6 @@ options:
     - Target can be either another FlashArray or an Offload Target
     - This is only applicable for creation, deletion and eradication of snapshots
     - I(state) of I(copy) is not supported.
-    - I(suffix) is not supported for offload snapshots.
     type: str
   state:
     description:
@@ -180,6 +178,7 @@ from datetime import datetime
 
 GET_SEND_API = "2.4"
 THROTTLE_API = "2.25"
+SNAPSHOT_SUFFIX_API = "2.28"
 
 
 def _check_offload(module, array):
@@ -284,11 +283,16 @@ def create_snapshot(module, array, arrayv6):
     changed = False
     api_version = array._list_available_rest_versions()
     if module.params["offload"]:
-        module.params["suffix"] = None
+        if SNAPSHOT_SUFFIX_API not in api_version:
+            module.params["suffix"] = None
         changed = True
         if not module.check_mode:
             res = arrayv6.post_remote_volume_snapshots(
-                source_names=[module.params["name"]], on=module.params["offload"]
+                source_names=[module.params["name"]],
+                on=module.params["offload"],
+                remote_volume_snapshot=flasharray.RemoteVolumeSnapshotPost(
+                    suffix=module.params["suffix"]
+                ),
             )
             if res.status_code != 200:
                 module.fail_json(
@@ -297,8 +301,9 @@ def create_snapshot(module, array, arrayv6):
                     )
                 )
             else:
-                remote_snap = list(res.items)[0].name
-                module.params["suffix"] = remote_snap.split(".")[1]
+                if SNAPSHOT_SUFFIX_API not in api_version:
+                    remote_snap = list(res.items)[0].name
+                    module.params["suffix"] = remote_snap.split(".")[1]
     else:
         changed = True
         if not module.check_mode:
