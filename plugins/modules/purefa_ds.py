@@ -443,7 +443,7 @@ def update_ds_v6(module, array):
     current_ds = dirserv
     if module.params["uri"] and current_ds.uris is None:
         password_required = True
-    if current_ds.uris != module.params["uri"]:
+    if module.params["uri"] and current_ds.uris != module.params["uri"]:
         uris = module.params["uri"]
         ds_change = True
     else:
@@ -452,14 +452,14 @@ def update_ds_v6(module, array):
     base_dn = getattr(current_ds, "base_dn", "")
     bind_user = getattr(current_ds, "bind_user", "")
     cert = getattr(current_ds, "ca_certificate", None)
-    if module.params["base_dn"] != "" and module.params["base_dn"] != base_dn:
+    if module.params["base_dn"] and module.params["base_dn"] != base_dn:
         base_dn = module.params["base_dn"]
         ds_change = True
     if module.params["enable"] != current_ds.enabled:
         ds_change = True
         if getattr(current_ds, "bind_password", None) is None:
             password_required = True
-    if module.params["bind_user"] != "":
+    if module.params["bind_user"] is not None:
         if module.params["bind_user"] != bind_user:
             bind_user = module.params["bind_user"]
             password_required = True
@@ -473,18 +473,22 @@ def update_ds_v6(module, array):
     if password_required and not module.params["bind_password"]:
         module.fail_json(msg="'bind_password' must be provided for this task")
     if module.params["dstype"] == "management":
-        if module.params["certificate"]:
-            if cert is None:
+        if module.params["certificate"] is not None:
+            if cert is None and module.params["certificate"] != "":
                 cert = module.params["certificate"]
                 ds_change = True
+            elif cert is None and module.params["certificate"] == "":
+                pass
             elif module.params["certificate"] != cert:
                 cert = module.params["certificate"]
                 ds_change = True
         if module.params["check_peer"] and not cert:
             module.warn(
-                msg="Cannot check_peer without a CA certificate. Disabling check_peer"
+                "Cannot check_peer without a CA certificate. Disabling check_peer"
             )
             module.params["check_peer"] = False
+        if module.params["check_peer"] != current_ds.check_peer:
+            ds_change = True
         user_login = getattr(current_ds.management, "user_login_attribute", "")
         user_object = getattr(current_ds.management, "user_object_class", "")
         if (
@@ -616,8 +620,9 @@ def main():
                 filter="name='" + module.params["dstype"] + "'"
             ).items
         )[0]
-        if state == "absent" and dirserv.uris != []:
-            delete_ds_v6(module, arrayv6)
+        if state == "absent":
+            if dirserv.uris != []:
+                delete_ds_v6(module, arrayv6)
         else:
             update_ds_v6(module, arrayv6)
     else:
