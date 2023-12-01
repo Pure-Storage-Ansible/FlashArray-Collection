@@ -321,14 +321,14 @@ def create_pgsnapshot(module, array):
                         source_names=[module.params["name"]],
                         apply_retention=module.params["apply_retention"],
                         replicate_now=True,
-                        throttle=module.params["throttle"],
+                        allow_throttle=module.params["throttle"],
                         protection_group_snapshot=suffix,
                     )
                 else:
                     res = arrayv6.post_protection_group_snapshots(
                         source_names=[module.params["name"]],
                         apply_retention=module.params["apply_retention"],
-                        throttle=module.params["throttle"],
+                        allow_throttle=module.params["throttle"],
                         protection_group_snapshot=suffix,
                         replicate=module.params["remote"],
                     )
@@ -336,7 +336,7 @@ def create_pgsnapshot(module, array):
                 res = arrayv6.post_protection_group_snapshots(
                     source_names=[module.params["name"]],
                     apply_retention=module.params["apply_retention"],
-                    throttle=module.params["throttle"],
+                    allow_throttle=module.params["throttle"],
                     protection_group_snapshot=suffix,
                 )
 
