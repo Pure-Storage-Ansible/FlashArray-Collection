@@ -5,6 +5,27 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.24.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_dns - Added facility to add a CA certifcate to management DNS and check peer.
+- purefa_snap - Add support for suffix on remote offload snapshots
+
+Bugfixes
+--------
+
+- purefa_dns - Fixed attribute error on deletion of management DNS
+- purefa_pgsched - Fixed issue with disabling schedules
+- purefa_pgsnap - Fixed incorrect parameter name
+
+New Modules
+-----------
+
+- purestorage.flasharray.purefa_hardware - Manage FlashArray Hardware Identification
+
 v1.23.0
 =======
 
