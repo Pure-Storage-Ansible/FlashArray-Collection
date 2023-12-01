@@ -116,6 +116,11 @@ plugins:
       name: purefa_fs
       namespace: ''
       version_added: 1.5.0
+    purefa_hardware:
+      description: Manage FlashArray Hardware Identification
+      name: purefa_hardware
+      namespace: ''
+      version_added: 1.24.0
     purefa_hg:
       description: Manage hostgroups on Pure Storage FlashArrays
       name: purefa_hg
@@ -312,4 +317,4 @@ plugins:
   strategy: {}
   test: {}
   vars: {}
-version: 1.23.0
+version: 1.24.0

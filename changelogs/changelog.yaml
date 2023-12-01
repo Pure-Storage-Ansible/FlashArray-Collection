@@ -480,6 +480,27 @@ releases:
     - 498_fix_pg_creation.yaml
     - 499_rest_227.yaml
     release_date: '2023-11-07'
+  1.24.0:
+    changes:
+      bugfixes:
+      - purefa_dns - Fixed attribute error on deletion of management DNS
+      - purefa_pgsched - Fixed issue with disabling schedules
+      - purefa_pgsnap - Fixed incorrect parameter name
+      minor_changes:
+      - purefa_dns - Added facility to add a CA certifcate to management DNS and check
+        peer.
+      - purefa_snap - Add support for suffix on remote offload snapshots
+    fragments:
+    - 505_dns_attribute.yaml
+    - 506_disable_pgsched.yaml
+    - 509_check_peer.yaml
+    - 513_remote_snapshot_suffix.yaml
+    - 516_fix_throttle.yaml
+    modules:
+    - description: Manage FlashArray Hardware Identification
+      name: purefa_hardware
+      namespace: ''
+    release_date: '2023-12-01'
   1.4.0:
     changes:
       bugfixes:
