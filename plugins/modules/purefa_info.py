@@ -132,6 +132,14 @@ POD_QUOTA_VERSION = "2.23"
 AUTODIR_API_VERSION = "2.24"
 SUBS_API_VERSION = "2.26"
 NSID_API_VERSION = "2.27"
+NFS_SECURITY_VERSION = "2.29"
+
+
+def _is_cbs(array):
+    """Is the selected array a Cloud Block Store"""
+    model = list(array.get_hardware(filter="type='controller'").items)[0].model
+    is_cbs = bool("CBS" in model)
+    return is_cbs
 
 
 def generate_default_dict(module, array):
@@ -880,6 +888,13 @@ def generate_capacity_dict(module, array):
             capacity_info["thin_provisioning"] = capacity.space["thin_provisioning"]
             capacity_info["total_reduction"] = capacity.space["total_reduction"]
             capacity_info["replication"] = capacity.space["replication"]
+        if NFS_SECURITY_VERSION in api_version and _is_cbs(arrayv6):
+            cloud = list(arrayv6.get_arrays_cloud_capacity().items)[0]
+            capacity_info["cloud_capacity"] = {
+                "current_capacity": cloud.current_capacity,
+                "requested_capacity": cloud.requested_capacity,
+                "status": cloud.status,
+            }
     elif CAP_REQUIRED_API_VERSION in api_version:
         volumes = array.list_volumes(pending=True)
         capacity_info["provisioned_space"] = sum(item["size"] for item in volumes)

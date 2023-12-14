@@ -39,6 +39,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_apiclient - manageFlashArray API clients
 - purefa_arrayname - manage the name of the FlashArray
 - purefa_banner - manage the CLI and GUI login banner of the FlashArray
+- purefa_cbsexpand - manage CBS FlashArray capacity expansion
 - purefa_certs - manage FlashArray SSL certificates
 - purefa_connect - manage FlashArrays connecting for replication purposes
 - purefa_console - manage Console Lock setting for the FlashArray
