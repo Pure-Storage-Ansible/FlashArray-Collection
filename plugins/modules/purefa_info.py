@@ -132,6 +132,7 @@ POD_QUOTA_VERSION = "2.23"
 AUTODIR_API_VERSION = "2.24"
 SUBS_API_VERSION = "2.26"
 NSID_API_VERSION = "2.27"
+NFS_SECURITY_VERSION = "2.29"
 
 
 def generate_default_dict(module, array):
@@ -556,6 +557,12 @@ def generate_policies_dict(array, quota_available, autodir_available, nfs_user_m
                 ):
                     policy_info[p_name]["nfs_version"] = getattr(
                         nfs_policy, "nfs_version", None
+                    )
+                if version.parse(NFS_SECURITY_VERSION) <= version.parse(
+                    array.get_rest_version()
+                ):
+                    policy_info[p_name]["security"] = getattr(
+                        nfs_policy, "security", None
                     )
             rules = list(
                 array.get_policies_nfs_client_rules(policy_names=[p_name]).items
