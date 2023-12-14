@@ -183,6 +183,15 @@ options:
     type: str
     default: "65534"
     version_added: 1.14.0
+  security:
+    description:
+    - The security flavors to use for accessing files on a mount point.
+    - If the server does not support the requested flavor, the mount operation fails.
+    - This operation updates all rules of the specified policy.
+    type: list
+    elements: str
+    choices: [ auth_sys, krb5, krb5i, krb5p ]
+    version_added: 1.25.0
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -361,6 +370,7 @@ USER_MAP_VERSION = "2.15"
 ALL_SQUASH_VERSION = "2.16"
 AUTODIR_VERSION = "2.24"
 NFS_VERSION = "2.26"
+SECURITY_VERSION = "2.29"
 
 
 def _human_to_bytes(size):
@@ -763,11 +773,27 @@ def create_policy(module, array, all_squash):
                     policy = flasharray.PolicyNfsPost(
                         user_mapping_enabled=module.params["user_mapping"],
                     )
-                else:
+                elif (
+                    version.parse(SECURITY_VERSION)
+                    > version.parse(array.get_rest_version())
+                    <= version.parse(NFS_VERSION)
+                ):
                     policy = flasharray.PolicyNfsPost(
                         user_mapping_enabled=module.params["user_mapping"],
                         nfs_version=module.params["nfs_version"],
                     )
+                else:
+                    if module.params["security"]:
+                        policy = flasharray.PolicyNfsPost(
+                            user_mapping_enabled=module.params["user_mapping"],
+                            nfs_version=module.params["nfs_version"],
+                            security=module.params["security"],
+                        )
+                    else:
+                        policy = flasharray.PolicyNfsPost(
+                            user_mapping_enabled=module.params["user_mapping"],
+                            nfs_version=module.params["nfs_version"],
+                        )
                 res = array.patch_policies_nfs(
                     names=[module.params["name"]], policy=policy
                 )
@@ -1098,7 +1124,11 @@ def update_policy(module, array, api_version, all_squash):
                                 access=module.params["nfs_access"],
                                 nfs_version=module.params["nfs_version"],
                             )
-                    else:
+                    elif (
+                        version.parse(SECURITY_VERSION)
+                        > version.parse(array.get_rest_version())
+                        <= version.parse(NFS_VERSION)
+                    ):
                         if all_squash:
                             rules = flasharray.PolicyrulenfsclientpostRules(
                                 permission=module.params["nfs_permission"],
@@ -1114,6 +1144,41 @@ def update_policy(module, array, api_version, all_squash):
                                 client=module.params["client"],
                                 access=module.params["nfs_access"],
                             )
+                    else:
+                        if module.params["security"]:
+                            if all_squash:
+                                rules = flasharray.PolicyrulenfsclientpostRules(
+                                    permission=module.params["nfs_permission"],
+                                    client=module.params["client"],
+                                    anongid=module.params["anongid"],
+                                    anonuid=module.params["anonuid"],
+                                    access=module.params["nfs_access"],
+                                    nfs_version=module.params["nfs_version"],
+                                    security=module.params["security"],
+                                )
+                            else:
+                                rules = flasharray.PolicyrulenfsclientpostRules(
+                                    permission=module.params["nfs_permission"],
+                                    client=module.params["client"],
+                                    access=module.params["nfs_access"],
+                                    security=module.params["security"],
+                                )
+                        else:
+                            if all_squash:
+                                rules = flasharray.PolicyrulenfsclientpostRules(
+                                    permission=module.params["nfs_permission"],
+                                    client=module.params["client"],
+                                    anongid=module.params["anongid"],
+                                    anonuid=module.params["anonuid"],
+                                    access=module.params["nfs_access"],
+                                    nfs_version=module.params["nfs_version"],
+                                )
+                            else:
+                                rules = flasharray.PolicyrulenfsclientpostRules(
+                                    permission=module.params["nfs_permission"],
+                                    client=module.params["client"],
+                                    access=module.params["nfs_access"],
+                                )
                     rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
                     changed_rule = True
                     if not module.check_mode:
@@ -1723,6 +1788,11 @@ def main():
                 elements="str",
                 choices=["nfsv3", "nfsv4"],
                 default=["nfsv3"],
+            ),
+            security=dict(
+                type="list",
+                elements="str",
+                choices=["auth_sys", "krb5", "krb5i", "krb5p"],
             ),
         )
     )
