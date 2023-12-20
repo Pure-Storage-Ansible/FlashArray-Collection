@@ -5,6 +5,19 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.25.0
+=======
+
+Minor Changes
+-------------
+
+- all - ``distro`` package added as a pre-requisite
+- multiple - Remove packaging pre-requisite.
+- multiple - Where only REST 2.x endpoints are used, convert to REST 2.x methodology.
+- purefa_info - Expose NFS security flavor for policies
+- purefa_info - Expose cloud capacity details if array is a Cloud Block Store.
+- purefa_policy - Added NFS security flavors for accessing files in the mount point.
+
 v1.24.0
 =======
 
