@@ -94,14 +94,19 @@ try:
 except ImportError:
     HAS_PYPURECLIENT = False
 
-import platform
+HAS_DISTRO = True
+try:
+    import distro
+except ImportError:
+    HAS_DISTRO = False
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     get_system,
     purefa_argument_spec,
 )
-
+import platform
 
 P53_API_VERSION = "1.17"
 FC_REPL_VERSION = "2.4"
@@ -152,12 +157,20 @@ def create_connection(module, array):
     """Create connection between arrays"""
     changed = True
     remote_array = module.params["target_url"]
-    user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
-        "base": "Ansible",
-        "class": __name__,
-        "version": 1.2,
-        "platform": platform.platform(),
-    }
+    if HAS_DISTRO:
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": "Ansible",
+            "class": __name__,
+            "version": 1.5,
+            "platform": distro.name(pretty=True),
+        }
+    else:
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": "Ansible",
+            "class": __name__,
+            "version": 1.5,
+            "platform": platform.platform(),
+        }
     try:
         remote_system = FlashArray(
             module.params["target_url"],
