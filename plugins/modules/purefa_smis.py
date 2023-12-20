@@ -65,9 +65,11 @@ except ImportError:
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
     get_array,
     purefa_argument_spec,
+)
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
 )
 
 MIN_REQUIRED_API_VERSION = "2.2"
@@ -115,15 +117,14 @@ def main():
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
+    array = get_array(module)
+    api_version = array.get_rest_version()
 
-    if MIN_REQUIRED_API_VERSION not in api_version:
+    if LooseVersion(MIN_REQUIRED_API_VERSION) > LooseVersion(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
         )
-    array = get_array(module)
 
     update_smis(module, array)
 

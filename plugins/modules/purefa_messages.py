@@ -68,9 +68,11 @@ import time
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
     get_array,
     purefa_argument_spec,
+)
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
 )
 
 MIN_REQUIRED_API_VERSION = "2.2"
@@ -112,14 +114,13 @@ def main():
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
     time_now = int(time.time() * 1000)
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
-    if MIN_REQUIRED_API_VERSION not in api_version:
+    array = get_array(module)
+    api_version = array.get_rest_version()
+    if LooseVersion(MIN_REQUIRED_API_VERSION) > LooseVersion(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
         )
-    array_v6 = get_array(module)
     if module.params["history"][-1].lower() not in ALLOWED_PERIODS:
         module.fail_json(msg="historical window value is not an allowsd time period")
     since_time = str(time_now - _create_time_window(module.params["history"].lower()))
@@ -133,7 +134,7 @@ def main():
     state = " and state='" + module.params["state"] + "'"
     filter_string = "notified>" + since_time + state + flagged + severity
     try:
-        res = array_v6.get_alerts(filter=filter_string)
+        res = array.get_alerts(filter=filter_string)
         alerts = list(res.items)
     except Exception:
         module.fail_json(

@@ -66,9 +66,11 @@ except ImportError:
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
     get_array,
     purefa_argument_spec,
+)
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
 )
 
 SSO_API_VERSION = "2.2"
@@ -88,11 +90,10 @@ def main():
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
     state = module.params["state"]
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
+    array = get_array(module)
+    api_version = array.get_rest_version()
     changed = False
-    if SSO_API_VERSION in api_version:
-        array = get_array(module)
+    if LooseVersion(SSO_API_VERSION) <= LooseVersion(api_version):
         current_sso = list(array.get_admins_settings().items)[0].single_sign_on_enabled
         if (state == "present" and not current_sso) or (
             state == "absent" and current_sso

@@ -42,5 +42,4 @@ requirements:
   - netaddr
   - requests
   - pycountry
-  - packaging
 """

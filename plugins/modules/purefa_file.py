@@ -93,16 +93,13 @@ try:
 except ImportError:
     HAS_PURESTORAGE = False
 
-HAS_PACKAGING = True
-try:
-    from packaging import version
-except ImportError:
-    HAS_PACKAGING = False
-
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
+)
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
 )
 
 MIN_REQUIRED_API_VERSION = "2.26"
@@ -146,10 +143,7 @@ def main():
     array = get_array(module)
     api_version = array.get_rest_version()
 
-    if not HAS_PACKAGING:
-        module.fail_json(msg="packaging sdk is required for this module")
-
-    if version.parse(MIN_REQUIRED_API_VERSION) > version.parse(api_version):
+    if LooseVersion(MIN_REQUIRED_API_VERSION) > LooseVersion(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)

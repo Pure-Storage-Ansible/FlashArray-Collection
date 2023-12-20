@@ -78,9 +78,11 @@ except ImportError:
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
     get_array,
     purefa_argument_spec,
+)
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
 )
 
 SEC_PER_DAY = 86400000
@@ -108,12 +110,12 @@ def main():
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
+    array = get_array(module)
+    api_version = array.get_rest_version()
     changed = False
     current_disabled = None
     current_enabled = None
-    if ERADICATION_API_VERSION in api_version:
+    if LooseVersion(ERADICATION_API_VERSION) <= LooseVersion(api_version):
         array = get_array(module)
         base_eradication_timer = getattr(
             list(array.get_arrays().items)[0].eradication_config,
@@ -122,7 +124,10 @@ def main():
         )
         if base_eradication_timer:
             current_eradication_timer = base_eradication_timer / SEC_PER_DAY
-        if DELAY_API_VERSION in api_version and not base_eradication_timer:
+        if (
+            LooseVersion(DELAY_API_VERSION) <= LooseVersion(api_version)
+            and not base_eradication_timer
+        ):
             current_disabled = (
                 list(array.get_arrays().items)[0].eradication_config.disabled_delay
                 / SEC_PER_DAY
