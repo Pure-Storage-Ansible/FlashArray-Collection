@@ -92,9 +92,15 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from os import environ
 import platform
 
-VERSION = 1.0
+VERSION = 1.5
 USER_AGENT_BASE = "Ansible_token"
 TIMEOUT_API_VERSION = "2.2"
+
+HAS_DISTRO = True
+try:
+    import distro
+except ImportError:
+    HAS_DISTRO = False
 
 HAS_PURESTORAGE = True
 try:
@@ -121,12 +127,20 @@ def _convert_time_to_millisecs(timeout):
 
 def get_session(module):
     """Return System Object or Fail"""
-    user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
-        "base": USER_AGENT_BASE,
-        "class": __name__,
-        "version": VERSION,
-        "platform": platform.platform(),
-    }
+    if HAS_DISTRO:
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": USER_AGENT_BASE,
+            "class": __name__,
+            "version": VERSION,
+            "platform": distro.name(pretty=True),
+        }
+    else:
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": USER_AGENT_BASE,
+            "class": __name__,
+            "version": VERSION,
+            "platform": platform.platform(),
+        }
 
     array_name = module.params["fa_url"]
     username = module.params["username"]

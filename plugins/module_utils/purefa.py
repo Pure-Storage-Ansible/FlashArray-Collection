@@ -32,6 +32,12 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
+HAS_DISTRO = True
+try:
+    import distro
+except ImportError:
+    HAS_DISTRO = False
+
 HAS_PURESTORAGE = True
 try:
     from purestorage import purestorage
@@ -47,18 +53,26 @@ except ImportError:
 from os import environ
 import platform
 
-VERSION = 1.4
+VERSION = 1.5
 USER_AGENT_BASE = "Ansible"
 
 
 def get_system(module):
     """Return System Object or Fail"""
-    user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
-        "base": USER_AGENT_BASE,
-        "class": __name__,
-        "version": VERSION,
-        "platform": platform.platform(),
-    }
+    if HAS_DISTRO:
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": USER_AGENT_BASE,
+            "class": __name__,
+            "version": VERSION,
+            "platform": distro.name(pretty=True),
+        }
+    else:
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": USER_AGENT_BASE,
+            "class": __name__,
+            "version": VERSION,
+            "platform": platform.platform(),
+        }
     array_name = module.params["fa_url"]
     api = module.params["api_token"]
     if HAS_PURESTORAGE:
@@ -91,12 +105,20 @@ def get_system(module):
 
 def get_array(module):
     """Return System Object or Fail"""
-    user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
-        "base": USER_AGENT_BASE,
-        "class": __name__,
-        "version": VERSION,
-        "platform": platform.platform(),
-    }
+    if HAS_DISTRO:
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": USER_AGENT_BASE,
+            "class": __name__,
+            "version": VERSION,
+            "platform": distro.name(pretty=True),
+        }
+    else:
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": USER_AGENT_BASE,
+            "class": __name__,
+            "version": VERSION,
+            "platform": platform.platform(),
+        }
     array_name = module.params["fa_url"]
     api = module.params["api_token"]
     if HAS_PYPURECLIENT:
