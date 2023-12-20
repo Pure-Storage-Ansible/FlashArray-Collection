@@ -501,6 +501,22 @@ releases:
       name: purefa_hardware
       namespace: ''
     release_date: '2023-12-01'
+  1.25.0:
+    changes:
+      minor_changes:
+      - all - ``distro`` package added as a pre-requisite
+      - multiple - Remove packaging pre-requisite.
+      - multiple - Where only REST 2.x endpoints are used, convert to REST 2.x methodology.
+      - purefa_info - Expose NFS security flavor for policies
+      - purefa_info - Expose cloud capacity details if array is a Cloud Block Store.
+      - purefa_policy - Added NFS security flavors for accessing files in the mount
+        point.
+    fragments:
+    - 441_v2_version.yaml
+    - 518_nfs_security.yaml
+    - 519_add_cloud_capacity.yaml
+    - 520_add_distro.yaml
+    release_date: '2023-12-20'
   1.4.0:
     changes:
       bugfixes:
