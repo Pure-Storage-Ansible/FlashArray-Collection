@@ -87,6 +87,12 @@ options:
     type: bool
     default: true
     version_added: 1.14.0
+  access_based_enumeration:
+    description:
+    - Defines if access based enumeration for SMB is enabled
+    type: bool
+    default: false
+    version_added: 1.25.1
   snap_at:
     description:
     - Specifies the number of hours since midnight at which to take a snapshot
@@ -766,33 +772,11 @@ def create_policy(module, array, all_squash):
             )
 
             if created.status_code == 200:
-                if LooseVersion(NFS_VERSION) > LooseVersion(array.get_rest_version()):
-                    policy = flasharray.PolicyNfsPost(
-                        user_mapping_enabled=module.params["user_mapping"],
-                    )
-                elif (
-                    LooseVersion(SECURITY_VERSION)
-                    > LooseVersion(array.get_rest_version())
-                    <= LooseVersion(NFS_VERSION)
-                ):
-                    policy = flasharray.PolicyNfsPost(
-                        user_mapping_enabled=module.params["user_mapping"],
-                        nfs_version=module.params["nfs_version"],
-                    )
-                else:
-                    if module.params["security"]:
-                        policy = flasharray.PolicyNfsPost(
-                            user_mapping_enabled=module.params["user_mapping"],
-                            nfs_version=module.params["nfs_version"],
-                            security=module.params["security"],
-                        )
-                    else:
-                        policy = flasharray.PolicyNfsPost(
-                            user_mapping_enabled=module.params["user_mapping"],
-                            nfs_version=module.params["nfs_version"],
-                        )
                 res = array.patch_policies_nfs(
-                    names=[module.params["name"]], policy=policy
+                        names=[module.params["name"]],
+                        policy=flasharray.PolicyNfsPatch(
+                                  user_mapping_enabled=module.params["user_mapping"]
+                                  )
                 )
                 if res.status_code != 200:
                     module.fail_json(
@@ -808,12 +792,16 @@ def create_policy(module, array, all_squash):
                             anonuid=module.params["anonuid"],
                             client=module.params["client"],
                             permission=module.params["nfs_permission"],
+                            nfs_version=module.params["nfs_version"],
+                            security=module.params["security"],
                         )
                     else:
                         rules = flasharray.PolicyrulenfsclientpostRules(
                             access=module.params["nfs_access"],
                             client=module.params["client"],
                             permission=module.params["nfs_permission"],
+                            nfs_version=module.params["nfs_version"],
+                            security=module.params["security"],
                         )
                     rule = flasharray.PolicyRuleNfsClientPost(rules=[rules])
                     rule_created = array.post_policies_nfs_client_rules(
@@ -838,7 +826,18 @@ def create_policy(module, array, all_squash):
                 policy=flasharray.PolicyPost(enabled=module.params["enabled"]),
             )
             if created.status_code == 200:
-                changed = True
+                res = array.patch_policies_smb(
+                        names=[module.params["name"]],
+                        policy=flasharray.PolicySmbPatch(
+                                  access_based_enumeration_enabled=module.params["access_based_enumeration"]
+                                  )
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to set SMB policy {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
                 if module.params["client"]:
                     rules = flasharray.PolicyrulesmbclientpostRules(
                         anonymous_access_allowed=module.params["smb_anon_allowed"],
@@ -855,6 +854,7 @@ def create_policy(module, array, all_squash):
                                 module.params["name"], rule_created.errors[0].message
                             )
                         )
+                changed = True
             else:
                 module.fail_json(
                     msg="Failed to create SMB policy {0}. Error: {1}".format(
@@ -1041,7 +1041,7 @@ def update_policy(module, array, api_version, all_squash):
         changed_dir
     ) = (
         changed_rule
-    ) = changed_enable = changed_quota = changed_member = changed_user_map = False
+    ) = changed_enable = changed_quota = changed_member = changed_user_map = changed_access_based_enumeration = False
     if module.params["policy"] == "nfs":
         try:
             current_enabled = list(
@@ -1058,7 +1058,7 @@ def update_policy(module, array, api_version, all_squash):
                 )
             )
         if (
-            module.params["user_mapping"]
+            "user_mapping" in module.params
             and current_user_map != module.params["user_mapping"]
         ):
             changed_user_map = True
@@ -1122,7 +1122,7 @@ def update_policy(module, array, api_version, all_squash):
                     elif (
                         LooseVersion(SECURITY_VERSION)
                         > LooseVersion(array.get_rest_version())
-                        <= LooseVersion(NFS_VERSION)
+                        >= LooseVersion(NFS_VERSION)
                     ):
                         if all_squash:
                             rules = flasharray.PolicyrulenfsclientpostRules(
@@ -1219,12 +1219,33 @@ def update_policy(module, array, api_version, all_squash):
             current_enabled = list(
                 array.get_policies_smb(names=[module.params["name"]]).items
             )[0].enabled
+            current_access_based_enumeration = list(
+                array.get_policies_smb(names=[module.params["name"]]).items
+            )[0].access_based_enumeration_enabled
         except Exception:
             module.fail_json(
                 msg="Incorrect policy type specified for existing policy {0}".format(
                     module.params["name"]
                 )
             )
+        if (
+            "access_based_enumeration" in module.params
+            and current_access_based_enumeration != module.params["access_based_enumeration"]
+        ):
+            changed_access_based_enumeration = True
+            if not module.check_mode:
+                res = array.patch_policies_smb(
+                    names=[module.params["name"]],
+                    policy=flasharray.PolicySmbPatch(
+                        access_based_enumeration_enabled=module.params["access_based_enumeration"]
+                    ),
+                )
+                if res.status_code != 200:
+                    module.exit_json(
+                        msg="Failed to enable/disable Access based enueration for SMB policy {0}".format(
+                            module.params["name"]
+                        )
+                    )
         if current_enabled != module.params["enabled"]:
             changed_enable = True
             if not module.check_mode:
@@ -1734,6 +1755,7 @@ def update_policy(module, array, api_version, all_squash):
         or changed_member
         or changed_dir
         or changed_user_map
+        or changed_access_based_enumeration
     ):
         changed = True
     module.exit_json(changed=changed)
@@ -1775,6 +1797,7 @@ def main():
                 type="list", elements="str", choices=["user", "group"]
             ),
             user_mapping=dict(type="bool", default=True),
+            access_based_enumeration=dict(type="bool", default=False),
             directory=dict(type="list", elements="str"),
             nfs_version=dict(
                 type="list",
