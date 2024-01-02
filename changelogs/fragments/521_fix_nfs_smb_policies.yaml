@@ -1,0 +1,4 @@
+bugfixes:
+ - purefa_policy - Change handling of the initialization parameters for NFS that cause failure in all versions
+minor_changes:
+ - purefa_policy - Add access_based_enumeration parameter for enabling/disabling SMB access based enumeration
