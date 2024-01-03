@@ -79,7 +79,6 @@ options:
     type: list
     elements: str
     choices: [ nfsv3, nfsv4 ]
-    default: nfsv3
     version_added: "1.22.0"
   user_mapping:
     description:
@@ -192,6 +191,12 @@ options:
     elements: str
     choices: [ auth_sys, krb5, krb5i, krb5p ]
     version_added: 1.25.0
+  access_based_enumeration:
+    description:
+    - Defines if access based enumeration for SMB is enabled
+    type: bool
+    default: false
+    version_added: 1.26.0
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -368,6 +373,7 @@ ALL_SQUASH_VERSION = "2.16"
 AUTODIR_VERSION = "2.24"
 NFS_VERSION = "2.26"
 SECURITY_VERSION = "2.29"
+ABE_VERSION = "2.4"
 
 
 def _human_to_bytes(size):
@@ -766,40 +772,7 @@ def create_policy(module, array, all_squash):
             )
 
             if created.status_code == 200:
-                if LooseVersion(NFS_VERSION) > LooseVersion(array.get_rest_version()):
-                    policy = flasharray.PolicyNfsPost(
-                        user_mapping_enabled=module.params["user_mapping"],
-                    )
-                elif (
-                    LooseVersion(SECURITY_VERSION)
-                    > LooseVersion(array.get_rest_version())
-                    <= LooseVersion(NFS_VERSION)
-                ):
-                    policy = flasharray.PolicyNfsPost(
-                        user_mapping_enabled=module.params["user_mapping"],
-                        nfs_version=module.params["nfs_version"],
-                    )
-                else:
-                    if module.params["security"]:
-                        policy = flasharray.PolicyNfsPost(
-                            user_mapping_enabled=module.params["user_mapping"],
-                            nfs_version=module.params["nfs_version"],
-                            security=module.params["security"],
-                        )
-                    else:
-                        policy = flasharray.PolicyNfsPost(
-                            user_mapping_enabled=module.params["user_mapping"],
-                            nfs_version=module.params["nfs_version"],
-                        )
-                res = array.patch_policies_nfs(
-                    names=[module.params["name"]], policy=policy
-                )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to set NFS policy {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                changed = True
                 if module.params["client"]:
                     if all_squash:
                         rules = flasharray.PolicyrulenfsclientpostRules(
@@ -825,7 +798,52 @@ def create_policy(module, array, all_squash):
                                 module.params["name"], rule_created.errors[0].message
                             )
                         )
-                changed = True
+                policy = flasharray.PolicyNfsPatch(
+                    user_mapping_enabled=module.params["user_mapping"],
+                )
+                res = array.patch_policies_nfs(
+                    names=[module.params["name"]], policy=policy
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to set NFS policy user_mapping {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+                if (
+                    LooseVersion(array.get_rest_version()) >= LooseVersion(NFS_VERSION)
+                    and module.params["client"]
+                    and module.params["nfs_version"]
+                ):
+                    policy = flasharray.PolicyNfsPatch(
+                        nfs_version=module.params["nfs_version"],
+                    )
+                    res = array.patch_policies_nfs(
+                        names=[module.params["name"]], policy=policy
+                    )
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to set NFS policy version {0}. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
+                            )
+                        )
+                if (
+                    LooseVersion(array.get_rest_version())
+                    >= LooseVersion(SECURITY_VERSION)
+                    and module.params["security"]
+                ):
+                    policy = flasharray.PolicyNfsPatch(
+                        security=module.params["security"],
+                    )
+                    res = array.patch_policies_nfs(
+                        names=[module.params["name"]], policy=policy
+                    )
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to set NFS policy security {0}. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
+                            )
+                        )
             else:
                 module.fail_json(
                     msg="Failed to create NFS policy {0}. Error: {1}".format(
@@ -838,7 +856,21 @@ def create_policy(module, array, all_squash):
                 policy=flasharray.PolicyPost(enabled=module.params["enabled"]),
             )
             if created.status_code == 200:
-                changed = True
+                if LooseVersion(ABE_VERSION) <= LooseVersion(array.get_rest_version()):
+                    res = array.patch_policies_smb(
+                        names=[module.params["name"]],
+                        policy=flasharray.PolicySmbPatch(
+                            access_based_enumeration_enabled=module.params[
+                                "access_based_enumeration"
+                            ]
+                        ),
+                    )
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to set SMB policy {0}. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
+                            )
+                        )
                 if module.params["client"]:
                     rules = flasharray.PolicyrulesmbclientpostRules(
                         anonymous_access_allowed=module.params["smb_anon_allowed"],
@@ -855,6 +887,7 @@ def create_policy(module, array, all_squash):
                                 module.params["name"], rule_created.errors[0].message
                             )
                         )
+                changed = True
             else:
                 module.fail_json(
                     msg="Failed to create SMB policy {0}. Error: {1}".format(
@@ -1041,12 +1074,17 @@ def update_policy(module, array, api_version, all_squash):
         changed_dir
     ) = (
         changed_rule
-    ) = changed_enable = changed_quota = changed_member = changed_user_map = False
+    ) = (
+        changed_enable
+    ) = (
+        changed_quota
+    ) = changed_member = changed_user_map = changed_abe = changed_nfs = False
     if module.params["policy"] == "nfs":
+        current_policy = list(
+            array.get_policies_nfs(names=[module.params["name"]]).items
+        )[0]
         try:
-            current_enabled = list(
-                array.get_policies_nfs(names=[module.params["name"]]).items
-            )[0].enabled
+            current_enabled = current_policy.enabled
             if USER_MAP_VERSION in api_version:
                 current_user_map = list(
                     array.get_policies_nfs(names=[module.params["name"]]).items
@@ -1057,6 +1095,23 @@ def update_policy(module, array, api_version, all_squash):
                     module.params["name"]
                 )
             )
+        if module.params["nfs_version"] and sorted(
+            module.params["nfs_version"]
+        ) != sorted(getattr(current_policy, "nfs_version", [])):
+            changed_nfs = True
+            if not module.check_mode:
+                res = array.patch_policies_nfs(
+                    names=[module.params["name"]],
+                    policy=flasharray.PolicyNfsPatch(
+                        nfs_version=module.params["nfs_version"]
+                    ),
+                )
+                if res.status_code != 200:
+                    module.exit_json(
+                        msg="Failed to change NFS version for NFS policy {0}".format(
+                            module.params["name"]
+                        )
+                    )
         if (
             module.params["user_mapping"]
             and current_user_map != module.params["user_mapping"]
@@ -1216,15 +1271,38 @@ def update_policy(module, array, api_version, all_squash):
                         )
     elif module.params["policy"] == "smb":
         try:
-            current_enabled = list(
-                array.get_policies_smb(names=[module.params["name"]]).items
-            )[0].enabled
+            current = list(array.get_policies_smb(names=[module.params["name"]]).items)[
+                0
+            ]
+            current_enabled = current.enabled
+            current_access_based_enumeration = current.access_based_enumeration_enabled
         except Exception:
             module.fail_json(
                 msg="Incorrect policy type specified for existing policy {0}".format(
                     module.params["name"]
                 )
             )
+        if (
+            "access_based_enumeration" in module.params
+            and current_access_based_enumeration
+            != module.params["access_based_enumeration"]
+        ):
+            changed_abe = True
+            if not module.check_mode:
+                res = array.patch_policies_smb(
+                    names=[module.params["name"]],
+                    policy=flasharray.PolicySmbPatch(
+                        access_based_enumeration_enabled=module.params[
+                            "access_based_enumeration"
+                        ]
+                    ),
+                )
+                if res.status_code != 200:
+                    module.exit_json(
+                        msg="Failed to enable/disable Access based enueration for SMB policy {0}".format(
+                            module.params["name"]
+                        )
+                    )
         if current_enabled != module.params["enabled"]:
             changed_enable = True
             if not module.check_mode:
@@ -1734,6 +1812,8 @@ def update_policy(module, array, api_version, all_squash):
         or changed_member
         or changed_dir
         or changed_user_map
+        or changed_abe
+        or changed_nfs
     ):
         changed = True
     module.exit_json(changed=changed)
@@ -1780,13 +1860,13 @@ def main():
                 type="list",
                 elements="str",
                 choices=["nfsv3", "nfsv4"],
-                default=["nfsv3"],
             ),
             security=dict(
                 type="list",
                 elements="str",
                 choices=["auth_sys", "krb5", "krb5i", "krb5p"],
             ),
+            access_based_enumeration=dict(type="bool", default=False),
         )
     )
 
