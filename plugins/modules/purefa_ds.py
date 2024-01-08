@@ -435,12 +435,11 @@ def update_ds_v6(module, array):
     changed = False
     ds_change = False
     password_required = False
-    dirserv = list(
-        array.get_directory_services(
-            filter="name='" + module.params["dstype"] + "'"
-        ).items
-    )[0]
-    current_ds = dirserv
+    current_ds = []
+    dirservlist = list(array.get_directory_services().items)
+    for dirs in range(0, len(dirservlist)):
+        if dirservlist[dirs].name == module.params["dstype"]:
+            current_ds = dirservlist[dirs]
     if module.params["uri"] and current_ds.uris is None:
         password_required = True
     if module.params["uri"] and current_ds.uris != module.params["uri"]:
@@ -538,8 +537,6 @@ def update_ds_v6(module, array):
                 bind_password=bind_password,
                 enabled=module.params["enable"],
                 services=module.params["dstype"],
-                check_peer=module.params["check_peer"],
-                ca_certificate=cert,
             )
         else:
             directory_service = flasharray.DirectoryService(
@@ -548,8 +545,6 @@ def update_ds_v6(module, array):
                 bind_user=bind_user,
                 enabled=module.params["enable"],
                 services=module.params["dstype"],
-                check_peer=module.params["check_peer"],
-                ca_certificate=cert,
             )
     if ds_change:
         changed = True
@@ -615,16 +610,17 @@ def main():
     state = module.params["state"]
     ds_exists = False
     if FAFILES_API_VERSION in api_version:
-        dirserv = list(
-            arrayv6.get_directory_services(
-                filter="name='" + module.params["dstype"] + "'"
-            ).items
-        )[0]
-        if state == "absent":
-            if dirserv.uris != []:
-                delete_ds_v6(module, arrayv6)
-        else:
-            update_ds_v6(module, arrayv6)
+        dirserv = []
+        dirservlist = list(arrayv6.get_directory_services().items)
+        for dirs in range(0, len(dirservlist)):
+            if dirservlist[dirs].name == module.params["dstype"]:
+                dirserv = dirservlist[dirs]
+        if dirserv:
+            if state == "absent":
+                if dirserv.uris != []:
+                    delete_ds_v6(module, arrayv6)
+            else:
+                update_ds_v6(module, arrayv6)
     else:
         dirserv = array.get_directory_service()
         ds_enabled = dirserv["enabled"]
