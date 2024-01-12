@@ -41,6 +41,11 @@ plugins:
       name: purefa_banner
       namespace: ''
       version_added: 1.0.0
+    purefa_cbsexpand:
+      description: Modify the CBS array capacity
+      name: purefa_cbsexpand
+      namespace: ''
+      version_added: 1.0.0
     purefa_certs:
       description: Manage FlashArray SSL Certificates
       name: purefa_certs
@@ -317,4 +322,4 @@ plugins:
   strategy: {}
   test: {}
   vars: {}
-version: 1.24.0
+version: 1.25.0
