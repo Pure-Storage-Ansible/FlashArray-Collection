@@ -517,6 +517,20 @@ releases:
     - 519_add_cloud_capacity.yaml
     - 520_add_distro.yaml
     release_date: '2023-12-20'
+  1.26.0:
+    changes:
+      bugfixes:
+      - purefa_ds - Fix issue with SDK returning empty data for data directory services
+        even when it does exist
+      - purefa_policy - Fix incorrect call of psot instead of patch for NFS policies
+      minor_changes:
+      - purefa_policy - Add SMB user based enumeration parameter
+      - purefa_policy - Remove default setting for nfs_version to allow for change
+        of version at policy level
+    fragments:
+    - 523_nfs_policies.yaml
+    - 524_empty_ds.yaml
+    release_date: '2024-01-12'
   1.4.0:
     changes:
       bugfixes:
