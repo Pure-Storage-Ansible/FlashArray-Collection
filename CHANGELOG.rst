@@ -5,6 +5,21 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.26.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_policy - Add SMB user based enumeration parameter
+- purefa_policy - Remove default setting for nfs_version to allow for change of version at policy level
+
+Bugfixes
+--------
+
+- purefa_ds - Fix issue with SDK returning empty data for data directory services even when it does exist
+- purefa_policy - Fix incorrect call of psot instead of patch for NFS policies
+
 v1.25.0
 =======
 
