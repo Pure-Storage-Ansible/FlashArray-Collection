@@ -327,6 +327,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_system,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
+    human_to_bytes,
+    human_to_real,
+)
 
 
 QOS_API_VERSION = "1.14"
@@ -401,54 +405,6 @@ def get_pgroup(module, array):
                 break
 
     return pgroup
-
-
-def human_to_bytes(size):
-    """Given a human-readable byte string (e.g. 2G, 30M),
-    return the number of bytes.  Will return 0 if the argument has
-    unexpected form.
-    """
-    bytes = size[:-1]
-    unit = size[-1].upper()
-    if bytes.isdigit():
-        bytes = int(bytes)
-        if unit == "P":
-            bytes *= 1125899906842624
-        elif unit == "T":
-            bytes *= 1099511627776
-        elif unit == "G":
-            bytes *= 1073741824
-        elif unit == "M":
-            bytes *= 1048576
-        elif unit == "K":
-            bytes *= 1024
-        else:
-            bytes = 0
-    else:
-        bytes = 0
-    return bytes
-
-
-def human_to_real(iops):
-    """Given a human-readable IOPs string (e.g. 2K, 30M),
-    return the real number.  Will return 0 if the argument has
-    unexpected form.
-    """
-    digit = iops[:-1]
-    unit = iops[-1].upper()
-    if unit.isdigit():
-        digit = iops
-    elif digit.isdigit():
-        digit = int(digit)
-        if unit == "M":
-            digit *= 1000000
-        elif unit == "K":
-            digit *= 1000
-        else:
-            digit = 0
-    else:
-        digit = 0
-    return digit
 
 
 def get_multi_volumes(module, destroyed=False):

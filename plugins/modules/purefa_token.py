@@ -89,6 +89,9 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
+    convert_time_to_millisecs,
+)
 from os import environ
 import platform
 
@@ -107,22 +110,6 @@ try:
     from purestorage import purestorage
 except ImportError:
     HAS_PURESTORAGE = False
-
-
-def _convert_time_to_millisecs(timeout):
-    if timeout[-1:].lower() not in ["w", "d", "h", "m", "s"]:
-        return 0
-    try:
-        if timeout[-1:].lower() == "w":
-            return int(timeout[:-1]) * 7 * 86400000
-        elif timeout[-1:].lower() == "d":
-            return int(timeout[:-1]) * 86400000
-        elif timeout[-1:].lower() == "h":
-            return int(timeout[:-1]) * 3600000
-        elif timeout[-1:].lower() == "m":
-            return int(timeout[:-1]) * 60000
-    except Exception:
-        return 0
 
 
 def get_session(module):
@@ -219,7 +206,7 @@ def main():
     ):
         module.params["api_token"] = api_token
         array6 = get_array(module)
-        ttl = _convert_time_to_millisecs(module.params["timeout"])
+        ttl = convert_time_to_millisecs(module.params["timeout"])
         if ttl != 0:
             changed = True
             array6.delete_admins_api_tokens(names=[username])

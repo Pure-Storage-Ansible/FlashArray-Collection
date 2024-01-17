@@ -179,36 +179,13 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
+    human_to_bytes,
+)
 
 
 POD_API_VERSION = "1.13"
 POD_QUOTA_VERSION = "2.23"
-
-
-def human_to_bytes(size):
-    """Given a human-readable byte string (e.g. 2G, 30M),
-    return the number of bytes.  Will return 0 if the argument has
-    unexpected form.
-    """
-    bytes = size[:-1]
-    unit = size[-1].upper()
-    if bytes.isdigit():
-        bytes = int(bytes)
-        if unit == "P":
-            bytes *= 1125899906842624
-        elif unit == "T":
-            bytes *= 1099511627776
-        elif unit == "G":
-            bytes *= 1073741824
-        elif unit == "M":
-            bytes *= 1048576
-        elif unit == "K":
-            bytes *= 1024
-        else:
-            bytes = 0
-    else:
-        bytes = 0
-    return bytes
 
 
 def get_pod(module, array):
