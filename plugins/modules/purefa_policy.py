@@ -364,6 +364,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
+    human_to_bytes,
+    convert_to_millisecs,
+)
 
 MIN_REQUIRED_API_VERSION = "2.3"
 MIN_QUOTA_API_VERSION = "2.7"
@@ -374,42 +378,6 @@ AUTODIR_VERSION = "2.24"
 NFS_VERSION = "2.26"
 SECURITY_VERSION = "2.29"
 ABE_VERSION = "2.4"
-
-
-def _human_to_bytes(size):
-    """Given a human-readable byte string (e.g. 2G, 30M),
-    return the number of bytes.  Will return 0 if the argument has
-    unexpected form.
-    """
-    bytes = size[:-1]
-    unit = size[-1].upper()
-    if bytes.isdigit():
-        bytes = int(bytes)
-        if unit == "P":
-            bytes *= 1125899906842624
-        elif unit == "T":
-            bytes *= 1099511627776
-        elif unit == "G":
-            bytes *= 1073741824
-        elif unit == "M":
-            bytes *= 1048576
-        elif unit == "K":
-            bytes *= 1024
-        else:
-            bytes = 0
-    else:
-        bytes = 0
-    return bytes
-
-
-def _convert_to_millisecs(hour):
-    if hour[-2:].upper() == "AM" and hour[:2] == "12":
-        return 0
-    elif hour[-2:].upper() == "AM":
-        return int(hour[:-2]) * 3600000
-    elif hour[-2:].upper() == "PM" and hour[:2] == "12":
-        return 43200000
-    return (int(hour[:-2]) + 12) * 3600000
 
 
 def rename_policy(module, array):
@@ -677,7 +645,7 @@ def delete_policy(module, array):
                                 )
         else:  # quota
             if module.params["quota_limit"]:
-                quota_limit = _human_to_bytes(module.params["quota_limit"])
+                quota_limit = human_to_bytes(module.params["quota_limit"])
                 rules = list(
                     array.get_policies_quota_rules(
                         policy_names=[module.params["name"]]
@@ -917,7 +885,7 @@ def create_policy(module, array, all_squash):
                             )
                         if suffix_enabled:
                             rules = flasharray.PolicyrulesnapshotpostRules(
-                                at=_convert_to_millisecs(module.params["snap_at"]),
+                                at=convert_to_millisecs(module.params["snap_at"]),
                                 client_name=module.params["snap_client_name"],
                                 every=module.params["snap_every"] * 60000,
                                 keep_for=module.params["snap_keep_for"] * 60000,
@@ -925,7 +893,7 @@ def create_policy(module, array, all_squash):
                             )
                         else:
                             rules = flasharray.PolicyrulesnapshotpostRules(
-                                at=_convert_to_millisecs(module.params["snap_at"]),
+                                at=convert_to_millisecs(module.params["snap_at"]),
                                 client_name=module.params["snap_client_name"],
                                 every=module.params["snap_every"] * 60000,
                                 keep_for=module.params["snap_keep_for"] * 60000,
@@ -1017,7 +985,7 @@ def create_policy(module, array, all_squash):
             if created.status_code == 200:
                 changed = True
                 if module.params["quota_limit"]:
-                    quota = _human_to_bytes(module.params["quota_limit"])
+                    quota = human_to_bytes(module.params["quota_limit"])
                     rules = flasharray.PolicyrulequotapostRules(
                         enforced=module.params["quota_enforced"],
                         quota_limit=quota,
@@ -1471,7 +1439,7 @@ def update_policy(module, array, api_version, all_squash):
                             )
                         if suffix_enabled:
                             rules = flasharray.PolicyrulesnapshotpostRules(
-                                at=_convert_to_millisecs(module.params["snap_at"]),
+                                at=convert_to_millisecs(module.params["snap_at"]),
                                 client_name=module.params["snap_client_name"],
                                 every=module.params["snap_every"] * 60000,
                                 keep_for=module.params["snap_keep_for"] * 60000,
@@ -1479,7 +1447,7 @@ def update_policy(module, array, api_version, all_squash):
                             )
                         else:
                             rules = flasharray.PolicyrulesnapshotpostRules(
-                                at=_convert_to_millisecs(module.params["snap_at"]),
+                                at=convert_to_millisecs(module.params["snap_at"]),
                                 client_name=module.params["snap_client_name"],
                                 every=module.params["snap_every"] * 60000,
                                 keep_for=module.params["snap_keep_for"] * 60000,
@@ -1524,7 +1492,7 @@ def update_policy(module, array, api_version, all_squash):
                         )
                     if suffix_enabled:
                         rules = flasharray.PolicyrulesnapshotpostRules(
-                            at=_convert_to_millisecs(module.params["snap_at"]),
+                            at=convert_to_millisecs(module.params["snap_at"]),
                             client_name=module.params["snap_client_name"],
                             every=module.params["snap_every"] * 60000,
                             keep_for=module.params["snap_keep_for"] * 60000,
@@ -1532,7 +1500,7 @@ def update_policy(module, array, api_version, all_squash):
                         )
                     else:
                         rules = flasharray.PolicyrulesnapshotpostRules(
-                            at=_convert_to_millisecs(module.params["snap_at"]),
+                            at=convert_to_millisecs(module.params["snap_at"]),
                             client_name=module.params["snap_client_name"],
                             every=module.params["snap_every"] * 60000,
                             keep_for=module.params["snap_keep_for"] * 60000,
@@ -1729,7 +1697,7 @@ def update_policy(module, array, api_version, all_squash):
                             )
                         )
         if module.params["quota_limit"]:
-            quota = _human_to_bytes(module.params["quota_limit"])
+            quota = human_to_bytes(module.params["quota_limit"])
             current_rules = list(
                 array.get_policies_quota_rules(
                     policy_names=[module.params["name"]]
