@@ -10,6 +10,7 @@
 - Feature Pull Request
 - New Module Pull Request
 - New Role Pull Request
+- REST 2 Pull Request
 
 ##### COMPONENT NAME
 <!--- Write the short name of the module, plugin, task or feature below -->
