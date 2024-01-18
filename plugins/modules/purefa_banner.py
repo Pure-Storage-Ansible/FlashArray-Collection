@@ -61,9 +61,15 @@ RETURN = r"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
+
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import Arrays
+except ImportError:
+    HAS_PURESTORAGE = False
 
 
 def set_banner(module, array):
@@ -72,9 +78,8 @@ def set_banner(module, array):
     if not module.params["banner"]:
         module.fail_json(msg="Invalid MOTD banner given")
     if not module.check_mode:
-        try:
-            array.set(banner=module.params["banner"])
-        except Exception:
+        res = array.patch_arrays(array=Arrays(banner=module.params["banner"]))
+        if res.status_code != 200:
             module.fail_json(msg="Failed to set MOTD banner text")
 
     module.exit_json(changed=changed)
@@ -84,9 +89,8 @@ def delete_banner(module, array):
     """Delete MOTD banner text"""
     changed = True
     if not module.check_mode:
-        try:
-            array.set(banner="")
-        except Exception:
+        res = array.patch_arrays(array=Arrays(banner=""))
+        if res.status_code != 200:
             module.fail_json(msg="Failed to delete current MOTD banner text")
     module.exit_json(changed=changed)
 
@@ -106,9 +110,12 @@ def main():
         argument_spec, required_if=required_if, supports_check_mode=True
     )
 
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this module")
+
     state = module.params["state"]
-    array = get_system(module)
-    current_banner = array.get(banner=True)["banner"]
+    array = get_array(module)
+    current_banner = list(array.get_arrays().items)[0].banner
     # set banner if empty value or value differs
     if state == "present" and (
         not current_banner or current_banner != module.params["banner"]
