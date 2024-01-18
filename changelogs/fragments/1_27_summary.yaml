@@ -1,4 +1,4 @@
-release_summary:
+release_summary: |
   | This release changes the minimum supported Purity//FA version.
   |
   | The minimum supported Purity//FA version increases to 6.1.0.
