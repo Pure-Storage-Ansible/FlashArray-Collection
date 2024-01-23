@@ -29,19 +29,16 @@ options:
     - Full legal name of the entity.
     - The value must be between 1 and 64 characters in length.
     type: str
-    required: true
   name:
     description:
     - Full legal name of the individual at the company who has the authority to accept the terms of the agreement.
     - The value must be between 1 and 64 characters in length.
     type: str
-    required: true
   title:
     description:
     - Individual's job title at the company.
     - The value must be between 1 and 64 characters in length.
     type: str
-    required: true
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -61,36 +58,48 @@ RETURN = r"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
+
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import Eula, EulaSignature
+except ImportError:
+    HAS_PURESTORAGE = False
 
 
-EULA_API_VERSION = "1.17"
+EULA_V2 = "2.30"
 
 
 def set_eula(module, array):
     """Sign EULA"""
     changed = False
     try:
-        current_eula = array.get_eula()
+        current_eula = list(array.get_arrays_eula().items)[0]
     except Exception:
         module.fail_json(msg="Failed to get current EULA")
-    if (
-        current_eula["acceptance"]["company"] != module.params["company"]
-        or current_eula["acceptance"]["title"] != module.params["title"]
-        or current_eula["acceptance"]["name"] != module.params["name"]
-    ):
-        try:
-            changed = True
-            if not module.check_mode:
-                array.set_eula(
-                    company=module.params["company"],
-                    title=module.params["title"],
-                    name=module.params["name"],
+    if not current_eula.signature.accepted:
+        changed = True
+        if not module.check_mode:
+            res = array.patch_arrays_eula(
+                eula=Eula(
+                    signature=EulaSignature(
+                        company=module.params["company"],
+                        title=module.params["title"],
+                        name=module.params["name"],
+                    )
                 )
-        except Exception:
-            module.fail_json(msg="Signing EULA failed")
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Signing EULA failed. Error: {0}".format(res.erroros[0].message)
+                )
+    else:
+        module.warn("EULA already signed")
     module.exit_json(changed=changed)
 
 
@@ -98,18 +107,27 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
-            company=dict(type="str", required=True),
-            name=dict(type="str", required=True),
-            title=dict(type="str", required=True),
+            company=dict(type="str"),
+            name=dict(type="str"),
+            title=dict(type="str"),
         )
     )
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this module")
 
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
-    if EULA_API_VERSION in api_version:
-        set_eula(module, array)
+    array = get_array(module)
+    api_version = array.get_rest_version()
+    if LooseVersion(EULA_V2) > LooseVersion(api_version):
+        if not (
+            module.params["company"]
+            and module.params["title"]
+            and module.params["name"]
+        ):
+            module.fail_json(msg="missing required arguments: company, name, title")
+    set_eula(module, array)
+
     module.exit_json(changed=False)
 
 
