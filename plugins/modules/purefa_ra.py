@@ -30,8 +30,8 @@ options:
     - When set to I(enable) the RA port can be exposed using the
       I(debug) module.
     type: str
-    default: enable
-    choices: [ enable, disable ]
+    default: present
+    choices: [ enable, disable, absent, present ]
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -58,43 +58,73 @@ RETURN = r"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
+
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import SupportPatch
+except ImportError:
+    HAS_PURESTORAGE = False
 
 
 def enable_ra(module, array):
     """Enable Remote Assist"""
     changed = False
     ra_facts = {}
-    if not array.get_remote_assist_status()["status"] in ["connected", "enabled"]:
+    if not list(array.get_support().items)[0].remote_assist_status in [
+        "connected",
+        "enabled",
+    ]:
         changed = True
         if not module.check_mode:
-            try:
-                ra_data = array.enable_remote_assist()
-                ra_facts["fa_ra"] = {"name": ra_data["name"], "port": ra_data["port"]}
-            except Exception:
-                module.fail_json(msg="Enabling Remote Assist failed")
+            res = array.patch_support(support=SupportPatch(remote_assist_active=True))
+            if res.status_code == 200:
+                ra_data = list(res.items)[0]
+                ra_facts["fa_ra"] = {
+                    "name": ra_data.remote_assist_paths[0].component_name,
+                    "port": None,
+                }
+            else:
+                module.fail_json(
+                    msg="Enabling Remote Assist failed. Error: {0}".format(
+                        res.errors[0].message
+                    )
+                )
     else:
-        if not module.check_mode:
-            try:
-                ra_data = array.get_remote_assist_status()
-                ra_facts["fa_ra"] = {"name": ra_data["name"], "port": ra_data["port"]}
-            except Exception:
-                module.fail_json(msg="Getting Remote Assist failed")
+        res = array.get_support()
+        if res.status_code == 200:
+            ra_data = list(res.items)[0]
+            ra_facts["fa_ra"] = {
+                "name": ra_data.remote_assist_paths[0].component_name,
+                "port": None,
+            }
+        else:
+            module.fail_json(
+                msg="Getting Remote Assist failed. Error: {0}".format(
+                    res.errors[0].message
+                )
+            )
     module.exit_json(changed=changed, ra_info=ra_facts)
 
 
 def disable_ra(module, array):
     """Disable Remote Assist"""
     changed = False
-    if array.get_remote_assist_status()["status"] in ["connected", "enabled"]:
+    if list(array.get_support().items)[0].remote_assist_status in [
+        "connected",
+        "enabled",
+    ]:
         changed = True
         if not module.check_mode:
-            try:
-                array.disable_remote_assist()
-            except Exception:
-                module.fail_json(msg="Disabling Remote Assist failed")
+            res = array.patch_support(support=SupportPatch(remote_assist_active=False))
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Disabling Remote Assist failed. Error: {0}".format(
+                        res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
@@ -102,15 +132,21 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
-            state=dict(type="str", default="enable", choices=["enable", "disable"]),
+            state=dict(
+                type="str",
+                default="present",
+                choices=["enable", "disable", "absent", "present"],
+            ),
         )
     )
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this module")
 
-    array = get_system(module)
+    array = get_array(module)
 
-    if module.params["state"] == "enable":
+    if module.params["state"] in ["enable", "present"]:
         enable_ra(module, array)
     else:
         disable_ra(module, array)
