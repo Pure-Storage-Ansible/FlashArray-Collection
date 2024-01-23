@@ -77,11 +77,12 @@ RETURN = r"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
     get_array,
     purefa_argument_spec,
 )
-
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
 
 HAS_PURESTORAGE = True
 try:
@@ -95,7 +96,7 @@ KEY_API_VERSION = "2.26"
 
 def _is_cbs(array, is_cbs=False):
     """Is the selected array a Cloud Block Store"""
-    model = array.get(controllers=True)[0]["model"]
+    model = list(array.get_controllers().items)[0].model
     is_cbs = bool("CBS" in model)
     return is_cbs
 
@@ -114,7 +115,7 @@ def delete_ntp(module, array):
         changed = True
         if not module.check_mode:
             try:
-                array.set(ntpserver=[])
+                array.patch_arrays(array=Arrays(ntp_servers=[]))
             except Exception:
                 module.fail_json(msg="Deletion of NTP servers failed")
     else:
@@ -129,7 +130,9 @@ def create_ntp(module, array):
         if not module.params["ntp_servers"]:
             module.params["ntp_servers"] = ["0.pool.ntp.org"]
         try:
-            array.set(ntpserver=module.params["ntp_servers"][0:4])
+            array.patch_arrays(
+                array=Arrays(ntp_servers=module.params["ntp_servers"][0:4])
+            )
         except Exception:
             module.fail_json(msg="Update of NTP servers failed")
     module.exit_json(changed=changed)
@@ -184,9 +187,11 @@ def main():
     )
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this module")
 
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
+    array = get_array(module)
+    api_version = array.get_rest_version()
     if _is_cbs(array):
         module.warn("NTP settings are not necessary for a CBS array - ignoring...")
         module.exit_json(changed=False)
@@ -195,15 +200,15 @@ def main():
         delete_ntp(module, array)
     elif module.params["ntp_servers"]:
         module.params["ntp_servers"] = remove(module.params["ntp_servers"])
-        if sorted(array.get(ntpserver=True)["ntpserver"]) != sorted(
+        if sorted(list(array.get_arrays().items)[0].ntp_servers) != sorted(
             module.params["ntp_servers"][0:4]
         ):
             create_ntp(module, array)
-    if (module.params["ntp_key"] or module.params["ntp_key"] == "") and HAS_PURESTORAGE:
-        if KEY_API_VERSION not in api_version:
+    if module.params["ntp_key"] or module.params["ntp_key"] == "":
+        if LooseVersion(KEY_API_VERSION) > LooseVersion(api_version):
             module.fail_json(msg="REST API does not support setting NTP Symmetric Key")
         else:
-            update_ntp_key(module, get_array(module))
+            update_ntp_key(module, array)
     module.exit_json(changed=False)
 
 
