@@ -75,6 +75,7 @@ def enable_ra(module, array):
     ra_facts = {}
     if not list(array.get_support().items)[0].remote_assist_status in [
         "connected",
+        "connecting",
         "enabled",
     ]:
         changed = True
@@ -114,6 +115,7 @@ def disable_ra(module, array):
     changed = False
     if list(array.get_support().items)[0].remote_assist_status in [
         "connected",
+        "connecting",
         "enabled",
     ]:
         changed = True
