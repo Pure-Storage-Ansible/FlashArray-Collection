@@ -21,14 +21,13 @@ version_added: '1.0.0'
 short_description: Configure Pure Storage FlashArray syslog settings
 description:
 - Configure syslog configuration for Pure Storage FlashArrays.
-- Add or delete an individual syslog server to the existing
-  list of serves.
+- Manage individual syslog servers.
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:
-    - Create or delete syslog servers configuration
+    - Create, update or delete syslog servers configuration
     default: present
     type: str
     choices: [ absent, present ]
@@ -55,14 +54,14 @@ options:
     description:
     - A user-specified name.
       The name must be locally unique and cannot be changed.
-    - Only applicable with FlashArrays running Purity//FA 6.0 or higher.
     type: str
+    required: true
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
 
 EXAMPLES = r"""
-- name: Delete exisitng syslog server entries
+- name: Delete existing syslog server entry
   purestorage.flasharray.purefa_syslog:
     address: syslog1.com
     protocol: tcp
@@ -70,11 +69,21 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Set array syslog servers
+- name: Add syslog server entry
   purestorage.flasharray.purefa_syslog:
     state: present
     address: syslog1.com
+    port: 8081
     protocol: udp
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Update syslog server entry
+  purestorage.flasharray.purefa_syslog:
+    state: present
+    address: syslog1.com
+    port: 8081
+    protocol: tcp
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
@@ -85,7 +94,7 @@ RETURN = r"""
 
 HAS_PURESTORAGE = True
 try:
-    from pypureclient import flasharray
+    from pypureclient.flasharray import SyslogServer
 except ImportError:
     HAS_PURESTORAGE = False
 
@@ -93,90 +102,71 @@ except ImportError:
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
-    get_system,
     purefa_argument_spec,
 )
 
 
-SYSLOG_NAME_API = "2.4"
-
-
 def delete_syslog(module, array):
     """Delete Syslog Server"""
-    changed = False
-    noport_address = module.params["protocol"] + "://" + module.params["address"]
-
-    if module.params["port"]:
-        full_address = noport_address + ":" + module.params["port"]
-    else:
-        full_address = noport_address
-
-    address_list = array.get(syslogserver=True)["syslogserver"]
-
-    if address_list:
-        for address in range(0, len(address_list)):
-            if address_list[address] == full_address:
-                del address_list[address]
-                changed = True
-                if not module.check_mode:
-                    try:
-                        array.set(syslogserver=address_list)
-                        break
-                    except Exception:
-                        module.fail_json(
-                            msg="Failed to remove syslog server: {0}".format(
-                                full_address
-                            )
-                        )
-
+    changed = True
+    if not module.check_mode:
+        res = array.delete_syslog_servers(names=[module.params["name"]])
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Failed to remove syslog server {0}. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
+            )
     module.exit_json(changed=changed)
 
 
-def add_syslog(module, array, arrayv6):
+def add_syslog(module, array):
     """Add Syslog Server"""
-    changed = False
+    changed = True
     noport_address = module.params["protocol"] + "://" + module.params["address"]
 
     if module.params["port"]:
         full_address = noport_address + ":" + module.params["port"]
     else:
         full_address = noport_address
-
-    address_list = array.get(syslogserver=True)["syslogserver"]
-    exists = False
-
-    if address_list:
-        for address in range(0, len(address_list)):
-            if address_list[address] == full_address:
-                exists = True
-                break
-    if not exists:
-        if arrayv6 and module.params["name"]:
-            changed = True
-            if not module.check_mode:
-                res = arrayv6.post_syslog_servers(
-                    names=[module.params["name"]],
-                    syslog_server=flasharray.SyslogServer(
-                        name=module.params["name"], uri=full_address
-                    ),
+    if not module.check_mode:
+        res = array.post_syslog_servers(
+            names=[module.params["name"]],
+            syslog_server=SyslogServer(name=module.params["name"], uri=full_address),
+        )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Adding syslog server {0} failed. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Adding syslog server {0} failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
-        else:
-            changed = True
-            if not module.check_mode:
-                try:
-                    address_list.append(full_address)
-                    array.set(syslogserver=address_list)
-                except Exception:
-                    module.fail_json(
-                        msg="Failed to add syslog server: {0}".format(full_address)
-                    )
+            )
+    module.exit_json(changed=changed)
 
+
+def update_syslog(module, array):
+    """Update Syslog Server"""
+    changed = False
+    syslog_config = list(array.get_syslog_servers(names=[module.params["name"]]).items)[
+        0
+    ]
+    noport_address = module.params["protocol"] + "://" + module.params["address"]
+
+    if module.params["port"]:
+        full_address = noport_address + ":" + module.params["port"]
+    else:
+        full_address = noport_address
+    if full_address != syslog_config.uri:
+        changed = True
+        res = array.patch_syslog_servers(
+            names=[module.params["name"]],
+            syslog_server=SyslogServer(uri=full_address),
+        )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Updating syslog server {0} failed. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
+            )
     module.exit_json(changed=changed)
 
 
@@ -187,29 +177,30 @@ def main():
             address=dict(type="str", required=True),
             protocol=dict(type="str", choices=["tcp", "tls", "udp"], required=True),
             port=dict(type="str"),
-            name=dict(type="str"),
+            name=dict(type="str", required=True),
             state=dict(type="str", default="present", choices=["absent", "present"]),
         )
     )
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
 
-    array = get_system(module)
+    array = get_array(module)
 
-    if module.params["name"] and not HAS_PURESTORAGE:
+    if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
-    api_version = array._list_available_rest_versions()
-
-    if SYSLOG_NAME_API in api_version and module.params["name"]:
-        arrayv6 = get_array(module)
+    res = array.get_syslog_servers(names=[module.params["name"]])
+    if res.status_code == 200:
+        exists = True
     else:
-        arrayv6 = None
+        exists = False
 
-    if module.params["state"] == "absent":
+    if module.params["state"] == "absent" and exists:
         delete_syslog(module, array)
-    else:
-        add_syslog(module, array, arrayv6)
+    elif module.params["state"] == "present" and not exists:
+        add_syslog(module, array)
+    elif module.params["state"] == "present" and exists:
+        update_syslog(module, array)
 
     module.exit_json(changed=False)
 
