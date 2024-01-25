@@ -32,7 +32,7 @@ options:
     choices: [ present, absent ]
   name:
     description:
-    - Name od app
+    - Name of app
     type: str
     required: true
 extends_documentation_fragment:
@@ -80,44 +80,65 @@ vnc:
         type: str
 """
 
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import App
+except ImportError:
+    HAS_PURESTORAGE = False
+
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
-
-MIN_REQUIRED_API_VERSION = "1.17"
 
 
 def enable_vnc(module, array, app):
     """Enable VNC port"""
     changed = False
     vnc_fact = []
-    if not app["vnc_enabled"]:
-        try:
-            if not module.check_mode:
-                array.enable_app_vnc(module.params["name"])
-                vnc_fact = array.get_app_node(module.params["name"])
-            changed = True
-        except Exception:
-            module.fail_json(
-                msg="Enabling VNC for {0} failed".format(module.params["name"])
+    if not app.vnc_enabled:
+        changed = True
+        if not module.check_mode:
+            res = array.patch_apps(
+                names=[module.params["name"]], app=App(vnc_enabled=True)
             )
+            if res.status_code == 200:
+                vnc_nodes = list(
+                    array.get_apps_nodes(app_names=[module.params["name"]]).items
+                )[0]
+                vnc_fact = {
+                    "status": vnc_nodes.status,
+                    "index": vnc_nodes.index,
+                    "version": vnc_nodes.version,
+                    "vnc": vnc_nodes.vnc,
+                    "name": module.params["name"],
+                }
+            else:
+                module.fail_json(
+                    msg="Enabling VNC for {0} failed. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed, vnc=vnc_fact)
 
 
 def disable_vnc(module, array, app):
     """Disable VNC port"""
     changed = False
-    if app["vnc_enabled"]:
-        try:
-            if not module.check_mode:
-                array.disable_app_vnc(module.params["name"])
-            changed = True
-        except Exception:
-            module.fail_json(
-                msg="Disabling VNC for {0} failed".format(module.params["name"])
+    if app.vnc_enabled:
+        changed = True
+        if not module.check_mode:
+            res = array.patch_apps(
+                names=[module.params["name"]], app=App(vnc_enabled=False)
             )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Disabling VNC for {0} failed. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
@@ -132,21 +153,18 @@ def main():
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
 
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this module")
 
-    if MIN_REQUIRED_API_VERSION not in api_version:
-        module.fail_json(
-            msg="FlashArray REST version not supported. "
-            "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
-        )
-    try:
-        app = array.get_app(module.params["name"])
-    except Exception:
+    array = get_array(module)
+
+    res = array.get_apps(names=[module.params["name"]])
+    if res.status_code != 200:
         module.fail_json(
             msg="Selected application {0} does not exist".format(module.params["name"])
         )
-    if not app["enabled"]:
+    app = list(res.items)[0]
+    if not app.enabled:
         module.fail_json(
             msg="Application {0} is not enabled".format(module.params["name"])
         )
