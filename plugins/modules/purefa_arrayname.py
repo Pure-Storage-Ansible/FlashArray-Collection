@@ -52,10 +52,17 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import Arrays
+except ImportError:
+    HAS_PURESTORAGE = False
+
+
 import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
 
@@ -64,11 +71,12 @@ def update_name(module, array):
     """Change aray name"""
     changed = True
     if not module.check_mode:
-        try:
-            array.set(name=module.params["name"])
-        except Exception:
+        res = array.patch_arrays(array=Arrays(name=module.params["name"]))
+        if res.status_code != 200:
             module.fail_json(
-                msg="Failed to change array name to {0}".format(module.params["name"])
+                msg="Failed to change array name to {0}. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
             )
 
     module.exit_json(changed=changed)
@@ -85,7 +93,10 @@ def main():
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
 
-    array = get_system(module)
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this module")
+
+    array = get_array(module)
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,54}[a-zA-Z0-9])?$")
     if not pattern.match(module.params["name"]):
         module.fail_json(
@@ -93,7 +104,7 @@ def main():
                 module.params["name"]
             )
         )
-    if module.params["name"] != array.get()["array_name"]:
+    if module.params["name"] != list(array.get_arrays().items)[0].name:
         update_name(module, array)
 
     module.exit_json(changed=False)
