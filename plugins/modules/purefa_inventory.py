@@ -48,17 +48,18 @@ purefa_inventory:
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
 
 
-NEW_API_VERSION = "2.2"
 SFP_API_VERSION = "2.16"
 
 
-def generate_new_hardware_dict(array, versions):
+def generate_new_hardware_dict(array):
     hw_info = {
         "fans": {},
         "controllers": {},
@@ -137,216 +138,137 @@ def generate_new_hardware_dict(array, versions):
             "protocol": getattr(drives[drive], "protocol", None),
             "type": drives[drive].type,
         }
-    if SFP_API_VERSION in versions:
-        port_details = list(array.get_network_interfaces_port_details().items)
-        for port_detail in range(0, len(port_details)):
-            port_name = port_details[port_detail].name
-            hw_info["interfaces"][port_name]["interface_type"] = port_details[
-                port_detail
-            ].interface_type
-            hw_info["interfaces"][port_name]["rx_los"] = (
-                port_details[port_detail].rx_los[0].flag
-            )
-            hw_info["interfaces"][port_name]["rx_power"] = (
-                port_details[port_detail].rx_power[0].measurement
-            )
-            hw_info["interfaces"][port_name]["static"] = {
-                "connector_type": port_details[port_detail].static.connector_type,
-                "vendor_name": port_details[port_detail].static.vendor_name,
-                "vendor_oui": port_details[port_detail].static.vendor_oui,
-                "vendor_serial_number": port_details[
+    api_version = array.get_rest_version()
+    if LooseVersion(SFP_API_VERSION) <= LooseVersion(api_version):
+        try:
+            port_details = list(array.get_network_interfaces_port_details().items)
+            for port_detail in range(0, len(port_details)):
+                port_name = port_details[port_detail].name
+                hw_info["interfaces"][port_name]["interface_type"] = port_details[
                     port_detail
-                ].static.vendor_serial_number,
-                "vendor_part_number": port_details[
-                    port_detail
-                ].static.vendor_part_number,
-                "vendor_date_code": port_details[port_detail].static.vendor_date_code,
-                "signaling_rate": port_details[port_detail].static.signaling_rate,
-                "wavelength": port_details[port_detail].static.wavelength,
-                "rate_identifier": port_details[port_detail].static.rate_identifier,
-                "identifier": port_details[port_detail].static.identifier,
-                "link_length": port_details[port_detail].static.link_length,
-                "voltage_thresholds": {
-                    "alarm_high": port_details[
+                ].interface_type
+                hw_info["interfaces"][port_name]["rx_los"] = (
+                    port_details[port_detail].rx_los[0].flag
+                )
+                hw_info["interfaces"][port_name]["rx_power"] = (
+                    port_details[port_detail].rx_power[0].measurement
+                )
+                hw_info["interfaces"][port_name]["static"] = {
+                    "connector_type": port_details[port_detail].static.connector_type,
+                    "vendor_name": port_details[port_detail].static.vendor_name,
+                    "vendor_oui": port_details[port_detail].static.vendor_oui,
+                    "vendor_serial_number": port_details[
                         port_detail
-                    ].static.voltage_thresholds.alarm_high,
-                    "alarm_low": port_details[
+                    ].static.vendor_serial_number,
+                    "vendor_part_number": port_details[
                         port_detail
-                    ].static.voltage_thresholds.alarm_low,
-                    "warn_high": port_details[
+                    ].static.vendor_part_number,
+                    "vendor_date_code": port_details[
                         port_detail
-                    ].static.voltage_thresholds.warn_high,
-                    "warn_low": port_details[
+                    ].static.vendor_date_code,
+                    "signaling_rate": port_details[port_detail].static.signaling_rate,
+                    "wavelength": port_details[port_detail].static.wavelength,
+                    "rate_identifier": port_details[port_detail].static.rate_identifier,
+                    "identifier": port_details[port_detail].static.identifier,
+                    "link_length": port_details[port_detail].static.link_length,
+                    "voltage_thresholds": {
+                        "alarm_high": port_details[
+                            port_detail
+                        ].static.voltage_thresholds.alarm_high,
+                        "alarm_low": port_details[
+                            port_detail
+                        ].static.voltage_thresholds.alarm_low,
+                        "warn_high": port_details[
+                            port_detail
+                        ].static.voltage_thresholds.warn_high,
+                        "warn_low": port_details[
+                            port_detail
+                        ].static.voltage_thresholds.warn_low,
+                    },
+                    "tx_power_thresholds": {
+                        "alarm_high": port_details[
+                            port_detail
+                        ].static.tx_power_thresholds.alarm_high,
+                        "alarm_low": port_details[
+                            port_detail
+                        ].static.tx_power_thresholds.alarm_low,
+                        "warn_high": port_details[
+                            port_detail
+                        ].static.tx_power_thresholds.warn_high,
+                        "warn_low": port_details[
+                            port_detail
+                        ].static.tx_power_thresholds.warn_low,
+                    },
+                    "rx_power_thresholds": {
+                        "alarm_high": port_details[
+                            port_detail
+                        ].static.rx_power_thresholds.alarm_high,
+                        "alarm_low": port_details[
+                            port_detail
+                        ].static.rx_power_thresholds.alarm_low,
+                        "warn_high": port_details[
+                            port_detail
+                        ].static.rx_power_thresholds.warn_high,
+                        "warn_low": port_details[
+                            port_detail
+                        ].static.rx_power_thresholds.warn_low,
+                    },
+                    "tx_bias_thresholds": {
+                        "alarm_high": port_details[
+                            port_detail
+                        ].static.tx_bias_thresholds.alarm_high,
+                        "alarm_low": port_details[
+                            port_detail
+                        ].static.tx_bias_thresholds.alarm_low,
+                        "warn_high": port_details[
+                            port_detail
+                        ].static.tx_bias_thresholds.warn_high,
+                        "warn_low": port_details[
+                            port_detail
+                        ].static.tx_bias_thresholds.warn_low,
+                    },
+                    "temperature_thresholds": {
+                        "alarm_high": port_details[
+                            port_detail
+                        ].static.temperature_thresholds.alarm_high,
+                        "alarm_low": port_details[
+                            port_detail
+                        ].static.temperature_thresholds.alarm_low,
+                        "warn_high": port_details[
+                            port_detail
+                        ].static.temperature_thresholds.warn_high,
+                        "warn_low": port_details[
+                            port_detail
+                        ].static.temperature_thresholds.warn_low,
+                    },
+                    "fc_speeds": port_details[port_detail].static.fc_speeds,
+                    "fc_technology": port_details[port_detail].static.fc_technology,
+                    "encoding": port_details[port_detail].static.encoding,
+                    "fc_link_lengths": port_details[port_detail].static.fc_link_lengths,
+                    "fc_transmission_media": port_details[
                         port_detail
-                    ].static.voltage_thresholds.warn_low,
-                },
-                "tx_power_thresholds": {
-                    "alarm_high": port_details[
+                    ].static.fc_transmission_media,
+                    "extended_identifier": port_details[
                         port_detail
-                    ].static.tx_power_thresholds.alarm_high,
-                    "alarm_low": port_details[
-                        port_detail
-                    ].static.tx_power_thresholds.alarm_low,
-                    "warn_high": port_details[
-                        port_detail
-                    ].static.tx_power_thresholds.warn_high,
-                    "warn_low": port_details[
-                        port_detail
-                    ].static.tx_power_thresholds.warn_low,
-                },
-                "rx_power_thresholds": {
-                    "alarm_high": port_details[
-                        port_detail
-                    ].static.rx_power_thresholds.alarm_high,
-                    "alarm_low": port_details[
-                        port_detail
-                    ].static.rx_power_thresholds.alarm_low,
-                    "warn_high": port_details[
-                        port_detail
-                    ].static.rx_power_thresholds.warn_high,
-                    "warn_low": port_details[
-                        port_detail
-                    ].static.rx_power_thresholds.warn_low,
-                },
-                "tx_bias_thresholds": {
-                    "alarm_high": port_details[
-                        port_detail
-                    ].static.tx_bias_thresholds.alarm_high,
-                    "alarm_low": port_details[
-                        port_detail
-                    ].static.tx_bias_thresholds.alarm_low,
-                    "warn_high": port_details[
-                        port_detail
-                    ].static.tx_bias_thresholds.warn_high,
-                    "warn_low": port_details[
-                        port_detail
-                    ].static.tx_bias_thresholds.warn_low,
-                },
-                "temperature_thresholds": {
-                    "alarm_high": port_details[
-                        port_detail
-                    ].static.temperature_thresholds.alarm_high,
-                    "alarm_low": port_details[
-                        port_detail
-                    ].static.temperature_thresholds.alarm_low,
-                    "warn_high": port_details[
-                        port_detail
-                    ].static.temperature_thresholds.warn_high,
-                    "warn_low": port_details[
-                        port_detail
-                    ].static.temperature_thresholds.warn_low,
-                },
-                "fc_speeds": port_details[port_detail].static.fc_speeds,
-                "fc_technology": port_details[port_detail].static.fc_technology,
-                "encoding": port_details[port_detail].static.encoding,
-                "fc_link_lengths": port_details[port_detail].static.fc_link_lengths,
-                "fc_transmission_media": port_details[
-                    port_detail
-                ].static.fc_transmission_media,
-                "extended_identifier": port_details[
-                    port_detail
-                ].static.extended_identifier,
-            }
-            hw_info["interfaces"][port_name]["temperature"] = (
-                port_details[port_detail].temperature[0].measurement
-            )
-            hw_info["interfaces"][port_name]["tx_bias"] = (
-                port_details[port_detail].tx_bias[0].measurement
-            )
-            hw_info["interfaces"][port_name]["tx_fault"] = (
-                port_details[port_detail].tx_fault[0].flag
-            )
-            hw_info["interfaces"][port_name]["tx_power"] = (
-                port_details[port_detail].tx_power[0].measurement
-            )
-            hw_info["interfaces"][port_name]["voltage"] = (
-                port_details[port_detail].voltage[0].measurement
-            )
-    return hw_info
-
-
-def generate_hardware_dict(array):
-    hw_info = {
-        "fans": {},
-        "controllers": {},
-        "temps": {},
-        "drives": {},
-        "interfaces": {},
-        "power": {},
-        "chassis": {},
-    }
-    components = array.list_hardware()
-    for component in range(0, len(components)):
-        component_name = components[component]["name"]
-        if "FAN" in component_name:
-            fan_name = component_name
-            hw_info["fans"][fan_name] = {"status": components[component]["status"]}
-        if "PWR" in component_name:
-            pwr_name = component_name
-            hw_info["power"][pwr_name] = {
-                "status": components[component]["status"],
-                "voltage": components[component]["voltage"],
-                "serial": components[component]["serial"],
-                "model": components[component]["model"],
-            }
-        if "IB" in component_name:
-            ib_name = component_name
-            hw_info["interfaces"][ib_name] = {
-                "status": components[component]["status"],
-                "speed": components[component]["speed"],
-            }
-        if "SAS" in component_name:
-            sas_name = component_name
-            hw_info["interfaces"][sas_name] = {
-                "status": components[component]["status"],
-                "speed": components[component]["speed"],
-            }
-        if "ETH" in component_name:
-            eth_name = component_name
-            hw_info["interfaces"][eth_name] = {
-                "status": components[component]["status"],
-                "speed": components[component]["speed"],
-            }
-        if "FC" in component_name:
-            eth_name = component_name
-            hw_info["interfaces"][eth_name] = {
-                "status": components[component]["status"],
-                "speed": components[component]["speed"],
-            }
-        if "TMP" in component_name:
-            tmp_name = component_name
-            hw_info["temps"][tmp_name] = {
-                "status": components[component]["status"],
-                "temperature": components[component]["temperature"],
-            }
-        if component_name in ["CT0", "CT1"]:
-            cont_name = component_name
-            hw_info["controllers"][cont_name] = {
-                "status": components[component]["status"],
-                "serial": components[component]["serial"],
-                "model": components[component]["model"],
-            }
-        if component_name in ["CH0"]:
-            cont_name = component_name
-            hw_info["chassis"][cont_name] = {
-                "status": components[component]["status"],
-                "serial": components[component]["serial"],
-                "model": components[component]["model"],
-            }
-
-    drives = array.list_drives()
-    for drive in range(0, len(drives)):
-        drive_name = drives[drive]["name"]
-        hw_info["drives"][drive_name] = {
-            "capacity": drives[drive]["capacity"],
-            "status": drives[drive]["status"],
-            "protocol": drives[drive]["protocol"],
-            "type": drives[drive]["type"],
-        }
-        for disk in range(0, len(components)):
-            if components[disk]["name"] == drive_name:
-                hw_info["drives"][drive_name]["serial"] = components[disk]["serial"]
-
+                    ].static.extended_identifier,
+                }
+                hw_info["interfaces"][port_name]["temperature"] = (
+                    port_details[port_detail].temperature[0].measurement
+                )
+                hw_info["interfaces"][port_name]["tx_bias"] = (
+                    port_details[port_detail].tx_bias[0].measurement
+                )
+                hw_info["interfaces"][port_name]["tx_fault"] = (
+                    port_details[port_detail].tx_fault[0].flag
+                )
+                hw_info["interfaces"][port_name]["tx_power"] = (
+                    port_details[port_detail].tx_power[0].measurement
+                )
+                hw_info["interfaces"][port_name]["voltage"] = (
+                    port_details[port_detail].voltage[0].measurement
+                )
+        except AttributeError:
+            pass
     return hw_info
 
 
@@ -354,13 +276,8 @@ def main():
     argument_spec = purefa_argument_spec()
     inv_info = {}
     module = AnsibleModule(argument_spec, supports_check_mode=True)
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
-    if NEW_API_VERSION in api_version:
-        arrayv6 = get_array(module)
-        inv_info = generate_new_hardware_dict(arrayv6, api_version)
-    else:
-        inv_info = generate_hardware_dict(array)
+    array = get_array(module)
+    inv_info = generate_new_hardware_dict(array)
     module.exit_json(changed=False, purefa_inv=inv_info)
 
 
