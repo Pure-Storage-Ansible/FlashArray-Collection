@@ -1873,16 +1873,16 @@ def generate_conn_array_dict(module, array):
                     pass
                 try:
                     if bool(carrays[carray].throttle.default_limit):
-                        conn_array_info[arrayname]["throttling"][
-                            "default_limit"
-                        ] = carrays[carray].throttle.default_limit
+                        conn_array_info[arrayname]["throttling"]["default_limit"] = (
+                            carrays[carray].throttle.default_limit
+                        )
                 except AttributeError:
                     pass
                 try:
                     if bool(carrays[carray].throttle.window_limit):
-                        conn_array_info[arrayname]["throttling"][
-                            "window_limit"
-                        ] = carrays[carray].throttle.window_limit
+                        conn_array_info[arrayname]["throttling"]["window_limit"] = (
+                            carrays[carray].throttle.window_limit
+                        )
                 except AttributeError:
                     pass
             else:
