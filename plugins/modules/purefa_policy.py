@@ -1038,15 +1038,9 @@ def create_policy(module, array, all_squash):
 
 def update_policy(module, array, api_version, all_squash):
     """Update an existing policy including add/remove rules"""
-    changed = (
-        changed_dir
-    ) = (
-        changed_rule
-    ) = (
-        changed_enable
-    ) = (
-        changed_quota
-    ) = changed_member = changed_user_map = changed_abe = changed_nfs = False
+    changed = changed_dir = changed_rule = changed_enable = changed_quota = (
+        changed_member
+    ) = changed_user_map = changed_abe = changed_nfs = False
     if module.params["policy"] == "nfs":
         current_policy = list(
             array.get_policies_nfs(names=[module.params["name"]]).items
