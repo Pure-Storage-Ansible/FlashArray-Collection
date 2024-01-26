@@ -151,7 +151,13 @@ RETURN = r"""
 
 HAS_PURESTORAGE = True
 try:
-    from pypureclient import flasharray
+    from pypureclient.flasharray import (
+        OffloadAzure,
+        OffloadGoogleCloud,
+        OffloadNfs,
+        OffloadPost,
+        OffloadS3,
+    )
 except ImportError:
     HAS_PURESTORAGE = False
 
@@ -160,188 +166,114 @@ import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
-    get_system,
     purefa_argument_spec,
 )
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
 
-MIN_REQUIRED_API_VERSION = "1.16"
 REGEX_TARGET_NAME = re.compile(r"^[a-zA-Z0-9\-]*$")
-P53_API_VERSION = "1.17"
-GCP_API_VERSION = "2.3"
-MULTIOFFLOAD_API_VERSION = "2.11"
-MULTIOFFLOAD_LIMIT = 5
+MULTIOFFLOAD_LIMIT = 1
 PROFILE_API_VERSION = "2.25"
 NO_SNAP2NFS_VERSION = "2.27"
 
 
 def get_target(module, array):
     """Return target or None"""
-    try:
-        return array.get_offload(module.params["name"])
-    except Exception:
+    res = array.get_offloads(names=[module.params["name"]])
+    if res.status_code == 200:
+        return list(res.items)[0]
+    else:
         return None
 
 
 def create_offload(module, array):
     """Create offload target"""
     changed = True
-    api_version = array._list_available_rest_versions()
+    api_version = array.get_rest_version()
     # First check if the offload network inteface is there and enabled
-    try:
-        if not array.get_network_interface("@offload.data")["enabled"]:
-            module.fail_json(
-                msg="Offload Network interface not enabled. Please resolve."
-            )
-    except Exception:
+    res = array.get_network_interfaces(names=["@offload.data0"])
+    if res.status != 200:
+        module.fail_json(msg="Offload Network interface doesn't exist. Please resolve.")
+    if not list(res.items)[0].enabled:
         module.fail_json(
             msg="Offload Network interface not correctly configured. Please resolve."
         )
-    if GCP_API_VERSION not in api_version:
-        if not module.check_mode:
-            if module.params["protocol"] == "nfs":
-                try:
-                    array.connect_nfs_offload(
-                        module.params["name"],
-                        mount_point=module.params["share"],
-                        address=module.params["address"],
-                        mount_options=module.params["options"],
-                    )
-                except Exception:
-                    module.fail_json(
-                        msg="Failed to create NFS offload {0}. "
-                        "Please perform diagnostic checks.".format(
-                            module.params["name"]
-                        )
-                    )
-            if module.params["protocol"] == "s3":
-                if P53_API_VERSION in api_version:
-                    try:
-                        array.connect_s3_offload(
-                            module.params["name"],
-                            access_key_id=module.params["access_key"],
-                            secret_access_key=module.params["secret"],
-                            bucket=module.params["bucket"],
-                            placement_strategy=module.params["placement"],
-                            initialize=module.params["initialize"],
-                        )
-                    except Exception:
-                        module.fail_json(
-                            msg="Failed to create S3 offload {0}. "
-                            "Please perform diagnostic checks.".format(
-                                module.params["name"]
-                            )
-                        )
-                else:
-                    try:
-                        array.connect_s3_offload(
-                            module.params["name"],
-                            access_key_id=module.params["access_key"],
-                            secret_access_key=module.params["secret"],
-                            bucket=module.params["bucket"],
-                            initialize=module.params["initialize"],
-                        )
-                    except Exception:
-                        module.fail_json(
-                            msg="Failed to create S3 offload {0}. "
-                            "Please perform diagnostic checks.".format(
-                                module.params["name"]
-                            )
-                        )
-            if module.params["protocol"] == "azure" and P53_API_VERSION in api_version:
-                try:
-                    array.connect_azure_offload(
-                        module.params["name"],
-                        container_name=module.params["container"],
-                        secret_access_key=module.params["secret"],
-                        account_name=module.params[".bucket"],
-                        initialize=module.params["initialize"],
-                    )
-                except Exception:
-                    module.fail_json(
-                        msg="Failed to create Azure offload {0}. "
-                        "Please perform diagnostic checks.".format(
-                            module.params["name"]
-                        )
-                    )
-        else:
-            arrayv6 = get_array(module)
-            if module.params["protocol"] == "gcp":
-                if PROFILE_API_VERSION in api_version and module.params["profile"]:
-                    bucket = flasharray.OffloadGoogleCloud(
-                        access_key_id=module.params["access_key"],
-                        bucket=module.params["bucket"],
-                        secret_access_key=module.params["secret"],
-                        profile=module.params["profile"],
-                    )
-                else:
-                    bucket = flasharray.OffloadGoogleCloud(
-                        access_key_id=module.params["access_key"],
-                        bucket=module.params["bucket"],
-                        secret_access_key=module.params["secret"],
-                    )
-                offload = flasharray.OffloadPost(google_cloud=bucket)
-            if module.params["protocol"] == "azure" and module.params["profile"]:
-                if PROFILE_API_VERSION in api_version:
-                    bucket = flasharray.OffloadAzure(
-                        container_name=module.params["container"],
-                        secret_access_key=module.params["secret"],
-                        account_name=module.params[".bucket"],
-                        profile=module.params["profile"],
-                    )
-                else:
-                    bucket = flasharray.OffloadAzure(
-                        container_name=module.params["container"],
-                        secret_access_key=module.params["secret"],
-                        account_name=module.params[".bucket"],
-                    )
-                offload = flasharray.OffloadPost(azure=bucket)
-            if module.params["protocol"] == "s3" and module.params["profile"]:
-                if PROFILE_API_VERSION in api_version:
-                    bucket = flasharray.OffloadS3(
-                        access_key_id=module.params["access_key"],
-                        bucket=module.params["bucket"],
-                        secret_access_key=module.params["secret"],
-                        profile=module.params["profile"],
-                    )
-                else:
-                    bucket = flasharray.OffloadS3(
-                        access_key_id=module.params["access_key"],
-                        bucket=module.params["bucket"],
-                        secret_access_key=module.params["secret"],
-                    )
-                offload = flasharray.OffloadPost(s3=bucket)
-            if module.params["protocol"] == "nfs" and module.params["profile"]:
-                if PROFILE_API_VERSION in api_version:
-                    bucket = flasharray.OffloadNfs(
-                        mount_point=module.params["share"],
-                        address=module.params["address"],
-                        mount_options=module.params["options"],
-                        profile=module.params["profile"],
-                    )
-                else:
-                    bucket = flasharray.OffloadNfs(
-                        mount_point=module.params["share"],
-                        address=module.params["address"],
-                        mount_options=module.params["options"],
-                    )
-                offload = flasharray.OffloadPost(nfs=bucket)
-            res = arrayv6.post_offloads(
-                offload=offload,
-                initialize=module.params["initialize"],
-                names=[module.params["name"]],
-            )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to create {0} offload {1}. Error: {2}"
-                    "Please perform diagnostic checks.".format(
-                        module.params["protocol"].upper(),
-                        module.params["name"],
-                        res.errors[0].message,
-                    )
+    if not module.check_mode:
+        if module.params["protocol"] == "gcp":
+            if PROFILE_API_VERSION in api_version and module.params["profile"]:
+                bucket = OffloadGoogleCloud(
+                    access_key_id=module.params["access_key"],
+                    bucket=module.params["bucket"],
+                    secret_access_key=module.params["secret"],
+                    profile=module.params["profile"],
                 )
+            else:
+                bucket = OffloadGoogleCloud(
+                    access_key_id=module.params["access_key"],
+                    bucket=module.params["bucket"],
+                    secret_access_key=module.params["secret"],
+                )
+            offload = OffloadPost(google_cloud=bucket)
+        if module.params["protocol"] == "azure" and module.params["profile"]:
+            if PROFILE_API_VERSION in api_version:
+                bucket = OffloadAzure(
+                    container_name=module.params["container"],
+                    secret_access_key=module.params["secret"],
+                    account_name=module.params[".bucket"],
+                    profile=module.params["profile"],
+                )
+            else:
+                bucket = OffloadAzure(
+                    container_name=module.params["container"],
+                    secret_access_key=module.params["secret"],
+                    account_name=module.params[".bucket"],
+                )
+            offload = OffloadPost(azure=bucket)
+        if module.params["protocol"] == "s3" and module.params["profile"]:
+            if PROFILE_API_VERSION in api_version:
+                bucket = OffloadS3(
+                    access_key_id=module.params["access_key"],
+                    bucket=module.params["bucket"],
+                    secret_access_key=module.params["secret"],
+                    profile=module.params["profile"],
+                )
+            else:
+                bucket = OffloadS3(
+                    access_key_id=module.params["access_key"],
+                    bucket=module.params["bucket"],
+                    secret_access_key=module.params["secret"],
+                )
+            offload = OffloadPost(s3=bucket)
+        if module.params["protocol"] == "nfs" and module.params["profile"]:
+            if PROFILE_API_VERSION in api_version:
+                bucket = OffloadNfs(
+                    mount_point=module.params["share"],
+                    address=module.params["address"],
+                    mount_options=module.params["options"],
+                    profile=module.params["profile"],
+                )
+            else:
+                bucket = OffloadNfs(
+                    mount_point=module.params["share"],
+                    address=module.params["address"],
+                    mount_options=module.params["options"],
+                )
+            offload = OffloadPost(nfs=bucket)
+        res = array.post_offloads(
+            offload=offload,
+            initialize=module.params["initialize"],
+            names=[module.params["name"]],
+        )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Failed to create {0} offload {1}. Error: {2}"
+                "Please perform diagnostic checks.".format(
+                    module.params["protocol"].upper(),
+                    module.params["name"],
+                    res.errors[0].message,
+                )
+            )
     module.exit_json(changed=changed)
 
 
@@ -354,33 +286,14 @@ def update_offload(module, array):
 def delete_offload(module, array):
     """Delete offload target"""
     changed = True
-    api_version = array._list_available_rest_versions()
     if not module.check_mode:
-        if module.params["protocol"] == "nfs":
-            try:
-                array.disconnect_nfs_offload(module.params["name"])
-            except Exception:
-                module.fail_json(
-                    msg="Failed to delete NFS offload {0}.".format(
-                        module.params["name"]
-                    )
+        res = array.delete_offloads(names=[module.params["name"]])
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Failed to delete offload {0}. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
                 )
-        if module.params["protocol"] == "s3":
-            try:
-                array.disconnect_s3_offload(module.params["name"])
-            except Exception:
-                module.fail_json(
-                    msg="Failed to delete S3 offload {0}.".format(module.params["name"])
-                )
-        if module.params["protocol"] == "azure" and P53_API_VERSION in api_version:
-            try:
-                array.disconnect_azure_offload(module.params["name"])
-            except Exception:
-                module.fail_json(
-                    msg="Failed to delete Azure offload {0}.".format(
-                        module.params["name"]
-                    )
-                )
+            )
     module.exit_json(changed=changed)
 
 
@@ -439,13 +352,16 @@ def main():
         argument_spec, required_if=required_if, supports_check_mode=True
     )
 
-    if not HAS_PURESTORAGE and module.params["protocol"] == "gcp":
+    if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
+    array = get_array(module)
+    api_version = array.get_rest_version()
 
-    if NO_SNAP2NFS_VERSION in api_version and module.params["protocol"] == "nfs":
+    if (
+        LooseVersion(NO_SNAP2NFS_VERSION) <= LooseVersion(api_version)
+        and module.params["protocol"] == "nfs"
+    ):
         module.fail_json(
             msg="NFS offload target is not supported from Purity//FA 6.6.0 and higher"
         )
@@ -477,11 +393,6 @@ def main():
     ):
         module.warn("Specified profile not valid, ignoring...")
         module.params["profile"] = None
-    if MIN_REQUIRED_API_VERSION not in api_version:
-        module.fail_json(
-            msg="FlashArray REST version not supported. "
-            "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
-        )
 
     if (
         not re.match(r"^[a-zA-Z][a-zA-Z0-9\-]*[a-zA-Z0-9]$", module.params["name"])
@@ -504,45 +415,29 @@ def main():
                 "and begin and end with a letter or number."
             )
 
-    apps = array.list_apps()
-    app_version = 0
-    all_good = False
-    for app in range(0, len(apps)):
-        if apps[app]["name"] == "offload":
-            if (
-                apps[app]["enabled"]
-                and apps[app]["status"] == "healthy"
-                and LooseVersion(apps[app]["version"]) >= LooseVersion("5.2.0")
-            ):
-                all_good = True
-                app_version = apps[app]["version"]
-                break
-
-    if not all_good:
+    res = array.get_apps(names=["offload"])
+    if res.status_code != 200:
         module.fail_json(
             msg="Correct Offload app not installed or incorrectly configured"
         )
     else:
-        if LooseVersion(array.get()["version"]) != LooseVersion(app_version):
+        app_state = list(res.items)[0]
+        if LooseVersion(app_state.version) != LooseVersion(array.get_rest_version()):
             module.fail_json(
                 msg="Offload app version must match Purity version. Please upgrade."
             )
 
     target = get_target(module, array)
     if module.params["state"] == "present" and not target:
-        offloads = array.list_offload()
-        target_count = len(offloads)
-        if MIN_REQUIRED_API_VERSION not in api_version:
-            MULTIOFFLOAD_LIMIT = 1
-        if target_count >= MULTIOFFLOAD_LIMIT:
+        offloads = list(array.get_offloads().items)
+        if len(offloads) >= MULTIOFFLOAD_LIMIT:
             module.fail_json(
                 msg="Cannot add offload target {0}. Offload Target Limit of {1} would be exceeded.".format(
                     module.params["name"], MULTIOFFLOAD_LIMIT
                 )
             )
-            # TODO: (SD) Remove this check when multi-protocol offloads are supported
-            if offloads[0].protocol != module.params["protocol"]:
-                module.fail_json(msg="Currently all offloads must be of the same type.")
+        if offloads[0].protocol != module.params["protocol"]:
+            module.fail_json(msg="Currently all offloads must be of the same type.")
         create_offload(module, array)
     elif module.params["state"] == "present" and target:
         update_offload(module, array)
