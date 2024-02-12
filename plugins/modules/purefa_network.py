@@ -338,9 +338,12 @@ def update_interface(module, array, interface):
     else:
         enabled = current_state["enabled"]
     if not current_state["gateway"]:
-        if valid_ipv4(interface["address"]):
-            current_state["gateway"] = None
-        elif valid_ipv6(interface["address"]):
+        try:
+            if valid_ipv4(interface["address"]):
+                current_state["gateway"] = None
+            elif valid_ipv6(interface["address"]):
+                current_state["gateway"] = None
+        except AttributeError:
             current_state["gateway"] = None
     if not module.params["servicelist"]:
         services = sorted(interface["services"])
