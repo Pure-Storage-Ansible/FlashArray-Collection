@@ -333,12 +333,11 @@ def delete_cert(module, array):
 def import_cert(module, array, reimport=False):
     """Import a CA provided SSL certificate"""
     changed = True
-    if len(module.params["certificate"]) > 3000:
-        module.fail_json(msg="Imported Certificate exceeds 3000 characters")
     certificate = flasharray.CertificatePost(
         certificate=module.params["certificate"],
         intermediate_certificate=module.params["intermeadiate_cert"],
         key=module.params["key"],
+        key_size=module.params["key_size"],
         passphrase=module.params["passphrase"],
         status="imported",
     )
