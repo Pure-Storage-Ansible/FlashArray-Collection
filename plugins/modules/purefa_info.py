@@ -700,8 +700,144 @@ def generate_network_dict(module, array):
         for neighbor in range(0, len(neighbors)):
             neighbor_info = neighbors[neighbor]
             int_name = neighbor_info.local_port.name
-            net_info[int_name].update(
-                {
+            try:
+                net_info[int_name].update(
+                    {
+                        "neighbor": {
+                            "initial_ttl_in_sec": neighbor_info.initial_ttl_in_sec,
+                            "neighbor_port": {
+                                "description": getattr(
+                                    neighbor_info.neighbor_port, "description", None
+                                ),
+                                "name": getattr(
+                                    neighbor_info.neighbor_chassis, "name", None
+                                ),
+                                "id": getattr(
+                                    neighbor_info.neighbor_port.id, "value", None
+                                ),
+                            },
+                            "neighbor_chassis": {
+                                "addresses": getattr(
+                                    neighbor_info.neighbor_chassis, "addresses", None
+                                ),
+                                "description": getattr(
+                                    neighbor_info.neighbor_chassis, "description", None
+                                ),
+                                "name": getattr(
+                                    neighbor_info.neighbor_chassis, "name", None
+                                ),
+                                "bridge": {
+                                    "enabled": getattr(
+                                        neighbor_info.neighbor_chassis.bridge,
+                                        "enabled",
+                                        False,
+                                    ),
+                                    "supported": getattr(
+                                        neighbor_info.neighbor_chassis.bridge,
+                                        "supported",
+                                        False,
+                                    ),
+                                },
+                                "repeater": {
+                                    "enabled": getattr(
+                                        neighbor_info.neighbor_chassis.repeater,
+                                        "enabled",
+                                        False,
+                                    ),
+                                    "supported": getattr(
+                                        neighbor_info.neighbor_chassis.repeater,
+                                        "supported",
+                                        False,
+                                    ),
+                                },
+                                "router": {
+                                    "enabled": getattr(
+                                        neighbor_info.neighbor_chassis.router,
+                                        "enabled",
+                                        False,
+                                    ),
+                                    "supported": getattr(
+                                        neighbor_info.neighbor_chassis.router,
+                                        "supported",
+                                        False,
+                                    ),
+                                },
+                                "station_only": {
+                                    "enabled": getattr(
+                                        neighbor_info.neighbor_chassis.station_only,
+                                        "enabled",
+                                        False,
+                                    ),
+                                    "supported": getattr(
+                                        neighbor_info.neighbor_chassis.station_only,
+                                        "supported",
+                                        False,
+                                    ),
+                                },
+                                "telephone": {
+                                    "enabled": getattr(
+                                        neighbor_info.neighbor_chassis.telephone,
+                                        "enabled",
+                                        False,
+                                    ),
+                                    "supported": getattr(
+                                        neighbor_info.neighbor_chassis.telephone,
+                                        "supported",
+                                        False,
+                                    ),
+                                },
+                                "wlan_access_point": {
+                                    "enabled": getattr(
+                                        neighbor_info.neighbor_chassis.wlan_access_point,
+                                        "enabled",
+                                        False,
+                                    ),
+                                    "supported": getattr(
+                                        neighbor_info.neighbor_chassis.wlan_access_point,
+                                        "supported",
+                                        False,
+                                    ),
+                                },
+                                "docsis_cable_device": {
+                                    "enabled": getattr(
+                                        neighbor_info.neighbor_chassis.docsis_cable_device,
+                                        "enabled",
+                                        False,
+                                    ),
+                                    "supported": getattr(
+                                        neighbor_info.neighbor_chassis.docsis_cable_device,
+                                        "supported",
+                                        False,
+                                    ),
+                                },
+                                "id": {
+                                    "type": getattr(
+                                        neighbor_info.neighbor_chassis.id,
+                                        "type",
+                                        None,
+                                    ),
+                                    "value": getattr(
+                                        neighbor_info.neighbor_chassis.id,
+                                        "value",
+                                        None,
+                                    ),
+                                },
+                            },
+                        }
+                    }
+                )
+            except KeyError:
+                net_info[int_name] = {
+                    "hwaddr": None,
+                    "mtu": None,
+                    "enabled": None,
+                    "speed": None,
+                    "address": None,
+                    "slaves": None,
+                    "services": None,
+                    "gateway": None,
+                    "netmask": None,
+                    "subnet": None,
                     "neighbor": {
                         "initial_ttl_in_sec": neighbor_info.initial_ttl_in_sec,
                         "neighbor_port": {
@@ -822,9 +958,9 @@ def generate_network_dict(module, array):
                                 ),
                             },
                         },
-                    }
+                    },
                 }
-            )
+
     return net_info
 
 
