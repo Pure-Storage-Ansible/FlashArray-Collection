@@ -5,6 +5,44 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.27.0
+=======
+
+Release Summary
+---------------
+
+| This release changes the minimum supported Purity//FA version.
+|
+| The minimum supported Purity//FA version increases to 6.1.0.
+| All previous versions are classed as EOL by Pure Storage support.
+|
+| This change is to support the full integration to Purity//FA REST v2.x
+
+
+Minor Changes
+-------------
+
+- purefa_arrayname - Convert to REST v2
+- purefa_eula - Only sign if not previously signed. From REST 2.30 name, title and company are no longer required
+- purefa_info - Add support for controller uptime from Purity//FA 6.6.3
+- purefa_inventory - Convert to REST v2
+- purefa_ntp - Convert to REST v2
+- purefa_offload - Convert to REST v2
+- purefa_pgsnap - Module now requires minimum FlashArray Purity//FA 6.1.0
+- purefa_ra - Add ``present`` and ``absent`` as valid ``state`` options
+- purefa_ra - Add connecting as valid status of RA to perform operations on
+- purefa_ra - Convert to REST v2
+- purefa_syslog - ``name`` becomes a required parameter as module converts to full REST 2 support
+- purefa_vnc - Convert to REST v2
+
+Bugfixes
+--------
+
+- purefa_certs - Allow certificates of over 3000 characters to be imported.
+- purefa_info - Resolved issue with KeyError when LACP bonds are in use
+- purefa_inventory - Fix issue with iSCSI-only FlashArrays
+- purefa_pgsnap - Add support for restoring volumes connected to hosts in a host-based protection group and hosts in a hostgroup-based protection group.
+
 v1.26.0
 =======
 
