@@ -98,6 +98,7 @@ try:
     from purestorage import purestorage
 except ImportError:
     purestorage = None
+from datetime import datetime
 import time
 
 SEC_TO_DAY = 86400000
@@ -131,6 +132,7 @@ AUTODIR_API_VERSION = "2.24"
 SUBS_API_VERSION = "2.26"
 NSID_API_VERSION = "2.27"
 NFS_SECURITY_VERSION = "2.29"
+UPTIME_API_VERSION = "2.30"
 
 
 def _is_cbs(array):
@@ -190,6 +192,21 @@ def generate_default_dict(module, array):
                     default_info["safe_mode"] = "Disabled"
                 else:
                     default_info["safe_mode"] = "Enabled"
+            if UPTIME_API_VERSION in api_version:
+                default_info["controller_uptime"] = []
+                controllers = list(arrayv6.get_controllers().items)
+                timenow = datetime.fromtimestamp(time.time())
+                for controller in range(0, len(controllers)):
+                    boottime = datetime.fromtimestamp(
+                        controllers[controller].mode_since / 1000
+                    )
+                    delta = timenow - boottime
+                    default_info["controller_uptime"].append(
+                        {
+                            "controller": controllers[controller].name,
+                            "uptime": str(delta),
+                        }
+                    )
     if AC_REQUIRED_API_VERSION in api_version:
         default_info["volume_groups"] = len(array.list_vgroups())
         default_info["connected_arrays"] = len(array.list_array_connections())
