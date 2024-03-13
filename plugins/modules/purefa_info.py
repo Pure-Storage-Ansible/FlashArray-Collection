@@ -176,6 +176,7 @@ def generate_default_dict(module, array):
                 default_info["encryption_module_version"] = encryption.module_version
             eradication = array_data.eradication_config
             if SUBS_API_VERSION in api_version:
+                default_info["service_mode"] = list(arrayv6.get_subscriptions().items)[0].service
                 default_info["eradication_disabled_days_timer"] = int(
                     eradication.disabled_delay / SEC_TO_DAY
                 )
