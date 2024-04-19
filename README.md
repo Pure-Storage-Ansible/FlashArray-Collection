@@ -15,7 +15,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 
 ## Prerequisites
 
-- Ansible 2.14 or later
+- Ansible 2.15 or later
 - Pure Storage FlashArray system running Purity 6.1.0 or later
     - some modules require higher versions of Purity
 - Some modules require specific Purity versions
