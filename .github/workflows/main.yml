@@ -13,7 +13,6 @@ jobs:
     strategy:
       matrix:
         ansible:
-          - stable-2.14
           - stable-2.15
           - stable-2.16
           - devel
