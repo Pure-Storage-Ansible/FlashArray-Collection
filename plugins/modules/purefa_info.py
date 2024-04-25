@@ -1086,8 +1086,11 @@ def generate_snap_dict(module, array):
                 time.mktime(time.strptime(snaps[snap]["created"], "%Y-%m-%dT%H:%M:%SZ"))
             ),
             "tags": [],
+            "is_local": True,
             "remote": [],
         }
+        if ":" in snapshot and "::" not in snapshot:
+            snap_info[snapshot]["is_local"] = False
     if FC_REPL_API_VERSION in api_version:
         for snap in range(0, len(snapsv6)):
             snapshot = snapsv6[snap].name
