@@ -331,7 +331,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.common impo
     human_to_bytes,
     human_to_real,
 )
-
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
 
 QOS_API_VERSION = "1.14"
 VGROUPS_API_VERSION = "1.13"
@@ -345,6 +347,38 @@ PURE_OUI = "naa.624a9370"
 PRIORITY_API_VERSION = "2.11"
 DEFAULT_API_VERSION = "2.16"
 VOLUME_PROMOTION_API_VERSION = "2.2"
+
+
+def _volfact(module, array):
+    api_version = array.get_rest_version()
+    volume_name = module.params["name"]
+    volume_data = list(array.get_volumes(names=[volume_name]).items)[0]
+    volfact = {
+        volume_name: {
+            "size": volume_data.provisioned,
+            "serial": volume_data.serial,
+            "created": time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(volume_data.created / 1000)
+            ),
+            "page83_naa": PURE_OUI + volume_data.serial.lower(),
+            "nvme_nguid": _create_nguid(volume_data.serial.lower()),
+            "iops_limit": getattr(volume_data.qos, "iops_limit", 0),
+            "bandwidth_limit": getattr(volume_data.qos, "bandwidth_limit", 0),
+            "requested_promotion_state": volume_data.requested_promotion_state,
+            "promotion_status": volume_data.promotion_status,
+            "priority": getattr(volume_data, "priority", 0),
+            "priority_operator": "",
+            "priority_value": "",
+        }
+    }
+    if LooseVersion(PRIORITY_API_VERSION) <= LooseVersion(api_version):
+        volfact[volume_name][
+            "priority_operator"
+        ] = volume_data.priority_adjustment.priority_adjustment_operator
+        volfact[volume_name][
+            "priority_value"
+        ] = volume_data.priority_adjustment.priority_adjustment_value
+    return volfact
 
 
 def _create_nguid(serial):
@@ -511,7 +545,6 @@ def check_pod(module, array):
 
 def create_volume(module, array):
     """Create Volume"""
-    volfact = []
     changed = False
     api_version = array._list_available_rest_versions()
     if "/" in module.params["name"] and not check_vgroup(module, array):
@@ -549,16 +582,10 @@ def create_volume(module, array):
                         changed = True
                         if not module.check_mode:
                             try:
-                                volfact = array.create_volume(
+                                array.create_volume(
                                     module.params["name"],
                                     module.params["size"],
                                     bandwidth_limit=module.params["bw_qos"],
-                                )
-                                volfact["page83_naa"] = (
-                                    PURE_OUI + volfact["serial"].lower()
-                                )
-                                volfact["nvme_nguid"] = _create_nguid(
-                                    volfact["serial"].lower()
                                 )
                             except Exception:
                                 module.fail_json(
@@ -581,16 +608,10 @@ def create_volume(module, array):
                         changed = True
                         if not module.check_mode:
                             try:
-                                volfact = array.create_volume(
+                                array.create_volume(
                                     module.params["name"],
                                     module.params["size"],
                                     iops_limit=module.params["iops_qos"],
-                                )
-                                volfact["page83_naa"] = (
-                                    PURE_OUI + volfact["serial"].lower()
-                                )
-                                volfact["nvme_nguid"] = _create_nguid(
-                                    volfact["serial"].lower()
                                 )
                             except Exception:
                                 module.fail_json(
@@ -612,17 +633,11 @@ def create_volume(module, array):
                         changed = True
                         if not module.check_mode:
                             try:
-                                volfact = array.create_volume(
+                                array.create_volume(
                                     module.params["name"],
                                     module.params["size"],
                                     iops_limit=module.params["iops_qos"],
                                     bandwidth_limit=module.params["bw_qos"],
-                                )
-                                volfact["page83_naa"] = (
-                                    PURE_OUI + volfact["serial"].lower()
-                                )
-                                volfact["nvme_nguid"] = _create_nguid(
-                                    volfact["serial"].lower()
                                 )
                             except Exception:
                                 module.fail_json(
@@ -642,16 +657,10 @@ def create_volume(module, array):
                         changed = True
                         if not module.check_mode:
                             try:
-                                volfact = array.create_volume(
+                                array.create_volume(
                                     module.params["name"],
                                     module.params["size"],
                                     bandwidth_limit=module.params["bw_qos"],
-                                )
-                                volfact["page83_naa"] = (
-                                    PURE_OUI + volfact["serial"].lower()
-                                )
-                                volfact["nvme_nguid"] = _create_nguid(
-                                    volfact["serial"].lower()
                                 )
                             except Exception:
                                 module.fail_json(
@@ -669,12 +678,8 @@ def create_volume(module, array):
                     changed = True
                     if not module.check_mode:
                         try:
-                            volfact = array.create_volume(
+                            array.create_volume(
                                 module.params["name"], module.params["size"]
-                            )
-                            volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
-                            volfact["nvme_nguid"] = _create_nguid(
-                                volfact["serial"].lower()
                             )
                         except Exception:
                             module.fail_json(
@@ -686,11 +691,7 @@ def create_volume(module, array):
         changed = True
         if not module.check_mode:
             try:
-                volfact = array.create_volume(
-                    module.params["name"], module.params["size"]
-                )
-                volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
-                volfact["nvme_nguid"] = _create_nguid(volfact["serial"].lower())
+                array.create_volume(module.params["name"], module.params["size"])
             except Exception:
                 module.fail_json(
                     msg="Volume {0} creation failed.".format(module.params["name"])
@@ -714,8 +715,6 @@ def create_volume(module, array):
                         module.params["name"]
                     )
                 )
-            else:
-                volfact["promotion_state"] = module.params["promotion_state"]
     if PRIORITY_API_VERSION in api_version and module.params["priority_operator"]:
         arrayv6 = get_array(module)
         volume = flasharray.VolumePatch(
@@ -736,9 +735,6 @@ def create_volume(module, array):
                     module.params["name"], res.errors[0].message
                 )
             )
-        else:
-            volfact["priority_operator"] = module.params["priority_operator"]
-            volfact["priority_value"] = module.params["priority_value"]
     if module.params["pgroup"] and DEFAULT_API_VERSION not in api_version:
         changed = True
         if not module.check_mode:
@@ -753,7 +749,7 @@ def create_volume(module, array):
                     )
                 )
 
-    module.exit_json(changed=changed, volume=volfact)
+    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
 
 
 def create_multi_volume(module, array, single=False):
@@ -954,7 +950,6 @@ def create_multi_volume(module, array, single=False):
 
 def copy_from_volume(module, array):
     """Create Volume Clone"""
-    volfact = []
     changed = False
     tgt = get_target(module, array)
     api_version = array._list_available_rest_versions()
@@ -1000,23 +995,9 @@ def copy_from_volume(module, array):
                             res.errors[0].message,
                         )
                     )
-                vol_data = list(res.items)
-                volfact = {
-                    "size": vol_data[0].provisioned,
-                    "serial": vol_data[0].serial,
-                    "created": time.strftime(
-                        "%Y-%m-%d %H:%M:%S", time.localtime(vol_data[0].created / 1000)
-                    ),
-                    "page83_naa": PURE_OUI + vol_data[0].serial.lower(),
-                    "nvme_nguid": _create_nguid(vol_data[0].serial.lower()),
-                }
             else:
                 try:
-                    volfact = array.copy_volume(
-                        module.params["name"], module.params["target"]
-                    )
-                    volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
-                    volfact["nvme_nguid"] = _create_nguid(volfact["serial"].lower())
+                    array.copy_volume(module.params["name"], module.params["target"])
                     changed = True
                 except Exception:
                     module.fail_json(
@@ -1029,13 +1010,11 @@ def copy_from_volume(module, array):
         if not module.check_mode:
             if DEFAULT_API_VERSION not in api_version:
                 try:
-                    volfact = array.copy_volume(
+                    array.copy_volume(
                         module.params["name"],
                         module.params["target"],
                         overwrite=module.params["overwrite"],
                     )
-                    volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
-                    volfact["nvme_nguid"] = _create_nguid(volfact["serial"].lower())
                     changed = True
                 except Exception:
                     module.fail_json(
@@ -1059,23 +1038,12 @@ def copy_from_volume(module, array):
                             res.errors[0].message,
                         )
                     )
-                vol_data = list(res.items)
-                volfact = {
-                    "size": vol_data[0].provisioned,
-                    "serial": vol_data[0].serial,
-                    "created": time.strftime(
-                        "%Y-%m-%d %H:%M:%S", time.localtime(vol_data[0].created / 1000)
-                    ),
-                    "page83_naa": PURE_OUI + vol_data[0].serial.lower(),
-                    "nvme_nguid": _create_nguid(vol_data[0].serial.lower()),
-                }
 
-    module.exit_json(changed=changed, volume=volfact)
+    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
 
 
 def update_volume(module, array):
     """Update Volume size and/or QoS"""
-    volfact = {}
     changed = False
     arrayv6 = None
     api_version = array._list_available_rest_versions()
@@ -1102,7 +1070,7 @@ def update_volume(module, array):
                 changed = True
                 if not module.check_mode:
                     try:
-                        volfact = array.extend_volume(
+                        array.extend_volume(
                             module.params["name"], module.params["size"]
                         )
                     except Exception:
@@ -1119,9 +1087,7 @@ def update_volume(module, array):
                 changed = True
                 if not module.check_mode:
                     try:
-                        volfact = array.set_volume(
-                            module.params["name"], bandwidth_limit=""
-                        )
+                        array.set_volume(module.params["name"], bandwidth_limit="")
                     except Exception:
                         module.fail_json(
                             msg="Volume {0} Bandwidth QoS removal failed.".format(
@@ -1134,7 +1100,7 @@ def update_volume(module, array):
                 changed = True
                 if not module.check_mode:
                     try:
-                        volfact = array.set_volume(
+                        array.set_volume(
                             module.params["name"],
                             bandwidth_limit=module.params["bw_qos"],
                         )
@@ -1156,7 +1122,7 @@ def update_volume(module, array):
                 changed = True
                 if not module.check_mode:
                     try:
-                        volfact = array.set_volume(module.params["name"], iops_limit="")
+                        array.set_volume(module.params["name"], iops_limit="")
                     except Exception:
                         module.fail_json(
                             msg="Volume {0} IOPs QoS removal failed.".format(
@@ -1167,7 +1133,7 @@ def update_volume(module, array):
                 changed = True
                 if not module.check_mode:
                     try:
-                        volfact = array.set_volume(
+                        array.set_volume(
                             module.params["name"], iops_limit=module.params["iops_qos"]
                         )
                     except Exception:
@@ -1199,10 +1165,6 @@ def update_volume(module, array):
                             module.params["name"]
                         )
                     )
-                else:
-                    if not volfact:
-                        volfact = array.get_volume(module.params["name"])
-                        volfact["promotion_status"] = module.params["promotion_state"]
     if PRIORITY_API_VERSION in api_version and module.params["priority_operator"]:
         volv6 = list(arrayv6.get_volumes(names=[module.params["name"]]).items)[0]
         change_prio = False
@@ -1246,33 +1208,13 @@ def update_volume(module, array):
                         module.params["name"], prio_res.errors[0].message
                     )
                 )
-            else:
-                if not volfact:
-                    volfact = array.get_volume(module.params["name"])
-                volfact["priority_operator"] = module.params["priority_operator"]
-                volfact["priority_value"] = module.params["priority_value"]
-    if MULTI_VOLUME_VERSION in api_version:
-        volume_data = list(arrayv6.get_volumes(names=[module.params["name"]]).items)[0]
-        updatefacts = {
-            "name": volume_data.name,
-            "size": volume_data.provisioned,
-            "serial": volume_data.serial,
-            "created": time.strftime(
-                "%Y-%m-%d %H:%M:%S", time.localtime(volume_data.created / 1000)
-            ),
-            "page83_naa": PURE_OUI + volume_data.serial.lower(),
-            "nvme_nguid": _create_nguid(volume_data.serial.lower()),
-        }
-    else:
-        updatefacts = array.get_volume(module.params["name"])
-    vol_fact = {**volfact, **updatefacts}
-    module.exit_json(changed=changed, volume=vol_fact)
+    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
 
 
 def rename_volume(module, array):
     """Rename volume within a container, ie pod, vgroup or local array"""
-    volfact = []
     changed = False
+    arrayv6 = get_array(module)
     pod_name = ""
     vgroup_name = ""
     target_name = module.params["rename"]
@@ -1314,9 +1256,7 @@ def rename_volume(module, array):
             changed = True
             if not module.check_mode:
                 try:
-                    volfact = array.rename_volume(
-                        module.params["name"], module.params["rename"]
-                    )
+                    array.rename_volume(module.params["name"], module.params["rename"])
                 except Exception:
                     module.fail_json(
                         msg="Rename volume {0} to {1} failed.".format(
@@ -1326,12 +1266,11 @@ def rename_volume(module, array):
     else:
         module.fail_json(msg="Target volume {0} already exists.".format(target_name))
 
-    module.exit_json(changed=changed, volume=volfact)
+    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
 
 
 def move_volume(module, array):
     """Move volume between pods, vgroups or local array"""
-    volfact = []
     changed = vgroup_exists = target_exists = pod_exists = False
     api_version = array._list_available_rest_versions()
     pod_name = ""
@@ -1428,7 +1367,7 @@ def move_volume(module, array):
     changed = True
     if not module.check_mode:
         try:
-            volfact = array.move_volume(module.params["name"], target_location)
+            array.move_volume(module.params["name"], target_location)
         except Exception:
             if target_location == "":
                 target_location = "[local]"
@@ -1437,19 +1376,19 @@ def move_volume(module, array):
                     module.params["name"], target_location
                 )
             )
-    module.exit_json(changed=changed, volume=volfact)
+    arrayv6 = get_array(module)
+    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
 
 
 def delete_volume(module, array):
     """Delete Volume"""
     changed = True
-    volfact = []
     if not module.check_mode:
         try:
             array.destroy_volume(module.params["name"])
             if module.params["eradicate"]:
                 try:
-                    volfact = array.eradicate_volume(module.params["name"])
+                    array.eradicate_volume(module.params["name"])
                 except Exception:
                     module.fail_json(
                         msg="Eradicate volume {0} failed.".format(module.params["name"])
@@ -1458,7 +1397,8 @@ def delete_volume(module, array):
             module.fail_json(
                 msg="Delete volume {0} failed.".format(module.params["name"])
             )
-    module.exit_json(changed=changed, volume=volfact)
+    arrayv6 = get_array(module)
+    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
 
 
 def eradicate_volume(module, array):
@@ -1479,7 +1419,6 @@ def eradicate_volume(module, array):
 def recover_volume(module, array):
     """Recover Deleted Volume"""
     changed = True
-    volfact = []
     if not module.check_mode:
         try:
             array.recover_volume(module.params["name"])
@@ -1487,10 +1426,9 @@ def recover_volume(module, array):
             module.fail_json(
                 msg="Recovery of volume {0} failed".format(module.params["name"])
             )
-        volfact = array.get_volume(module.params["name"])
-        volfact["page83_naa"] = PURE_OUI + volfact["serial"].lower()
-        volfact["nvme_nguid"] = _create_nguid(volfact["serial"].lower())
-    module.exit_json(changed=changed, volume=volfact)
+        array.get_volume(module.params["name"])
+    arrayv6 = get_array(module)
+    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
 
 
 def main():
