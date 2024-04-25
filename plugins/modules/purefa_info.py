@@ -1082,6 +1082,9 @@ def generate_snap_dict(module, array):
             "size": snaps[snap]["size"],
             "source": snaps[snap]["source"],
             "created": snaps[snap]["created"],
+            "created_epoch": int(
+                time.mktime(time.strptime(snaps[snap]["created"], "%Y-%m-%dT%H:%M:%SZ"))
+            ),
             "tags": [],
             "remote": [],
         }
