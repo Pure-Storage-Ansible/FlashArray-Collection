@@ -792,6 +792,7 @@ def update_host(module, array):
     """Modify a host"""
     changed = False
     renamed = False
+    vol_changed = False
     vlan_changed = False
     if module.params["state"] == "present":
         if module.params["vlan"]:
@@ -816,7 +817,7 @@ def update_host(module, array):
                         module.params["rename"]
                     )
                 )
-        init_changed = vol_changed = pers_changed = pref_changed = chap_changed = False
+        init_changed = pers_changed = pref_changed = chap_changed = False
         volumes = array.list_host_connections(module.params["name"])
         if module.params["iqn"] or module.params["wwns"] or module.params["nqn"]:
             init_changed = _update_host_initiators(module, array)
