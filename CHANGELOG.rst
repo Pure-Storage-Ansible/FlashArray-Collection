@@ -5,6 +5,27 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.28.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_hg - Add support to rename existing hostgroup
+- purefa_info - Add ``is_local`` parameter for snapshots
+- purefa_info - Add performance data for some subsets
+- purefa_info - Add service_mode to identify if array is Evergreen//One or standard FlashArray
+- purefa_pg - Enhance ``state absent`` to work on volumes, hosts and hostgroups
+- purefa_snap - Add ``created_epoch`` parameter in response
+
+Bugfixes
+--------
+
+- purefa_host - Allows all current host inititators to be correctly removed
+- purefa_host - Fix idempotency issue with connected volume
+- purefa_volume - Ensure module response for creation of volume and rerun are the same
+- purefa_volume - Fix idempotency issue with delete volume
+
 v1.27.0
 =======
 
