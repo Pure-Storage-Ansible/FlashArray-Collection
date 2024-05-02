@@ -319,6 +319,8 @@ def update_interface(module, array, interface):
         "services": sorted(interface["services"]),
         "slaves": sorted(interface["slaves"]),
     }
+    if not current_state["address"]:
+        current_state["address"] = "0.0.0.0"
     array6 = get_array(module)
     subinterfaces = sorted(current_state["slaves"])
     if module.params["subinterfaces"]:
@@ -379,6 +381,8 @@ def update_interface(module, array, interface):
         else:
             mtu = module.params["mtu"]
     if module.params["address"]:
+        if not address:
+            address = "0.0.0.0"
         if valid_ipv4(address):
             netmask = str(IPNetwork(module.params["address"]).netmask)
         else:
