@@ -454,7 +454,8 @@ def update_interface(module, array, interface):
                         "Servicelist not updated as pypureclient module is required"
                     )
         if (
-            "management" in current_state["services"] or "app" in current_state["services"]
+            "management" in current_state["services"]
+            or "app" in current_state["services"]
         ) and address in ["0.0.0.0/0", "::/0"]:
             module.fail_json(
                 msg="Removing IP address from a management or app port is not supported"
