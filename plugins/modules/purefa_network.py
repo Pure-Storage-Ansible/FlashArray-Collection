@@ -341,19 +341,19 @@ def update_interface(module, array, interface):
         enabled = current_state["enabled"]
     if not current_state["gateway"]:
         try:
-            if valid_ipv4(interface["address"]):
+            if valid_ipv4(current_state["address"]):
                 current_state["gateway"] = None
-            elif valid_ipv6(interface["address"]):
+            elif valid_ipv6(current_state["address"]):
                 current_state["gateway"] = None
         except AttributeError:
             current_state["gateway"] = None
     if not module.params["servicelist"]:
-        services = sorted(interface["services"])
+        services = current_state["services"]
     else:
         services = sorted(module.params["servicelist"])
     if not module.params["address"]:
-        address = interface["address"]
-        netmask = interface["netmask"]
+        address = current_state["address"]
+        netmask = current_state["netmask"]
     else:
         if module.params["gateway"] and module.params["gateway"] not in [
             "0.0.0.0",
@@ -361,7 +361,7 @@ def update_interface(module, array, interface):
         ]:
             if module.params["gateway"] not in IPNetwork(module.params["address"]):
                 module.fail_json(msg="Gateway and subnet are not compatible.")
-        if not module.params["gateway"] and interface["gateway"] not in [
+        if not module.params["gateway"] and current_state["gateway"] not in [
             None,
             IPNetwork(module.params["address"]),
         ]:
@@ -370,7 +370,7 @@ def update_interface(module, array, interface):
         if address in ["0.0.0.0", "::"]:
             address = None
     if not module.params["mtu"]:
-        mtu = interface["mtu"]
+        mtu = current_state["mtu"]
     else:
         if not 1280 <= module.params["mtu"] <= 9216:
             module.fail_json(
@@ -390,9 +390,9 @@ def update_interface(module, array, interface):
         if netmask in ["0.0.0.0", "0"]:
             netmask = None
     else:
-        netmask = interface["netmask"]
+        netmask = current_state["netmask"]
     if not module.params["gateway"]:
-        gateway = interface["gateway"]
+        gateway = current_state["gateway"]
     elif module.params["gateway"] in ["0.0.0.0", "::"]:
         gateway = None
     elif valid_ipv4(address):
@@ -431,7 +431,7 @@ def update_interface(module, array, interface):
         changed = True
         if (
             module.params["servicelist"]
-            and sorted(module.params["servicelist"]) != interface["services"]
+            and sorted(module.params["servicelist"]) != current_state["services"]
         ):
             api_version = array._list_available_rest_versions()
             if FC_ENABLE_API in api_version:
@@ -454,7 +454,7 @@ def update_interface(module, array, interface):
                         "Servicelist not updated as pypureclient module is required"
                     )
         if (
-            "management" in interface["services"] or "app" in interface["services"]
+            "management" in current_state["services"] or "app" in current_state["services"]
         ) and address in ["0.0.0.0/0", "::/0"]:
             module.fail_json(
                 msg="Removing IP address from a management or app port is not supported"
