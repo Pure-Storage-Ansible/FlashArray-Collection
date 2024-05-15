@@ -82,6 +82,7 @@ Only the latest release of this collection is supported.
 For support please raise a GitHub Issue on this repository.
 
 If you are a Pure Storage customer, you may log a support call with the Pure Storage Support team ([support\@purestorage.com](mailto:support@purestorage.com?subject=FlashArray-Ansible-Collection))
+
 If you have a Red Hat Ansible support contract, as this is a Certified collection, you may log a support call with Red Hat directly.
   
 ## Release Notes
