@@ -21,7 +21,6 @@ version_added: '1.0.0'
 short_description: Configure FlashArray Directory Service Roles
 description:
 - Set or erase directory services role configurations.
-- Only available for FlashArray running Purity 5.2.0 or higher
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
@@ -88,9 +87,16 @@ RETURN = r"""
 """
 
 
+HAS_PYPURECLIENT = True
+try:
+    from pypureclient.flasharray import DirectoryServiceRole, FixedReference
+except ImportError:
+    HAS_PYPURECLIENT = False
+
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
 
@@ -98,25 +104,27 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 def update_role(module, array):
     """Update Directory Service Role"""
     changed = False
-    role = array.list_directory_service_roles(names=[module.params["role"]])
+    role = list(array.get_directory_service_roles(names=[module.params["role"]]).items)[
+        0
+    ]
     if (
-        role[0]["group_base"] != module.params["group_base"]
-        or role[0]["group"] != module.params["group"]
+        role.group_base != module.params["group_base"]
+        or role.group != module.params["group"]
     ):
-        try:
-            changed = True
-            if not module.check_mode:
-                array.set_directory_service_roles(
-                    names=[module.params["role"]],
-                    group_base=module.params["group_base"],
-                    group=module.params["group"],
-                )
-        except Exception:
-            module.fail_json(
-                msg="Update Directory Service Role {0} failed".format(
-                    module.params["role"]
-                )
+        changed = True
+        if not module.check_mode:
+            res = array.patch_directory_service_roles(
+                names=[module.params["role"]],
+                directory_services_roles=DirectoryServiceRole(
+                    group_base=module.params["group_base"], group=module.params["group"]
+                ),
             )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Update Directory Service Role {0} failed.Error: {1}".format(
+                        module.params["role"], res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
@@ -124,14 +132,11 @@ def delete_role(module, array):
     """Delete Directory Service Role"""
     changed = True
     if not module.check_mode:
-        try:
-            array.set_directory_service_roles(
-                names=[module.params["role"]], group_base="", group=""
-            )
-        except Exception:
+        res = array.delete_directory_service_roles(names=[module.params["role"]])
+        if res.status_code != 200:
             module.fail_json(
-                msg="Delete Directory Service Role {0} failed".format(
-                    module.params["role"]
+                msg="Delete Directory Service Role {0} failed. Error: {1}".format(
+                    module.params["role"], res.errors[0].message
                 )
             )
     module.exit_json(changed=changed)
@@ -143,16 +148,17 @@ def create_role(module, array):
     if not module.params["group"] == "" or not module.params["group_base"] == "":
         changed = True
         if not module.check_mode:
-            try:
-                array.set_directory_service_roles(
-                    names=[module.params["role"]],
-                    group_base=module.params["group_base"],
-                    group=module.params["group"],
-                )
-            except Exception:
+            res = array.post_directory_service_roles(
+                names=[module.params["role"]],
+                directory_service_role=DirectoryServiceRole(
+                    group_base=module.params["group_base"], group=module.params["group"]
+                ),
+            )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Create Directory Service Role {0} failed".format(
-                        module.params["role"]
+                    msg="Create Directory Service Role {0} failed. Error: {1}".format(
+                        module.params["role"],
+                        res.errors[0].message,
                     )
                 )
     module.exit_json(changed=changed)
@@ -179,11 +185,18 @@ def main():
         argument_spec, required_together=required_together, supports_check_mode=True
     )
 
+    if not HAS_PYPURECLIENT:
+        module.fail_json(msg="pypureclient sdk is required for this module")
+
     state = module.params["state"]
-    array = get_system(module)
+    array = get_array(module)
     role_configured = False
-    role = array.list_directory_service_roles(names=[module.params["role"]])
-    if role[0]["group"] is not None:
+    role = list(
+        array.get_directory_service_roles(
+            roles=[FixedReference(name=module.params["role"])]
+        ).items
+    )[0]
+    if getattr(role, "group", None) is not None:
         role_configured = True
 
     if state == "absent" and role_configured:
