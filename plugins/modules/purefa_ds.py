@@ -31,9 +31,9 @@ options:
   state:
     type: str
     description:
-    - Create or delete directory service configuration
+    - Create, delete or test directory service configuration
     default: present
-    choices: [ absent, present ]
+    choices: [ absent, present, test ]
   enable:
     description:
     - Whether to enable or disable directory service support.
@@ -353,12 +353,45 @@ def update_ds(module, array):
     module.exit_json(changed=changed)
 
 
+def test_ds(module, array):
+    """Test directory services configuration"""
+    test_response = []
+    response = list(
+        array.get_directory_services_test(names=[module.params["dstype"]]).items
+    )
+    for component in range(0, len(response)):
+        if response[component].enabled:
+            enabled = "true"
+        else:
+            enabled = "false"
+        if response[component].success:
+            success = "true"
+        else:
+            success = "false"
+        test_response.append(
+            {
+                "component_address": response[component].component_address,
+                "component_name": response[component].component_name,
+                "description": response[component].description,
+                "destination": response[component].destination,
+                "enabled": enabled,
+                "result_details": getattr(response[component], "result_details", ""),
+                "success": success,
+                "test_type": response[component].test_type,
+                "resource_name": response[component].resource.name,
+            }
+        )
+    module.exit_json(changed=False, test_response=test_response)
+
+
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
             uri=dict(type="list", elements="str"),
-            state=dict(type="str", default="present", choices=["absent", "present"]),
+            state=dict(
+                type="str", default="present", choices=["absent", "present", "test"]
+            ),
             enable=dict(type="bool", default=False),
             force_bind_password=dict(type="bool", default=True, no_log=True),
             bind_password=dict(type="str", no_log=True),
@@ -392,6 +425,8 @@ def main():
         if state == "absent":
             if dirserv.uris != []:
                 delete_ds(module, array)
+        elif state == "test":
+            test_ds(module, array)
         else:
             update_ds(module, array)
     else:
