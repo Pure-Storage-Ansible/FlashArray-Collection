@@ -1800,7 +1800,7 @@ def generate_del_pgroups_dict(module, array):
     return pgroups_info
 
 
-def generate_pgroups_dict(module, array, performance):
+def generate_pgroups_dict(module, array):
     pgroups_info = {}
     api_version = array._list_available_rest_versions()
     pgroups = array.list_pgroups()
