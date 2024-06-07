@@ -39,7 +39,7 @@ options:
     description:
     - Action for the module to perform
     default: present
-    choices: [ absent, present ]
+    choices: [ absent, present, test ]
     type: str
   ca_certificate:
     type: str
@@ -100,11 +100,35 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
-)
 
-MIN_REQUIRED_API_VERSION = "2.2"
+
+def test_kmip(module, array):
+    """Test KMIP object configuration"""
+    test_response = []
+    response = list(array.get_kmip_test(names=[module.params["name"]]).items)
+    for component in range(0, len(response)):
+        if response[component].enabled:
+            enabled = "true"
+        else:
+            enabled = "false"
+        if response[component].success:
+            success = "true"
+        else:
+            success = "false"
+        test_response.append(
+            {
+                "component_address": response[component].component_address,
+                "component_name": response[component].component_name,
+                "description": response[component].description,
+                "destination": response[component].destination,
+                "enabled": enabled,
+                "result_details": getattr(response[component], "result_details", ""),
+                "success": success,
+                "test_type": response[component].test_type,
+                "resource_name": response[component].resource.name,
+            }
+        )
+    module.exit_json(changed=False, test_response=test_response)
 
 
 def update_kmip(module, array):
@@ -207,7 +231,7 @@ def main():
             state=dict(
                 type="str",
                 default="present",
-                choices=["absent", "present"],
+                choices=["absent", "present", "test"],
             ),
             name=dict(type="str", required=True),
             certificate=dict(type="str"),
@@ -227,12 +251,6 @@ def main():
     array = get_array(module)
     api_version = array.get_rest_version()
 
-    if LooseVersion(MIN_REQUIRED_API_VERSION) > LooseVersion(api_version):
-        module.fail_json(
-            msg="FlashArray REST version not supported. "
-            "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
-        )
-
     state = module.params["state"]
     exists = bool(array.get_kmip(names=[module.params["name"]]).status_code == 200)
     if module.params["certificate"] and len(module.params["certificate"]) > 3000:
@@ -244,6 +262,8 @@ def main():
         update_kmip(module, array)
     elif exists and state == "absent":
         delete_kmip(module, array)
+    elif exists and state == "test":
+        test_kmip(module, array)
 
     module.exit_json(changed=False)
 

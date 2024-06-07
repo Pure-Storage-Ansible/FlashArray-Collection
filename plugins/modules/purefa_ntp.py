@@ -20,16 +20,16 @@ module: purefa_ntp
 version_added: '1.0.0'
 short_description: Configure Pure Storage FlashArray NTP settings
 description:
-- Set or erase NTP configuration for Pure Storage FlashArrays.
+- Set, erase or test NTP configuration for Pure Storage FlashArrays.
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:
-    - Create or delete NTP servers configuration
+    - Create, delete or test NTP servers configuration
     type: str
     default: present
-    choices: [ absent, present ]
+    choices: [ absent, present, test ]
   ntp_servers:
     type: list
     elements: str
@@ -109,6 +109,35 @@ def remove(duplicate):
     return final_list
 
 
+def test_ntp(module, array):
+    """Test NTP configuration"""
+    test_response = []
+    response = list(array.get_arrays_ntp_test().items)
+    for component in range(0, len(response)):
+        if response[component].enabled:
+            enabled = "true"
+        else:
+            enabled = "false"
+        if response[component].success:
+            success = "true"
+        else:
+            success = "false"
+        test_response.append(
+            {
+                "component_address": response[component].component_address,
+                "component_name": response[component].component_name,
+                "description": response[component].description,
+                "destination": response[component].destination,
+                "enabled": enabled,
+                "result_details": getattr(response[component], "result_details", ""),
+                "success": success,
+                "test_type": response[component].test_type,
+                "resource_name": response[component].resource.name,
+            }
+        )
+    module.exit_json(changed=False, test_response=test_response)
+
+
 def delete_ntp(module, array):
     """Delete NTP Servers"""
     if array.get(ntpserver=True)["ntpserver"] != []:
@@ -182,7 +211,9 @@ def main():
         dict(
             ntp_servers=dict(type="list", elements="str"),
             ntp_key=dict(type="str", no_log=True),
-            state=dict(type="str", default="present", choices=["absent", "present"]),
+            state=dict(
+                type="str", default="present", choices=["absent", "present", "test"]
+            ),
         )
     )
 
@@ -198,6 +229,8 @@ def main():
 
     if module.params["state"] == "absent":
         delete_ntp(module, array)
+    elif module.params["state"] == "test":
+        test_ntp(module, array)
     elif module.params["ntp_servers"]:
         module.params["ntp_servers"] = remove(module.params["ntp_servers"])
         if sorted(list(array.get_arrays().items)[0].ntp_servers) != sorted(
