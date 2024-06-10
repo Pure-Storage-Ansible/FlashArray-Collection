@@ -36,6 +36,8 @@ options:
   state:
     description:
     - Define whether the protection group should exist or not.
+    - If specified with I(volume) or I(host) or I(hostgroup) will
+      act on those items in the protection group only.
     type: str
     default: present
     choices: [ absent, present ]
@@ -184,6 +186,15 @@ EXAMPLES = r"""
       - vol1
       - vol2
     target: arrayb
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Remove a volume from protection group
+  purestorage.flasharray.purefa_pg:
+    name: bar
+    volume:
+      - vol1
+    state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
@@ -455,6 +466,7 @@ def rename_exists(module, array):
 def update_pgroup(module, array):
     """Update Protection Group"""
     changed = renamed = False
+    state = module.params["state"]
     api_version = array._list_available_rest_versions()
     if module.params["target"]:
         connected_targets = []
@@ -546,19 +558,36 @@ def update_pgroup(module, array):
         else:
             cased_vols = list(module.params["volume"])
             cased_pgvols = list(get_pgroup(module, array)["volumes"])
-            if not all(x in cased_pgvols for x in cased_vols):
-                if not module.check_mode:
-                    changed = True
-                    try:
-                        array.set_pgroup(
-                            module.params["name"], addvollist=module.params["volume"]
-                        )
-                    except Exception:
-                        module.fail_json(
-                            msg="Changing volumes in pgroup {0} failed.".format(
-                                module.params["name"]
+            if state == "present":
+                if not all(x in cased_pgvols for x in cased_vols):
+                    if not module.check_mode:
+                        changed = True
+                        try:
+                            array.set_pgroup(
+                                module.params["name"],
+                                addvollist=module.params["volume"],
                             )
-                        )
+                        except Exception:
+                            module.fail_json(
+                                msg="Adding volumes in pgroup {0} failed.".format(
+                                    module.params["name"]
+                                )
+                            )
+            else:
+                if all(x in cased_pgvols for x in cased_vols):
+                    if not module.check_mode:
+                        changed = True
+                        try:
+                            array.set_pgroup(
+                                module.params["name"],
+                                remvollist=module.params["volume"],
+                            )
+                        except Exception:
+                            module.fail_json(
+                                msg="Removing volumes in pgroup {0} failed.".format(
+                                    module.params["name"]
+                                )
+                            )
 
     if (
         module.params["host"]
@@ -581,19 +610,34 @@ def update_pgroup(module, array):
         else:
             cased_hosts = list(module.params["host"])
             cased_pghosts = list(get_pgroup(module, array)["hosts"])
-            if not all(x in cased_pghosts for x in cased_hosts):
-                if not module.check_mode:
-                    changed = True
-                    try:
-                        array.set_pgroup(
-                            module.params["name"], addhostlist=module.params["host"]
-                        )
-                    except Exception:
-                        module.fail_json(
-                            msg="Changing hosts in pgroup {0} failed.".format(
-                                module.params["name"]
+            if state == "present":
+                if not all(x in cased_pghosts for x in cased_hosts):
+                    if not module.check_mode:
+                        changed = True
+                        try:
+                            array.set_pgroup(
+                                module.params["name"], addhostlist=module.params["host"]
                             )
-                        )
+                        except Exception:
+                            module.fail_json(
+                                msg="Adding hosts in pgroup {0} failed.".format(
+                                    module.params["name"]
+                                )
+                            )
+            else:
+                if all(x in cased_pghosts for x in cased_hosts):
+                    if not module.check_mode:
+                        changed = True
+                        try:
+                            array.set_pgroup(
+                                module.params["name"], remhostlist=module.params["host"]
+                            )
+                        except Exception:
+                            module.fail_json(
+                                msg="Removing hosts in pgroup {0} failed.".format(
+                                    module.params["name"]
+                                )
+                            )
 
     if (
         module.params["hostgroup"]
@@ -616,20 +660,36 @@ def update_pgroup(module, array):
         else:
             cased_hostg = list(module.params["hostgroup"])
             cased_pghostg = list(get_pgroup(module, array)["hgroups"])
-            if not all(x in cased_pghostg for x in cased_hostg):
-                if not module.check_mode:
-                    changed = True
-                    try:
-                        array.set_pgroup(
-                            module.params["name"],
-                            addhgrouplist=module.params["hostgroup"],
-                        )
-                    except Exception:
-                        module.fail_json(
-                            msg="Changing hostgroups in pgroup {0} failed.".format(
-                                module.params["name"]
+            if state == "present":
+                if not all(x in cased_pghostg for x in cased_hostg):
+                    if not module.check_mode:
+                        changed = True
+                        try:
+                            array.set_pgroup(
+                                module.params["name"],
+                                addhgrouplist=module.params["hostgroup"],
                             )
-                        )
+                        except Exception:
+                            module.fail_json(
+                                msg="Adding hostgroups in pgroup {0} failed.".format(
+                                    module.params["name"]
+                                )
+                            )
+            else:
+                if all(x in cased_pghostg for x in cased_hostg):
+                    if not module.check_mode:
+                        changed = True
+                        try:
+                            array.set_pgroup(
+                                module.params["name"],
+                                remhgrouplist=module.params["hostgroup"],
+                            )
+                        except Exception:
+                            module.fail_json(
+                                msg="Removing hostgroups in pgroup {0} failed.".format(
+                                    module.params["name"]
+                                )
+                            )
     if module.params["rename"]:
         if not rename_exists(module, array):
             if ":" in module.params["name"]:
@@ -880,6 +940,16 @@ def main():
             module.fail_json(msg="Hostgroup {0} not found".format(hstg))
 
     if pgroup and state == "present":
+        update_pgroup(module, array)
+    elif (
+        pgroup
+        and state == "absent"
+        and (
+            module.params["volume"]
+            or module.params["hosts"]
+            or module.params["hostgroups"]
+        )
+    ):
         update_pgroup(module, array)
     elif pgroup and state == "absent":
         delete_pgroup(module, array)

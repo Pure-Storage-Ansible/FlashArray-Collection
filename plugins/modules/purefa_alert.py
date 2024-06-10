@@ -27,9 +27,9 @@ options:
   state:
     type: str
     description:
-    - Create or delete alert email
+    - Create, delete or test alert email
     default: present
-    choices: [ absent, present ]
+    choices: [ absent, present, test ]
   address:
     type: str
     description:
@@ -69,6 +69,37 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_system,
     purefa_argument_spec,
 )
+
+
+def test_alert(module, array):
+    """Test alert watchers"""
+    test_response = []
+    response = list(
+        array.get_alert_watchers_test(names=[module.params["address"]]).items
+    )
+    for component in range(0, len(response)):
+        if response[component].enabled:
+            enabled = "true"
+        else:
+            enabled = "false"
+        if response[component].success:
+            success = "true"
+        else:
+            success = "false"
+        test_response.append(
+            {
+                "component_address": response[component].component_address,
+                "component_name": response[component].component_name,
+                "description": response[component].description,
+                "destination": response[component].destination,
+                "enabled": enabled,
+                "result_details": getattr(response[component], "result_details", ""),
+                "success": success,
+                "test_type": response[component].test_type,
+                "resource_name": response[component].resource.name,
+            }
+        )
+    module.exit_json(changed=False, test_response=test_response)
 
 
 def create_alert(module, array):
@@ -160,7 +191,9 @@ def main():
         dict(
             address=dict(type="str", required=True),
             enabled=dict(type="bool", default=True),
-            state=dict(type="str", default="present", choices=["absent", "present"]),
+            state=dict(
+                type="str", default="present", choices=["absent", "present", "test"]
+            ),
         )
     )
 
@@ -200,6 +233,8 @@ def main():
         disable_alert(module, array)
     elif module.params["state"] == "absent" and exists:
         delete_alert(module, array)
+    elif module.params["state"] == "test":
+        test_alert(module, array)
 
     module.exit_json(changed=False)
 
