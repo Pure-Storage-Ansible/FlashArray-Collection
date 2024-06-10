@@ -82,12 +82,6 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
-HAS_PURESTORAGE = True
-try:
-    from purestorage import FlashArray
-except ImportError:
-    HAS_PURESTORAGE = False
-
 HAS_PYPURECLIENT = True
 try:
     from pypureclient import flasharray
@@ -103,51 +97,53 @@ except ImportError:
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
-    get_system,
     purefa_argument_spec,
 )
 import platform
+import socket
 
-P53_API_VERSION = "1.17"
-FC_REPL_VERSION = "2.4"
+
+def _lookup(address):
+    """Perform Reverse DNS lookup on IP address"""
+    fqdn = socket.getnameinfo((address, 0), 0)[0]
+    shortname = fqdn.split(".")[0]
+    return shortname, fqdn
 
 
 def _check_connected(module, array):
-    connected_arrays = array.list_array_connections()
-    api_version = array._list_available_rest_versions()
-    for target in range(0, len(connected_arrays)):
-        if P53_API_VERSION in api_version:
+    res = array.get_array_connections()
+    if res.status_code != 200:
+        return None
+    else:
+        connected_arrays = list(res.items)
+        for target in range(0, len(connected_arrays)):
+            remote_mgmt_address = connected_arrays[target].management_address
             if (
-                connected_arrays[target]["management_address"]
-                == module.params["target_url"].strip("[]")
-                and "connected" in connected_arrays[target]["status"]
+                remote_mgmt_address == module.params["target_url"].strip("[]")
+                or remote_mgmt_address
+                in [_lookup(module.params["target_url"].strip("[]"))]
+                and "connected" in connected_arrays[target].status
             ):
                 return connected_arrays[target]
-        else:
-            if (
-                connected_arrays[target]["management_address"]
-                == module.params["target_url"].strip("[]")
-                and connected_arrays[target]["connected"]
-            ):
-                return connected_arrays[target]
-    return None
+        return None
 
 
 def break_connection(module, array, target_array):
     """Break connection between arrays"""
     changed = True
-    source_array = array.get()["array_name"]
-    if target_array["management_address"] is None:
+    source_array = list(array.get_arrays().items)[0].name
+    if getattr(target_array, "management_address", None) is None:
         module.fail_json(
             msg="disconnect can only happen from the array that formed the connection"
         )
     if not module.check_mode:
-        try:
-            array.disconnect_array(target_array["array_name"])
-        except Exception:
+        res = array.delete_array_connections(names=[target_array.name])
+        if res.status_code != 200:
             module.fail_json(
-                msg="Failed to disconnect {0} from {1}.".format(
-                    target_array["array_name"], source_array
+                msg="Failed to disconnect {0} from {1}.Error: {2}".format(
+                    target_array.name,
+                    source_array,
+                    res.errors[0].mesaage,
                 )
             )
     module.exit_json(changed=changed)
@@ -156,7 +152,6 @@ def break_connection(module, array, target_array):
 def create_connection(module, array):
     """Create connection between arrays"""
     changed = True
-    remote_array = module.params["target_url"]
     if HAS_DISTRO:
         user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
             "base": "Ansible",
@@ -172,48 +167,42 @@ def create_connection(module, array):
             "platform": platform.platform(),
         }
     try:
-        remote_system = FlashArray(
-            module.params["target_url"],
+        remote_system = flasharray.Client(
+            target=module.params["target_url"],
             api_token=module.params["target_api"],
             user_agent=user_agent,
         )
-        connection_key = remote_system.get(connection_key=True)["connection_key"]
-        remote_array = remote_system.get()["array_name"]
-        api_version = array._list_available_rest_versions()
+        connection_key = list(
+            remote_system.get_array_connections_connection_key().items
+        )[0].connection_key
+        remote_array = list(remote_system.get_arrays().items)[0].name
         # TODO: Refactor when FC async is supported
         if (
-            FC_REPL_VERSION in api_version
-            and module.params["transport"].lower() == "fc"
+            module.params["transport"].lower() == "fc"
+            and module.params["connection"].lower() == "async"
         ):
-            if module.params["connection"].lower() == "async":
-                module.fail_json(
-                    msg="Asynchronous replication not supported using FC transport"
-                )
-            array_connection = flasharray.ArrayConnectionPost(
-                type="sync-replication",
-                management_address=module.params["target_url"].strip("[]"),
-                replication_transport="fc",
-                connection_key=connection_key,
+            module.fail_json(
+                msg="Asynchronous replication not supported using FC transport"
             )
-            array = get_array(module)
-            if not module.check_mode:
-                res = array.post_array_connections(array_connection=array_connection)
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Array Connection failed. Error: {0}".format(
-                            res.errors[0].message
-                        )
+        array_connection = flasharray.ArrayConnectionPost(
+            type=module.params["connection"].lower(),
+            management_address=module.params["target_url"].strip("[]"),
+            replication_transport=module.params["connection"],
+            connection_key=connection_key,
+        )
+        if not module.check_mode:
+            res = array.post_array_connections(array_connection=array_connection)
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Array Connection failed. Error: {0}".format(
+                        res.errors[0].message
                     )
-        else:
-            if not module.check_mode:
-                array.connect_array(
-                    module.params["target_url"].strip("[]"),
-                    connection_key,
-                    [module.params["connection"]],
                 )
     except Exception:
         module.fail_json(
-            msg="Failed to connect to remote array {0}.".format(remote_array)
+            msg="Failed to connect to remote array {0}.".format(
+                module.params["target_url"]
+            )
         )
     module.exit_json(changed=changed)
 
@@ -236,14 +225,11 @@ def main():
         argument_spec, required_if=required_if, supports_check_mode=True
     )
 
-    if not HAS_PURESTORAGE:
-        module.fail_json(msg="purestorage sdk is required for this module")
-
-    if module.params["transport"] == "fc" and not HAS_PYPURECLIENT:
+    if not HAS_PYPURECLIENT:
         module.fail_json(msg="pypureclient sdk is required for this module")
 
     state = module.params["state"]
-    array = get_system(module)
+    array = get_array(module)
     target_array = _check_connected(module, array)
 
     if state == "present" and target_array is None:
