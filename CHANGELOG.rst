@@ -5,6 +5,16 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.28.1
+=======
+
+Bugfixes
+--------
+
+- purefa_network - Fix issue with clearing network interface addresses
+- purefa_network - Resolve issue when setting a network port on a new array
+- purefa_policy - Enhanced idempotency for snapshot policy rules
+
 v1.28.0
 =======
 

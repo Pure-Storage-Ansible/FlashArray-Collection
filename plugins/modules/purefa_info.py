@@ -278,6 +278,15 @@ def generate_config_dict(module, array):
     config_info["snmp"] = array.list_snmp_managers()
     config_info["snmp_v3_engine_id"] = array.get_snmp_engine_id()["engine_id"]
     if V6_MINIMUM_API_VERSION in api_version:
+        smtp_info = list(arrayv6.get_smtp_servers().items)[0]
+        config_info["smtp_servers"] = {
+            "name": smtp_info.name,
+            "password": getattr(smtp_info, "password", ""),
+            "user_name": getattr(smtp_info, "user_name", ""),
+            "encryption_mode": getattr(smtp_info, "encryption_mode", ""),
+            "relay_host": getattr(smtp_info, "relay_host", ""),
+            "sender_domain": getattr(smtp_info, "sender_domain", ""),
+        }
         config_info["directory_service"] = {}
         arrayv6 = get_array(module)
         services = list(arrayv6.get_directory_services().items)
@@ -396,7 +405,6 @@ def generate_config_dict(module, array):
                 getattr(array_info, "ntp_symmetric_key", None)
             )
             config_info["timezone"] = array_info.time_zone
-
     else:
         config_info["directory_service"] = {}
         config_info["directory_service"]["management"] = array.get_directory_service()
@@ -1800,7 +1808,7 @@ def generate_del_pgroups_dict(module, array):
     return pgroups_info
 
 
-def generate_pgroups_dict(module, array, performance):
+def generate_pgroups_dict(module, array):
     pgroups_info = {}
     api_version = array._list_available_rest_versions()
     pgroups = array.list_pgroups()

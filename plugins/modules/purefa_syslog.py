@@ -27,10 +27,10 @@ author:
 options:
   state:
     description:
-    - Create, update or delete syslog servers configuration
+    - Create, updatee, delete or test syslog servers configuration
     default: present
     type: str
-    choices: [ absent, present ]
+    choices: [ absent, present, test ]
   protocol:
     description:
     - Protocol which server uses
@@ -106,6 +106,35 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 )
 
 
+def test_syslog(module, array):
+    """Test syslog configuration"""
+    test_response = []
+    response = list(array.get_syslog_servers_test().items)
+    for component in range(0, len(response)):
+        if response[component].enabled:
+            enabled = "true"
+        else:
+            enabled = "false"
+        if response[component].success:
+            success = "true"
+        else:
+            success = "false"
+        test_response.append(
+            {
+                "component_address": response[component].component_address,
+                "component_name": response[component].component_name,
+                "description": response[component].description,
+                "destination": response[component].destination,
+                "enabled": enabled,
+                "result_details": getattr(response[component], "result_details", ""),
+                "success": success,
+                "test_type": response[component].test_type,
+                "resource_name": response[component].resource.name,
+            }
+        )
+    module.exit_json(changed=True, test_response=test_response)
+
+
 def delete_syslog(module, array):
     """Delete Syslog Server"""
     changed = True
@@ -178,7 +207,9 @@ def main():
             protocol=dict(type="str", choices=["tcp", "tls", "udp"], required=True),
             port=dict(type="str"),
             name=dict(type="str", required=True),
-            state=dict(type="str", default="present", choices=["absent", "present"]),
+            state=dict(
+                type="str", default="present", choices=["absent", "present", "test"]
+            ),
         )
     )
 
@@ -201,6 +232,8 @@ def main():
         add_syslog(module, array)
     elif module.params["state"] == "present" and exists:
         update_syslog(module, array)
+    elif module.params["state"] == "present" and exists:
+        test_syslog(module, array)
 
     module.exit_json(changed=False)
 

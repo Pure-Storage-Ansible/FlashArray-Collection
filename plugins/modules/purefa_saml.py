@@ -31,9 +31,9 @@ options:
     required: true
   state:
     description:
-    - Define whether the API client should exist or not.
+    - Define whether the API client should exist or not, or test.
     default: present
-    choices: [ absent, present ]
+    choices: [ absent, present, test ]
     type: str
   url:
     description:
@@ -129,6 +129,35 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 )
 
 MIN_REQUIRED_API_VERSION = "2.11"
+
+
+def test_saml(module, array):
+    """Test SAML2 IdP configuration"""
+    test_response = []
+    response = list(array.get_sso_saml2_idps_test(names=[module.params["name"]]).items)
+    for component in range(0, len(response)):
+        if response[component].enabled:
+            enabled = "true"
+        else:
+            enabled = "false"
+        if response[component].success:
+            success = "true"
+        else:
+            success = "false"
+        test_response.append(
+            {
+                "component_address": response[component].component_address,
+                "component_name": response[component].component_name,
+                "description": response[component].description,
+                "destination": response[component].destination,
+                "enabled": enabled,
+                "result_details": getattr(response[component], "result_details", ""),
+                "success": success,
+                "test_type": response[component].test_type,
+                "resource_name": response[component].resource.name,
+            }
+        )
+    module.exit_json(changed=True, test_response=test_response)
 
 
 def delete_saml(module, array):
@@ -286,7 +315,9 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
-            state=dict(type="str", default="present", choices=["absent", "present"]),
+            state=dict(
+                type="str", default="present", choices=["absent", "present", "test"]
+            ),
             name=dict(type="str", required=True),
             url=dict(type="str"),
             array_url=dict(type="str"),
@@ -333,6 +364,8 @@ def main():
         update_saml(module, array)
     elif exists and state == "absent":
         delete_saml(module, array)
+    elif exists and state == "test":
+        test_saml(module, array)
 
     module.exit_json(changed=False)
 

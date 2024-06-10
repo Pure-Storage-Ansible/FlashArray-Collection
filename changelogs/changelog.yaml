@@ -609,6 +609,17 @@ releases:
     - 561_remote_snap_info.yaml
     - 562_host_vol_fix.yaml
     release_date: '2024-05-01'
+  1.28.1:
+    changes:
+      bugfixes:
+      - purefa_network - Fix issue with clearing network interface addresses
+      - purefa_network - Resolve issue when setting a network port on a new array
+      - purefa_policy - Enhanced idempotency for snapshot policy rules
+    fragments:
+    - 565_fix_clear_interface.yaml
+    - 567_newarray_network.yaml
+    - 569_enhanced_snap_policy.yaml
+    release_date: '2024-05-31'
   1.4.0:
     changes:
       bugfixes:
