@@ -132,7 +132,7 @@ def test_syslog(module, array):
                 "resource_name": response[component].resource.name,
             }
         )
-    module.exit_json(changed=False, test_response=test_response)
+    module.exit_json(changed=True, test_response=test_response)
 
 
 def delete_syslog(module, array):
