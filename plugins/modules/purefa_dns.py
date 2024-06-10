@@ -105,8 +105,10 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
     get_array,
     purefa_argument_spec,
 )
@@ -133,35 +135,44 @@ def _get_source(module, array):
 def delete_dns(module, array):
     """Delete DNS settings"""
     changed = False
-    current_dns = array.get_dns()
-    if current_dns["domain"] == "" and current_dns["nameservers"] == [""]:
+    current_dns = list(array.get_dns().items)[0]
+    if getattr(current_dns, "domain", None) in ["", None] and getattr(
+        current_dns, "nameservers", None
+    ) in [[""], None]:
         module.exit_json(changed=changed)
     else:
-        try:
-            changed = True
-            if not module.check_mode:
-                array.set_dns(domain="", nameservers=[])
-        except Exception:
-            module.fail_json(msg="Delete DNS settigs failed")
+        changed = True
+        if not module.check_mode:
+            res = array.delete_dns(names=["management"])
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Delete DNS settigs failed. Error: {0}".format(
+                    res.errors[0].message
+                )
+            )
     module.exit_json(changed=changed)
 
 
 def create_dns(module, array):
     """Set DNS settings"""
     changed = False
-    current_dns = array.get_dns()
+    current_dns = list(array.get_dns().items)[0]
     if current_dns["domain"] != module.params["domain"] or sorted(
         module.params["nameservers"]
     ) != sorted(current_dns["nameservers"]):
-        try:
-            changed = True
-            if not module.check_mode:
-                array.set_dns(
+        changed = True
+        if not module.check_mode:
+            res = array.patch_dns(
+                names=["management"],
+                dns=flasharray.DnsPatch(
                     domain=module.params["domain"],
                     nameservers=module.params["nameservers"][0:3],
-                )
-        except Exception:
-            module.fail_json(msg="Set DNS settings failed: Check configuration")
+                ),
+            )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Set DNS settings failed. Error: {0}".format(res.errors[0].message)
+            )
     module.exit_json(changed=changed)
 
 
@@ -180,9 +191,9 @@ def update_multi_dns(module, array):
     ):
         new_dns.nameservers = module.params["nameservers"]
         changed = True
-    if (
-        module.params["source"] or module.params["source"] == ""
-    ) and current_dns.source.name != module.params["source"]:
+    if (module.params["source"] or module.params["source"] == "") and getattr(
+        current_dns.source, "name", ""
+    ) != module.params["source"]:
         new_dns.source.name = module.params["source"]
         changed = True
     if changed and not module.check_mode:
@@ -291,15 +302,14 @@ def main():
     module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     state = module.params["state"]
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
+    array = get_array(module)
+    api_version = array.get_rest_version()
     if module.params["nameservers"]:
         module.params["nameservers"] = remove(module.params["nameservers"])
         if module.params["service"] == "management":
             module.params["nameservers"] = module.params["nameservers"][0:3]
 
-    if MULTIPLE_DNS in api_version:
-        array = get_array(module)
+    if LooseVersion(MULTIPLE_DNS) <= LooseVersion(api_version):
         configs = list(array.get_dns().items)
         exists = False
         for config in range(0, len(configs)):
