@@ -50,37 +50,17 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import SupportPatch
+except ImportError:
+    HAS_PURESTORAGE = False
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
-
-
-def enable_ph(module, array):
-    """Enable Remote Assist"""
-    changed = False
-    if array.get_phonehome()["phonehome"] != "enabled":
-        try:
-            if not module.check_mode:
-                array.enable_phonehome()
-            changed = True
-        except Exception:
-            module.fail_json(msg="Enabling Phonehome failed")
-    module.exit_json(changed=changed)
-
-
-def disable_ph(module, array):
-    """Disable Remote Assist"""
-    changed = False
-    if array.get_phonehome()["phonehome"] == "enabled":
-        try:
-            if not module.check_mode:
-                array.disable_phonehome()
-            changed = True
-        except Exception:
-            module.fail_json(msg="Disabling Remote Assist failed")
-    module.exit_json(changed=changed)
 
 
 def main():
@@ -93,13 +73,34 @@ def main():
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
 
-    array = get_system(module)
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required to for this module")
 
-    if module.params["state"] == "present":
-        enable_ph(module, array)
-    else:
-        disable_ph(module, array)
-    module.exit_json(changed=False)
+    array = get_array(module)
+
+    phonehome = list(array.get_support().items)[0].phonehome_enabled
+    changed = False
+    if module.params["state"] == "present" and not phonehome:
+        changed = True
+        if not module.check_mode:
+            res = array.patch_support(support=SupportPatch(phonehome_enabled=True))
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Enabling Phonehome failed. Error: {0}".format(
+                        res.errors[0].message
+                    )
+                )
+    elif module.params["state"] == "absent" and phonehome:
+        changed = True
+        if not module.check_mode:
+            res = array.patch_support(support=SupportPatch(phonehome_enabled=False))
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Disabling Phonehome failed. Error: {0}".format(
+                        res.errors[0].message
+                    )
+                )
+    module.exit_json(changed=changed)
 
 
 if __name__ == "__main__":
