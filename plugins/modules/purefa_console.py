@@ -51,36 +51,37 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
+HAS_PYPURECLIENT = True
+try:
+    from pypureclient.flasharray import Arrays
+except ImportError:
+    HAS_PYPURECLIENT = False
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
 
 
-def enable_console(module, array):
-    """Enable Console Lockout"""
+def update_console(module, array):
+    """Update Console Lockout setting"""
     changed = False
-    if array.get_console_lock_status()["console_lock"] != "enabled":
+    current_state = list(array.get_arrays().items)[0].console_lock_enabled
+    if module.params["state"] == "enable":
+        new_state = True
+    else:
+        new_state = False
+    if current_state != new_state:
         changed = True
         if not module.check_mode:
-            try:
-                array.enable_console_lock()
-            except Exception:
-                module.fail_json(msg="Enabling Console Lock failed")
-    module.exit_json(changed=changed)
-
-
-def disable_console(module, array):
-    """Disable Console Lock"""
-    changed = False
-    if array.get_console_lock_status()["console_lock"] == "enabled":
-        changed = True
-        if not module.check_mode:
-            try:
-                array.disable_console_lock()
-            except Exception:
-                module.fail_json(msg="Disabling Console Lock failed")
+            res = array.patch_arrays(array=Arrays(console_lock_enabled=new_state))
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Enabling Console Lock failed. Error: {0}".format(
+                        res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
@@ -94,13 +95,12 @@ def main():
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
 
-    array = get_system(module)
+    if not HAS_PYPURECLIENT:
+        module.fail_json(msg="purestorage sdk is required for this module")
 
-    if module.params["state"] == "enable":
-        enable_console(module, array)
-    else:
-        disable_console(module, array)
-    module.exit_json(changed=False)
+    array = get_array(module)
+
+    update_console(module, array)
 
 
 if __name__ == "__main__":
