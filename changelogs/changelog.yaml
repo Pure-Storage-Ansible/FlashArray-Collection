@@ -582,6 +582,44 @@ releases:
     - 547_lacp_neighbor_info.yaml
     - 548_uptime.yaml
     release_date: '2024-03-08'
+  1.28.0:
+    changes:
+      bugfixes:
+      - purefa_host - Allows all current host inititators to be correctly removed
+      - purefa_host - Fix idempotency issue with connected volume
+      - purefa_volume - Ensure module response for creation of volume and rerun are
+        the same
+      - purefa_volume - Fix idempotency issue with delete volume
+      minor_changes:
+      - purefa_hg - Add support to rename existing hostgroup
+      - purefa_info - Add ``is_local`` parameter for snapshots
+      - purefa_info - Add performance data for some subsets
+      - purefa_info - Add service_mode to identify if array is Evergreen//One or standard
+        FlashArray
+      - purefa_pg - Enhance ``state absent`` to work on volumes, hosts and hostgroups
+      - purefa_snap - Add ``created_epoch`` parameter in response
+    fragments:
+    - 210_add_rename_hgroup.yaml
+    - 211_fix_clearing_host_inititators.yaml
+    - 550_service.yaml
+    - 555_update_pg.yaml
+    - 558_add_perf_info.yaml
+    - 559_volume_response.yaml
+    - 560_snapshot_epoch.yaml
+    - 561_remote_snap_info.yaml
+    - 562_host_vol_fix.yaml
+    release_date: '2024-05-01'
+  1.28.1:
+    changes:
+      bugfixes:
+      - purefa_network - Fix issue with clearing network interface addresses
+      - purefa_network - Resolve issue when setting a network port on a new array
+      - purefa_policy - Enhanced idempotency for snapshot policy rules
+    fragments:
+    - 565_fix_clear_interface.yaml
+    - 567_newarray_network.yaml
+    - 569_enhanced_snap_policy.yaml
+    release_date: '2024-05-31'
   1.4.0:
     changes:
       bugfixes:

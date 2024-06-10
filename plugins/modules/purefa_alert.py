@@ -27,9 +27,9 @@ options:
   state:
     type: str
     description:
-    - Create or delete alert email
+    - Create, delete or test alert email
     default: present
-    choices: [ absent, present ]
+    choices: [ absent, present, test ]
   address:
     type: str
     description:
@@ -66,69 +66,81 @@ RETURN = r"""
 import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
+
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import AlertWatcherPost, AlertWatcherPatch
+except ImportError:
+    HAS_PURESTORAGE = False
+
+
+def test_alert(module, array):
+    """Test alert watchers"""
+    test_response = []
+    response = list(
+        array.get_alert_watchers_test(names=[module.params["address"]]).items
+    )
+    for component in range(0, len(response)):
+        if response[component].enabled:
+            enabled = "true"
+        else:
+            enabled = "false"
+        if response[component].success:
+            success = "true"
+        else:
+            success = "false"
+        test_response.append(
+            {
+                "component_address": response[component].component_address,
+                "component_name": response[component].component_name,
+                "description": response[component].description,
+                "destination": response[component].destination,
+                "enabled": enabled,
+                "result_details": getattr(response[component], "result_details", ""),
+                "success": success,
+                "test_type": response[component].test_type,
+                "resource_name": response[component].resource.name,
+            }
+        )
+    module.exit_json(changed=True, test_response=test_response)
 
 
 def create_alert(module, array):
     """Create Alert Email"""
     changed = True
     if not module.check_mode:
-        changed = False
-        try:
-            array.create_alert_recipient(module.params["address"])
-            changed = True
-        except Exception:
+        res = array.post_alert_watchers(
+            names=[module.params["address"]],
+            alert_watcher=AlertWatcherPost(enabled=module.params["enabled"]),
+        )
+        if res.status_code != 200:
             module.fail_json(
-                msg="Failed to create alert email: {0}".format(module.params["address"])
+                msg="Failed to create alert email: {0}. Error: {1}".format(
+                    module.params["address"], res.errors[0].message
+                )
             )
+    module.exit_json(changed=changed)
 
-        if not module.params["enabled"]:
-            try:
-                array.disable_alert_recipient(module.params["address"])
-                changed = True
-            except Exception:
+
+def update_alert(module, array, enabled):
+    """Update Alert Email State"""
+    if enabled != module.params["enabled"]:
+        changed = True
+        if not module.check_mode:
+            res = array.patch_alert_watchers(
+                names=[module.params["address"]],
+                alert_watcher=AlertWatcherPatch(enabled=module.params["enabled"]),
+            )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Failed to create alert email: {0}".format(
-                        module.params["address"]
+                    msg="Failed to change alert email state: {0}. Error: {1}".format(
+                        module.params["address"],
+                        res.errors[0].message,
                     )
                 )
-
-    module.exit_json(changed=changed)
-
-
-def enable_alert(module, array):
-    """Enable Alert Email"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        try:
-            array.enable_alert_recipient(module.params["address"])
-            changed = True
-        except Exception:
-            module.fail_json(
-                msg="Failed to enable alert email: {0}".format(module.params["address"])
-            )
-
-    module.exit_json(changed=changed)
-
-
-def disable_alert(module, array):
-    """Disable Alert Email"""
-    changed = True
-    if not module.check_mode:
-        changed = False
-        try:
-            array.disable_alert_recipient(module.params["address"])
-            changed = True
-        except Exception:
-            module.fail_json(
-                msg="Failed to disable alert email: {0}".format(
-                    module.params["address"]
-                )
-            )
-
     module.exit_json(changed=changed)
 
 
@@ -142,15 +154,13 @@ def delete_alert(module, array):
             )
         )
     if not module.check_mode:
-        changed = False
-        try:
-            array.delete_alert_recipient(module.params["address"])
-            changed = True
-        except Exception:
+        res = array.delete_alert_watchers(names=[module.params["address"]])
+        if res.status_code != 200:
             module.fail_json(
-                msg="Failed to delete alert email: {0}".format(module.params["address"])
+                msg="Failed to delete alert email: {0}. Error: {1}".format(
+                    module.params["address"], res.errors[0].message
+                )
             )
-
     module.exit_json(changed=changed)
 
 
@@ -160,46 +170,45 @@ def main():
         dict(
             address=dict(type="str", required=True),
             enabled=dict(type="bool", default=True),
-            state=dict(type="str", default="present", choices=["absent", "present"]),
+            state=dict(
+                type="str", default="present", choices=["absent", "present", "test"]
+            ),
         )
     )
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this module")
 
     pattern = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
     if not pattern.match(module.params["address"]):
         module.fail_json(msg="Valid email address not provided.")
 
-    array = get_system(module)
+    array = get_array(module)
 
     exists = False
-    try:
-        emails = array.list_alert_recipients()
-    except Exception:
-        module.fail_json(msg="Failed to get exisitng email list")
-    for email in range(0, len(emails)):
-        if emails[email]["name"] == module.params["address"]:
+    res = array.get_alert_watchers()
+    if res.status_code != 200:
+        module.fail_json(
+            msg="Failed to get exisitng email list. Error: {0}".format(
+                res.errors[0].message
+            )
+        )
+    else:
+        watchers = list(res.items)
+    for watcher in range(0, len(watchers)):
+        if watchers[watcher].name == module.params["address"]:
             exists = True
-            enabled = emails[email]["enabled"]
+            enabled = watchers[watcher].enabled
             break
     if module.params["state"] == "present" and not exists:
         create_alert(module, array)
-    elif (
-        module.params["state"] == "present"
-        and exists
-        and not enabled
-        and module.params["enabled"]
-    ):
-        enable_alert(module, array)
-    elif (
-        module.params["state"] == "present"
-        and exists
-        and enabled
-        and not module.params["enabled"]
-    ):
-        disable_alert(module, array)
+    elif module.params["state"] == "present" and exists:
+        update_alert(module, array, enabled)
     elif module.params["state"] == "absent" and exists:
         delete_alert(module, array)
+    elif module.params["state"] == "test":
+        test_alert(module, array)
 
     module.exit_json(changed=False)
 

@@ -1416,64 +1416,67 @@ def update_policy(module, array, api_version, all_squash):
                 ).items
             )
             if rules:
-                rule_name = ""
                 for rule in range(0, len(rules)):
-                    if rules[rule].client_name == module.params["snap_client_name"]:
-                        rule_name = rules[rule].name
-                        break
-                if not rule_name:
-                    if module.params["snap_keep_for"] < module.params["snap_every"]:
+                    if (
+                        rules[rule].client_name == module.params["snap_client_name"]
+                        and int(rules[rule].every / 60000)
+                        == module.params["snap_every"]
+                        and int(rules[rule].keep_for / 60000)
+                        == module.params["snap_keep_for"]
+                    ):
+                        module.exit_json(changed=False)
+                if module.params["snap_keep_for"] < module.params["snap_every"]:
+                    module.fail_json(
+                        msg="Retention period (snap_keep_for) cannot be less than snapshot interval (snap_every)."
+                    )
+                if module.params["snap_at"]:
+                    if not module.params["snap_every"] % 1440 == 0:
                         module.fail_json(
-                            msg="Retention period (snap_keep_for) cannot be less than snapshot interval (snap_every)."
+                            msg="snap_at time can only be set if snap_every is multiple of 1440"
                         )
-                    if module.params["snap_at"]:
-                        if not module.params["snap_every"] % 1440 == 0:
-                            module.fail_json(
-                                msg="snap_at time can only be set if snap_every is multiple of 1440"
-                            )
-                        if suffix_enabled:
-                            rules = flasharray.PolicyrulesnapshotpostRules(
-                                at=convert_to_millisecs(module.params["snap_at"]),
-                                client_name=module.params["snap_client_name"],
-                                every=module.params["snap_every"] * 60000,
-                                keep_for=module.params["snap_keep_for"] * 60000,
-                                suffix=module.params["snap_suffix"],
-                            )
-                        else:
-                            rules = flasharray.PolicyrulesnapshotpostRules(
-                                at=convert_to_millisecs(module.params["snap_at"]),
-                                client_name=module.params["snap_client_name"],
-                                every=module.params["snap_every"] * 60000,
-                                keep_for=module.params["snap_keep_for"] * 60000,
-                            )
+                    if suffix_enabled:
+                        rules = flasharray.PolicyrulesnapshotpostRules(
+                            at=convert_to_millisecs(module.params["snap_at"]),
+                            client_name=module.params["snap_client_name"],
+                            every=module.params["snap_every"] * 60000,
+                            keep_for=module.params["snap_keep_for"] * 60000,
+                            suffix=module.params["snap_suffix"],
+                        )
                     else:
-                        if suffix_enabled:
-                            rules = flasharray.PolicyrulesnapshotpostRules(
-                                client_name=module.params["snap_client_name"],
-                                every=module.params["snap_every"] * 60000,
-                                keep_for=module.params["snap_keep_for"] * 60000,
-                                suffix=module.params["snap_suffix"],
-                            )
-                        else:
-                            rules = flasharray.PolicyrulesnapshotpostRules(
-                                client_name=module.params["snap_client_name"],
-                                every=module.params["snap_every"] * 60000,
-                                keep_for=module.params["snap_keep_for"] * 60000,
-                            )
-                        rule = flasharray.PolicyRuleSnapshotPost(rules=[rules])
-                        changed_rule = True
-                        if not module.check_mode:
-                            rule_created = array.post_policies_snapshot_rules(
-                                policy_names=[module.params["name"]], rules=rule
-                            )
-                            if rule_created.status_code != 200:
-                                err_no = len(rule_created.errors) - 1
-                                module.fail_json(
-                                    msg="Failed to create new rule for Snapshot policy {0}. Error: {1}".format(
-                                        module.params["name"],
-                                        rule_created.errors[err_no].message,
-                                    )
+                        rules = flasharray.PolicyrulesnapshotpostRules(
+                            at=convert_to_millisecs(module.params["snap_at"]),
+                            client_name=module.params["snap_client_name"],
+                            every=module.params["snap_every"] * 60000,
+                            keep_for=module.params["snap_keep_for"] * 60000,
+                        )
+                else:
+                    if suffix_enabled:
+                        rules = flasharray.PolicyrulesnapshotpostRules(
+                            client_name=module.params["snap_client_name"],
+                            every=module.params["snap_every"] * 60000,
+                            keep_for=module.params["snap_keep_for"] * 60000,
+                            suffix=module.params["snap_suffix"],
+                        )
+                    else:
+                        rules = flasharray.PolicyrulesnapshotpostRules(
+                            client_name=module.params["snap_client_name"],
+                            every=module.params["snap_every"] * 60000,
+                            keep_for=module.params["snap_keep_for"] * 60000,
+                        )
+                    rule = flasharray.PolicyRuleSnapshotPost(rules=[rules])
+                    changed_rule = True
+                    if not module.check_mode:
+                        rule_created = array.post_policies_snapshot_rules(
+                            policy_names=[module.params["name"]], rules=rule
+                        )
+                        if rule_created.status_code != 200:
+                            err_no = len(rule_created.errors) - 1
+                            module.fail_json(
+                                msg="Failed to create new rule for Snapshot policy {0}. Error: {1}".format(
+                                    module.params["name"],
+                                    rule_created.errors[err_no].message,
                                 )
+                            )
             else:
                 if module.params["snap_keep_for"] < module.params["snap_every"]:
                     module.fail_json(

@@ -31,7 +31,7 @@ options:
       I(debug) module.
     type: str
     default: present
-    choices: [ enable, disable, absent, present ]
+    choices: [ enable, disable, absent, present, test ]
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -67,6 +67,35 @@ try:
     from pypureclient.flasharray import SupportPatch
 except ImportError:
     HAS_PURESTORAGE = False
+
+
+def test_ra(module, array):
+    """Test support/remote assist configuration"""
+    test_response = []
+    response = list(array.get_support_test().items)
+    for component in range(0, len(response)):
+        if response[component].enabled:
+            enabled = "true"
+        else:
+            enabled = "false"
+        if response[component].success:
+            success = "true"
+        else:
+            success = "false"
+        test_response.append(
+            {
+                "component_address": response[component].component_address,
+                "component_name": response[component].component_name,
+                "description": response[component].description,
+                "destination": response[component].destination,
+                "enabled": enabled,
+                "result_details": getattr(response[component], "result_details", ""),
+                "success": success,
+                "test_type": response[component].test_type,
+                "resource_name": response[component].resource.name,
+            }
+        )
+    module.exit_json(changed=True, test_response=test_response)
 
 
 def enable_ra(module, array):
@@ -137,7 +166,7 @@ def main():
             state=dict(
                 type="str",
                 default="present",
-                choices=["enable", "disable", "absent", "present"],
+                choices=["enable", "disable", "absent", "present", "test"],
             ),
         )
     )
@@ -150,6 +179,8 @@ def main():
 
     if module.params["state"] in ["enable", "present"]:
         enable_ra(module, array)
+    elif module.params["state"] == "test":
+        test_ra(module, array)
     else:
         disable_ra(module, array)
     module.exit_json(changed=False)
