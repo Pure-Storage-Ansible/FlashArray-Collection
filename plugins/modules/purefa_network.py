@@ -266,6 +266,16 @@ def update_fc_interface(module, array, interface, api_version):
     module.exit_json(changed=changed)
 
 
+def _check_subinterfaces(module, array):
+    subordinates = []
+    subinterfaces = list(
+        array.get_network_interfaces(names=[module.params["name"]]).items
+    )[0].eth.subinterfaces
+    for subinterface in range(0, len(subinterfaces)):
+        subordinates.append(subinterfaces[subinterface].name)
+    return subordinates
+
+
 def _create_subordinates(module, array):
     subordinates_v1 = []
     subordinates_v2 = []
@@ -319,49 +329,48 @@ def update_interface(module, array, interface):
         "services": sorted(interface["services"]),
         "slaves": sorted(interface["slaves"]),
     }
-    if not current_state["address"]:
-        current_state["address"] = "0.0.0.0"
     array6 = get_array(module)
-    subinterfaces = sorted(current_state["slaves"])
+    subinterfaces = current_state["slaves"]
     if module.params["subinterfaces"]:
-        new_subinterfaces, dummy = _create_subinterfaces(module, array6)
+        new_subinterfaces = _check_subinterfaces(module, array6)
         if new_subinterfaces != subinterfaces:
             subinterfaces = new_subinterfaces
         else:
             subinterfaces = current_state["slaves"]
     if module.params["subordinates"]:
-        new_subordinates, dummy = _create_subordinates(module, array6)
-        if new_subordinates != subinterfaces:
-            subinterfaces = new_subordinates
+        subordinates = _check_subinterfaces(module, array6)
+        if sorted(subordinates) != sorted(module.params["subordinates"]):
+            subinterfaces = module.params["subordinates"]
         else:
-            subinterfaces = current_state["slaves"]
+            subinterfaces = subordinates
     if module.params["enabled"] != current_state["enabled"]:
         enabled = module.params["enabled"]
     else:
         enabled = current_state["enabled"]
     if not current_state["gateway"]:
         try:
-            if valid_ipv4(current_state["address"]):
+            if valid_ipv4(interface["address"]):
                 current_state["gateway"] = None
-            elif valid_ipv6(current_state["address"]):
+            elif valid_ipv6(interface["address"]):
                 current_state["gateway"] = None
         except AttributeError:
             current_state["gateway"] = None
     if not module.params["servicelist"]:
-        services = current_state["services"]
+        services = sorted(interface["services"])
     else:
         services = sorted(module.params["servicelist"])
     if not module.params["address"]:
-        address = current_state["address"]
-        netmask = current_state["netmask"]
+        address = interface["address"]
+        netmask = interface["netmask"]
     else:
+        netmask = current_state["netmask"]
         if module.params["gateway"] and module.params["gateway"] not in [
             "0.0.0.0",
             "::",
         ]:
             if module.params["gateway"] not in IPNetwork(module.params["address"]):
                 module.fail_json(msg="Gateway and subnet are not compatible.")
-        if not module.params["gateway"] and current_state["gateway"] not in [
+        if not module.params["gateway"] and interface["gateway"] not in [
             None,
             IPNetwork(module.params["address"]),
         ]:
@@ -370,7 +379,7 @@ def update_interface(module, array, interface):
         if address in ["0.0.0.0", "::"]:
             address = None
     if not module.params["mtu"]:
-        mtu = current_state["mtu"]
+        mtu = interface["mtu"]
     else:
         if not 1280 <= module.params["mtu"] <= 9216:
             module.fail_json(
@@ -381,18 +390,17 @@ def update_interface(module, array, interface):
         else:
             mtu = module.params["mtu"]
     if module.params["address"]:
-        if not address:
-            address = "0.0.0.0"
-        if valid_ipv4(address):
-            netmask = str(IPNetwork(module.params["address"]).netmask)
-        else:
-            netmask = str(module.params["address"].split("/", 1)[1])
+        if address:
+            if valid_ipv4(address):
+                netmask = str(IPNetwork(module.params["address"]).netmask)
+            else:
+                netmask = str(module.params["address"].split("/", 1)[1])
         if netmask in ["0.0.0.0", "0"]:
             netmask = None
     else:
-        netmask = current_state["netmask"]
+        netmask = interface["netmask"]
     if not module.params["gateway"]:
-        gateway = current_state["gateway"]
+        gateway = interface["gateway"]
     elif module.params["gateway"] in ["0.0.0.0", "::"]:
         gateway = None
     elif valid_ipv4(address):
@@ -431,7 +439,7 @@ def update_interface(module, array, interface):
         changed = True
         if (
             module.params["servicelist"]
-            and sorted(module.params["servicelist"]) != current_state["services"]
+            and sorted(module.params["servicelist"]) != interface["services"]
         ):
             api_version = array._list_available_rest_versions()
             if FC_ENABLE_API in api_version:
@@ -454,8 +462,7 @@ def update_interface(module, array, interface):
                         "Servicelist not updated as pypureclient module is required"
                     )
         if (
-            "management" in current_state["services"]
-            or "app" in current_state["services"]
+            "management" in interface["services"] or "app" in interface["services"]
         ) and address in ["0.0.0.0/0", "::/0"]:
             module.fail_json(
                 msg="Removing IP address from a management or app port is not supported"
@@ -482,9 +489,12 @@ def update_interface(module, array, interface):
                             subinterfacelist=new_state["slaves"],
                         )
                 else:
-                    if valid_ipv4(new_state["address"]):
-                        empty_gateway = "0.0.0.0"
-                    else:
+                    try:
+                        if valid_ipv4(new_state["address"]):
+                            empty_gateway = "0.0.0.0"
+                        else:
+                            empty_gateway = "::"
+                    except Exception:
                         empty_gateway = "::"
                     array.set_network_interface(
                         interface["name"],
@@ -497,10 +507,16 @@ def update_interface(module, array, interface):
                         current_state["slaves"] != new_state["slaves"]
                         and new_state["slaves"] != []
                     ):
-                        array.set_network_interface(
-                            interface["name"],
-                            subinterfacelist=new_state["slaves"],
+                        res = array6.delete_network_interfaces(
+                            names=[module.params["name"]]
                         )
+                        if res.status_code != 200:
+                            module.fail_json(
+                                msg="Failed to delete network interface {0}. Error: {1}".format(
+                                    module.params["name"], res.errors[0].message
+                                )
+                            )
+                        create_interface(module, array6)
             except Exception:
                 module.fail_json(
                     msg="Failed to change settings for interface {0}.".format(
@@ -716,10 +732,10 @@ def main():
     array = get_system(module)
     if module.params["address"]:
         module.params["address"] = module.params["address"].strip("[]")
+        if "/" not in module.params["address"]:
+            module.fail_json(msg="address must include valid netmask bits")
     if module.params["gateway"]:
         module.params["gateway"] = module.params["gateway"].strip("[]")
-    if "/" not in module.params["address"]:
-        module.fail_json(msg="address must include valid netmask bits")
     api_version = array._list_available_rest_versions()
     if not _is_cbs(array):
         if module.params["servicelist"] and "system" in module.params["servicelist"]:
