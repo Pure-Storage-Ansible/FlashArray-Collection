@@ -25,6 +25,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - pycountry
 - packaging
 - pyz
+- urllib3
 
 ## Installation
 

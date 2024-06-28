@@ -30,6 +30,12 @@ options:
     description:
       - FlashArray API token for admin privileged user.
     type: str
+  disable_warnings:
+    description:
+     - Disable insecure certificate warnings in debug logs
+    type: bool
+    default: false
+    version_added: '1.29.0'
 notes:
   - This module requires the C(purestorage) and C(py-pure-client) Python libraries
   - Additional Python librarues may be required for specific modules.
@@ -42,4 +48,5 @@ requirements:
   - netaddr
   - requests
   - pycountry
+  - urllib3
 """
