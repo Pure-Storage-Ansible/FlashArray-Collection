@@ -1582,6 +1582,7 @@ def generate_host_dict(module, array, performance):
             host_info[hostname]["preferred_array"] = hosts[host]["preferred_array"]
     if FC_REPL_API_VERSION in api_version:
         hosts_balance = list(arrayv6.get_hosts_performance_balance().items)
+        hosts_performance = list(arrayv6.get_hosts_performance().items)
         for host in range(0, len(hostsv6)):
             if hostsv6[host].is_local:
                 host_info[hostsv6[host].name]["port_connectivity"] = hostsv6[
@@ -1609,6 +1610,82 @@ def generate_host_dict(module, array, performance):
                 host_info[hosts[host]["name"]]["performance_balance"].append(
                     host_perf_balance
                 )
+                if performance:
+                    for perf in range(0, len(hosts_performance)):
+                        if ":" not in hosts_performance[perf].name:
+                            host_info[hosts_performance[perf].name]["performance"] = {
+                                "bytes_per_mirrored_write": hosts_performance[
+                                    perf
+                                ].bytes_per_mirrored_write,
+                                "bytes_per_op": hosts_performance[perf].bytes_per_op,
+                                "bytes_per_read": hosts_performance[
+                                    perf
+                                ].bytes_per_read,
+                                "bytes_per_write": hosts_performance[
+                                    perf
+                                ].bytes_per_write,
+                                "mirrored_write_bytes_per_sec": hosts_performance[
+                                    perf
+                                ].mirrored_write_bytes_per_sec,
+                                "mirrored_writes_per_sec": hosts_performance[
+                                    perf
+                                ].mirrored_writes_per_sec,
+                                "qos_rate_limit_usec_per_mirrored_write_op": hosts_performance[
+                                    perf
+                                ].qos_rate_limit_usec_per_mirrored_write_op,
+                                "qos_rate_limit_usec_per_read_op": hosts_performance[
+                                    perf
+                                ].qos_rate_limit_usec_per_mirrored_write_op,
+                                "qos_rate_limit_usec_per_write_op": hosts_performance[
+                                    perf
+                                ].qos_rate_limit_usec_per_read_op,
+                                "queue_usec_per_mirrored_write_op": hosts_performance[
+                                    perf
+                                ].queue_usec_per_mirrored_write_op,
+                                "queue_usec_per_read_op": hosts_performance[
+                                    perf
+                                ].queue_usec_per_read_op,
+                                "queue_usec_per_write_op": hosts_performance[
+                                    perf
+                                ].queue_usec_per_write_op,
+                                "read_bytes_per_sec": hosts_performance[
+                                    perf
+                                ].read_bytes_per_sec,
+                                "reads_per_sec": hosts_performance[perf].reads_per_sec,
+                                "san_usec_per_mirrored_write_op": hosts_performance[
+                                    perf
+                                ].san_usec_per_mirrored_write_op,
+                                "san_usec_per_read_op": hosts_performance[
+                                    perf
+                                ].san_usec_per_read_op,
+                                "san_usec_per_write_op": hosts_performance[
+                                    perf
+                                ].san_usec_per_write_op,
+                                "service_usec_per_mirrored_write_op": hosts_performance[
+                                    perf
+                                ].service_usec_per_mirrored_write_op,
+                                "service_usec_per_read_op": hosts_performance[
+                                    perf
+                                ].service_usec_per_read_op,
+                                "service_usec_per_write_op": hosts_performance[
+                                    perf
+                                ].service_usec_per_write_op,
+                                "usec_per_mirrored_write_op": hosts_performance[
+                                    perf
+                                ].usec_per_mirrored_write_op,
+                                "usec_per_read_op": hosts_performance[
+                                    perf
+                                ].usec_per_read_op,
+                                "usec_per_write_op": hosts_performance[
+                                    perf
+                                ].usec_per_write_op,
+                                "write_bytes_per_sec": hosts_performance[
+                                    perf
+                                ].write_bytes_per_sec,
+                                "writes_per_sec": hosts_performance[
+                                    perf
+                                ].writes_per_sec,
+                            }
     if VLAN_VERSION in api_version:
         arrayv6 = get_array(module)
         hosts = list(arrayv6.get_hosts().items)
@@ -1616,70 +1693,6 @@ def generate_host_dict(module, array, performance):
             if hosts[host].is_local:
                 hostname = hosts[host].name
                 host_info[hostname]["vlan"] = getattr(hosts[host], "vlan", None)
-    if FC_REPL_API_VERSION in api_version and performance:
-        hosts_performance = list(arrayv6.get_hosts_performance().items)
-        for performance in range(0, len(hosts_performance)):
-            host_info[hosts_performance[performance].name]["performance"] = {
-                "bytes_per_mirrored_write": hosts_performance[
-                    performance
-                ].bytes_per_mirrored_write,
-                "bytes_per_op": hosts_performance[performance].bytes_per_op,
-                "bytes_per_read": hosts_performance[performance].bytes_per_read,
-                "bytes_per_write": hosts_performance[performance].bytes_per_write,
-                "mirrored_write_bytes_per_sec": hosts_performance[
-                    performance
-                ].mirrored_write_bytes_per_sec,
-                "mirrored_writes_per_sec": hosts_performance[
-                    performance
-                ].mirrored_writes_per_sec,
-                "qos_rate_limit_usec_per_mirrored_write_op": hosts_performance[
-                    performance
-                ].qos_rate_limit_usec_per_mirrored_write_op,
-                "qos_rate_limit_usec_per_read_op": hosts_performance[
-                    performance
-                ].qos_rate_limit_usec_per_mirrored_write_op,
-                "qos_rate_limit_usec_per_write_op": hosts_performance[
-                    performance
-                ].qos_rate_limit_usec_per_read_op,
-                "queue_usec_per_mirrored_write_op": hosts_performance[
-                    performance
-                ].queue_usec_per_mirrored_write_op,
-                "queue_usec_per_read_op": hosts_performance[
-                    performance
-                ].queue_usec_per_read_op,
-                "queue_usec_per_write_op": hosts_performance[
-                    performance
-                ].queue_usec_per_write_op,
-                "read_bytes_per_sec": hosts_performance[performance].read_bytes_per_sec,
-                "reads_per_sec": hosts_performance[performance].reads_per_sec,
-                "san_usec_per_mirrored_write_op": hosts_performance[
-                    performance
-                ].san_usec_per_mirrored_write_op,
-                "san_usec_per_read_op": hosts_performance[
-                    performance
-                ].san_usec_per_read_op,
-                "san_usec_per_write_op": hosts_performance[
-                    performance
-                ].san_usec_per_write_op,
-                "service_usec_per_mirrored_write_op": hosts_performance[
-                    performance
-                ].service_usec_per_mirrored_write_op,
-                "service_usec_per_read_op": hosts_performance[
-                    performance
-                ].service_usec_per_read_op,
-                "service_usec_per_write_op": hosts_performance[
-                    performance
-                ].service_usec_per_write_op,
-                "usec_per_mirrored_write_op": hosts_performance[
-                    performance
-                ].usec_per_mirrored_write_op,
-                "usec_per_read_op": hosts_performance[performance].usec_per_read_op,
-                "usec_per_write_op": hosts_performance[performance].usec_per_write_op,
-                "write_bytes_per_sec": hosts_performance[
-                    performance
-                ].write_bytes_per_sec,
-                "writes_per_sec": hosts_performance[performance].writes_per_sec,
-            }
     return host_info
 
 
