@@ -36,6 +36,11 @@ plugins:
       name: purefa_arrayname
       namespace: ''
       version_added: 1.0.0
+    purefa_audits:
+      description: List FlashArray Audit Events
+      name: purefa_audits
+      namespace: ''
+      version_added: 1.29.0
     purefa_banner:
       description: Configure Pure Storage FlashArray GUI and SSH MOTD message
       name: purefa_banner
@@ -232,6 +237,11 @@ plugins:
       name: purefa_saml
       namespace: ''
       version_added: 1.12.0
+    purefa_sessions:
+      description: List FlashArray Sessions
+      name: purefa_sessions
+      namespace: ''
+      version_added: 1.29.0
     purefa_smis:
       description: Enable or disable FlashArray SMI-S features
       name: purefa_smis
@@ -322,4 +332,4 @@ plugins:
   strategy: {}
   test: {}
   vars: {}
-version: 1.28.1
+version: 1.29.0

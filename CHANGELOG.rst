@@ -5,6 +5,44 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.29.0
+=======
+
+Minor Changes
+-------------
+
+- all - add ``disable_warnings`` parameters
+- purefa_alert - Add new ``state`` of ``test`` to check alert manager configuration
+- purefa_alert - Converted to REST v2
+- purefa_connect - Convert to REST v2
+- purefa_console - Convert to REST v2
+- purefa_dns - Convert to REST v2
+- purefa_ds - Add new ``state`` of ``test`` to check directory services configuration
+- purefa_ds - Convert to REST v2 removing all parameters used unsupported Purity versions
+- purefa_dsrole - Convert to REST v2
+- purefa_info - Add SMTP server information
+- purefa_kmip - Add new ``state`` of ``test`` to check KMIP object configuration
+- purefa_ntp - Add new ``state`` of ``test`` to check NTP configuration
+- purefa_phonehome - Convert to REST v2
+- purefa_pod - Add ``delete_contents`` parameter for eradication of pods.
+- purefa_pod - Add support for ``throttle`` parameter from REST 2.31.
+- purefa_pod - Convert to REST v2.
+- purefa_ra - Add new ``state`` of ``test`` to check remote support configuration
+- purefa_saml - Add new ``state`` of ``test`` to check SAML2 IdP configuration
+- purefa_snmp - Add new ``state`` of ``test`` to check SNMP manager configuration
+- purefa_syslog - Add new ``state`` of ``test`` to check syslog server configuration
+
+Bugfixes
+--------
+
+- purefa_info - Resolve issue with performance stats trying to report for remote hosts
+
+New Modules
+-----------
+
+- purestorage.flasharray.purefa_audits - List FlashArray Audit Events
+- purestorage.flasharray.purefa_sessions - List FlashArray Sessions
+
 v1.28.1
 =======
 
