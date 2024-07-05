@@ -32,6 +32,12 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
+HAS_URLLIB3 = True
+try:
+    import urllib3
+except ImportError:
+    HAS_URLLIB3 = False
+
 HAS_DISTRO = True
 try:
     import distro
@@ -59,6 +65,8 @@ USER_AGENT_BASE = "Ansible"
 
 def get_system(module):
     """Return System Object or Fail"""
+    if HAS_URLLIB3 and module.params["disable_warnings"]:
+        urllib3.disable_warnings()
     if HAS_DISTRO:
         user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
             "base": USER_AGENT_BASE,
@@ -105,6 +113,8 @@ def get_system(module):
 
 def get_array(module):
     """Return System Object or Fail"""
+    if HAS_URLLIB3 and module.params["disable_warnings"]:
+        urllib3.disable_warnings()
     if HAS_DISTRO:
         user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
             "base": USER_AGENT_BASE,
@@ -156,4 +166,5 @@ def purefa_argument_spec():
     return dict(
         fa_url=dict(),
         api_token=dict(no_log=True),
+        disable_warnings=dict(type="bool", default=False),
     )

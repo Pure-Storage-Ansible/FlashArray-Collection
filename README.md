@@ -24,6 +24,8 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
 - requests
 - pycountry
 - packaging
+- pyz
+- urllib3
 
 ## Installation
 
@@ -101,6 +103,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_alert - manage email alert settings on the FlashArray
 - purefa_apiclient - manageFlashArray API clients
 - purefa_arrayname - manage the name of the FlashArray
+- pureaf_audits - get FlashArray audit events
 - purefa_banner - manage the CLI and GUI login banner of the FlashArray
 - purefa_cbsexpand - manage CBS FlashArray capacity expansion
 - purefa_certs - manage FlashArray SSL certificates
@@ -138,7 +141,8 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_policy - manage FlashArray NFS, SMB and snapshot policies
 - purefa_proxy - manage the phonehome HTTPS proxy setting for the FlashArray
 - purefa_ra - manage the Remote Assist setting for the FlashArray
-- purefa_saml - Manage FlashArray SAML2 service and identity providers
+- purefa_saml - manage FlashArray SAML2 service and identity providers
+- purefa_sessions - get FlashArray sessions log
 - purefa_smis - manage SMI-S settings on the FlashArray
 - purefa_smtp - manage SMTP settings on the FlashArray
 - purefa_snap - manage local snapshots on the FlashArray
