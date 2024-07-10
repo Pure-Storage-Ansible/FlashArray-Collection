@@ -278,6 +278,7 @@ def generate_config_dict(module, array):
     config_info["snmp"] = array.list_snmp_managers()
     config_info["snmp_v3_engine_id"] = array.get_snmp_engine_id()["engine_id"]
     if V6_MINIMUM_API_VERSION in api_version:
+        arrayv6 = get_array(module)
         smtp_info = list(arrayv6.get_smtp_servers().items)[0]
         config_info["smtp_servers"] = {
             "name": smtp_info.name,
@@ -288,7 +289,6 @@ def generate_config_dict(module, array):
             "sender_domain": getattr(smtp_info, "sender_domain", ""),
         }
         config_info["directory_service"] = {}
-        arrayv6 = get_array(module)
         services = list(arrayv6.get_directory_services().items)
         for service in range(0, len(services)):
             service_type = services[service].name
@@ -2771,69 +2771,74 @@ def generate_hgroups_dict(module, array, performance):
         if performance:
             hgs_performance = list(arrayv6.get_host_groups_performance().items)
             for performance in range(0, len(hgs_performance)):
-                hgroups_info[hgs_performance[performance].name]["performance"] = {
-                    "bytes_per_mirrored_write": hgs_performance[
-                        performance
-                    ].bytes_per_mirrored_write,
-                    "bytes_per_op": hgs_performance[performance].bytes_per_op,
-                    "bytes_per_read": hgs_performance[performance].bytes_per_read,
-                    "bytes_per_write": hgs_performance[performance].bytes_per_write,
-                    "mirrored_write_bytes_per_sec": hgs_performance[
-                        performance
-                    ].mirrored_write_bytes_per_sec,
-                    "mirrored_writes_per_sec": hgs_performance[
-                        performance
-                    ].mirrored_writes_per_sec,
-                    "qos_rate_limit_usec_per_mirrored_write_op": hgs_performance[
-                        performance
-                    ].qos_rate_limit_usec_per_mirrored_write_op,
-                    "qos_rate_limit_usec_per_read_op": hgs_performance[
-                        performance
-                    ].qos_rate_limit_usec_per_mirrored_write_op,
-                    "qos_rate_limit_usec_per_write_op": hgs_performance[
-                        performance
-                    ].qos_rate_limit_usec_per_read_op,
-                    "queue_usec_per_mirrored_write_op": hgs_performance[
-                        performance
-                    ].queue_usec_per_mirrored_write_op,
-                    "queue_usec_per_read_op": hgs_performance[
-                        performance
-                    ].queue_usec_per_read_op,
-                    "queue_usec_per_write_op": hgs_performance[
-                        performance
-                    ].queue_usec_per_write_op,
-                    "read_bytes_per_sec": hgs_performance[
-                        performance
-                    ].read_bytes_per_sec,
-                    "reads_per_sec": hgs_performance[performance].reads_per_sec,
-                    "san_usec_per_mirrored_write_op": hgs_performance[
-                        performance
-                    ].san_usec_per_mirrored_write_op,
-                    "san_usec_per_read_op": hgs_performance[
-                        performance
-                    ].san_usec_per_read_op,
-                    "san_usec_per_write_op": hgs_performance[
-                        performance
-                    ].san_usec_per_write_op,
-                    "service_usec_per_mirrored_write_op": hgs_performance[
-                        performance
-                    ].service_usec_per_mirrored_write_op,
-                    "service_usec_per_read_op": hgs_performance[
-                        performance
-                    ].service_usec_per_read_op,
-                    "service_usec_per_write_op": hgs_performance[
-                        performance
-                    ].service_usec_per_write_op,
-                    "usec_per_mirrored_write_op": hgs_performance[
-                        performance
-                    ].usec_per_mirrored_write_op,
-                    "usec_per_read_op": hgs_performance[performance].usec_per_read_op,
-                    "usec_per_write_op": hgs_performance[performance].usec_per_write_op,
-                    "write_bytes_per_sec": hgs_performance[
-                        performance
-                    ].write_bytes_per_sec,
-                    "writes_per_sec": hgs_performance[performance].writes_per_sec,
-                }
+                if ":" not in hgs_performance[performance].name:
+                    hgroups_info[hgs_performance[performance].name]["performance"] = {
+                        "bytes_per_mirrored_write": hgs_performance[
+                            performance
+                        ].bytes_per_mirrored_write,
+                        "bytes_per_op": hgs_performance[performance].bytes_per_op,
+                        "bytes_per_read": hgs_performance[performance].bytes_per_read,
+                        "bytes_per_write": hgs_performance[performance].bytes_per_write,
+                        "mirrored_write_bytes_per_sec": hgs_performance[
+                            performance
+                        ].mirrored_write_bytes_per_sec,
+                        "mirrored_writes_per_sec": hgs_performance[
+                            performance
+                        ].mirrored_writes_per_sec,
+                        "qos_rate_limit_usec_per_mirrored_write_op": hgs_performance[
+                            performance
+                        ].qos_rate_limit_usec_per_mirrored_write_op,
+                        "qos_rate_limit_usec_per_read_op": hgs_performance[
+                            performance
+                        ].qos_rate_limit_usec_per_mirrored_write_op,
+                        "qos_rate_limit_usec_per_write_op": hgs_performance[
+                            performance
+                        ].qos_rate_limit_usec_per_read_op,
+                        "queue_usec_per_mirrored_write_op": hgs_performance[
+                            performance
+                        ].queue_usec_per_mirrored_write_op,
+                        "queue_usec_per_read_op": hgs_performance[
+                            performance
+                        ].queue_usec_per_read_op,
+                        "queue_usec_per_write_op": hgs_performance[
+                            performance
+                        ].queue_usec_per_write_op,
+                        "read_bytes_per_sec": hgs_performance[
+                            performance
+                        ].read_bytes_per_sec,
+                        "reads_per_sec": hgs_performance[performance].reads_per_sec,
+                        "san_usec_per_mirrored_write_op": hgs_performance[
+                            performance
+                        ].san_usec_per_mirrored_write_op,
+                        "san_usec_per_read_op": hgs_performance[
+                            performance
+                        ].san_usec_per_read_op,
+                        "san_usec_per_write_op": hgs_performance[
+                            performance
+                        ].san_usec_per_write_op,
+                        "service_usec_per_mirrored_write_op": hgs_performance[
+                            performance
+                        ].service_usec_per_mirrored_write_op,
+                        "service_usec_per_read_op": hgs_performance[
+                            performance
+                        ].service_usec_per_read_op,
+                        "service_usec_per_write_op": hgs_performance[
+                            performance
+                        ].service_usec_per_write_op,
+                        "usec_per_mirrored_write_op": hgs_performance[
+                            performance
+                        ].usec_per_mirrored_write_op,
+                        "usec_per_read_op": hgs_performance[
+                            performance
+                        ].usec_per_read_op,
+                        "usec_per_write_op": hgs_performance[
+                            performance
+                        ].usec_per_write_op,
+                        "write_bytes_per_sec": hgs_performance[
+                            performance
+                        ].write_bytes_per_sec,
+                        "writes_per_sec": hgs_performance[performance].writes_per_sec,
+                    }
     return hgroups_info
 
 

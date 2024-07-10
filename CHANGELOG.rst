@@ -5,6 +5,14 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.29.1
+=======
+
+Bugfixes
+--------
+
+- purefa_info - Fix typo from PR
+
 v1.29.0
 =======
 

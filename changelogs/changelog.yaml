@@ -669,6 +669,13 @@ releases:
       name: purefa_sessions
       namespace: ''
     release_date: '2024-07-05'
+  1.29.1:
+    changes:
+      bugfixes:
+      - purefa_info - Fix typo from PR
+    fragments:
+    - 591_typo_fix.yaml
+    release_date: '2024-07-10'
   1.4.0:
     changes:
       bugfixes:
