@@ -51,6 +51,12 @@ options:
     type: str
     choices: [ ip, fc ]
     default: ip
+  encrypted:
+    description:
+    - Defines if the array connection will be encryted
+    type: bool
+    default: false
+    version_added: '1.30.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -99,8 +105,14 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
 import platform
 import socket
+
+
+ENCRYPT_VERSION = "2.33"
 
 
 def _lookup(address):
@@ -152,6 +164,7 @@ def break_connection(module, array, target_array):
 def create_connection(module, array):
     """Create connection between arrays"""
     changed = True
+    api_version = array.get_rest_version()
     if HAS_DISTRO:
         user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
             "base": "Ansible",
@@ -184,12 +197,25 @@ def create_connection(module, array):
             module.fail_json(
                 msg="Asynchronous replication not supported using FC transport"
             )
-        array_connection = flasharray.ArrayConnectionPost(
-            type=module.params["connection"].lower(),
-            management_address=module.params["target_url"].strip("[]"),
-            replication_transport=module.params["connection"],
-            connection_key=connection_key,
-        )
+        if LooseVersion(ENCRYPT_VERSION) >= LooseVersion(api_version):
+            if module.params["encrypted"]:
+                encrypted = "encrypted"
+            else:
+                encrypted = "unencrypted"
+            array_connection = flasharray.ArrayConnectionPost(
+                type=module.params["connection"].lower(),
+                management_address=module.params["target_url"].strip("[]"),
+                replication_transport=module.params["connection"],
+                connection_key=connection_key,
+                encypted=encrypted,
+            )
+        else:
+            array_connection = flasharray.ArrayConnectionPost(
+                type=module.params["connection"].lower(),
+                management_address=module.params["target_url"].strip("[]"),
+                replication_transport=module.params["connection"],
+                connection_key=connection_key,
+            )
         if not module.check_mode:
             res = array.post_array_connections(array_connection=array_connection)
             if res.status_code != 200:
@@ -216,6 +242,7 @@ def main():
             transport=dict(type="str", default="ip", choices=["ip", "fc"]),
             target_url=dict(type="str", required=True),
             target_api=dict(type="str"),
+            encrypted=dict(type="bool", default=False),
         )
     )
 

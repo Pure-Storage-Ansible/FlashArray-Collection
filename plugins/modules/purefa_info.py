@@ -133,6 +133,7 @@ SUBS_API_VERSION = "2.26"
 NSID_API_VERSION = "2.27"
 NFS_SECURITY_VERSION = "2.29"
 UPTIME_API_VERSION = "2.30"
+TLS_CONNECTION_API_VERSION = "2.33"
 
 
 def _is_cbs(array):
@@ -146,9 +147,9 @@ def generate_default_dict(module, array):
     default_info = {}
     defaults = array.get()
     api_version = array._list_available_rest_versions()
+    arrayv6 = get_array(module)
     default_info["api_versions"] = api_version
     if FILES_API_VERSION in api_version:
-        arrayv6 = get_array(module)
         if VM_VERSION in api_version:
             default_info["virtual_machines"] = len(
                 arrayv6.get_virtual_machines(vm_type="vvol").items
@@ -217,6 +218,41 @@ def generate_default_dict(module, array):
         default_info["connection_key"] = array.get(connection_key=True)[
             "connection_key"
         ]
+    if (
+        TLS_CONNECTION_API_VERSION in api_version
+        and default_info["connected_arrays"] > 0
+    ):
+        default_info["connection_paths"] = []
+        connection_paths = list(arrayv6.get_array_connections_path().items)
+        for path in range(0, len(connection_paths)):
+            default_info["connection_paths"].append(
+                {
+                    connection_paths[path].name: {
+                        "local_port": getattr(
+                            connection_paths[path], "local_port", None
+                        ),
+                        "local_address": getattr(
+                            connection_paths[path], "local_address", None
+                        ),
+                        "remote_port": getattr(
+                            connection_paths[path], "remote_port", None
+                        ),
+                        "remote_address": getattr(
+                            connection_paths[path], "remote_address", None
+                        ),
+                        "status": getattr(connection_paths[path], "status", None),
+                        "transport": getattr(
+                            connection_paths[path], "replication_transport", None
+                        ),
+                        "encryption": getattr(
+                            connection_paths[path], "encryption", None
+                        ),
+                        "encryption_mode": getattr(
+                            connection_paths[path], "encryption_mode", None
+                        ),
+                    }
+                }
+            )
     hosts = array.list_hosts()
     admins = array.list_admins()
     snaps = array.list_volumes(snap=True, pending=True)
