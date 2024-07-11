@@ -415,9 +415,9 @@ def main():
 
     if hostgroup and state == "present":
         update_hostgroup(module, array)
-    elif hostgroup and module.params["volume"] and state == "absent":
+    elif hostgroup and module.params["volume"] is not None and state == "absent":
         update_hostgroup(module, array)
-    elif hostgroup and module.params["host"] and state == "absent":
+    elif hostgroup and module.params["host"] is not None and state == "absent":
         update_hostgroup(module, array)
     elif hostgroup and state == "absent":
         delete_hostgroup(module, array)
