@@ -1547,6 +1547,23 @@ def generate_vol_dict(module, array, performance):
                     ].write_bytes_per_sec,
                     "writes_per_sec": vols_performance[performance].writes_per_sec,
                 }
+    cvols = array.list_volumes(connect=True)
+    for cvol in range(0, len(cvols)):
+        volume = cvols[cvol]["name"]
+        voldict = {"host": cvols[cvol]["host"], "lun": cvols[cvol]["lun"]}
+        volume_info[volume]["hosts"].append(voldict)
+    if ACTIVE_DR_API in api_version:
+        voltags = array.list_volumes(tags=True)
+        for voltag in range(0, len(voltags)):
+            if voltags[voltag]["namespace"] != "vasa-integration.purestorage.com":
+                volume = voltags[voltag]["name"]
+                tagdict = {
+                    "key": voltags[voltag]["key"],
+                    "value": voltags[voltag]["value"],
+                    "copyable": voltags[voltag]["copyable"],
+                    "namespace": voltags[voltag]["namespace"],
+                }
+                volume_info[volume]["tags"].append(tagdict)
     return volume_info
 
 
