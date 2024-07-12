@@ -5,6 +5,21 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.30.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_connect - Add support for TLS encrypted array connections
+- purefa_info - Fix regression of code that caused volume host connectivity info to be lost
+- purefa_info - Provide array connection path information
+
+Bugfixes
+--------
+
+- purefa_hg - Fix edge case with incorrectly deleted hostgroup when empty array sent for volumes or hosts
+
 v1.29.1
 =======
 
