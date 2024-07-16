@@ -1076,7 +1076,7 @@ def main():
             module.exit_json(changed=False)
         elif host and state == "present":
             update_host(module, array)
-        elif host and state == "absent" and module.params["volume"]:
+        elif host and state == "absent" and module.params["volume"] is not None:
             update_host(module, array)
         elif host and state == "absent":
             delete_host(module, array)
