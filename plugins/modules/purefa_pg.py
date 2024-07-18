@@ -946,8 +946,8 @@ def main():
         and state == "absent"
         and (
             module.params["volume"]
-            or module.params["hosts"]
-            or module.params["hostgroups"]
+            or module.params["host"]
+            or module.params["hostgroup"]
         )
     ):
         update_pgroup(module, array)
