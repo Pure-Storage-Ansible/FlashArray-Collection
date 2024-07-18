@@ -104,9 +104,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 def update_role(module, array):
     """Update Directory Service Role"""
     changed = False
-    role = list(array.get_directory_service_roles(names=[module.params["role"]]).items)[
-        0
-    ]
+    role = list(
+        array.get_directory_services_roles(names=[module.params["role"]]).items
+    )[0]
     if (
         role.group_base != module.params["group_base"]
         or role.group != module.params["group"]
@@ -192,7 +192,7 @@ def main():
     array = get_array(module)
     role_configured = False
     role = list(
-        array.get_directory_service_roles(
+        array.get_directory_services_roles(
             roles=[FixedReference(name=module.params["role"])]
         ).items
     )[0]
