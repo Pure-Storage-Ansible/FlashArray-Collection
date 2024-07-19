@@ -5,6 +5,15 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.30.1
+=======
+
+Bugfixes
+--------
+
+- purefa_dsrole - Fix function name typo
+- purefa_pg - Fix parameter name typo
+
 v1.30.0
 =======
 
