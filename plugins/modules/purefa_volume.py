@@ -696,8 +696,8 @@ def create_volume(module, array):
                 module.fail_json(
                     msg="Volume {0} creation failed.".format(module.params["name"])
                 )
+    arrayv6 = get_array(module)
     if VOLUME_PROMOTION_API_VERSION in api_version and module.params["promotion_state"]:
-        arrayv6 = get_array(module)
         volume = flasharray.VolumePatch(
             requested_promotion_state=module.params["promotion_state"]
         )
@@ -716,7 +716,6 @@ def create_volume(module, array):
                     )
                 )
     if PRIORITY_API_VERSION in api_version and module.params["priority_operator"]:
-        arrayv6 = get_array(module)
         volume = flasharray.VolumePatch(
             priority_adjustment=flasharray.PriorityAdjustment(
                 priority_adjustment_operator=module.params["priority_operator"],
