@@ -1480,7 +1480,9 @@ def generate_vol_dict(module, array, performance):
                     volumes[vol].priority_adjustment.priority_adjustment_value
                 )
         if performance:
-            vols_performance = list(arrayv6.get_volumes_performance(destroyed=False).items)
+            vols_performance = list(
+                arrayv6.get_volumes_performance(destroyed=False).items
+            )
             for performance in range(0, len(vols_performance)):
                 volume_info[vols_performance[performance].name]["performance"] = {
                     "bytes_per_mirrored_write": vols_performance[
