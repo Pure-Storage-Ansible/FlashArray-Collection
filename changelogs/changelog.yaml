@@ -700,6 +700,15 @@ releases:
     - 599_typo_dsroles.yaml
     - 600_pg_param_typo.yaml
     release_date: '2024-07-19'
+  1.30.2:
+    changes:
+      bugfixes:
+      - purefa_info - Fixed issue trying to collect deleted volumes perfomance stats
+      - purefa_volume - Fix issue with creating volume using old Purity version (6.1.19)
+    fragments:
+    - 602_volume_fix.yaml
+    - 603_del_vol_perf.yaml
+    release_date: '2024-07-22'
   1.4.0:
     changes:
       bugfixes:
