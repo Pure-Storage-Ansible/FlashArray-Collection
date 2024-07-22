@@ -5,6 +5,15 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.30.2
+=======
+
+Bugfixes
+--------
+
+- purefa_info - Fixed issue trying to collect deleted volumes perfomance stats
+- purefa_volume - Fix issue with creating volume using old Purity version (6.1.19)
+
 v1.30.1
 =======
 
