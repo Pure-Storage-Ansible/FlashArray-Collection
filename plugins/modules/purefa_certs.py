@@ -502,7 +502,7 @@ def main():
     if not HAS_PYCOUNTRY:
         module.fail_json(msg="pycountry sdk is required for this module")
 
-    email_pattern = r"^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$"
+    email_pattern = r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,6}$"
     array = get_array(module)
     api_version = array.get_rest_version()
 
