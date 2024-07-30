@@ -55,7 +55,7 @@ EXAMPLES = r"""
 - name: Show critical alerts from past 4 weeks that haven't been acknowledged
   purefa_messages:
     history: 4w
-    flagged : false
+    flagged: false
     severity: critical
     fa_url: 10.10.10.2
     api_token: 89a9356f-c203-d263-8a89-c229486a13ba
