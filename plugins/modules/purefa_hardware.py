@@ -41,14 +41,14 @@ EXAMPLES = r"""
 - name: Enable identification LED
   purestorage.flasharray.purefa_hardware:
     name: "CH1.FB1"
-    enabled: True
+    enabled: true
     fa_url: 10.10.10.2
     api_token: T-68618f31-0c9e-4e57-aa44-5306a2cf10e3
 
 - name: Disable identification LED
   purestorage.flasharray.purefa_hardware:
     name: "CH1.FB1"
-    enabled: False
+    enabled: false
     fa_url: 10.10.10.2
     api_token: T-68618f31-0c9e-4e57-aa44-5306a2cf10e3
 """

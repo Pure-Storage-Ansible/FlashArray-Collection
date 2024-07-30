@@ -91,7 +91,8 @@ EXAMPLES = """
     name: subnet100
     state: absent
     fa_url: 10.10.10.2
-    api_token: c6033033-fe69-2515-a9e8-966bb7fe4b40"""
+    api_token: c6033033-fe69-2515-a9e8-966bb7fe4b40
+"""
 
 RETURN = """
 """
