@@ -35,7 +35,6 @@ EXAMPLES = r"""
 - name: show inventory information
   debug:
     msg: "{{ array_info['purefa_inv'] }}"
-
 """
 
 RETURN = r"""

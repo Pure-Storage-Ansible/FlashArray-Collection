@@ -163,7 +163,7 @@ EXAMPLES = r"""
     enable: true
     dstype: management
     certificate: "{{lookup('file', 'ca_cert.pem') }}"
-    check_peer: True
+    check_peer: true
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
