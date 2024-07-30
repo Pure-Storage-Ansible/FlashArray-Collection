@@ -113,7 +113,7 @@ def update_role(module, array):
     ):
         changed = True
         if not module.check_mode:
-            res = array.patch_directory_service_roles(
+            res = array.patch_directory_services_roles(
                 names=[module.params["role"]],
                 directory_services_roles=DirectoryServiceRole(
                     group_base=module.params["group_base"], group=module.params["group"]
@@ -132,7 +132,7 @@ def delete_role(module, array):
     """Delete Directory Service Role"""
     changed = True
     if not module.check_mode:
-        res = array.delete_directory_service_roles(names=[module.params["role"]])
+        res = array.delete_directory_services_roles(names=[module.params["role"]])
         if res.status_code != 200:
             module.fail_json(
                 msg="Delete Directory Service Role {0} failed. Error: {1}".format(
@@ -148,7 +148,7 @@ def create_role(module, array):
     if not module.params["group"] == "" or not module.params["group_base"] == "":
         changed = True
         if not module.check_mode:
-            res = array.post_directory_service_roles(
+            res = array.post_directory_services_roles(
                 names=[module.params["role"]],
                 directory_service_role=DirectoryServiceRole(
                     group_base=module.params["group_base"], group=module.params["group"]
