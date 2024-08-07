@@ -251,6 +251,7 @@ def create_subnet(module, array):
             vlan = module.params["vlan"]
     else:
         vlan = 0
+    mtu = 1500  # Initialize at default value
     if module.params["mtu"]:
         if not 568 <= module.params["mtu"] <= 9000:
             module.fail_json(
