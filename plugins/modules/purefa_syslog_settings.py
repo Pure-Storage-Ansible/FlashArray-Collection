@@ -134,6 +134,7 @@ def main():
         new_sev = module.params["severity"]
     else:
         new_sev = current.logging_severity
+    new_cert = ""  # Initialize for pylint
     if module.params["ca_certificate"]:
         if module.params["ca_certificate"].upper() == "DELETE":
             if current.ca_certificate:
