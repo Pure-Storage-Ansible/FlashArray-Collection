@@ -349,35 +349,38 @@ DEFAULT_API_VERSION = "2.16"
 VOLUME_PROMOTION_API_VERSION = "2.2"
 
 
-def _volfact(module, array):
+def _volfact(module, array, volume_name):
     api_version = array.get_rest_version()
-    volume_name = module.params["name"]
-    volume_data = list(array.get_volumes(names=[volume_name]).items)[0]
-    volfact = {
-        volume_name: {
-            "size": volume_data.provisioned,
-            "serial": volume_data.serial,
-            "created": time.strftime(
-                "%Y-%m-%d %H:%M:%S", time.localtime(volume_data.created / 1000)
-            ),
-            "page83_naa": PURE_OUI + volume_data.serial.lower(),
-            "nvme_nguid": _create_nguid(volume_data.serial.lower()),
-            "iops_limit": getattr(volume_data.qos, "iops_limit", 0),
-            "bandwidth_limit": getattr(volume_data.qos, "bandwidth_limit", 0),
-            "requested_promotion_state": volume_data.requested_promotion_state,
-            "promotion_status": volume_data.promotion_status,
-            "priority": getattr(volume_data, "priority", 0),
-            "priority_operator": "",
-            "priority_value": "",
+    if not module.check_mode:
+        volume_data = list(array.get_volumes(names=[volume_name]).items)[0]
+        volfact = {
+            volume_name: {
+                "size": volume_data.provisioned,
+                "serial": volume_data.serial,
+                "created": time.strftime(
+                    "%Y-%m-%d %H:%M:%S", time.localtime(volume_data.created / 1000)
+                ),
+                "page83_naa": PURE_OUI + volume_data.serial.lower(),
+                "nvme_nguid": _create_nguid(volume_data.serial.lower()),
+                "iops_limit": getattr(volume_data.qos, "iops_limit", 0),
+                "bandwidth_limit": getattr(volume_data.qos, "bandwidth_limit", 0),
+                "requested_promotion_state": volume_data.requested_promotion_state,
+                "promotion_status": volume_data.promotion_status,
+                "priority": getattr(volume_data, "priority", 0),
+                "priority_operator": "",
+                "priority_value": "",
+                "destroyed": volume_data.destroyed,
+            }
         }
-    }
-    if LooseVersion(PRIORITY_API_VERSION) <= LooseVersion(api_version):
-        volfact[volume_name][
-            "priority_operator"
-        ] = volume_data.priority_adjustment.priority_adjustment_operator
-        volfact[volume_name][
-            "priority_value"
-        ] = volume_data.priority_adjustment.priority_adjustment_value
+        if LooseVersion(PRIORITY_API_VERSION) <= LooseVersion(api_version):
+            volfact[volume_name][
+                "priority_operator"
+            ] = volume_data.priority_adjustment.priority_adjustment_operator
+            volfact[volume_name][
+                "priority_value"
+            ] = volume_data.priority_adjustment.priority_adjustment_value
+    else:
+        volfact = {}
     return volfact
 
 
@@ -748,7 +751,9 @@ def create_volume(module, array):
                     )
                 )
 
-    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
+    module.exit_json(
+        changed=changed, volume=_volfact(module, arrayv6, module.params["name"])
+    )
 
 
 def create_multi_volume(module, array, single=False):
@@ -1038,7 +1043,9 @@ def copy_from_volume(module, array):
                         )
                     )
 
-    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
+    module.exit_json(
+        changed=changed, volume=_volfact(module, arrayv6, module.params["target"])
+    )
 
 
 def update_volume(module, array):
@@ -1207,7 +1214,9 @@ def update_volume(module, array):
                         module.params["name"], prio_res.errors[0].message
                     )
                 )
-    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
+    module.exit_json(
+        changed=changed, volume=_volfact(module, arrayv6, module.params["name"])
+    )
 
 
 def rename_volume(module, array):
@@ -1265,7 +1274,9 @@ def rename_volume(module, array):
     else:
         module.fail_json(msg="Target volume {0} already exists.".format(target_name))
 
-    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
+    module.exit_json(
+        changed=changed, volume=_volfact(module, arrayv6, module.params["rename"])
+    )
 
 
 def move_volume(module, array):
@@ -1366,7 +1377,8 @@ def move_volume(module, array):
     changed = True
     if not module.check_mode:
         try:
-            array.move_volume(module.params["name"], target_location)
+            volume = array.move_volume(module.params["name"], target_location)
+            volume_name = volume["name"]
         except Exception:
             if target_location == "":
                 target_location = "[local]"
@@ -1375,8 +1387,10 @@ def move_volume(module, array):
                     module.params["name"], target_location
                 )
             )
+    else:
+        volume_name = ""
     arrayv6 = get_array(module)
-    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
+    module.exit_json(changed=changed, volume=_volfact(module, arrayv6, volume_name))
 
 
 def delete_volume(module, array):
@@ -1398,15 +1412,18 @@ def delete_volume(module, array):
                 msg="Delete volume {0} failed.".format(module.params["name"])
             )
     arrayv6 = get_array(module)
-    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
+    module.exit_json(
+        changed=changed, volume=_volfact(module, arrayv6, module.params["name"])
+    )
 
 
 def eradicate_volume(module, array):
     """Eradicate Deleted Volume"""
-    changed = True
+    changed = False
     volfact = []
-    if not module.check_mode:
-        if module.params["eradicate"]:
+    if module.params["eradicate"]:
+        changed = True
+        if not module.check_mode:
             try:
                 array.eradicate_volume(module.params["name"])
             except Exception:
@@ -1428,7 +1445,9 @@ def recover_volume(module, array):
             )
         array.get_volume(module.params["name"])
     arrayv6 = get_array(module)
-    module.exit_json(changed=changed, volume=_volfact(module, arrayv6))
+    module.exit_json(
+        changed=changed, volume=_volfact(module, arrayv6, module.params["name"])
+    )
 
 
 def main():
@@ -1612,9 +1631,9 @@ def main():
             if not volume and not size:
                 module.fail_json(msg="Size must be specified to create a new volume")
         elif state == "absent" and not volume:
-            module.exit_json(changed=False)
+            module.exit_json(changed=False, volume=[])
 
-    module.exit_json(changed=False)
+    module.exit_json(changed=False, volume=[])
 
 
 if __name__ == "__main__":
