@@ -164,13 +164,16 @@ def get_session(module):
 
 
 def main():
-    argument_spec = dict(
-        fa_url=dict(required=False),
-        username=dict(type="str", required=False),
-        password=dict(no_log=True, required=False),
-        state=dict(type="str", default="present", choices=["absent", "present"]),
-        recreate=dict(type="bool", default=False),
-        timeout=dict(type="str"),
+    argument_spec = purefa_argument_spec()
+    argument_spec.update(
+        dict(
+           fa_url=dict(required=False),
+           username=dict(type="str", required=False),
+           password=dict(no_log=True, required=False),
+           state=dict(type="str", default="present", choices=["absent", "present"]),
+           recreate=dict(type="bool", default=False),
+           timeout=dict(type="str"),
+        )
     )
 
     module = AnsibleModule(argument_spec, supports_check_mode=False)
