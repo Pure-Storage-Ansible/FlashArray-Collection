@@ -88,6 +88,7 @@ purefa_token:
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
+    purefa_argument_spec,
 )
 from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
     convert_time_to_millisecs,
@@ -167,12 +168,12 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
-           fa_url=dict(required=False),
-           username=dict(type="str", required=False),
-           password=dict(no_log=True, required=False),
-           state=dict(type="str", default="present", choices=["absent", "present"]),
-           recreate=dict(type="bool", default=False),
-           timeout=dict(type="str"),
+            fa_url=dict(required=False),
+            username=dict(type="str", required=False),
+            password=dict(no_log=True, required=False),
+            state=dict(type="str", default="present", choices=["absent", "present"]),
+            recreate=dict(type="bool", default=False),
+            timeout=dict(type="str"),
         )
     )
 
