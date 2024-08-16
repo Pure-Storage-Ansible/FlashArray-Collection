@@ -316,7 +316,10 @@ def create_pod(module, array):
                 )
         else:
             if LooseVersion(THROTTLE_VERSION) > LooseVersion(api_version):
-                res = array.post_pods(names=[module.params["name"]])
+                res = array.post_pods(
+                    names=[module.params["name"]],
+                    pod=PodPost(),
+                )
             else:
                 res = array.post_pods(
                     names=[module.params["name"]],
