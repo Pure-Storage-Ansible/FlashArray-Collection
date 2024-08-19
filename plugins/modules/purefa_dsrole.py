@@ -104,6 +104,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
     LooseVersion,
 )
 
+
 def update_role(module, array):
     """Update Directory Service Role"""
     changed = False
