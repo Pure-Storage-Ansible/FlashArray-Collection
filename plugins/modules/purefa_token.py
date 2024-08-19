@@ -53,6 +53,12 @@ options:
       - The duration of API token validity.
       - Valid values are weeks (w), days(d), hours(h), minutes(m) and seconds(s).
     type: str
+  disable_warnings:
+    description:
+     - Disable insecure certificate warnings in debug logs
+    type: bool
+    default: false
+    version_added: '1.31.0'
 """
 
 EXAMPLES = r"""
@@ -99,6 +105,12 @@ VERSION = 1.5
 USER_AGENT_BASE = "Ansible_token"
 TIMEOUT_API_VERSION = "2.2"
 
+HAS_URLLIB3 = True
+try:
+    import urllib3
+except ImportError:
+    HAS_URLLIB3 = False
+
 HAS_DISTRO = True
 try:
     import distro
@@ -114,6 +126,8 @@ except ImportError:
 
 def get_session(module):
     """Return System Object or Fail"""
+    if HAS_URLLIB3 and module.params["disable_warnings"]:
+        urllib3.disable_warnings()
     if HAS_DISTRO:
         user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
             "base": USER_AGENT_BASE,
@@ -171,6 +185,7 @@ def main():
         state=dict(type="str", default="present", choices=["absent", "present"]),
         recreate=dict(type="bool", default=False),
         timeout=dict(type="str"),
+        disable_warnings=dict(type="bool", default=False),
     )
 
     module = AnsibleModule(argument_spec, supports_check_mode=False)
