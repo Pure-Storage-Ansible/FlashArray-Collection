@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# (c) 2019, Simon Dodsley (simon@purestorage.com)
+# (c) 2024, Simon Dodsley (simon@purestorage.com)
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -18,10 +18,10 @@ DOCUMENTATION = r"""
 ---
 module: purefa_dsrole_old
 version_added: '1.31.0'
-short_description: Configure FlashArray Directory Service Roles
+short_description: Configure FlashArray Directory Service Roles (pre-6.6.3)
 description:
 - Set or erase directory services role configurations.
-- Only available for FlashArray running Purity 5.2.0 or higher
+- Only available for FlashArray running Purity//FA 6.6.2 or lower
 - Please use ``purefa_dsrole`` for FlashArrays running Purity//FA 6.6.3 or higher
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
@@ -187,10 +187,10 @@ def main():
     array = get_system(module)
     api_version = array._list_available_rest_versions()
     if MAX_API_VERSION in api_version:
-            module.fail_json(
-                msg="This module is deprecated for your version of Purity//FA. "
-                "Please use module ''purefa_dsrole`` instead."
-            )
+        module.fail_json(
+            msg="This module is deprecated for your version of Purity//FA. "
+            "Please use module ''purefa_dsrole`` instead."
+        )
     role_configured = False
     role = array.list_directory_service_roles(names=[module.params["role"]])
     if role[0]["group"] is not None:
