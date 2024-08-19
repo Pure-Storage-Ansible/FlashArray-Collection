@@ -115,7 +115,7 @@ def update_role(module, array):
         if not module.check_mode:
             res = array.patch_directory_services_roles(
                 names=[module.params["role"]],
-                directory_services_roles=DirectoryServiceRole(
+                directory_service_roles=DirectoryServiceRole(
                     group_base=module.params["group_base"], group=module.params["group"]
                 ),
             )
