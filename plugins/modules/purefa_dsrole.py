@@ -86,6 +86,7 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
+MIN_DSROLE_API_VERSION = "2.30"
 
 HAS_PYPURECLIENT = True
 try:
@@ -98,6 +99,9 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
+)
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
 )
 
 
@@ -115,7 +119,7 @@ def update_role(module, array):
         if not module.check_mode:
             res = array.patch_directory_services_roles(
                 names=[module.params["role"]],
-                directory_services_roles=DirectoryServiceRole(
+                directory_service_roles=DirectoryServiceRole(
                     group_base=module.params["group_base"], group=module.params["group"]
                 ),
             )
@@ -190,6 +194,12 @@ def main():
 
     state = module.params["state"]
     array = get_array(module)
+    api_version = array.get_rest_version()
+    if LooseVersion(MIN_DSROLE_API_VERSION) <= LooseVersion(api_version):
+        module.fail_json(
+            msg="This module requires Purity//FA 6.6.3 and higher. "
+            "For older Purity versions please use the ``purefa_dsrole_old`` module"
+        )
     role_configured = False
     role = list(
         array.get_directory_services_roles(
