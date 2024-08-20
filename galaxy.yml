@@ -1,6 +1,6 @@
 namespace: purestorage
 name: flasharray
-version: 1.30.2
+version: 1.31.0
 readme: README.md
 authors:
   - Pure Storage Ansible Team <pure-ansible-team@purestorage.com>
