@@ -5,6 +5,37 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.31.0
+=======
+
+Release Summary
+---------------
+
+| NOTE: ``purefa_ds`` module has been determined to require a minimum Purity//FA version
+| of 6.6.0
+| To facilitate this functionality in versions 6.1.x - 6.5.x please use the module
+| ``purefa_dsrole_old``
+
+Minor Changes
+-------------
+
+- purefa_token - Add ``disable_warnings`` support
+
+Bugfixes
+--------
+
+- purefa_pod - Fix issue with pod not creating correctly
+- purefa_subnet - Initialize varaible correctly
+- purefa_syslog_settings - Initialize varaible correctly
+- purefa_volume - Fixes ``eradicate`` so it doesn't report success when it hasn't actually eradicated
+- purefa_volume - Fixes ``volfact`` response when in ``check_mode``
+- purefa_volume - Fixes issue where malformed ``volfact`` will cause the ``move`` to apparently fail.
+
+New Modules
+-----------
+
+- purestorage.flasharray.purefa_dsrole_old - Configure FlashArray Directory Service Roles (pre-6.6.3)
+
 v1.30.2
 =======
 
