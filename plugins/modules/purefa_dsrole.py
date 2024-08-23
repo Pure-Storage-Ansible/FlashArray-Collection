@@ -195,7 +195,7 @@ def main():
     state = module.params["state"]
     array = get_array(module)
     api_version = array.get_rest_version()
-    if LooseVersion(MIN_DSROLE_API_VERSION) <= LooseVersion(api_version):
+    if LooseVersion(MIN_DSROLE_API_VERSION) > LooseVersion(api_version):
         module.fail_json(
             msg="This module requires Purity//FA 6.6.3 and higher. "
             "For older Purity versions please use the ``purefa_dsrole_old`` module"
