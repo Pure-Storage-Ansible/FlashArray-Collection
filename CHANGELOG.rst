@@ -5,6 +5,14 @@ Purestorage.Flasharray Release Notes
 .. contents:: Topics
 
 
+v1.31.1
+=======
+
+Bugfixes
+--------
+
+- purefa_dsrole - Fix version check logic
+
 v1.31.0
 =======
 
