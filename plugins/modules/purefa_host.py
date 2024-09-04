@@ -71,7 +71,8 @@ options:
     type: list
     elements: str
     description:
-    - List of NQNs of the host.
+    - List of NQNs of the host. Note that NMVe hosts can only possess NQNs.
+      Multi-protocol is not allowed for these hosts.
   volume:
     type: str
     description:
