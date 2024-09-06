@@ -142,7 +142,6 @@ def generate_new_hardware_dict(array):
         port_details = list(array.get_network_interfaces_port_details().items)
         for port_detail in range(0, len(port_details)):
             port_name = port_details[port_detail].name
-            module.warn("port_name: {0}".format(port_name))
             hw_info["interfaces"][port_name]["interface_type"] = port_details[
                 port_detail
             ].interface_type
