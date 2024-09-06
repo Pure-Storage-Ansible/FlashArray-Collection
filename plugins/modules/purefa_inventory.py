@@ -139,135 +139,195 @@ def generate_new_hardware_dict(array):
         }
     api_version = array.get_rest_version()
     if LooseVersion(SFP_API_VERSION) <= LooseVersion(api_version):
-        try:
-            port_details = list(array.get_network_interfaces_port_details().items)
-            for port_detail in range(0, len(port_details)):
-                port_name = port_details[port_detail].name
-                hw_info["interfaces"][port_name]["interface_type"] = port_details[
-                    port_detail
-                ].interface_type
-                hw_info["interfaces"][port_name]["rx_los"] = (
-                    port_details[port_detail].rx_los[0].flag
-                )
-                hw_info["interfaces"][port_name]["rx_power"] = (
-                    port_details[port_detail].rx_power[0].measurement
-                )
-                hw_info["interfaces"][port_name]["static"] = {
-                    "connector_type": port_details[port_detail].static.connector_type,
-                    "vendor_name": port_details[port_detail].static.vendor_name,
-                    "vendor_oui": port_details[port_detail].static.vendor_oui,
-                    "vendor_serial_number": port_details[
-                        port_detail
-                    ].static.vendor_serial_number,
-                    "vendor_part_number": port_details[
-                        port_detail
-                    ].static.vendor_part_number,
-                    "vendor_date_code": port_details[
-                        port_detail
-                    ].static.vendor_date_code,
-                    "signaling_rate": port_details[port_detail].static.signaling_rate,
-                    "wavelength": port_details[port_detail].static.wavelength,
-                    "rate_identifier": port_details[port_detail].static.rate_identifier,
-                    "identifier": port_details[port_detail].static.identifier,
-                    "link_length": port_details[port_detail].static.link_length,
-                    "voltage_thresholds": {
-                        "alarm_high": port_details[
-                            port_detail
-                        ].static.voltage_thresholds.alarm_high,
-                        "alarm_low": port_details[
-                            port_detail
-                        ].static.voltage_thresholds.alarm_low,
-                        "warn_high": port_details[
-                            port_detail
-                        ].static.voltage_thresholds.warn_high,
-                        "warn_low": port_details[
-                            port_detail
-                        ].static.voltage_thresholds.warn_low,
-                    },
-                    "tx_power_thresholds": {
-                        "alarm_high": port_details[
-                            port_detail
-                        ].static.tx_power_thresholds.alarm_high,
-                        "alarm_low": port_details[
-                            port_detail
-                        ].static.tx_power_thresholds.alarm_low,
-                        "warn_high": port_details[
-                            port_detail
-                        ].static.tx_power_thresholds.warn_high,
-                        "warn_low": port_details[
-                            port_detail
-                        ].static.tx_power_thresholds.warn_low,
-                    },
-                    "rx_power_thresholds": {
-                        "alarm_high": port_details[
-                            port_detail
-                        ].static.rx_power_thresholds.alarm_high,
-                        "alarm_low": port_details[
-                            port_detail
-                        ].static.rx_power_thresholds.alarm_low,
-                        "warn_high": port_details[
-                            port_detail
-                        ].static.rx_power_thresholds.warn_high,
-                        "warn_low": port_details[
-                            port_detail
-                        ].static.rx_power_thresholds.warn_low,
-                    },
-                    "tx_bias_thresholds": {
-                        "alarm_high": port_details[
-                            port_detail
-                        ].static.tx_bias_thresholds.alarm_high,
-                        "alarm_low": port_details[
-                            port_detail
-                        ].static.tx_bias_thresholds.alarm_low,
-                        "warn_high": port_details[
-                            port_detail
-                        ].static.tx_bias_thresholds.warn_high,
-                        "warn_low": port_details[
-                            port_detail
-                        ].static.tx_bias_thresholds.warn_low,
-                    },
-                    "temperature_thresholds": {
-                        "alarm_high": port_details[
-                            port_detail
-                        ].static.temperature_thresholds.alarm_high,
-                        "alarm_low": port_details[
-                            port_detail
-                        ].static.temperature_thresholds.alarm_low,
-                        "warn_high": port_details[
-                            port_detail
-                        ].static.temperature_thresholds.warn_high,
-                        "warn_low": port_details[
-                            port_detail
-                        ].static.temperature_thresholds.warn_low,
-                    },
-                    "fc_speeds": port_details[port_detail].static.fc_speeds,
-                    "fc_technology": port_details[port_detail].static.fc_technology,
-                    "encoding": port_details[port_detail].static.encoding,
-                    "fc_link_lengths": port_details[port_detail].static.fc_link_lengths,
-                    "fc_transmission_media": port_details[
-                        port_detail
-                    ].static.fc_transmission_media,
-                    "extended_identifier": port_details[
-                        port_detail
-                    ].static.extended_identifier,
-                }
-                hw_info["interfaces"][port_name]["temperature"] = (
-                    port_details[port_detail].temperature[0].measurement
-                )
-                hw_info["interfaces"][port_name]["tx_bias"] = (
-                    port_details[port_detail].tx_bias[0].measurement
-                )
-                hw_info["interfaces"][port_name]["tx_fault"] = (
-                    port_details[port_detail].tx_fault[0].flag
-                )
-                hw_info["interfaces"][port_name]["tx_power"] = (
-                    port_details[port_detail].tx_power[0].measurement
-                )
-                hw_info["interfaces"][port_name]["voltage"] = (
-                    port_details[port_detail].voltage[0].measurement
-                )
-        except AttributeError:
-            pass
+        port_details = list(array.get_network_interfaces_port_details().items)
+        for port_detail in range(0, len(port_details)):
+            port_name = port_details[port_detail].name
+            module.warn("port_name: {0}".format(port_name))
+            hw_info["interfaces"][port_name]["interface_type"] = port_details[
+                port_detail
+            ].interface_type
+            hw_info["interfaces"][port_name]["rx_los"] = getattr(
+                port_details[port_detail].rx_los[0], "flag", None
+            )
+            hw_info["interfaces"][port_name]["rx_power"] = getattr(
+                port_details[port_detail].rx_power[0], "measurement", None
+            )
+            hw_info["interfaces"][port_name]["static"] = {
+                "connector_type": getattr(
+                    port_details[port_detail].static, "connector_type", None
+                ),
+                "vendor_name": getattr(
+                    port_details[port_detail].static, "vendor_name", None
+                ),
+                "vendor_oui": getattr(
+                    port_details[port_detail].static, "vendor_oui", None
+                ),
+                "vendor_serial_number": getattr(
+                    port_details[port_detail].static, "vendor_serial_number", None
+                ),
+                "vendor_part_number": getattr(
+                    port_details[port_detail].static, "vendor_part_number", None
+                ),
+                "vendor_date_code": getattr(
+                    port_details[port_detail].static, "vendor_date_code", None
+                ),
+                "signaling_rate": getattr(
+                    port_details[port_detail].static, "signaling_rate", None
+                ),
+                "wavelength": getattr(
+                    port_details[port_detail].static, "wavelength", None
+                ),
+                "rate_identifier": getattr(
+                    port_details[port_detail].static, "rate_identifier", None
+                ),
+                "identifier": getattr(
+                    port_details[port_detail].static, "identifier", None
+                ),
+                "link_length": getattr(
+                    port_details[port_detail].static, "link_length", None
+                ),
+                "voltage_thresholds": {
+                    "alarm_high": getattr(
+                        port_details[port_detail].static.voltage_thresholds,
+                        "alarm_high",
+                        None,
+                    ),
+                    "alarm_low": getattr(
+                        port_details[port_detail].static.voltage_thresholds,
+                        "alarm_low",
+                        None,
+                    ),
+                    "warn_high": getattr(
+                        port_details[port_detail].static.voltage_thresholds,
+                        "warn_high",
+                        None,
+                    ),
+                    "warn_low": getattr(
+                        port_details[port_detail].static.voltage_thresholds,
+                        "warn_low",
+                        None,
+                    ),
+                },
+                "tx_power_thresholds": {
+                    "alarm_high": getattr(
+                        port_details[port_detail].static.tx_power_thresholds,
+                        "alarm_high",
+                        None,
+                    ),
+                    "alarm_low": getattr(
+                        port_details[port_detail].static.tx_power_thresholds,
+                        "alarm_low",
+                        None,
+                    ),
+                    "warn_high": getattr(
+                        port_details[port_detail].static.tx_power_thresholds,
+                        "warn_high",
+                        None,
+                    ),
+                    "warn_low": getattr(
+                        port_details[port_detail].static.tx_power_thresholds,
+                        "warn_low",
+                        None,
+                    ),
+                },
+                "rx_power_thresholds": {
+                    "alarm_high": getattr(
+                        port_details[port_detail].static.rx_power_thresholds,
+                        "alarm_high",
+                        None,
+                    ),
+                    "alarm_low": getattr(
+                        port_details[port_detail].static.rx_power_thresholds,
+                        "alarm_low",
+                        None,
+                    ),
+                    "warn_high": getattr(
+                        port_details[port_detail].static.rx_power_thresholds,
+                        "warn_high",
+                        None,
+                    ),
+                    "warn_low": getattr(
+                        port_details[port_detail].static.rx_power_thresholds,
+                        "warn_low",
+                        None,
+                    ),
+                },
+                "tx_bias_thresholds": {
+                    "alarm_high": getattr(
+                        port_details[port_detail].static.tx_bias_thresholds,
+                        "alarm_high",
+                        None,
+                    ),
+                    "alarm_low": getattr(
+                        port_details[port_detail].static.tx_bias_thresholds,
+                        "alarm_low",
+                        None,
+                    ),
+                    "warn_high": getattr(
+                        port_details[port_detail].static.tx_bias_thresholds,
+                        "warn_high",
+                        None,
+                    ),
+                    "warn_low": getattr(
+                        port_details[port_detail].static.tx_bias_thresholds,
+                        "warn_low",
+                        None,
+                    ),
+                },
+                "temperature_thresholds": {
+                    "alarm_high": getattr(
+                        port_details[port_detail].static.temperature_thresholds,
+                        "alarm_high",
+                        None,
+                    ),
+                    "alarm_low": getattr(
+                        port_details[port_detail].static.temperature_thresholds,
+                        "alarm_low",
+                        None,
+                    ),
+                    "warn_high": getattr(
+                        port_details[port_detail].static.temperature_thresholds,
+                        "warn_high",
+                        None,
+                    ),
+                    "warn_low": getattr(
+                        port_details[port_detail].static.temperature_thresholds,
+                        "warn_low",
+                        None,
+                    ),
+                },
+                "fc_speeds": getattr(
+                    port_details[port_detail].static, "fc_speeds", None
+                ),
+                "fc_technology": getattr(
+                    port_details[port_detail].static, "fc_technology", None
+                ),
+                "encoding": getattr(port_details[port_detail].static, "encoding", None),
+                "fc_link_lengths": getattr(
+                    port_details[port_detail].static, "fc_link_lengths", None
+                ),
+                "fc_transmission_media": getattr(
+                    port_details[port_detail].static, "fc_transmission_media", None
+                ),
+                "extended_identifier": getattr(
+                    port_details[port_detail].static, "extended_identifier", None
+                ),
+            }
+            hw_info["interfaces"][port_name]["temperature"] = getattr(
+                port_details[port_detail].temperature[0], "measurement", None
+            )
+            hw_info["interfaces"][port_name]["tx_bias"] = getattr(
+                port_details[port_detail].tx_bias[0], "measurement", None
+            )
+            hw_info["interfaces"][port_name]["tx_fault"] = getattr(
+                port_details[port_detail].tx_fault[0], "flag", None
+            )
+            hw_info["interfaces"][port_name]["tx_power"] = getattr(
+                port_details[port_detail].tx_power[0], "measurement", None
+            )
+            hw_info["interfaces"][port_name]["voltage"] = getattr(
+                port_details[port_detail].voltage[0], "measurement", None
+            )
     return hw_info
 
 
