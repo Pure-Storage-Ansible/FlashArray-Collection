@@ -145,12 +145,14 @@ def generate_new_hardware_dict(array):
             hw_info["interfaces"][port_name]["interface_type"] = port_details[
                 port_detail
             ].interface_type
-            hw_info["interfaces"][port_name]["rx_los"] = getattr(
-                port_details[port_detail].rx_los[0], "flag", None
-            )
-            hw_info["interfaces"][port_name]["rx_power"] = getattr(
-                port_details[port_detail].rx_power[0], "measurement", None
-            )
+            if not getattr(port_details[port_detail], "rx_los", None) is None:
+                hw_info["interfaces"][port_name]["rx_los"] = (
+                    port_details[port_detail].rx_los[0].flag
+                )
+            if not getattr(port_details[port_detail], "rx_power", None) is None:
+                hw_info["interfaces"][port_name]["rx_power"] = (
+                    port_details[port_detail].rx_power[0].measurement
+                )
             hw_info["interfaces"][port_name]["static"] = {
                 "connector_type": getattr(
                     port_details[port_detail].static, "connector_type", None
