@@ -187,116 +187,6 @@ def generate_new_hardware_dict(array):
                 "link_length": getattr(
                     port_details[port_detail].static, "link_length", None
                 ),
-                "voltage_thresholds": {
-                    "alarm_high": getattr(
-                        port_details[port_detail].static.voltage_thresholds,
-                        "alarm_high",
-                        None,
-                    ),
-                    "alarm_low": getattr(
-                        port_details[port_detail].static.voltage_thresholds,
-                        "alarm_low",
-                        None,
-                    ),
-                    "warn_high": getattr(
-                        port_details[port_detail].static.voltage_thresholds,
-                        "warn_high",
-                        None,
-                    ),
-                    "warn_low": getattr(
-                        port_details[port_detail].static.voltage_thresholds,
-                        "warn_low",
-                        None,
-                    ),
-                },
-                "tx_power_thresholds": {
-                    "alarm_high": getattr(
-                        port_details[port_detail].static.tx_power_thresholds,
-                        "alarm_high",
-                        None,
-                    ),
-                    "alarm_low": getattr(
-                        port_details[port_detail].static.tx_power_thresholds,
-                        "alarm_low",
-                        None,
-                    ),
-                    "warn_high": getattr(
-                        port_details[port_detail].static.tx_power_thresholds,
-                        "warn_high",
-                        None,
-                    ),
-                    "warn_low": getattr(
-                        port_details[port_detail].static.tx_power_thresholds,
-                        "warn_low",
-                        None,
-                    ),
-                },
-                "rx_power_thresholds": {
-                    "alarm_high": getattr(
-                        port_details[port_detail].static.rx_power_thresholds,
-                        "alarm_high",
-                        None,
-                    ),
-                    "alarm_low": getattr(
-                        port_details[port_detail].static.rx_power_thresholds,
-                        "alarm_low",
-                        None,
-                    ),
-                    "warn_high": getattr(
-                        port_details[port_detail].static.rx_power_thresholds,
-                        "warn_high",
-                        None,
-                    ),
-                    "warn_low": getattr(
-                        port_details[port_detail].static.rx_power_thresholds,
-                        "warn_low",
-                        None,
-                    ),
-                },
-                "tx_bias_thresholds": {
-                    "alarm_high": getattr(
-                        port_details[port_detail].static.tx_bias_thresholds,
-                        "alarm_high",
-                        None,
-                    ),
-                    "alarm_low": getattr(
-                        port_details[port_detail].static.tx_bias_thresholds,
-                        "alarm_low",
-                        None,
-                    ),
-                    "warn_high": getattr(
-                        port_details[port_detail].static.tx_bias_thresholds,
-                        "warn_high",
-                        None,
-                    ),
-                    "warn_low": getattr(
-                        port_details[port_detail].static.tx_bias_thresholds,
-                        "warn_low",
-                        None,
-                    ),
-                },
-                "temperature_thresholds": {
-                    "alarm_high": getattr(
-                        port_details[port_detail].static.temperature_thresholds,
-                        "alarm_high",
-                        None,
-                    ),
-                    "alarm_low": getattr(
-                        port_details[port_detail].static.temperature_thresholds,
-                        "alarm_low",
-                        None,
-                    ),
-                    "warn_high": getattr(
-                        port_details[port_detail].static.temperature_thresholds,
-                        "warn_high",
-                        None,
-                    ),
-                    "warn_low": getattr(
-                        port_details[port_detail].static.temperature_thresholds,
-                        "warn_low",
-                        None,
-                    ),
-                },
                 "fc_speeds": getattr(
                     port_details[port_detail].static, "fc_speeds", None
                 ),
@@ -314,21 +204,166 @@ def generate_new_hardware_dict(array):
                     port_details[port_detail].static, "extended_identifier", None
                 ),
             }
-            hw_info["interfaces"][port_name]["temperature"] = getattr(
-                port_details[port_detail].temperature[0], "measurement", None
-            )
-            hw_info["interfaces"][port_name]["tx_bias"] = getattr(
-                port_details[port_detail].tx_bias[0], "measurement", None
-            )
-            hw_info["interfaces"][port_name]["tx_fault"] = getattr(
-                port_details[port_detail].tx_fault[0], "flag", None
-            )
-            hw_info["interfaces"][port_name]["tx_power"] = getattr(
-                port_details[port_detail].tx_power[0], "measurement", None
-            )
-            hw_info["interfaces"][port_name]["voltage"] = getattr(
-                port_details[port_detail].voltage[0], "measurement", None
-            )
+            if (
+                not getattr(
+                    port_details[port_detail].static, "voltage_thresholds", None
+                )
+                is None
+            ):
+                hw_info["interfaces"][port_name]["voltage_thresholds"] = {
+                    "alarm_high": getattr(
+                        port_details[port_detail].static.voltage_thresholds,
+                        "alarm_high",
+                        None,
+                    ),
+                    "alarm_low": getattr(
+                        port_details[port_detail].static.voltage_thresholds,
+                        "alarm_low",
+                        None,
+                    ),
+                    "warn_high": getattr(
+                        port_details[port_detail].static.voltage_thresholds,
+                        "warn_high",
+                        None,
+                    ),
+                    "warn_low": getattr(
+                        port_details[port_detail].static.voltage_thresholds,
+                        "warn_low",
+                        None,
+                    ),
+                }
+            if (
+                not getattr(
+                    port_details[port_detail].static, "tx_power_thresholds", None
+                )
+                is None
+            ):
+                hw_info["interfaces"][port_name]["tx_power_thresholds"] = {
+                    "alarm_high": getattr(
+                        port_details[port_detail].static.tx_power_thresholds,
+                        "alarm_high",
+                        None,
+                    ),
+                    "alarm_low": getattr(
+                        port_details[port_detail].static.tx_power_thresholds,
+                        "alarm_low",
+                        None,
+                    ),
+                    "warn_high": getattr(
+                        port_details[port_detail].static.tx_power_thresholds,
+                        "warn_high",
+                        None,
+                    ),
+                    "warn_low": getattr(
+                        port_details[port_detail].static.tx_power_thresholds,
+                        "warn_low",
+                        None,
+                    ),
+                }
+            if (
+                not getattr(
+                    port_details[port_detail].static, "rx_power_thresholds", None
+                )
+                is None
+            ):
+                hw_info["interfaces"][port_name]["rx_power_thresholds"] = {
+                    "alarm_high": getattr(
+                        port_details[port_detail].static.rx_power_thresholds,
+                        "alarm_high",
+                        None,
+                    ),
+                    "alarm_low": getattr(
+                        port_details[port_detail].static.rx_power_thresholds,
+                        "alarm_low",
+                        None,
+                    ),
+                    "warn_high": getattr(
+                        port_details[port_detail].static.rx_power_thresholds,
+                        "warn_high",
+                        None,
+                    ),
+                    "warn_low": getattr(
+                        port_details[port_detail].static.rx_power_thresholds,
+                        "warn_low",
+                        None,
+                    ),
+                }
+            if (
+                not getattr(
+                    port_details[port_detail].static, "tx_bias_thresholds", None
+                )
+                is None
+            ):
+                hw_info["interfaces"][port_name]["tx_bias_thresholds"] = {
+                    "alarm_high": getattr(
+                        port_details[port_detail].static.tx_bias_thresholds,
+                        "alarm_high",
+                        None,
+                    ),
+                    "alarm_low": getattr(
+                        port_details[port_detail].static.tx_bias_thresholds,
+                        "alarm_low",
+                        None,
+                    ),
+                    "warn_high": getattr(
+                        port_details[port_detail].static.tx_bias_thresholds,
+                        "warn_high",
+                        None,
+                    ),
+                    "warn_low": getattr(
+                        port_details[port_detail].static.tx_bias_thresholds,
+                        "warn_low",
+                        None,
+                    ),
+                }
+            if (
+                not getattr(
+                    port_details[port_detail].static, "temperature_thresholds", None
+                )
+                is None
+            ):
+                hw_info["interfaces"][port_name]["temperature_thresholds"] = {
+                    "alarm_high": getattr(
+                        port_details[port_detail].static.temperature_thresholds,
+                        "alarm_high",
+                        None,
+                    ),
+                    "alarm_low": getattr(
+                        port_details[port_detail].static.temperature_thresholds,
+                        "alarm_low",
+                        None,
+                    ),
+                    "warn_high": getattr(
+                        port_details[port_detail].static.temperature_thresholds,
+                        "warn_high",
+                        None,
+                    ),
+                    "warn_low": getattr(
+                        port_details[port_detail].static.temperature_thresholds,
+                        "warn_low",
+                        None,
+                    ),
+                }
+            if not getattr(port_details[port_detail], "temperature", None) is None:
+                hw_info["interfaces"][port_name]["temperature"] = getattr(
+                    port_details[port_detail].temperature[0], "measurement", None
+                )
+            if not getattr(port_details[port_detail], "tx_bias", None) is None:
+                hw_info["interfaces"][port_name]["tx_bias"] = getattr(
+                    port_details[port_detail].tx_bias[0], "measurement", None
+                )
+            if not getattr(port_details[port_detail], "tx_fault", None) is None:
+                hw_info["interfaces"][port_name]["tx_fault"] = getattr(
+                    port_details[port_detail].tx_fault[0], "flag", None
+                )
+            if not getattr(port_details[port_detail], "tx_power", None) is None:
+                hw_info["interfaces"][port_name]["tx_power"] = getattr(
+                    port_details[port_detail].tx_power[0], "measurement", None
+                )
+            if not getattr(port_details[port_detail], "voltage", None) is None:
+                hw_info["interfaces"][port_name]["voltage"] = getattr(
+                    port_details[port_detail].voltage[0], "measurement", None
+                )
     return hw_info
 
 
