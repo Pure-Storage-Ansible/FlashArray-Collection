@@ -74,11 +74,10 @@ EXAMPLES = """
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Delete and eradicate pod replica link
+- name: Delete pod replica link
   purestorage.flasharray.purefa_pod_replica:
     name: foo
     state: absent
-    eradicate: true
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
