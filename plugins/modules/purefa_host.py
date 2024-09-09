@@ -71,7 +71,8 @@ options:
     type: list
     elements: str
     description:
-    - List of NQNs of the host.
+    - List of NQNs of the host. Note that NMVe hosts can only possess NQNs.
+      Multi-protocol is not allowed for these hosts.
   volume:
     type: str
     description:
@@ -199,8 +200,8 @@ EXAMPLES = r"""
   purestorage.flasharray.purefa_host:
     name: bar
     wwns:
-    - 00:00:00:00:00:00:00
-    - 11:11:11:11:11:11:11
+    - 00:00:00:00:00:00:00:00
+    - 11:11:11:11:11:11:11:11
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
@@ -223,13 +224,11 @@ EXAMPLES = r"""
 - name: Make mixed protocol host
   purestorage.flasharray.purefa_host:
     name: bar
-    nqn:
-    - nqn.2014-08.com.vendor:nvme:nvm-subsystem-sn-d78432
     iqn:
     - iqn.1994-05.com.redhat:7d366003914
     wwns:
-    - 00:00:00:00:00:00:01
-    - 11:11:11:11:11:11:12
+    - 00:00:00:00:00:00:00:01
+    - 11:11:11:11:11:11:11:12
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
@@ -921,9 +920,16 @@ def main():
         ["host_password", "host_user"],
         ["target_password", "target_user"],
     ]
+    mutually_exclusive = [
+        ["nqn", "iqn"],
+        ["nqn", "wwns"],
+    ]
 
     module = AnsibleModule(
-        argument_spec, supports_check_mode=True, required_together=required_together
+        argument_spec,
+        supports_check_mode=True,
+        required_together=required_together,
+        mutually_exclusive=mutually_exclusive,
     )
 
     array = get_system(module)
