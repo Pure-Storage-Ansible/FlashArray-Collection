@@ -127,6 +127,7 @@ def create_alert(module, array):
 
 def update_alert(module, array, enabled):
     """Update Alert Email State"""
+    changed = False
     if enabled != module.params["enabled"]:
         changed = True
         if not module.check_mode:
