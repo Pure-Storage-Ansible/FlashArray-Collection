@@ -55,7 +55,6 @@ options:
     description:
       - MTU size of the interface. Range is 1280 to 9216.
     required: false
-    default: 1500
     type: int
   servicelist:
     description:
@@ -348,12 +347,11 @@ def update_interface(module, array, interface):
     else:
         enabled = current_state["enabled"]
     if not current_state["gateway"]:
-        try:
-            if valid_ipv4(interface["address"]):
-                current_state["gateway"] = None
-            elif valid_ipv6(interface["address"]):
-                current_state["gateway"] = None
-        except AttributeError:
+        if interface["address"] and valid_ipv4(interface["address"]):
+            current_state["gateway"] = None
+        elif interface["address"] and valid_ipv6(interface["address"]):
+            current_state["gateway"] = None
+        else:
             current_state["gateway"] = None
     if not module.params["servicelist"]:
         services = sorted(interface["services"])
@@ -378,8 +376,9 @@ def update_interface(module, array, interface):
         address = str(module.params["address"].split("/", 1)[0])
         if address in ["0.0.0.0", "::"]:
             address = None
+            netmask = None
     if not module.params["mtu"]:
-        mtu = interface["mtu"]
+        mtu = current_state["mtu"]
     else:
         if not 1280 <= module.params["mtu"] <= 9216:
             module.fail_json(
@@ -691,7 +690,7 @@ def main():
             state=dict(type="str", default="present", choices=["present", "absent"]),
             address=dict(type="str"),
             gateway=dict(type="str"),
-            mtu=dict(type="int", default=1500),
+            mtu=dict(type="int"),
             servicelist=dict(
                 type="list",
                 elements="str",

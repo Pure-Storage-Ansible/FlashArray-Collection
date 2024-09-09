@@ -2,7 +2,7 @@ distro
 purestorage
 py-pure-client
 python >= 3.6
-netaddr
+netaddr >= 1.2.0
 requests
 pycountry
 pytz
