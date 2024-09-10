@@ -502,12 +502,30 @@ def generate_filesystems_dict(array):
                 "used_provisioned": getattr(
                     directories[directory].space, "used_provisioned", None
                 ),
-                "exports": {},
+                "exports": [],
+                "policies": [],
             }
             if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
                 files_info[fs_name]["directories"][d_name]["total_used"] = directories[
                     directory
                 ].space.total_used
+            policies = list(
+                array.get_directories_policies(
+                    member_names=[
+                        files_info[fs_name]["directories"][d_name]["full_name"]
+                    ]
+                ).items
+            )
+            for policy in range(0, len(policies)):
+                files_info[fs_name]["directories"][d_name]["policies"].append(
+                    {
+                        "enabled": policies[policy].enabled,
+                        "policy": {
+                            "name": policies[policy].policy.name,
+                            "type": policies[policy].policy.resource_type,
+                        },
+                    }
+                )
             exports = list(
                 array.get_directory_exports(
                     directory_names=[
@@ -516,14 +534,16 @@ def generate_filesystems_dict(array):
                 ).items
             )
             for export in range(0, len(exports)):
-                e_name = exports[export].export_name
-                files_info[fs_name]["directories"][d_name]["exports"][e_name] = {
-                    "enabled": exports[export].enabled,
-                    "policy": {
-                        "name": exports[export].policy.name,
-                        "type": exports[export].policy.resource_type,
-                    },
-                }
+                files_info[fs_name]["directories"][d_name]["exports"].append(
+                    {
+                        "enabled": exports[export].enabled,
+                        "export_name": exports[export].export_name,
+                        "policy": {
+                            "name": exports[export].policy.name,
+                            "type": exports[export].policy.resource_type,
+                        },
+                    }
+                )
     return files_info
 
 
