@@ -1352,7 +1352,7 @@ def move_volume(module, array):
             module.fail_json(
                 msg="Move location {0} does not exist.".format(module.params["move"])
             )
-        if "::" in module.params["name"]:
+        if "::" in module.params["name"] and not vgroup_exists:
             pod = array.get_pod(module.params["move"])
             if len(pod["arrays"]) > 1:
                 module.fail_json(msg="Volume cannot be moved out of a stretched pod")
