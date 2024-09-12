@@ -1287,9 +1287,13 @@ def move_volume(module, array):
     vgroup_name = ""
     volume_name = module.params["name"]
     pg_info = array.get_volume(volume_name, pending=True, protect=True)
-    pgs = [item['protection_group'] for item in pg_info if 'protection_group' in item ]
+    pgs = [item["protection_group"] for item in pg_info if "protection_group" in item]
     if pgs:
-        module.fail_json(msg="Cannot move volume in protection groups {0}, disassociate to proceed".format(pgs))
+        module.fail_json(
+            msg="Cannot move volume in protection groups {0}, disassociate to proceed".format(
+                pgs
+            )
+        )
     if "::" in module.params["name"]:
         volume_name = module.params["name"].split("::")[1]
         pod_name = module.params["name"].split("::")[0]
