@@ -625,7 +625,9 @@ def delete_pod(module, array):
     changed = True
     if not module.check_mode:
         res = array.patch_pods(
-            names=[module.params["name"]], pod=PodPatch(destroyed=True)
+            names=[module.params["name"]],
+            pod=PodPatch(destroyed=True),
+            delete_contents=module.params["delete_contents"],
         )
         if res.status_code != 200:
             module.fail_json(
