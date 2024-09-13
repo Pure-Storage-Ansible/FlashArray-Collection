@@ -80,7 +80,7 @@ EXAMPLES = r"""
     state: absent
 
 - name: Clear default protection for the array
-  purestorage.flasharray.purefa_volume_tags:
+  purestorage.flasharray.purefa_default_protection:
     name: ''
     scope: array
     fa_url: 10.10.10.2

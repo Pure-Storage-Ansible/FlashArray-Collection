@@ -116,23 +116,19 @@ def main():
     current_disabled = None
     current_enabled = None
     if LooseVersion(ERADICATION_API_VERSION) <= LooseVersion(api_version):
-        array = get_array(module)
         base_eradication_timer = getattr(
             list(array.get_arrays().items)[0].eradication_config,
             "eradication_delay",
             None,
         )
         if base_eradication_timer:
-            current_eradication_timer = base_eradication_timer / SEC_PER_DAY
-        if (
-            LooseVersion(DELAY_API_VERSION) <= LooseVersion(api_version)
-            and not base_eradication_timer
-        ):
-            current_disabled = (
+            current_eradication_timer = int(base_eradication_timer / SEC_PER_DAY)
+        if LooseVersion(DELAY_API_VERSION) <= LooseVersion(api_version):
+            current_disabled = int(
                 list(array.get_arrays().items)[0].eradication_config.disabled_delay
                 / SEC_PER_DAY
             )
-            current_enabled = (
+            current_enabled = int(
                 list(array.get_arrays().items)[0].eradication_config.enabled_delay
                 / SEC_PER_DAY
             )
@@ -141,9 +137,13 @@ def main():
             base_eradication_timer
             and module.params["timer"] != current_eradication_timer
         ):
+            if module.params["timer"] != current_eradication_timer:
+                target_timer = module.params["timer"]
+            else:
+                target_timer = current_eradication_timer
             changed = True
             if not module.check_mode:
-                new_timer = SEC_PER_DAY * module.params["timer"]
+                new_timer = SEC_PER_DAY * target_timer
                 eradication_config = EradicationConfig(eradication_delay=new_timer)
                 res = array.patch_arrays(
                     array=Arrays(eradication_config=eradication_config)
@@ -158,10 +158,18 @@ def main():
             module.params["enabled_delay"] != current_enabled
             or module.params["disabled_delay"] != current_disabled
         ):
+            if module.params["enabled_delay"] != current_enabled:
+                target_enabled = module.params["enabled_delay"]
+            else:
+                target_enabled = current_enabled
+            if module.params["disabled_delay"] != current_disabled:
+                target_disabled = module.params["disabled_delay"]
+            else:
+                target_disabled = current_disabled
             changed = True
             if not module.check_mode:
-                new_disabled = SEC_PER_DAY * module.params["disabled_delay"]
-                new_enabled = SEC_PER_DAY * module.params["enabled_delay"]
+                new_disabled = SEC_PER_DAY * target_disabled
+                new_enabled = SEC_PER_DAY * target_enabled
                 eradication_config = EradicationConfig(
                     enabled_delay=new_enabled, disabled_delay=new_disabled
                 )
