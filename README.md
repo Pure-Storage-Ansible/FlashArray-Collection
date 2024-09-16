@@ -92,6 +92,9 @@ If you have a Red Hat Ansible support contract, as this is a Certified collectio
 Release notes for this collection can be found [here](https://github.com/Pure-Storage-Ansible/FlashArray-Collection/releases)
 
 ## Related Information
+### Known Issues
+* **purefa_info** - Volume tags information is only provided for the ``default`` namespace. Tags created in other namespaces are not visible to the current APIs. This is to be addressed in a future release of Purity//FA. 
+
 ### Idempotency
 
 All modules are idempotent with the exception of modules that change or set passwords. Due to security requirements exisitng passwords can be validated against and therefore will always be modified, even if there is no change.
