@@ -319,12 +319,6 @@ try:
 except ImportError:
     HAS_PURESTORAGE = False
 
-HAS_PACKAGING = True
-try:
-    from packaging import version
-except ImportError:
-    HAS_PACKAGING = False
-
 import re
 import time
 from ansible.module_utils.basic import AnsibleModule
@@ -768,6 +762,7 @@ def create_multi_volume(module, array, single=False):
     volfact = {}
     changed = True
     api_version = array._list_available_rest_versions()
+    pg_check(module, array)
     bw_qos_size = iops_qos_size = 0
     names = []
     if "/" in module.params["name"] and not check_vgroup(module, array):
@@ -1058,15 +1053,15 @@ def copy_from_volume(module, array):
 def pg_check(module, array):
     purity_version = array.get()["version"]
     if (
-        version.parse(purity_version) >= version.parse("6.3.4")
+        LooseVersion(purity_version) >= LooseVersion("6.3.4")
         and module.params["pgroup"]
     ):
-        module.fail_json(msg="For purity version above 6.3.4, use add_to_pgs parameter")
+        module.fail_json(msg="For Purity//FA 6.3.4 or higher, use add_to_pgs parameter")
     elif (
-        version.parse(purity_version) <= version.parse("6.3.4")
+        LooseVersion(purity_version) <= LooseVersion("6.3.4")
         and module.params["add_to_pgs"]
     ):
-        module.fail_json(msg="For purity version below 6.3.4, use pgroup parameter")
+        module.fail_json(msg="For Purity//FA 6.3.4 or lower, use pgroup parameter")
 
 
 def update_volume(module, array):
