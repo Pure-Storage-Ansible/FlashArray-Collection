@@ -1,0 +1,2 @@
+bugfixes:
+ - purefa_dirsnap - Fixed issues with ``keep_for`` setting and issues related to recovery of deleted snapshots
