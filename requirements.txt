@@ -1,4 +1,5 @@
 distro
+packaging
 purestorage
 py-pure-client
 python >= 3.6
