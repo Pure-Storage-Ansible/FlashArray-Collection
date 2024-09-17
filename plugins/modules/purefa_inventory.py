@@ -62,12 +62,11 @@ def generate_new_hardware_dict(array):
     hw_info = {
         "fans": {},
         "controllers": {},
-        "temps": {},
         "drives": {},
         "interfaces": {},
         "power": {},
         "chassis": {},
-        "tempatures": {},
+        "temperature": {},
     }
     components = list(array.get_hardware().items)
     for component in range(0, len(components)):
