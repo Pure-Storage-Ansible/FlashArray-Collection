@@ -470,7 +470,7 @@ def main():
             snap_exists = bool(snap_detail.total_item_count != 0)
     if snap_exists:
         snap_facts = list(snap_detail.items)[0]
-    if state == "present" and not snap_exists and not module.params['rename']:
+    if state == "present" and not snap_exists and not module.params["rename"]:
         create_snap(module, array)
     elif state == "present" and snap_exists and module.params["suffix"]:
         update_snap(module, array, snap_facts)
