@@ -300,7 +300,7 @@ def update_snap(module, array, snap_detail):
                         snapname, res.errors[0].message
                     )
                 )
-            if keep_for != 0: # Set a new keep-for after recovery if requested
+            if keep_for != 0:  # Set a new keep-for after recovery if requested
                 directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
                 res = array.patch_directory_snapshots(
                     names=[snapname], directory_snapshot=directory_snapshot
