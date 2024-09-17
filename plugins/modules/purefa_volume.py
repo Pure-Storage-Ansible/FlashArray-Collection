@@ -334,6 +334,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.common impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from packaging import version
 
 QOS_API_VERSION = "1.14"
 VGROUPS_API_VERSION = "1.13"
