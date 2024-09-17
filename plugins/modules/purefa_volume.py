@@ -319,6 +319,12 @@ try:
 except ImportError:
     HAS_PURESTORAGE = False
 
+HAS_PACKAGING = True
+try:
+    from packaging import version
+except ImportError:
+    HAS_PACKAGING = False
+
 import re
 import time
 from ansible.module_utils.basic import AnsibleModule
@@ -334,7 +340,6 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.common impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
-from packaging import version
 
 QOS_API_VERSION = "1.14"
 VGROUPS_API_VERSION = "1.13"
