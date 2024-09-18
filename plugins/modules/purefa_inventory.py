@@ -62,12 +62,11 @@ def generate_new_hardware_dict(array):
     hw_info = {
         "fans": {},
         "controllers": {},
-        "temps": {},
         "drives": {},
         "interfaces": {},
         "power": {},
         "chassis": {},
-        "tempatures": {},
+        "temperature": {},
     }
     components = list(array.get_hardware().items)
     for component in range(0, len(components)):
@@ -124,9 +123,9 @@ def generate_new_hardware_dict(array):
         if components[component].type == "power_supply":
             hw_info["power"][component_name] = {
                 "status": components[component].status,
-                "voltage": components[component].voltage,
-                "serial": components[component].serial,
-                "model": components[component].model,
+                "voltage": getattr(components[component], "voltage", None),
+                "serial": getattr(components[component], "serial", None),
+                "model": getattr(components[component], "model", None),
             }
     drives = list(array.get_drives().items)
     for drive in range(0, len(drives)):
