@@ -1,2 +1,0 @@
-bugfixes:
- - purefa_volume - Errors out when pgroup and add_to_pgs used incorrectly
