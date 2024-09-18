@@ -345,7 +345,7 @@ def create_snap(module, array):
     changed = True
     if not module.check_mode:
         if not module.params["keep_for"] or module.params["keep_for"] == 0:
-            keep_for = 0
+            keep_for = None
         elif 300 <= module.params["keep_for"] <= 31536000:
             keep_for = module.params["keep_for"] * 1000
         else:
