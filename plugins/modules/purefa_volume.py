@@ -1052,10 +1052,13 @@ def copy_from_volume(module, array):
 
 def pg_check(module, array):
     rest_version = array.get_rest_version()
-    if LooseVersion(rest_version) >= LooseVersion("2.16") and module.params["pgroup"]:
+    if (
+        LooseVersion(rest_version) >= LooseVersion(DEFAULT_API_VERSION)
+        and module.params["pgroup"]
+    ):
         module.fail_json(msg="For Purity//FA 6.3.4 or higher, use add_to_pgs parameter")
     elif (
-        LooseVersion(rest_version) <= LooseVersion("2.16")
+        LooseVersion(rest_version) <= LooseVersion(DEFAULT_API_VERSION)
         and module.params["add_to_pgs"]
     ):
         module.fail_json(msg="For Purity//FA 6.3.4 or lower, use pgroup parameter")
