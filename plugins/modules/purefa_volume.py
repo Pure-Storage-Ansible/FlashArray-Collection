@@ -550,6 +550,7 @@ def create_volume(module, array):
     """Create Volume"""
     changed = False
     api_version = array._list_available_rest_versions()
+    pg_check(module)
     if "/" in module.params["name"] and not check_vgroup(module, array):
         module.fail_json(
             msg="Failed to create volume {0}. Volume Group does not exist.".format(
@@ -761,6 +762,7 @@ def create_multi_volume(module, array, single=False):
     volfact = {}
     changed = True
     api_version = array._list_available_rest_versions()
+    pg_check(module)
     bw_qos_size = iops_qos_size = 0
     names = []
     if "/" in module.params["name"] and not check_vgroup(module, array):
@@ -1048,11 +1050,27 @@ def copy_from_volume(module, array):
     )
 
 
+def pg_check(module):
+    array = get_array(module)
+    rest_version = array.get_rest_version()
+    if (
+        LooseVersion(rest_version) >= LooseVersion(DEFAULT_API_VERSION)
+        and module.params["pgroup"]
+    ):
+        module.fail_json(msg="For Purity//FA 6.3.4 or higher, use add_to_pgs parameter")
+    elif (
+        LooseVersion(rest_version) <= LooseVersion(DEFAULT_API_VERSION)
+        and module.params["add_to_pgs"]
+    ):
+        module.fail_json(msg="For Purity//FA 6.3.4 or lower, use pgroup parameter")
+
+
 def update_volume(module, array):
     """Update Volume size and/or QoS"""
     changed = False
     arrayv6 = None
     api_version = array._list_available_rest_versions()
+    pg_check(module)
     if MULTI_VOLUME_VERSION in api_version:
         arrayv6 = get_array(module)
     vol = array.get_volume(module.params["name"])
