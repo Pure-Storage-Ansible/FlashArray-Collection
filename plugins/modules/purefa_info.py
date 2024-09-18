@@ -605,8 +605,8 @@ def generate_dir_snaps_dict(array):
         except Exception:
             dir_snaps_info[s_name]["policy"] = ""
         if (dir_snaps_info[s_name]["destroyed"] or
-                hasattr(snapshots[snapshot], 'time_remaining'
-            ):
+                hasattr(snapshots[snapshot], 'time_remaining')
+           ):
             dir_snaps_info[s_name]["time_remaining"] = snapshots[
                 snapshot
             ].time_remaining
