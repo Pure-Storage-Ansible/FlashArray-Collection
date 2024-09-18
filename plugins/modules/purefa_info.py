@@ -582,10 +582,10 @@ def generate_dir_snaps_dict(array):
     snapshots = list(array.get_directory_snapshots().items)
     for snapshot in range(0, len(snapshots)):
         s_name = snapshots[snapshot].name
-        if hasattr(snapshots[snapshot], 'suffix'):
+        if hasattr(snapshots[snapshot], "suffix"):
             suffix = snapshots[snapshot].suffix
         else:
-            suffix = snapshots[snapshot].name.split('.')[-1]
+            suffix = snapshots[snapshot].name.split(".")[-1]
         dir_snaps_info[s_name] = {
             "destroyed": snapshots[snapshot].destroyed,
             "source": snapshots[snapshot].source.name,
@@ -604,9 +604,9 @@ def generate_dir_snaps_dict(array):
             dir_snaps_info[s_name]["policy"] = snapshots[snapshot].policy.name
         except Exception:
             dir_snaps_info[s_name]["policy"] = ""
-        if (dir_snaps_info[s_name]["destroyed"] or
-                hasattr(snapshots[snapshot], 'time_remaining')
-           ):
+        if dir_snaps_info[s_name]["destroyed"] or hasattr(
+            snapshots[snapshot], 'time_remaining'
+        ):
             dir_snaps_info[s_name]["time_remaining"] = snapshots[
                 snapshot
             ].time_remaining
