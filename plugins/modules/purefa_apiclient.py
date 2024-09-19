@@ -70,7 +70,7 @@ EXAMPLES = r"""
   purestorage.flasharray.purefa_apiclient:
     name: ansible-token
     issuer: "Pure Storage"
-    ttl: 3000
+    token_ttl: 3000
     role: array_admin
     public_key: "{{lookup('file', 'public_pem_file') }}"
     fa_url: 10.10.10.2
