@@ -237,7 +237,7 @@ def delete_snap(module, array):
 
 def update_snap(module, array, snap_detail):
     """Update a filesystem snapshot retention time"""
-    changed = True
+    changed = False
     snapname = (
         module.params["filesystem"]
         + ":"
@@ -268,6 +268,7 @@ def update_snap(module, array, snap_detail):
         directory_snapshot = DirectorySnapshotPatch(
             client_name=new_client, suffix=new_suffix
         )
+        changed = True
         if not module.check_mode:
             res = array.patch_directory_snapshots(
                 names=[snapname], directory_snapshot=directory_snapshot
@@ -281,13 +282,14 @@ def update_snap(module, array, snap_detail):
             else:
                 snapname = new_snapname
     if not module.params["keep_for"] or module.params["keep_for"] == 0:
-        keep_for = 0
+        keep_for = None
     elif 300 <= module.params["keep_for"] <= 31536000:
         keep_for = module.params["keep_for"] * 1000
     else:
         module.fail_json(msg="keep_for not in range of 300 - 31536000")
-    if not module.check_mode:
-        if snap_detail.destroyed:
+    if snap_detail.destroyed:
+        changed = True
+        if not module.check_mode:
             directory_snapshot = DirectorySnapshotPatch(destroyed=False)
             res = array.patch_directory_snapshots(
                 names=[snapname], directory_snapshot=directory_snapshot
@@ -298,8 +300,21 @@ def update_snap(module, array, snap_detail):
                         snapname, res.errors[0].message
                     )
                 )
+            if keep_for != 0:  # Set a new keep-for after recovery if requested
+                directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
+                res = array.patch_directory_snapshots(
+                    names=[snapname], directory_snapshot=directory_snapshot
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to retention time for snapshot {0}. Error: {1}".format(
+                            snapname, res.errors[0].message
+                        )
+                    )
+    if keep_for:
         directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
-        if snap_detail.time_remaining == 0 and keep_for != 0:
+        changed = True
+        if not module.check_mode:
             res = array.patch_directory_snapshots(
                 names=[snapname], directory_snapshot=directory_snapshot
             )
@@ -309,18 +324,19 @@ def update_snap(module, array, snap_detail):
                         snapname, res.errors[0].message
                     )
                 )
-        elif snap_detail.time_remaining > 0:
-            if module.params["rename"] and module.params["keep_for"]:
-                res = array.patch_directory_snapshots(
-                    names=[snapname], directory_snapshot=directory_snapshot
-                )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to retention time for renamed snapshot {0}. Error: {1}".format(
-                            snapname, res.errors[0].message
-                        )
+    if module.params["rename"] and keep_for:
+        directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
+        changed = True
+        if not module.check_mode:
+            res = array.patch_directory_snapshots(
+                names=[new_snapname], directory_snapshot=directory_snapshot
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to retention time for renamed snapshot {0}. Error: {1}".format(
+                        snapname, res.errors[0].message
                     )
-
+                )
     module.exit_json(changed=changed)
 
 
@@ -329,7 +345,7 @@ def create_snap(module, array):
     changed = True
     if not module.check_mode:
         if not module.params["keep_for"] or module.params["keep_for"] == 0:
-            keep_for = 0
+            keep_for = None
         elif 300 <= module.params["keep_for"] <= 31536000:
             keep_for = module.params["keep_for"] * 1000
         else:
@@ -454,7 +470,7 @@ def main():
             snap_exists = bool(snap_detail.total_item_count != 0)
     if snap_exists:
         snap_facts = list(snap_detail.items)[0]
-    if state == "present" and not snap_exists:
+    if state == "present" and not snap_exists and not module.params["rename"]:
         create_snap(module, array)
     elif state == "present" and snap_exists and module.params["suffix"]:
         update_snap(module, array, snap_facts)
