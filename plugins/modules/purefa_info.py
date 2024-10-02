@@ -463,7 +463,6 @@ def generate_config_dict(module, array):
     config_info["proxy"] = array.get(proxy=True)["proxy"]
     config_info["relayhost"] = array.get(relayhost=True)["relayhost"]
     config_info["senderdomain"] = array.get(senderdomain=True)["senderdomain"]
-    config_info["syslog"] = array.get(syslogserver=True)["syslogserver"]
     config_info["idle_timeout"] = array.get(idle_timeout=True)["idle_timeout"]
     config_info["scsi_timeout"] = array.get(scsi_timeout=True)["scsi_timeout"]
     if S3_REQUIRED_API_VERSION in api_version:
