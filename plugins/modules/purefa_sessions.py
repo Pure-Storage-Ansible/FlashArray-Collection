@@ -180,13 +180,13 @@ def main():
         )
     for session in range(0, len(sessions)):
         name = sessions[session].name
-        if sessions[session].start_time:
+        if hasattr(sessions[session], "start_time"):
             start_time = datetime.datetime.fromtimestamp(
                 sessions[session].start_time / 1000, tz=pytz.timezone(timezone)
             ).strftime("%Y-%m-%d %H:%M:%S %Z")
         else:
             start_time = "-"
-        if sessions[session].end_time:
+        if hasattr(sessions[session], "end_time"):
             end_time = datetime.datetime.fromtimestamp(
                 sessions[session].end_time / 1000, tz=pytz.timezone(timezone)
             ).strftime("%Y-%m-%d %H:%M:%S %Z")
