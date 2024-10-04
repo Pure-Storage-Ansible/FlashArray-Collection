@@ -300,19 +300,33 @@ def _create_subinterfaces(module, array):
     all_children = True
     purity_vm = bool(len(array.get_controllers().items) == 1)
     if module.params["subinterfaces"]:
-        for inter in sorted(module.params["subinterfaces"]):
-            # As we may be on a single controller device, only check for the ct0 version of the interface
-            if array.get_network_interfaces(names=["ct0." + inter]).status_code != 200:
-                all_children = False
-            if not all_children:
-                module.fail_json(
-                    msg="Child subinterface {0} does not exist".format(inter)
-                )
-            subinterfaces_v2.append(FixedReferenceNoId(name="ct0." + inter))
-            subinterfaces_v1.append("ct0." + inter)
-            if not purity_vm:
-                subinterfaces_v2.append(FixedReferenceNoId(name="ct1." + inter))
-                subinterfaces_v1.append("ct1." + inter)
+        if any("lacp" in sub for sub in module.params["subinterfaces"]):
+            for inter in sorted(module.params["subinterfaces"]):
+                if array.get_network_interfaces(names=[inter]).status_code != 200:
+                    all_children = False
+                if not all_children:
+                    module.fail_json(
+                        msg="Child subinterface {0} does not exist".format(inter)
+                    )
+                subinterfaces_v2.append(FixedReferenceNoId(name=inter))
+                subinterfaces_v1.append(inter)
+        else:
+            for inter in sorted(module.params["subinterfaces"]):
+                # As we may be on a single controller device, only check for the ct0 version of the interface
+                if (
+                    array.get_network_interfaces(names=["ct0." + inter]).status_code
+                    != 200
+                ):
+                    all_children = False
+                if not all_children:
+                    module.fail_json(
+                        msg="Child subinterface {0} does not exist".format(inter)
+                    )
+                subinterfaces_v2.append(FixedReferenceNoId(name="ct0." + inter))
+                subinterfaces_v1.append("ct0." + inter)
+                if not purity_vm:
+                    subinterfaces_v2.append(FixedReferenceNoId(name="ct1." + inter))
+                    subinterfaces_v1.append("ct1." + inter)
     return subinterfaces_v1, subinterfaces_v2
 
 
