@@ -82,7 +82,7 @@ TZ_VERSION = "2.26"
 
 def _get_filter_string(module, timezone):
     filter_string = ""
-    if module.params["start"] != "0":
+    if module.params["start"] and module.params["start"] != "0":
         start = module.params["start"] + " " + timezone
         start_timestamp = int(
             1000
