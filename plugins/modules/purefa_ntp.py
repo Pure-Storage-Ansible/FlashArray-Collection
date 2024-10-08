@@ -140,7 +140,7 @@ def test_ntp(module, array):
 
 def delete_ntp(module, array):
     """Delete NTP Servers"""
-    if array.get(ntpserver=True)["ntpserver"] != []:
+    if list(array.get_arrays().items)[0].ntp_servers != []:
         changed = True
         if not module.check_mode:
             try:
