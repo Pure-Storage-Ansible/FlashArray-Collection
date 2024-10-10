@@ -105,6 +105,7 @@ EXAMPLES = r"""
   puretorage.flasharray.purefa_snmp:
     name: manager2
     version: v3
+    user: manager
     auth_protocol: MD5
     auth_passphrase: password
     host: 10.21.22.23
@@ -412,15 +413,10 @@ def main():
         ["auth_passphrase", "auth_protocol"],
         ["privacy_passphrase", "privacy_protocol"],
     ]
-    required_if = [
-        ["version", "v2c", ["community", "host"]],
-        ["version", "v3", ["host", "user"]],
-    ]
 
     module = AnsibleModule(
         argument_spec,
         required_together=required_together,
-        required_if=required_if,
         supports_check_mode=True,
     )
 
@@ -432,7 +428,11 @@ def main():
         if mgrs[mgr]["name"] == module.params["name"]:
             mgr_configured = True
             break
+    if not module.params["host"]:
+        module.fail_json(msg="The following parameter is required: host")
     if module.params["version"] == "v3":
+        if not module.params["user"]:
+            module.fail_json(msg="version is v3 but the following is missing: user")
         if module.params["auth_passphrase"] and (
             8 > len(module.params["auth_passphrase"]) > 32
         ):
@@ -442,6 +442,9 @@ def main():
             and 8 > len(module.params["privacy_passphrase"]) > 63
         ):
             module.fail_json(msg="privacy_password must be between 8 and 63 characters")
+    else:
+        if not module.params["community"}:
+            module.fail_json(msg="version is v2c but the following is missing: community")
     if state == "absent" and mgr_configured:
         delete_manager(module, array)
     elif mgr_configured and state == "present":
