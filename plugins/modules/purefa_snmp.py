@@ -443,7 +443,7 @@ def main():
         ):
             module.fail_json(msg="privacy_password must be between 8 and 63 characters")
     else:
-        if not module.params["community"}:
+        if not module.params["community"]:
             module.fail_json(msg="version is v2c but the following is missing: community")
     if state == "absent" and mgr_configured:
         delete_manager(module, array)
