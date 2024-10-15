@@ -50,7 +50,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Change syslog servers settings
-  purestorage.flasharray.purefa_syslog_servers:
+  purestorage.flasharray.purefa_syslog_settengs:
     tls_audit: false
     severity: debug
     ca_certificate: "{{lookup('file', 'example.crt') }}"
@@ -58,7 +58,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Delete existing CA certifcate for syslog servers settings
-  purestorage.flasharray.purefa_syslog_servers:
+  purestorage.flasharray.purefa_syslog_settings:
     ca_certificate: DELETE
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
