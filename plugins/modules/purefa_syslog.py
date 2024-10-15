@@ -63,6 +63,7 @@ extends_documentation_fragment:
 EXAMPLES = r"""
 - name: Delete existing syslog server entry
   purestorage.flasharray.purefa_syslog:
+    name: syslog1
     address: syslog1.com
     protocol: tcp
     state: absent
@@ -71,7 +72,7 @@ EXAMPLES = r"""
 
 - name: Add syslog server entry
   purestorage.flasharray.purefa_syslog:
-    state: present
+    name: syslog1
     address: syslog1.com
     port: 8081
     protocol: udp
@@ -80,7 +81,7 @@ EXAMPLES = r"""
 
 - name: Update syslog server entry
   purestorage.flasharray.purefa_syslog:
-    state: present
+    name: syslog1
     address: syslog1.com
     port: 8081
     protocol: tcp
