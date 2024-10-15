@@ -44,7 +44,7 @@ EXAMPLES = r"""
   register: result
 
   debug:
-    msg: "Remote Assist: {{ result['ra_facts'] }}"
+    msg: "Remote Assist: {{ result['ra_info'] }}"
 
 - name: Disable Remote Assist port
   purestorage.flasharray.purefa_ra:
