@@ -97,7 +97,6 @@ EXAMPLES = r"""
   purestorage.flasharray.purefa_snmp_agent:
     version: v2c
     community: public
-    host: 10.21.22.23
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Update v3 SNMP manager
@@ -106,7 +105,6 @@ EXAMPLES = r"""
     user: admin
     auth_protocol: MD5
     auth_passphrase: password
-    host: 10.21.22.23
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
