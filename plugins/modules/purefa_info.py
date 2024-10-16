@@ -746,15 +746,15 @@ def generate_subnet_dict(array):
     subnets = array.list_subnets()
     for sub in range(0, len(subnets)):
         sub_name = subnets[sub]["name"]
-        if subnets[sub]["enabled"]:
-            sub_info[sub_name] = {
-                "gateway": subnets[sub]["gateway"],
-                "mtu": subnets[sub]["mtu"],
-                "vlan": subnets[sub]["vlan"],
-                "prefix": subnets[sub]["prefix"],
-                "interfaces": subnets[sub]["interfaces"],
-                "services": subnets[sub]["services"],
-            }
+        sub_info[sub_name] = {
+            "enabled": subnets[sub]["enabled"],
+            "gateway": subnets[sub]["gateway"],
+            "mtu": subnets[sub]["mtu"],
+            "vlan": subnets[sub]["vlan"],
+            "prefix": subnets[sub]["prefix"],
+            "interfaces": subnets[sub]["interfaces"],
+            "services": subnets[sub]["services"],
+        }
     return sub_info
 
 
