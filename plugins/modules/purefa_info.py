@@ -2573,14 +2573,14 @@ def generate_certs_dict(array):
 def generate_kmip_dict(array):
     kmip_info = {}
     kmips = list(array.get_kmip().items)
-        for kmip in range(0, len(kmips)):
-            key = kmips[kmip].name
-            kmip_info[key] = {
-                "certificate": kmips[kmip].certificate.name,
-                "ca_certificate": kmips[kmip].ca_certificate,
-                "ca_cert_configured": True,
-                "uri": kmips[kmip].uris,
-            }
+    for kmip in range(0, len(kmips)):
+        key = kmips[kmip].name
+        kmip_info[key] = {
+            "certificate": kmips[kmip].certificate.name,
+            "ca_certificate": kmips[kmip].ca_certificate,
+            "ca_cert_configured": True,
+            "uri": kmips[kmip].uris,
+        }
     return kmip_info
 
 
