@@ -50,7 +50,7 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Change syslog servers settings
-  purestorage.flasharray.purefa_syslog_settengs:
+  purestorage.flasharray.purefa_syslog_settings:
     tls_audit: false
     severity: debug
     ca_certificate: "{{lookup('file', 'example.crt') }}"
