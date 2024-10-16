@@ -56,7 +56,6 @@ options:
     description:
       - MTU size of the subnet. Range is 568 to 9000.
     required: false
-    default: 1500
     type: int
   vlan:
     description:
@@ -319,7 +318,7 @@ def main():
             state=dict(type="str", default="present", choices=["present", "absent"]),
             gateway=dict(type="str"),
             enabled=dict(type="bool", default=True),
-            mtu=dict(type="int", default=1500),
+            mtu=dict(type="int"),
             vlan=dict(type="int"),
         )
     )
