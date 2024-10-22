@@ -2588,57 +2588,58 @@ def generate_kmip_dict(array):
 def generate_nfs_offload_dict(module, array):
     offload_info = {}
     api_version = array._list_available_rest_versions()
-    if AC_REQUIRED_API_VERSION in api_version:
-        offload = array.list_nfs_offload()
-        for target in range(0, len(offload)):
-            offloadt = offload[target]["name"]
-            offload_info[offloadt] = {
-                "status": offload[target]["status"],
-                "mount_point": offload[target]["mount_point"],
-                "protocol": offload[target]["protocol"],
-                "mount_options": offload[target]["mount_options"],
-                "address": offload[target]["address"],
-            }
-    if V6_MINIMUM_API_VERSION in api_version:
-        arrayv6 = get_array(module)
-        offloads = list(arrayv6.get_offloads(protocol="nfs").items)
-        for offload in range(0, len(offloads)):
-            name = offloads[offload].name
-            offload_info[name]["snapshots"] = getattr(
-                offloads[offload].space, "snapshots", None
-            )
-            offload_info[name]["shared"] = getattr(
-                offloads[offload].space, "shared", None
-            )
-            offload_info[name]["data_reduction"] = getattr(
-                offloads[offload].space, "data_reduction", None
-            )
-            offload_info[name]["thin_provisioning"] = getattr(
-                offloads[offload].space, "thin_provisioning", None
-            )
-            offload_info[name]["total_physical"] = getattr(
-                offloads[offload].space, "total_physical", None
-            )
-            offload_info[name]["total_provisioned"] = getattr(
-                offloads[offload].space, "total_provisioned", None
-            )
-            offload_info[name]["total_reduction"] = getattr(
-                offloads[offload].space, "total_reduction", None
-            )
-            offload_info[name]["unique"] = getattr(
-                offloads[offload].space, "unique", None
-            )
-            offload_info[name]["virtual"] = getattr(
-                offloads[offload].space, "virtual", None
-            )
-            offload_info[name]["replication"] = getattr(
-                offloads[offload].space, "replication", None
-            )
-            offload_info[name]["used_provisioned"] = getattr(
-                offloads[offload].space, "used_provisioned", None
-            )
-            if SUBS_API_VERSION in api_version:
-                offload_info[name]["total_used"] = offloads[offload].space.total_used
+    if NSID_API_VERSION not in api_version:
+        if AC_REQUIRED_API_VERSION in api_version:
+            offload = array.list_nfs_offload()
+            for target in range(0, len(offload)):
+                offloadt = offload[target]["name"]
+                offload_info[offloadt] = {
+                    "status": offload[target]["status"],
+                    "mount_point": offload[target]["mount_point"],
+                    "protocol": offload[target]["protocol"],
+                    "mount_options": offload[target]["mount_options"],
+                    "address": offload[target]["address"],
+                }
+        if V6_MINIMUM_API_VERSION in api_version:
+            arrayv6 = get_array(module)
+            offloads = list(arrayv6.get_offloads(protocol="nfs").items)
+            for offload in range(0, len(offloads)):
+                name = offloads[offload].name
+                offload_info[name]["snapshots"] = getattr(
+                    offloads[offload].space, "snapshots", None
+                )
+                offload_info[name]["shared"] = getattr(
+                    offloads[offload].space, "shared", None
+                )
+                offload_info[name]["data_reduction"] = getattr(
+                    offloads[offload].space, "data_reduction", None
+                )
+                offload_info[name]["thin_provisioning"] = getattr(
+                    offloads[offload].space, "thin_provisioning", None
+                )
+                offload_info[name]["total_physical"] = getattr(
+                    offloads[offload].space, "total_physical", None
+                )
+                offload_info[name]["total_provisioned"] = getattr(
+                    offloads[offload].space, "total_provisioned", None
+                )
+                offload_info[name]["total_reduction"] = getattr(
+                    offloads[offload].space, "total_reduction", None
+                )
+                offload_info[name]["unique"] = getattr(
+                    offloads[offload].space, "unique", None
+                )
+                offload_info[name]["virtual"] = getattr(
+                    offloads[offload].space, "virtual", None
+                )
+                offload_info[name]["replication"] = getattr(
+                    offloads[offload].space, "replication", None
+                )
+                offload_info[name]["used_provisioned"] = getattr(
+                    offloads[offload].space, "used_provisioned", None
+                )
+                if SUBS_API_VERSION in api_version:
+                    offload_info[name]["total_used"] = offloads[offload].space.total_used
     return offload_info
 
 
