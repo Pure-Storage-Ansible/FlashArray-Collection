@@ -89,22 +89,22 @@ EXAMPLES = r"""
 - name: Clear SNMP agent v3 auth and privacy protocols
   purestorage.flasharray.purefa_snmp_agent:
     version: v3
+    user: admin
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Update v2c SNMP agent
-  puretorage.flasharray.purefa_snmp_agent:
+  purestorage.flasharray.purefa_snmp_agent:
     version: v2c
     community: public
-    host: 10.21.22.23
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 - name: Update v3 SNMP manager
-  puretorage.flasharray.purefa_snmp_agent:
+  purestorage.flasharray.purefa_snmp_agent:
     version: v3
+    user: admin
     auth_protocol: MD5
     auth_passphrase: password
-    host: 10.21.22.23
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
@@ -229,14 +229,10 @@ def main():
         ["auth_passphrase", "auth_protocol"],
         ["privacy_passphrase", "privacy_protocol"],
     ]
-    required_if = [
-        ["version", "v3", ["user"]],
-    ]
 
     module = AnsibleModule(
         argument_spec,
         required_together=required_together,
-        required_if=required_if,
         supports_check_mode=True,
     )
 
@@ -252,6 +248,8 @@ def main():
 
     agent = list(array.get_snmp_agents().items)
     if module.params["version"] == "v3":
+        if not module.params["user"]:
+            module.fail_json(msg="version is v3 but the following is missing: user")
         if module.params["auth_passphrase"] and (
             8 > len(module.params["auth_passphrase"]) > 32
         ):
