@@ -2572,16 +2572,15 @@ def generate_certs_dict(array):
 
 def generate_kmip_dict(array):
     kmip_info = {}
-    api_version = array._list_available_rest_versions()
-    if P53_API_VERSION in api_version:
-        kmips = array.list_kmip()
-        for kmip in range(0, len(kmips)):
-            key = kmips[kmip]["name"]
-            kmip_info[key] = {
-                "certificate": kmips[kmip]["certificate"],
-                "ca_cert_configured": kmips[kmip]["ca_certificate_configured"],
-                "uri": kmips[kmip]["uri"],
-            }
+    kmips = list(array.get_kmip().items)
+    for kmip in range(0, len(kmips)):
+        key = kmips[kmip].name
+        kmip_info[key] = {
+            "certificate": kmips[kmip].certificate.name,
+            "ca_certificate": kmips[kmip].ca_certificate,
+            "ca_cert_configured": True,
+            "uri": kmips[kmip].uris,
+        }
     return kmip_info
 
 
@@ -3150,10 +3149,10 @@ def main():
         info["arrays"] = generate_conn_array_dict(module, array)
     if "certs" in subset or "all" in subset:
         info["certs"] = generate_certs_dict(array)
-    if "kmip" in subset or "all" in subset:
-        info["kmip"] = generate_kmip_dict(array)
     if FILES_API_VERSION in api_version:
         array_v6 = get_array(module)
+        if "kmip" in subset or "all" in subset:
+            info["kmip"] = generate_kmip_dict(array_v6)
         if "offload" in subset or "all" in subset:
             info["google_offload"] = generate_google_offload_dict(array_v6)
         if "filesystems" in subset or "all" in subset:
