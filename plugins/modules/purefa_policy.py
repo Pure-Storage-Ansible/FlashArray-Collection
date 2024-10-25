@@ -38,7 +38,7 @@ options:
   policy:
     description:
     - The type of policy to use
-    choices: [ nfs, smb, snapshot, quota, autodir ]
+    choices: [ nfs, smb, snapshot, quota, autodir, password ]
     required: true
     type: str
   enabled:
@@ -197,6 +197,51 @@ options:
     type: bool
     default: false
     version_added: 1.26.0
+  enforce_dictionary_check:
+    description:
+    - If I(true), test password against dictionary of known leaked passwords.
+    - Only applies to passwords longer than 6 characters.
+    type: bool
+    version_added: 1.33.0
+  enforce_username_check:
+    description:
+    - If I(true), the username cannot be a substring of the password.
+    - It only applies to usernames of 3 characters and longer
+    type: bool
+    version_added: 1.33.0
+  max_login_attempts:
+    description:
+    - Maximum number of failed logins before account is locked
+    type: int
+    version_added: 1.33.0
+  min_password_length:
+    description:
+    - Minimum user password length
+    type: int
+    version_added: 1.33.0
+  lockout_duration:
+    description:
+    - Account lockout duration, in seconds, after I(max_login_attempts) exceeded
+    - Range between 1 second and 90 days (7776000 seconds)
+    type: int
+    version_added: 1.33.0
+  password_history:
+    description:
+    - The number of passwords tracked to prevent reuse of passwords.
+    - A value of 0 will not check password history
+    type: int
+    version_added: 1.33.0
+  min_character_groups:
+    description:
+    - The minimum number of character groups required to be present in a password.
+    type: int
+    version_added: 1.33.0
+  min_characters_per_group:
+    description:
+    - The minimum number of characters per group to count the group as present.
+    - Maximum is limited by the minimum password length divided by the number of character groups
+    type: int
+    version_added: 1.33.0
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -344,6 +389,18 @@ EXAMPLES = r"""
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Update password police management
+  purestorage.flasharray.purefa_policy:
+    name: management
+    policy: password
+    max_login_attempts: 5
+    enforce_username_check: true
+    enforce_dictopnary_check: true
+    min_password_length: 5
+    password_history: 2
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
 
 RETURN = r"""
@@ -378,6 +435,7 @@ AUTODIR_VERSION = "2.24"
 NFS_VERSION = "2.26"
 SECURITY_VERSION = "2.29"
 ABE_VERSION = "2.4"
+PASSWORD_VERSION = "2.34"
 
 
 def rename_policy(module, array):
@@ -427,6 +485,9 @@ def rename_policy(module, array):
                         module.params["name"], module.params["rename"]
                     )
                 )
+        elif module.params["policy"] == "password":
+            module.warn("Password policy rename is not yet supported")
+            changed = False
         else:
             res = array.patch_policies_quota(
                 names=[module.params["name"]],
@@ -446,6 +507,9 @@ def delete_policy(module, array):
     changed = True
     if not module.check_mode:
         changed = False
+        if module.params["policy"] == "password":
+            module.warn("Password policy deletion is not yet supported")
+            changed = False
         if module.params["policy"] == "nfs":
             if not module.params["client"]:
                 res = array.delete_policies_nfs(names=[module.params["name"]])
@@ -946,6 +1010,9 @@ def create_policy(module, array, all_squash):
                         module.params["name"], created.errors[0].message
                     )
                 )
+        elif module.params["policy"] == "snapshot":
+            module.warn("Password policy creation is not yet supported")
+            changed = False
         elif module.params["policy"] == "autodir":
             created = array.post_policies_autodir(
                 names=[module.params["name"]],
@@ -1592,6 +1659,124 @@ def update_policy(module, array, api_version, all_squash):
                                     directory_added.errors[0].message,
                                 )
                             )
+    elif module.params["policy"] == "password":
+        try:
+            current_enabled = list(
+                array.get_policies_password(names=[module.params["name"]]).items
+            )[0].enabled
+        except Exception:
+            module.fail_json(
+                msg="Incorrect policy type specified for existing policy {0}".format(
+                    module.params["name"]
+                )
+            )
+        if current_enabled != module.params["enabled"]:
+            changed_enable = True
+            if not module.check_mode:
+                res = array.patch_policies_password(
+                    names=[module.params["name"]],
+                    policy=flasharray.PolicyPatch(enabled=module.params["enabled"]),
+                )
+                if res.status_code != 200:
+                    module.exit_json(
+                        msg="Failed to enable/disable password policy {0}".format(
+                            module.params["name"]
+                        )
+                    )
+        pwd_policy = list(
+            array.get_policies_password(names=[module.params["name"]]).items
+        )[0]
+        current_pwd_policy = {
+            "enforce_dictionary_check": pwd_policy.enforce_dictionary_check,
+            "enforce_username_check": pwd_policy.enforce_username_check,
+            "lockout_duration": pwd_policy.lockout_duration,
+            "min_character_groups": pwd_policy.min_character_groups,
+            "min_characters_per_group": pwd_policy.min_characters_per_group,
+            "min_password_length": pwd_policy.min_password_length,
+            "max_login_attempts": getattr(pwd_policy, "max_login_attempts", 0),
+            "password_history": getattr(pwd_policy, "password_history", 0),
+        }
+        new_pwd_policy = current_pwd_policy
+        if (
+            module.params("enforce_dictionary_check")
+            != current_pwd_policy.enforce_dictionary_check
+        ):
+            new_pwd_policy.enforce_dictionary_check = module.params(
+                "enforce_dictionary_check"
+            )
+            changed = True
+        if (
+            module.params("enforce_username_check")
+            != current_pwd_policy.enforce_username_check
+        ):
+            new_pwd_policy.enforce_username_check = module.params(
+                "enforce_username_check"
+            )
+            changed = True
+        if (
+            module.params("min_character_groups")
+            != current_pwd_policy.min_character_groups
+        ):
+            new_pwd_policy.min_character_groups = module.params("min_character_groups")
+            changed = True
+        if (
+            module.params("min_characters_per_group")
+            != current_pwd_policy.min_characters_per_group
+        ):
+            new_pwd_policy.min_characters_per_group = module.params(
+                "min_characters_per_group"
+            )
+            changed = True
+        if (
+            module.params("min_password_length")
+            != current_pwd_policy.min_password_length
+        ):
+            new_pwd_policy.min_password_length = module.params("min_password_length")
+            changed = True
+        if (
+            module.params("password_history")
+            and module.params("password_history") != current_pwd_policy.password_history
+        ):
+            new_pwd_policy.password_history = module.params("password_history")
+            changed = True
+        if (
+            module.params("max_login_attempts")
+            and module.params("max_login_attempts")
+            != current_pwd_policy.max_login_attempts
+        ):
+            new_pwd_policy.max_login_attempts = module.params("max_login_attempts")
+            changed = True
+        if module.params("lockout_duration"):
+            if (
+                module.params("lockout_duration") * 1000
+                != current_pwd_policy.lockout_duration
+            ):
+                current_pwd_policy.lockout_duration = (
+                    module.params("lockout_duration") * 1000
+                )
+                changed = True
+        if changed and not module.check_mode:
+            res = array.patch_policies_password(
+                names=[module.params["name"]],
+                policy=flasharray.PolicyPassword(
+                    max_login_attempts=new_pwd_policy.max_login_attempts,
+                    min_password_length=new_pwd_policy.min_password_length,
+                    password_history=new_pwd_policy.password_history,
+                    min_password_age=new_pwd_policy.min_password_age,
+                    min_character_groups=new_pwd_policy.min_character_groups,
+                    min_characters_per_group=new_pwd_policy.min_characters_per_group,
+                    enforce_username_check=new_pwd_policy.enforce_username_check,
+                    enforce_dictionary_check=new_pwd_policy.enforce_dictionary_check,
+                    lockout_duration=new_pwd_policy.lockout_duration,
+                ),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to change password policy {0}. Error: {1}".format(
+                        module.params["name"],
+                        res.errors[0].message,
+                    )
+                )
     else:  # quota
         current_enabled = list(
             array.get_policies_quota(names=[module.params["name"]]).items
@@ -1798,7 +1983,7 @@ def main():
             policy=dict(
                 type="str",
                 required=True,
-                choices=["nfs", "smb", "snapshot", "quota", "autodir"],
+                choices=["nfs", "smb", "snapshot", "quota", "autodir", "password"],
             ),
             name=dict(type="str", required=True),
             rename=dict(type="str"),
@@ -1832,6 +2017,14 @@ def main():
                 choices=["auth_sys", "krb5", "krb5i", "krb5p"],
             ),
             access_based_enumeration=dict(type="bool", default=False),
+            enforce_dictionary_check=dict(type="bool"),
+            enforce_username_check=dict(type="bool"),
+            lockout_duration=dict(type="int"),
+            min_character_groups=dict(type="int"),
+            min_characters_per_group=dict(type="int"),
+            min_password_length=dict(type="int", no_log=False),
+            password_history=dict(type="int", no_log=False),
+            max_login_attempts=dict(type="int"),
         )
     )
 
@@ -1860,6 +2053,17 @@ def main():
             msg="FlashArray REST version not supported for autodir policies. "
             "Minimum version required: {0}".format(AUTODIR_VERSION)
         )
+    if module.params["policy"] == "password" and PASSWORD_VERSION not in api_version:
+        module.fail_json(
+            msg="FlashArray REST version not supported for password policies. "
+            "Minimum version required: {0}".format(PASSWORD_VERSION)
+        )
+    if (
+        module.params["policy"] == "password"
+        and module.params["lockout"]
+        and not 1 <= module.params["lockout"] <= 7776000
+    ):
+        module.fail_json(msg="Lockout must be between 1 and 7776000 seconds")
     array = get_array(module)
     state = module.params["state"]
     if module.params["quota_notifications"]:

@@ -134,6 +134,7 @@ NSID_API_VERSION = "2.27"
 NFS_SECURITY_VERSION = "2.29"
 UPTIME_API_VERSION = "2.30"
 TLS_CONNECTION_API_VERSION = "2.33"
+PWD_POLICY_API_VERSION = "2.34"
 
 
 def _is_cbs(array):
@@ -168,6 +169,10 @@ def generate_default_dict(module, array):
         )
         if DIR_QUOTA_API_VERSION in api_version:
             default_info["quota_policies"] = len(arrayv6.get_policies_quota().items)
+        if PWD_POLICY_API_VERSION in api_version:
+            default_info["password_policies"] = len(
+                arrayv6.get_policies_password().items
+            )
         if ENCRYPTION_STATUS_API_VERSION in api_version:
             array_data = list(arrayv6.get_arrays().items)[0]
             encryption = array_data.encryption
@@ -708,6 +713,18 @@ def generate_policies_dict(array, quota_available, autodir_available, nfs_user_m
                 policy_info[p_name]["rules"].append(quota_rules_dict)
         if policies[policy].policy_type == "autodir" and autodir_available:
             pass  # there are currently no rules for autodir policies
+        if policies[policy].policy_type == "password":
+            pwd_policy = list(array.get_policies_password(names=[p_name]).items)[0]
+            policy_info[p_name] |= {
+                "enabled": pwd_policy.enabled,
+                "enforce_dictionary_check": pwd_policy.enforce_dictionary_check,
+                "enforce_username_check": pwd_policy.enforce_username_check,
+                "lockout_duration": getattr(pwd_policy, "lockout_duration", None),
+                "password_history": getattr(pwd_policy, "password_history", None),
+                "min_character_groups": pwd_policy.min_character_groups,
+                "min_characters_per_group": pwd_policy.min_characters_per_group,
+                "min_password_length": pwd_policy.min_password_length,
+            }
     return policy_info
 
 
