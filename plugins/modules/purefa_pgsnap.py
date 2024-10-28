@@ -410,7 +410,12 @@ def create_pgsnapshot(module, array):
                     module.params["name"], res.errors[0].message
                 )
             )
-    module.exit_json(changed=changed)
+        else:
+            snap_data = list(res.items)[0]
+    module.exit_json(
+        changed=changed,
+        snapshot={"suffix": snap_data.suffix, "snapshot": snap_data.name},
+    )
 
 
 def restore_pgsnapvolume(module, array):
