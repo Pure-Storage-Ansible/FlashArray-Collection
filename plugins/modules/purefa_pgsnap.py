@@ -191,6 +191,17 @@ EXAMPLES = r"""
 """
 
 RETURN = r"""
+snapshot:
+    description: A dictionary describing the created snapshot.
+    type: dict
+    returned: success
+    contains:
+        suffix:
+            description: Suffix of the snapshot created
+            type: str
+        snapshot:
+            description: Full name of the created snapshot
+            type: str
 """
 
 HAS_PURESTORAGE = True
@@ -343,6 +354,7 @@ def get_pgsnapshot(module, array):
 def create_pgsnapshot(module, array):
     """Create Protection Group Snapshot"""
     api_version = array.get_rest_version()
+    snap_data = {}
     changed = True
     if not module.check_mode:
         suffix = ProtectionGroupSnapshot(suffix=module.params["suffix"])
