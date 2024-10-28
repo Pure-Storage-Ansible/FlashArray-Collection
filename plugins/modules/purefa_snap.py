@@ -153,6 +153,10 @@ EXAMPLES = r"""
 """
 
 RETURN = r"""
+suffix:
+    description: Data related to the created snapshot suffix
+    type: str
+    returned: success
 """
 
 HAS_PUREERROR = True
