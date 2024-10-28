@@ -154,7 +154,7 @@ def create_role(module, array):
         if not module.check_mode:
             res = array.post_directory_services_roles(
                 names=[module.params["role"]],
-                directory_service_role=DirectoryServiceRole(
+                directory_service_roles=DirectoryServiceRole(
                     group_base=module.params["group_base"], group=module.params["group"]
                 ),
             )
