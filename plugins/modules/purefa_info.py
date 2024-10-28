@@ -35,7 +35,7 @@ options:
         capacity, network, subnet, interfaces, hgroups, pgroups, hosts,
         admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
         arrays, certs, kmip, clients, policies, dir_snaps, filesystems,
-        alerts, virtual_machines, hosts_balance and subscriptions.
+        alerts, virtual_machines and subscriptions.
     type: list
     elements: str
     required: false
