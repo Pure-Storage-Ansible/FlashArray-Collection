@@ -99,6 +99,8 @@ def convert_time_to_millisecs(time):
             return int(time[:-1]) * 3600000
         elif time[-1:].lower() == "m":
             return int(time[:-1]) * 60000
+        elif time[-1:].lower() == "s":
+            return int(time[:-1]) * 1000
     except Exception:
         return 0
 
