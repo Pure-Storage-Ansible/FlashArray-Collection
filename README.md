@@ -112,7 +112,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_certs - manage FlashArray SSL certificates
 - purefa_connect - manage FlashArrays connecting for replication purposes
 - purefa_console - manage Console Lock setting for the FlashArray
-- purefa_ddefault_protection - manage FlashArray default protections
+- purefa_default_protection - manage FlashArray default protections
 - purefa_directory - manage FlashArray managed file system directories
 - purefa_dirsnap - manage FlashArray managed file system directory snapshots
 - purefa_dns - manage the DNS settings of the FlashArray
