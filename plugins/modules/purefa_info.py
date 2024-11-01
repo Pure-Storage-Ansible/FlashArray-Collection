@@ -134,6 +134,7 @@ NSID_API_VERSION = "2.27"
 NFS_SECURITY_VERSION = "2.29"
 UPTIME_API_VERSION = "2.30"
 TLS_CONNECTION_API_VERSION = "2.33"
+RA_API_VERSION = "2.35"
 
 
 def _is_cbs(array):
@@ -268,7 +269,35 @@ def generate_default_dict(module, array):
     default_info["protection_groups"] = len(pgroups)
     default_info["hostgroups"] = len(hgroups)
     default_info["admins"] = len(admins)
-    default_info["remote_assist"] = array.get_remote_assist_status()["status"]
+    default_info["remote_assist"] = list(arrayv6.get_support().items)[
+        0
+    ].remote_assist_status
+    if RA_API_VERSION in api_version:
+        ra_detail = list(arrayv6.get_support().items)[0]
+        default_info["remote_assist_detail"] = {
+            "remote_assist_duration": str(
+                int(ra_detail.remote_assist_duration / 3600000)
+            )
+            + " hours",
+        }
+        if ra_detail.remote_assist_expires != 0:
+            default_info["remote_assist_detail"]["remote_assist_expires"] = (
+                time.strftime(
+                    "%Y-%m-%d %H:%M:%S %Z",
+                    time.gmtime(ra_detail.remote_assist_expires / 1000),
+                )
+            )
+        else:
+            default_info["remote_assist_detail"]["remote_assist_expires"] = None
+        if ra_detail.remote_assist_opened != 0:
+            default_info["remote_assist_detail"]["remote_assist_opened"] = (
+                time.strftime(
+                    "%Y-%m-%d %H:%M:%S %Z",
+                    time.gmtime(ra_detail.remote_assist_opened / 1000),
+                )
+            )
+        else:
+            default_info["remote_assist_detail"]["remote_assist_opened"] = None
     if P53_API_VERSION in api_version:
         default_info["maintenance_window"] = array.list_maintenance_windows()
     return default_info

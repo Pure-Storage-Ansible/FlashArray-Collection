@@ -32,6 +32,13 @@ options:
     type: str
     default: present
     choices: [ enable, disable, absent, present, test ]
+  duration:
+    description:
+    - Number of hours Remote Assist port statys open for.
+    - Must be an integer between 4 and 48
+    type: int
+    default: 24
+    version_added: 1.33.0
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -39,6 +46,7 @@ extends_documentation_fragment:
 EXAMPLES = r"""
 - name: Enable Remote Assist port
   purestorage.flasharray.purefa_ra:
+    duration: 12
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
   register: result
@@ -61,12 +69,17 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
 
 HAS_PURESTORAGE = True
 try:
     from pypureclient.flasharray import SupportPatch
 except ImportError:
     HAS_PURESTORAGE = False
+
+DURATION_API = "2.35"
 
 
 def test_ra(module, array):
@@ -108,8 +121,23 @@ def enable_ra(module, array):
         "enabled",
     ]:
         changed = True
+        res = {}
+        api_version = array.get_rest_version()
         if not module.check_mode:
-            res = array.patch_support(support=SupportPatch(remote_assist_active=True))
+            if LooseVersion(DURATION_API) > LooseVersion(api_version):
+                if 4 <= module.params["duration"] <= 48:
+                    module.fail_json(msg="The duration must be between 4-48 hours.")
+                else:
+                    duration = module.params["duration"] * 3600000
+                    res = array.patch_support(
+                        support=SupportPatch(
+                            remote_assist_duration=duration, remote_assist_active=True
+                        )
+                    )
+            else:
+                res = array.patch_support(
+                    support=SupportPatch(remote_assist_active=True)
+                )
             if res.status_code == 200:
                 ra_data = list(res.items)[0]
                 ra_facts["fa_ra"] = {
@@ -168,6 +196,7 @@ def main():
                 default="present",
                 choices=["enable", "disable", "absent", "present", "test"],
             ),
+            duration=dict(type="int", default=24),
         )
     )
 
