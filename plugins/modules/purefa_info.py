@@ -2691,9 +2691,9 @@ def generate_nfs_offload_dict(module, array):
                     offloads[offload].space, "used_provisioned", None
                 )
                 if SUBS_API_VERSION in api_version:
-                    offload_info[name]["total_used"] = offloads[
-                        offload
-                    ].space.total_used
+                    offload_info[name]["total_used"] = getattr(
+                        offloads[offload].space, "total_used", None
+                    )
     return offload_info
 
 
