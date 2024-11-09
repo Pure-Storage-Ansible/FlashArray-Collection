@@ -467,7 +467,6 @@ def delete_snapshot(module, array, arrayv6):
         if not module.check_mode:
             api_version = array._list_available_rest_versions()
             if GET_SEND_API in api_version:
-                module.warn("here")
                 res = arrayv6.patch_volume_snapshots(
                     names=[snapname],
                     volume_snapshot=flasharray.DestroyedPatchPost(destroyed=True),
