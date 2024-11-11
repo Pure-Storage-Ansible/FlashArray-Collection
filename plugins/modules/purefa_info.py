@@ -368,7 +368,7 @@ def generate_config_dict(module, array):
         config_info["directory_service_roles"] = {}
         roles = list(arrayv6.get_directory_services_roles().items)
         for role in range(0, len(roles)):
-            role_name = roles[role].name
+            role_name = roles[role].role.name
             config_info["directory_service_roles"][role_name] = {
                 "group": getattr(roles[role], "group", None),
                 "group_base": getattr(roles[role], "group_base", None),
