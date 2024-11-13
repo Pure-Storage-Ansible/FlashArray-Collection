@@ -24,6 +24,12 @@ description:
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
+  name:
+    description:
+    - Name of role
+    - If not providied, will be assinged to the same as I(role)
+    type: str
+    version_added: 1.32.0
   state:
     description:
     - Create or delete directory service role
@@ -34,7 +40,6 @@ options:
     description:
     - The directory service role to work on
     type: str
-    required: true
     choices: [ array_admin, ops_admin, readonly, storage_admin ]
   group_base:
     type: str
@@ -66,7 +71,16 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Create array_admin directory service role
+- name: Create observability directory service role with readonly policy
+  purestorage.flasharray.purefa_dsrole:
+    name: observability
+    role: readonly
+    group_base: "OU=PureGroups,OU=ReadOnly"
+    group: o11y
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Update system-defined array_admin directory service role
   purestorage.flasharray.purefa_dsrole:
     role: array_admin
     group_base: "OU=PureGroups,OU=SANManagers"
@@ -74,11 +88,10 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Update ops_admin directory service role
+- name: Update directory service role policy
   purestorage.flasharray.purefa_dsrole:
+    name: observability
     role: ops_admin
-    group_base: "OU=PureGroups"
-    group: opsgroup
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
@@ -87,10 +100,17 @@ RETURN = r"""
 """
 
 MIN_DSROLE_API_VERSION = "2.30"
+POLICY_API_VERSION = "2.36"
 
 HAS_PYPURECLIENT = True
 try:
-    from pypureclient.flasharray import DirectoryServiceRole, FixedReference
+    from pypureclient.flasharray import (
+        DirectoryServiceRole,
+        DirectoryServiceRolePost,
+        FixedReference,
+        Reference,
+        ReferenceNoId,
+    )
 except ImportError:
     HAS_PYPURECLIENT = False
 
@@ -108,25 +128,48 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 def update_role(module, array):
     """Update Directory Service Role"""
     changed = False
+    # Check for special case of deleting a system-defined role.
+    # Here we have to just blank out the group and group_base fields
+    if module.params["state"] == "absent":
+        if not module.check_mode:
+            res = array.patch_directory_services_roles(
+                names=[module.params["name"]],
+                directory_service_roles=DirectoryServiceRole(
+                    group_base="",
+                    group="",
+                ),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Deleting system-defined Directory Service Role "
+                    "{0} failed.Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
+        module.exit_json(changed=True)
+
     role = list(
-        array.get_directory_services_roles(names=[module.params["role"]]).items
+        array.get_directory_services_roles(names=[module.params["name"]]).items
     )[0]
     if (
         role.group_base != module.params["group_base"]
         or role.group != module.params["group"]
+        or role.role.name != module.params["role"]
     ):
         changed = True
         if not module.check_mode:
             res = array.patch_directory_services_roles(
-                names=[module.params["role"]],
+                names=[module.params["name"]],
                 directory_service_roles=DirectoryServiceRole(
-                    group_base=module.params["group_base"], group=module.params["group"]
+                    group_base=module.params["group_base"],
+                    group=module.params["group"],
+                    role=Reference(name=module.params["role"]),
                 ),
             )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Update Directory Service Role {0} failed.Error: {1}".format(
-                        module.params["role"], res.errors[0].message
+                        module.params["name"], res.errors[0].message
                     )
                 )
     module.exit_json(changed=changed)
@@ -136,11 +179,11 @@ def delete_role(module, array):
     """Delete Directory Service Role"""
     changed = True
     if not module.check_mode:
-        res = array.delete_directory_services_roles(names=[module.params["role"]])
+        res = array.delete_directory_services_roles(names=[module.params["name"]])
         if res.status_code != 200:
             module.fail_json(
                 msg="Delete Directory Service Role {0} failed. Error: {1}".format(
-                    module.params["role"], res.errors[0].message
+                    module.params["name"], res.errors[0].message
                 )
             )
     module.exit_json(changed=changed)
@@ -149,15 +192,27 @@ def delete_role(module, array):
 def create_role(module, array):
     """Create Directory Service Role"""
     changed = False
+    api_version = array.get_rest_version()
     if not module.params["group"] == "" or not module.params["group_base"] == "":
         changed = True
         if not module.check_mode:
-            res = array.post_directory_services_roles(
-                names=[module.params["role"]],
-                directory_service_roles=DirectoryServiceRole(
-                    group_base=module.params["group_base"], group=module.params["group"]
-                ),
-            )
+            if LooseVersion(api_version) >= LooseVersion(POLICY_API_VERSION):
+                res = array.post_directory_services_roles(
+                    names=[module.params["name"]],
+                    directory_service_roles=DirectoryServiceRolePost(
+                        group_base=module.params["group_base"],
+                        group=module.params["group"],
+                        role=ReferenceNoId(name=module.params["role"]),
+                    ),
+                )
+            else:
+                res = array.post_directory_services_roles(
+                    names=[module.params["name"]],
+                    directory_service_roles=DirectoryServiceRole(
+                        group_base=module.params["group_base"],
+                        group=module.params["group"],
+                    ),
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Create Directory Service Role {0} failed. Error: {1}".format(
@@ -172,8 +227,8 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
+            name=dict(type="str"),
             role=dict(
-                required=True,
                 type="str",
                 choices=["array_admin", "ops_admin", "readonly", "storage_admin"],
             ),
@@ -183,10 +238,14 @@ def main():
         )
     )
 
+    required_if = [["state", "present", ["role"]]]
     required_together = [["group", "group_base"]]
 
     module = AnsibleModule(
-        argument_spec, required_together=required_together, supports_check_mode=True
+        argument_spec,
+        required_together=required_together,
+        required_if=required_if,
+        supports_check_mode=True,
     )
 
     if not HAS_PYPURECLIENT:
@@ -194,6 +253,8 @@ def main():
 
     state = module.params["state"]
     array = get_array(module)
+    if not module.params["name"]:
+        module.params["name"] = module.params["role"]
     api_version = array.get_rest_version()
     if LooseVersion(MIN_DSROLE_API_VERSION) > LooseVersion(api_version):
         module.fail_json(
@@ -201,16 +262,27 @@ def main():
             "For older Purity versions please use the ``purefa_dsrole_old`` module"
         )
     role_configured = False
-    role = list(
-        array.get_directory_services_roles(
-            roles=[FixedReference(name=module.params["role"])]
-        ).items
-    )[0]
+    try:
+        role = list(
+            array.get_directory_services_roles(
+                roles=[FixedReference(name=module.params["name"])]
+            ).items
+        )[0]
+    except Exception:
+        role = {}
     if getattr(role, "group", None) is not None:
         role_configured = True
 
     if state == "absent" and role_configured:
-        delete_role(module, array)
+        if module.params["name"] in [
+            "array_admin",
+            "storage_admin",
+            "ops_admin",
+            "readonly",
+        ]:
+            update_role(module, array)
+        else:
+            delete_role(module, array)
     elif role_configured and state == "present":
         update_role(module, array)
     elif not role_configured and state == "present":

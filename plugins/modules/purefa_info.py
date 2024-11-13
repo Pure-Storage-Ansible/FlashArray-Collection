@@ -135,6 +135,7 @@ NFS_SECURITY_VERSION = "2.29"
 UPTIME_API_VERSION = "2.30"
 TLS_CONNECTION_API_VERSION = "2.33"
 RA_API_VERSION = "2.35"
+DSROLE_POLICY_API_VERSION = "2.36"
 
 
 def _is_cbs(array):
@@ -368,13 +369,15 @@ def generate_config_dict(module, array):
         roles = list(arrayv6.get_directory_services_roles().items)
         for role in range(0, len(roles)):
             role_name = roles[role].role.name
-            try:
-                config_info["directory_service_roles"][role_name] = {
-                    "group": roles[role].group,
-                    "group_base": roles[role].group_base,
-                }
-            except Exception:
-                pass
+            config_info["directory_service_roles"][role_name] = {
+                "group": getattr(roles[role], "group", None),
+                "group_base": getattr(roles[role], "group_base", None),
+                "management_access_policies": None,
+            }
+            if DSROLE_POLICY_API_VERSION in api_version:
+                config_info["directory_service_roles"][role_name][
+                    "management_access_policies"
+                ] = getattr(roles[role].management_access_policies[0], "name", None)
         smi_s = list(arrayv6.get_smi_s().items)[0]
         config_info["smi-s"] = {
             "slp_enabled": smi_s.slp_enabled,
