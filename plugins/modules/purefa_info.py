@@ -521,10 +521,14 @@ def generate_filesystems_dict(array):
             files_info[fs_name]["directories"][d_name] = {
                 "path": directories[directory].path,
                 "data_reduction": directories[directory].space.data_reduction,
-                "snapshots_space": directories[directory].space.snapshots,
-                "total_physical_space": directories[directory].space.total_physical,
-                "unique_space": directories[directory].space.unique,
-                "virtual_space": directories[directory].space.virtual,
+                "snapshots_space": getattr(
+                    directories[directory].space, "snapshots", None
+                ),
+                "total_physical_space": getattr(
+                    directories[directory].space, "total_physical", None
+                ),
+                "unique_space": getattr(directories[directory].space, "unique", None),
+                "virtual_space": getattr(directories[directory].space, "virtual", None),
                 "destroyed": directories[directory].destroyed,
                 "full_name": directories[directory].name,
                 "used_provisioned": getattr(
