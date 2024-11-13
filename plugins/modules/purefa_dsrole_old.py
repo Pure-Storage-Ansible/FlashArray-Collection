@@ -62,14 +62,14 @@ extends_documentation_fragment:
 
 EXAMPLES = r"""
 - name: Delete exisitng array_admin directory service role
-  purestorage.flasharray.purefa_dsrole:
+  purestorage.flasharray.purefa_dsrole_old:
     role: array_admin
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Create array_admin directory service role
-  purestorage.flasharray.purefa_dsrole:
+  purestorage.flasharray.purefa_dsrole_old:
     role: array_admin
     group_base: "OU=PureGroups,OU=SANManagers"
     group: pureadmins
@@ -77,7 +77,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
 - name: Update ops_admin directory service role
-  purestorage.flasharray.purefa_dsrole:
+  purestorage.flasharray.purefa_dsrole_old:
     role: ops_admin
     group_base: "OU=PureGroups"
     group: opsgroup

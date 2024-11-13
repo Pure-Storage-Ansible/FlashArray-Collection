@@ -73,7 +73,7 @@ vnc:
         sample: '5.2.1'
     vnc:
         description: IP address and port number for VNC connection
-        type: dict
+        type: list
         sample: ['10.21.200.34:5900']
     name:
         description: Application name

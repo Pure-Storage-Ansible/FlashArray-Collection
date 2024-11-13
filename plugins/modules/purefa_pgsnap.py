@@ -191,6 +191,10 @@ EXAMPLES = r"""
 """
 
 RETURN = r"""
+snapshot:
+    description: Suffix of the created protection group snapshot.
+    type: str
+    returned: success
 """
 
 HAS_PURESTORAGE = True
@@ -343,6 +347,7 @@ def get_pgsnapshot(module, array):
 def create_pgsnapshot(module, array):
     """Create Protection Group Snapshot"""
     api_version = array.get_rest_version()
+    snap_data = None
     changed = True
     if not module.check_mode:
         suffix = ProtectionGroupSnapshot(suffix=module.params["suffix"])
@@ -410,7 +415,12 @@ def create_pgsnapshot(module, array):
                     module.params["name"], res.errors[0].message
                 )
             )
-    module.exit_json(changed=changed)
+        else:
+            snap_data = list(res.items)[0]
+    module.exit_json(
+        changed=changed,
+        suffix=snap_data.suffix,
+    )
 
 
 def restore_pgsnapvolume(module, array):
