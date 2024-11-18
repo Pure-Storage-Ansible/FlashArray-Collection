@@ -90,7 +90,7 @@ options:
     description:
     - AWS S3 placement strategy
     type: str
-    choices: ['retention-based', 'aws-standard-class']
+    choices: ['retention-based', 'aws-standard-class', 'aws-intelligent-tiering']
     default: retention-based
   profile:
     description:
@@ -100,6 +100,19 @@ options:
     type: str
     version_added: '1.21.0'
     choices: ['azure', 'gcp', 'nfs', 'nfs-flashblade', 's3-aws', 's3-flashblade', 's3-scality-ring', 's3-wasabi-pay-as-you-go', 's3-wasabi-rcs', 's3-other']
+  uri:
+    description:
+    - The URI used to create a connection between the array and a non-AWS S3 offload target.
+    - Storage placement strategies are not supported for non-AWS S3 offload targets.
+    - Both the HTTP and HTTPS protocols are allowed.
+    type: str
+    version_added: '1.32.0'
+  auth_region:
+    description:
+    - The region that will be used for initial authentication request.
+    - This parameter is optional and should be used only when region autodetection fails.
+    type: str
+    version_added: '1.32.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -192,7 +205,7 @@ def create_offload(module, array):
     api_version = array.get_rest_version()
     # First check if the offload network inteface is there and enabled
     res = array.get_network_interfaces(names=["@offload.data0"])
-    if res.status != 200:
+    if res.status_code != 200:
         module.fail_json(msg="Offload Network interface doesn't exist. Please resolve.")
     if not list(res.items)[0].enabled:
         module.fail_json(
@@ -214,8 +227,8 @@ def create_offload(module, array):
                     secret_access_key=module.params["secret"],
                 )
             offload = OffloadPost(google_cloud=bucket)
-        if module.params["protocol"] == "azure" and module.params["profile"]:
-            if PROFILE_API_VERSION in api_version:
+        if module.params["protocol"] == "azure":
+            if PROFILE_API_VERSION in api_version and module.params["profile"]:
                 bucket = OffloadAzure(
                     container_name=module.params["container"],
                     secret_access_key=module.params["secret"],
@@ -226,26 +239,38 @@ def create_offload(module, array):
                 bucket = OffloadAzure(
                     container_name=module.params["container"],
                     secret_access_key=module.params["secret"],
-                    account_name=module.params[".bucket"],
+                    account_name=module.params["bucket"],
                 )
             offload = OffloadPost(azure=bucket)
-        if module.params["protocol"] == "s3" and module.params["profile"]:
-            if PROFILE_API_VERSION in api_version:
-                bucket = OffloadS3(
-                    access_key_id=module.params["access_key"],
-                    bucket=module.params["bucket"],
-                    secret_access_key=module.params["secret"],
-                    profile=module.params["profile"],
-                )
+        if module.params["protocol"] == "s3":
+            if PROFILE_API_VERSION in api_version and module.params["profile"]:
+                if module.params["auth_region"]:
+                    bucket = OffloadS3(
+                        access_key_id=module.params["access_key"],
+                        bucket=module.params["bucket"],
+                        secret_access_key=module.params["secret"],
+                        profile=module.params["profile"],
+                        uri=module.params["uri"],
+                        auth_region=module.params["auth_region"],
+                    )
+                else:
+                    bucket = OffloadS3(
+                        access_key_id=module.params["access_key"],
+                        bucket=module.params["bucket"],
+                        secret_access_key=module.params["secret"],
+                        profile=module.params["profile"],
+                        uri=module.params["uri"],
+                    )
             else:
                 bucket = OffloadS3(
                     access_key_id=module.params["access_key"],
                     bucket=module.params["bucket"],
                     secret_access_key=module.params["secret"],
+                    uri=module.params["uri"],
                 )
             offload = OffloadPost(s3=bucket)
-        if module.params["protocol"] == "nfs" and module.params["profile"]:
-            if PROFILE_API_VERSION in api_version:
+        if module.params["protocol"] == "nfs":
+            if PROFILE_API_VERSION in api_version and module.params["profile"]:
                 bucket = OffloadNfs(
                     mount_point=module.params["share"],
                     address=module.params["address"],
@@ -307,7 +332,11 @@ def main():
             placement=dict(
                 type="str",
                 default="retention-based",
-                choices=["retention-based", "aws-standard-class"],
+                choices=[
+                    "retention-based",
+                    "aws-standard-class",
+                    "aws-intelligent-tiering",
+                ],
             ),
             profile=dict(
                 type="str",
@@ -334,6 +363,8 @@ def main():
             share=dict(type="str"),
             address=dict(type="str"),
             options=dict(type="str", default=""),
+            uri=dict(type="str"),
+            auth_region=dict(type="str"),
         )
     )
 
@@ -421,7 +452,9 @@ def main():
         )
     else:
         app_state = list(res.items)[0]
-        if LooseVersion(app_state.version) != LooseVersion(array.get_rest_version()):
+        if LooseVersion(app_state.version) != LooseVersion(
+            list(array.get_arrays().items)[0].version
+        ):
             module.fail_json(
                 msg="Offload app version must match Purity version. Please upgrade."
             )
@@ -431,11 +464,12 @@ def main():
         offloads = list(array.get_offloads().items)
         if len(offloads) >= MULTIOFFLOAD_LIMIT:
             module.fail_json(
-                msg="Cannot add offload target {0}. Offload Target Limit of {1} would be exceeded.".format(
+                msg="Cannot add offload target {0}. "
+                "Offload Target Limit of {1} would be exceeded.".format(
                     module.params["name"], MULTIOFFLOAD_LIMIT
                 )
             )
-        if offloads[0].protocol != module.params["protocol"]:
+        if offloads and offloads[0].protocol != module.params["protocol"]:
             module.fail_json(msg="Currently all offloads must be of the same type.")
         create_offload(module, array)
     elif module.params["state"] == "present" and target:
