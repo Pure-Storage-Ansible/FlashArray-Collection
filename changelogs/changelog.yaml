@@ -722,14 +722,15 @@ releases:
         to apparently fail.
       minor_changes:
       - purefa_token - Add ``disable_warnings`` support
-      release_summary: '| NOTE: ``purefa_ds`` module has been determined to require a minimum Purity//FA version
+      release_summary: '| NOTE: ``purefa_ds`` module has been determined to require
+        a minimum Purity//FA version
 
         | of 6.6.0
 
-        | To facilitate this functionality in versions 6.1.x - 6.5.x please use the module
+        | To facilitate this functionality in versions 6.1.x - 6.5.x please use the
+        module
 
-        | ``purefa_dsrole_old``
-        '
+        | ``purefa_dsrole_old`` '
     fragments:
     - 610_lint_fix.yaml
     - 612_volume_volfact.yaml
@@ -747,6 +748,79 @@ releases:
     fragments:
     - 624_dsrole_version_check.yaml
     release_date: '2024-08-23'
+  1.32.0:
+    changes:
+      bugfixes:
+      - purefa_alert - Fix unreferenced variable error
+      - purefa_audits - Fix issue when ``start`` parameter not supplied
+      - purefa_dirsnap - Fixed issues with ``keep_for`` setting and issues related
+        to recovery of deleted snapshots
+      - purefa_dsrole - Fixed bug in role creation.
+      - purefa_eradication - Fix incorrect timer settings
+      - purefa_info - Cater for zero used space in NFS offloads
+      - purefa_info - ``exports`` dict for each share changed to a list of dicts in
+        ``filesystm`` subset
+      - purefa_inventory - Fixed quiet failures due to attribute errors
+      - purefa_network - Allow LACP bonds to be children of a VIF
+      - purefa_network - Fix compatability issue with ``netaddr>=1.2.0``
+      - purefa_ntp - Fix issue with deletion of NTP servers
+      - purefa_offload - Corrected version check logic
+      - purefa_pod - Allow pd to be deleted with contents if ``delete_contents`` specified
+      - purefa_sessions - Correctly report sessions with no start or end time
+      - purefa_smtp - Fixed SMTP deletion issue
+      - purefa_snmp - Fix issues with deleting SNMP entries
+      - purefa_snmp_agent - Fix issues with deleting v3 agent
+      - purefa_volume - Added error message to warn about moving protected volume
+      - purefa_volume - Errors out when pgroup and add_to_pgs used incorrectly
+      - purefa_volume - Fixed issue of unable to move volume from pod to vgroup
+      minor_changes:
+      - purefa_dsrole - Add support for non-system-defined directory service roles
+        with new parameter `name`
+      - purefa_info - Add ``enabled`` value for network subnets
+      - purefa_info - Add ``policies` list of dicts to ``filesystem`` subset for each
+        share.
+      - purefa_info - Add ``time_remaining`` field for non-deleted directory snapshots
+      - purefa_info - Expose directory service role management access policies if
+        they exist
+      - purefa_info - Exposed password policy information
+      - purefa_info - SnaptoNFS support removed from Purity//FA 6.6.0 and higher.
+      - purefa_info - Update KMIP information collection to use REST v2, exposing
+        full certifcate content
+      - purefa_offload - Add support for S3 Offload ``uri`` and ``auth_region`` parameters
+      - purefa_pgsnap - Expose created protection group snapshot data in the module
+        return dict
+      - purefa_policy - New policy type of ``password`` added. Currently the only
+        default management policy can be updated
+      - purefa_subnet - Remove default value for MTU t ostop restting to default on
+        enable/disable of subnet. Creation will still default to 1500 if not provided.
+    fragments:
+    - 628_inventory_fix.yaml
+    - 631_fix_alert.yaml
+    - 632_eradication_timer.yaml
+    - 633_netaddr_fix.yaml
+    - 635_filesystem_update.yaml
+    - 636_volume_fix.yaml
+    - 637_volume_add_err_msg.yaml
+    - 638_delete_pod.yaml
+    - 641_dirsnap_keep_for.yaml
+    - 642_volume_pg_fix.yaml
+    - 645_session_attr.yaml
+    - 647_lacp_vif.yaml
+    - 648_delete_ntp.yaml
+    - 649_audits.yaml
+    - 650_fix_snmp.yaml
+    - 651_subnet_state.yaml
+    - 653_remove_default_mtu.yaml
+    - 653_v3_user.yaml
+    - 654_delete_smtp.yaml
+    - 655_kmip_v2.yaml
+    - 656_no_snaptonfs.yaml
+    - 657_pwd_policy.yaml
+    - 660_create_ds_role_fix.yaml
+    - 662_add_snap_data.yaml
+    - 665_offload_version_check.yaml
+    - 666_dsrole_update.yaml
+    release_date: '2024-11-18'
   1.4.0:
     changes:
       bugfixes:
