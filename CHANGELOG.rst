@@ -4,6 +4,48 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.32.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_dsrole - Add support for non-system-defined directory service roles with new parameter `name`
+- purefa_info - Add ``enabled`` value for network subnets
+- purefa_info - Add ``policies` list of dicts to ``filesystem`` subset for each share.
+- purefa_info - Add ``time_remaining`` field for non-deleted directory snapshots
+- purefa_info - Expose directory service role management access policies if they exist
+- purefa_info - Exposed password policy information
+- purefa_info - SnaptoNFS support removed from Purity//FA 6.6.0 and higher.
+- purefa_info - Update KMIP information collection to use REST v2, exposing full certifcate content
+- purefa_offload - Add support for S3 Offload ``uri`` and ``auth_region`` parameters
+- purefa_pgsnap - Expose created protection group snapshot data in the module return dict
+- purefa_policy - New policy type of ``password`` added. Currently the only default management policy can be updated
+- purefa_subnet - Remove default value for MTU t ostop restting to default on enable/disable of subnet. Creation will still default to 1500 if not provided.
+
+Bugfixes
+--------
+
+- purefa_alert - Fix unreferenced variable error
+- purefa_audits - Fix issue when ``start`` parameter not supplied
+- purefa_dirsnap - Fixed issues with ``keep_for`` setting and issues related to recovery of deleted snapshots
+- purefa_dsrole - Fixed bug in role creation.
+- purefa_eradication - Fix incorrect timer settings
+- purefa_info - Cater for zero used space in NFS offloads
+- purefa_info - ``exports`` dict for each share changed to a list of dicts in ``filesystm`` subset
+- purefa_inventory - Fixed quiet failures due to attribute errors
+- purefa_network - Allow LACP bonds to be children of a VIF
+- purefa_network - Fix compatability issue with ``netaddr>=1.2.0``
+- purefa_ntp - Fix issue with deletion of NTP servers
+- purefa_offload - Corrected version check logic
+- purefa_pod - Allow pd to be deleted with contents if ``delete_contents`` specified
+- purefa_sessions - Correctly report sessions with no start or end time
+- purefa_smtp - Fixed SMTP deletion issue
+- purefa_snmp - Fix issues with deleting SNMP entries
+- purefa_snmp_agent - Fix issues with deleting v3 agent
+- purefa_volume - Added error message to warn about moving protected volume
+- purefa_volume - Errors out when pgroup and add_to_pgs used incorrectly
+- purefa_volume - Fixed issue of unable to move volume from pod to vgroup
 
 v1.31.1
 =======
@@ -22,7 +64,7 @@ Release Summary
 | NOTE: ``purefa_ds`` module has been determined to require a minimum Purity//FA version
 | of 6.6.0
 | To facilitate this functionality in versions 6.1.x - 6.5.x please use the module
-| ``purefa_dsrole_old``
+| ``purefa_dsrole_old`` 
 
 Minor Changes
 -------------
@@ -166,7 +208,6 @@ Release Summary
 | All previous versions are classed as EOL by Pure Storage support.
 |
 | This change is to support the full integration to Purity//FA REST v2.x
-
 
 Minor Changes
 -------------
@@ -365,7 +406,6 @@ Release Summary
 
 | FlashArray Collection v1.18 removes module-side support for Python 2.7.
 | The minimum required Python version for the FlashArray Collection is Python 3.6.
-
 
 Minor Changes
 -------------
@@ -802,7 +842,6 @@ Release Summary
 
 | Release Date: 2020-08-08
 | This changlelog describes all changes made to the modules and plugins included in this collection since Ansible 2.9.0
-
 
 Major Changes
 -------------
