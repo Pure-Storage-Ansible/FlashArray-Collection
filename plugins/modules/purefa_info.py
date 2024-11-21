@@ -2630,7 +2630,7 @@ def generate_kmip_dict(array):
         key = kmips[kmip].name
         kmip_info[key] = {
             "certificate": kmips[kmip].certificate.name,
-            "ca_certificate": kmips[kmip].ca_certificate,
+            "ca_certificate": getattr(kmips[kmip], "ca_certificate", None),
             "ca_cert_configured": True,
             "uri": kmips[kmip].uris,
         }
