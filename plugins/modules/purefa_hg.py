@@ -291,7 +291,7 @@ def update_hostgroup(module, array):
                                 res.errors[0].message
                             )
                         )
-                    changed = True
+                changed = True
         if module.params["volume"]:
             if volumes:
                 current_vols = [vol.volume.name for vol in volumes]
@@ -312,7 +312,7 @@ def update_hostgroup(module, array):
                                     res.errors[0].message,
                                 )
                             )
-                        changed = True
+                    changed = True
                 else:
                     for cvol in new_volumes:
                         if not module.check_mode:
