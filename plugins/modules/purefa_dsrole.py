@@ -151,20 +151,44 @@ def update_role(module, array):
     role = list(
         array.get_directory_services_roles(names=[module.params["name"]]).items
     )[0]
-    if (
-        role.group_base != module.params["group_base"]
-        or role.group != module.params["group"]
-        or role.role.name != module.params["role"]
-    ):
+    #Change how you handle system-defined roles
+    if module.params["name"] not in [
+            "array_admin",
+            "storage_admin",
+            "ops_admin",
+            "readonly",
+        ]:
+        if (
+            role.group_base != module.params["group_base"]
+            or role.group != module.params["group"]
+            or role.role.name != module.params["role"]
+        ):
+            changed = True
+            if not module.check_mode:
+                res = array.patch_directory_services_roles(
+                    names=[module.params["name"]],
+                    directory_service_roles=DirectoryServiceRole(
+                        group_base=module.params["group_base"],
+                        group=module.params["group"],
+                        role=Reference(name=module.params["role"]),
+                    ),
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Update Directory Service Role {0} failed.Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+    #system-defined roles logic, missing idempotency checks
+    else:
         changed = True
         if not module.check_mode:
             res = array.patch_directory_services_roles(
                 names=[module.params["name"]],
                 directory_service_roles=DirectoryServiceRole(
                     group_base=module.params["group_base"],
-                    group=module.params["group"],
-                    role=Reference(name=module.params["role"]),
-                ),
+                    group=module.params["group"]
+                ), #role is removed as you can't edit a system-defined role
             )
             if res.status_code != 200:
                 module.fail_json(
@@ -286,7 +310,16 @@ def main():
     elif role_configured and state == "present":
         update_role(module, array)
     elif not role_configured and state == "present":
-        create_role(module, array)
+        # check for system-defined role and update it instead of creating it
+        if module.params["name"] in [
+            "array_admin",
+            "storage_admin",
+            "ops_admin",
+            "readonly",
+        ]:
+            update_role(module, array)
+        else:
+            create_role(module, array)
     else:
         module.exit_json(changed=False)
 
