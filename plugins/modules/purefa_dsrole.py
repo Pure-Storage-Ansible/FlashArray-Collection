@@ -189,7 +189,7 @@ def update_role(module, array):
                     names=[module.params["name"]],
                     directory_service_roles=DirectoryServiceRole(
                         group_base=module.params["group_base"],
-                        group=module.params["group"]
+                        group=module.params["group"],
                     ),
                 )
                 if res.status_code != 200:
