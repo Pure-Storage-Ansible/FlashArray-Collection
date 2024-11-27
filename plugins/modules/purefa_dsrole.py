@@ -151,13 +151,12 @@ def update_role(module, array):
     role = list(
         array.get_directory_services_roles(names=[module.params["name"]]).items
     )[0]
-    #Change how you handle system-defined roles
     if module.params["name"] not in [
-            "array_admin",
-            "storage_admin",
-            "ops_admin",
-            "readonly",
-        ]:
+        "array_admin",
+        "storage_admin",
+        "ops_admin",
+        "readonly",
+    ]:
         if (
             role.group_base != module.params["group_base"]
             or role.group != module.params["group"]
@@ -179,23 +178,25 @@ def update_role(module, array):
                             module.params["name"], res.errors[0].message
                         )
                     )
-    #system-defined roles logic, missing idempotency checks
     else:
-        changed = True
-        if not module.check_mode:
-            res = array.patch_directory_services_roles(
-                names=[module.params["name"]],
-                directory_service_roles=DirectoryServiceRole(
-                    group_base=module.params["group_base"],
-                    group=module.params["group"]
-                ), #role is removed as you can't edit a system-defined role
-            )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Update Directory Service Role {0} failed.Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
+        if (
+            role.group_base != module.params["group_base"]
+            or role.group != module.params["group"]
+        ):
+            changed = True
+            if not module.check_mode:
+                res = array.patch_directory_services_roles(
+                    names=[module.params["name"]],
+                    directory_service_roles=DirectoryServiceRole(
+                        group_base=module.params["group_base"], group=module.params["group"]
+                    ),
                 )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Update Directory Service Role {0} failed.Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
     module.exit_json(changed=changed)
 
 
