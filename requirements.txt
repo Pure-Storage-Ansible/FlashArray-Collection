@@ -1,6 +1,6 @@
 distro
 purestorage
-py-pure-client
+py-pure-client >= 1.57.0
 python >= 3.6
 netaddr >= 1.2.0
 requests

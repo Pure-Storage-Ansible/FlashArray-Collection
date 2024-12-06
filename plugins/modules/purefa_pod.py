@@ -346,8 +346,8 @@ def create_pod(module, array):
         if module.params["stretch"]:
             current_array = list(array.get_arrays().items)[0].name
             if module.params["stretch"] != current_array:
-                res = array.post_pods_arrays(
-                    group_names=[module.params["name"]],
+                res = array.post_pods_members(
+                    pod_names=[module.params["name"]],
                     member_names=[module.params["stretch"]],
                 )
                 if res.status_code != 200:
@@ -586,8 +586,8 @@ def stretch_pod(module, array):
         ):
             changed = True
             if not module.check_mode:
-                res = array.post_pods_arrays(
-                    group_names=[module.params["name"]],
+                res = array.post_pods_members(
+                    pod_names=[module.params["name"]],
                     member_names=[module.params["stretch"]],
                 )
                 if res.status_code != 200:
@@ -607,7 +607,7 @@ def stretch_pod(module, array):
             if not module.check_mode:
                 try:
                     array.delete_pods_arrays(
-                        group_names=[module.params["name"]],
+                        pod_names=[module.params["name"]],
                         member_names=[module.params["stretch"]],
                     )
                 except Exception:
