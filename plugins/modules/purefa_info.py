@@ -811,33 +811,165 @@ def generate_subnet_dict(array):
     return sub_info
 
 
-def generate_network_dict(module, array):
+def generate_network_dict(module, array, performance):
     net_info = {}
     api_version = array._list_available_rest_versions()
-    ports = array.list_network_interfaces()
+    arrayv6 = get_array(module)
+    ports = list(arrayv6.get_network_interfaces().items)
     for port in range(0, len(ports)):
-        int_name = ports[port]["name"]
-        net_info[int_name] = {
-            "hwaddr": ports[port]["hwaddr"],
-            "mtu": ports[port]["mtu"],
-            "enabled": ports[port]["enabled"],
-            "speed": ports[port]["speed"],
-            "address": ports[port]["address"],
-            "slaves": ports[port]["slaves"],
-            "services": ports[port]["services"],
-            "gateway": ports[port]["gateway"],
-            "netmask": ports[port]["netmask"],
-        }
-        if ports[port]["subnet"]:
-            subnets = array.get_subnet(ports[port]["subnet"])
-            if subnets["enabled"]:
-                net_info[int_name]["subnet"] = {
-                    "name": subnets["name"],
-                    "prefix": subnets["prefix"],
-                    "vlan": subnets["vlan"],
+        int_name = ports[port].name
+        if ports[port].interface_type == "eth":
+            net_info[int_name] = {
+                "hwaddr": getattr(ports[port].eth, "mac_address", None),
+                "mac_address": getattr(ports[port].eth, "mac_address", None),
+                "mtu": getattr(ports[port].eth, "mtu", None),
+                "enabled": ports[port].enabled,
+                "speed": ports[port].speed,
+                "address": getattr(ports[port].eth, "address", None),
+                "subinterfaces": [],
+                "slaves": [],
+                "subnet": getattr(ports[port].eth.subnet, "name", None),
+                "services": ports[port].services,
+                "gateway": getattr(ports[port].eth, "gateway", None),
+                "netmask": getattr(ports[port].eth, "netmask", None),
+                "subtype": getattr(ports[port].eth, "subtype", None),
+                "vlan": getattr(ports[port].eth, "vlan", None),
+                "performance": [],
+            }
+            if ports[port].eth.subinterfaces:
+                for subi in range(0, len(ports[port].eth.subinterfaces)):
+                    net_info[int_name]["subinterfaces"].append(
+                        ports[port].eth.subinterfaces[subi].name
+                    )
+                net_info[int_name]["slaves"] = net_info[int_name]["subinterfaces"]
+        else:
+            net_info[int_name] = {
+                "port_name": ports[port].fc.wwn,
+                "services": ports[port].services,
+                "enabled": ports[port].enabled,
+                "performance": [],
+            }
+    if performance:
+        perf_stats = list(arrayv6.get_network_interfaces_performance().items)
+        for perf_stat in range(0, len(perf_stats)):
+            if perf_stats[perf_stat].interface_type == "fc":
+                net_info[perf_stats[perf_stat].name]["performance"] = {
+                    "received_bytes_per_sec": getattr(
+                        perf_stats[perf_stat].fc, "received_bytes_per_sec", 0
+                    ),
+                    "received_crc_errors_per_sec": getattr(
+                        perf_stats[perf_stat].fc, "received_crc_errors_per_sec", 0
+                    ),
+                    "received_frames_per_sec": getattr(
+                        perf_stats[perf_stat].fc, "received_frames_per_sec", 0
+                    ),
+                    "received_link_failures_per_sec": getattr(
+                        perf_stats[perf_stat].fc, "received_link_failures_per_sec", 0
+                    ),
+                    "received_loss_of_signal_per_sec": getattr(
+                        perf_stats[perf_stat].fc, "received_loss_of_signal_per_sec", 0
+                    ),
+                    "received_loss_of_sync_per_sec": getattr(
+                        perf_stats[perf_stat].fc, "received_loss_of_sync_per_sec", 0
+                    ),
+                    "total_errors_per_sec": getattr(
+                        perf_stats[perf_stat].fc, "total_errors_per_sec", 0
+                    ),
+                    "transmitted_bytes_per_sec": getattr(
+                        perf_stats[perf_stat].fc, "transmitted_bytes_per_sec", 0
+                    ),
+                    "transmitted_frames_per_sec": getattr(
+                        perf_stats[perf_stat].fc, "transmitted_frames_per_sec", 0
+                    ),
+                    "transmitted_invalid_words_per_sec": getattr(
+                        perf_stats[perf_stat].fc, "transmitted_invalid_words_per_sec", 0
+                    ),
+                }
+            else:
+                net_info[perf_stats[perf_stat].name]["performance"] = {
+                    "received_bytes_per_sec": getattr(
+                        perf_stats[perf_stat].eth, "received_bytes_per_sec", 0
+                    ),
+                    "received_crc_errors_per_sec": getattr(
+                        perf_stats[perf_stat].eth, "received_crc_errors_per_sec", 0
+                    ),
+                    "received_frame_errors_per_sec": getattr(
+                        perf_stats[perf_stat].eth, "received_frame_errors_per_sec", 0
+                    ),
+                    "received_packets_per_sec": getattr(
+                        perf_stats[perf_stat].eth, "received_packets_per_sec", 0
+                    ),
+                    "total_errors_per_sec": getattr(
+                        perf_stats[perf_stat].eth, "total_errors_per_sec", 0
+                    ),
+                    "transmitted_bytes_per_sec": getattr(
+                        perf_stats[perf_stat].eth, "transmitted_bytes_per_sec", 0
+                    ),
+                    "transmitted_dropped_errors_per_sec": getattr(
+                        perf_stats[perf_stat].eth,
+                        "transmitted_dropped_errors_per_sec",
+                        0,
+                    ),
+                    "transmitted_packets_per_sec": getattr(
+                        perf_stats[perf_stat].eth, "transmitted_packets_per_sec", 0
+                    ),
+                    "rdma_received_req_cqe_errors_per_sec": getattr(
+                        perf_stats[perf_stat].eth,
+                        "rdma_received_req_cqe_errors_per_sec",
+                        0,
+                    ),
+                    "rdma_received_sequence_errors_per_sec": getattr(
+                        perf_stats[perf_stat].eth,
+                        "rdma_received_sequence_errors_per_sec",
+                        0,
+                    ),
+                    "rdma_transmitted_local_ack_timeout_errors_per_sec": getattr(
+                        perf_stats[perf_stat].eth,
+                        "rdma_transmitted_local_ack_timeout_errors_per_sec",
+                        0,
+                    ),
+                    "flow_control_received_congestion_packets_per_sec": getattr(
+                        perf_stats[perf_stat].eth,
+                        "flow_control_received_congestion_packets_per_sec",
+                        0,
+                    ),
+                    "flow_control_received_discarded_packets_per_sec": getattr(
+                        perf_stats[perf_stat].eth,
+                        "flow_control_received_discarded_packets_per_sec",
+                        0,
+                    ),
+                    "flow_control_received_lossless_bytes_per_sec": getattr(
+                        perf_stats[perf_stat].eth,
+                        "flow_control_received_lossless_bytes_per_sec",
+                        0,
+                    ),
+                    "flow_control_received_pause_frames_per_sec": getattr(
+                        perf_stats[perf_stat].eth,
+                        "flow_control_received_pause_frames_per_sec",
+                        0,
+                    ),
+                    "flow_control_transmitted_congestion_packets_per_sec": getattr(
+                        perf_stats[perf_stat].eth,
+                        "flow_control_transmitted_congestion_packets_per_sec",
+                        0,
+                    ),
+                    "flow_control_transmitted_discarded_packets_per_sec": getattr(
+                        perf_stats[perf_stat].eth,
+                        "flow_control_transmitted_discarded_packets_per_sec",
+                        0,
+                    ),
+                    "flow_control_transmitted_lossless_bytes_per_sec": getattr(
+                        perf_stats[perf_stat].eth,
+                        "flow_control_transmitted_lossless_bytes_per_sec",
+                        0,
+                    ),
+                    "flow_control_transmitted_pause_frames_per_sec": getattr(
+                        perf_stats[perf_stat].eth,
+                        "flow_control_transmitted_pause_frames_per_sec",
+                        0,
+                    ),
                 }
     if NEIGHBOR_API_VERSION in api_version:
-        arrayv6 = get_array(module)
         neighbors = list(arrayv6.get_network_interfaces_neighbors().items)
         for neighbor in range(0, len(neighbors)):
             neighbor_info = neighbors[neighbor]
@@ -3162,7 +3294,7 @@ def main():
     if "capacity" in subset or "all" in subset:
         info["capacity"] = generate_capacity_dict(module, array)
     if "network" in subset or "all" in subset:
-        info["network"] = generate_network_dict(module, array)
+        info["network"] = generate_network_dict(module, array, performance)
     if "subnet" in subset or "all" in subset:
         info["subnet"] = generate_subnet_dict(array)
     if "interfaces" in subset or "all" in subset:
