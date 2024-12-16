@@ -35,7 +35,7 @@ options:
         capacity, network, subnet, interfaces, hgroups, pgroups, hosts,
         admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
         arrays, certs, kmip, clients, policies, dir_snaps, filesystems,
-        alerts, virtual_machines and subscriptions.
+        alerts, virtual_machines, subscriptions and realms.
     type: list
     elements: str
     required: false
@@ -1650,8 +1650,8 @@ def generate_vol_dict(module, array, performance):
 def generate_host_dict(module, array, performance):
     api_version = array._list_available_rest_versions()
     host_info = {}
+    arrayv6 = get_array(module)
     if FC_REPL_API_VERSION in api_version:
-        arrayv6 = get_array(module)
         hostsv6 = list(arrayv6.get_hosts().items)
     hosts = array.list_hosts()
     for host in range(0, len(hosts)):
@@ -1820,9 +1820,12 @@ def generate_host_dict(module, array, performance):
                                 ].writes_per_sec,
                             }
     if VLAN_VERSION in api_version:
-        arrayv6 = get_array(module)
         hosts = list(arrayv6.get_hosts().items)
         for host in range(0, len(hosts)):
+            if DSROLE_POLICY_API_VERSION in api_version:
+                host_info[hostname]["destroyed"] = hosts[host].destroyed
+                if hosts[host].destroyed:
+                    host_info[hostname]["time_remaining"] = hosts[host].time_remaining
             if hosts[host].is_local:
                 hostname = hosts[host].name
                 host_info[hostname]["vlan"] = getattr(hosts[host], "vlan", None)
@@ -2903,6 +2906,12 @@ def generate_hgroups_dict(module, array, performance):
                 )
                 if SUBS_API_VERSION in api_version:
                     hgroups_info[name]["total_used"] = hgroups[hgroup].space.total_used
+                if DSROLE_POLICY_API_VERSION in api_version:
+                    hgroups_info[name]["destroyed"] = hgroups[hgroup].destroyed
+                    if hgroups[hgroup].destroyed:
+                        hgroups_info[name]["time_remaining"] = hgroups[
+                            hgroup
+                        ].time_remaining
         if performance:
             hgs_performance = list(arrayv6.get_host_groups_performance().items)
             for performance in range(0, len(hgs_performance)):
@@ -3101,6 +3110,98 @@ def generate_subs_dict(array):
     return subs_info
 
 
+def generate_realms_dict(array, performance):
+    realms_info = {}
+    realms = list(array.get_realms().items)
+    for realm in range(0, len(realms)):
+        name = realms[realm].name
+        realms_info[name] = {
+            "created": time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(realms[realm].created / 1000)
+            ),
+            "destroyed": realms[realm].destroyed,
+            "quota_limit": realms[realm].quota_limit,
+            "data_reduction": getattr(realms[realm].space, "data_reduction", None),
+            "footprint": getattr(realms[realm].space, "footprint", None),
+            "shared": getattr(realms[realm].space, "shared", None),
+            "snapshots": getattr(realms[realm].space, "snapshots", None),
+            "thin_provisioning": getattr(
+                realms[realm].space, "thin_provisioning", None
+            ),
+            "total_provisioned": getattr(
+                realms[realm].space, "total_provisioned", None
+            ),
+            "total_reduction": getattr(realms[realm].space, "total_reduction", None),
+            "total_used": getattr(realms[realm].space, "total_used", None),
+            "unique": getattr(realms[realm].space, "unique", None),
+            "used_provisioned": getattr(realms[realm].space, "used_provisioned", None),
+            "virtual": getattr(realms[realm].space, "virtual", None),
+            "performance": [],
+            "qos": [],
+        }
+        realms_info[name]["qos"] = {
+            "iops_limit": getattr(realms[realm].qos, "iops_limit", None),
+            "bandwidth_limit": getattr(realms[realm].qos, "bandwidth_limit", None),
+        }
+        if realms_info[name]["destroyed"]:
+            realms_info[name]["time_remaining"] = realms[realm].time_remaining
+    if performance:
+        r_perfs = list(array.get_realms_performance().items)
+        for performance in range(0, len(r_perfs)):
+            realms_info[r_perfs[performance].name]["performance"] = {
+                "bytes_per_mirrored_write": r_perfs[
+                    performance
+                ].bytes_per_mirrored_write,
+                "bytes_per_op": r_perfs[performance].bytes_per_op,
+                "bytes_per_read": r_perfs[performance].bytes_per_read,
+                "bytes_per_write": r_perfs[performance].bytes_per_write,
+                "mirrored_write_bytes_per_sec": r_perfs[
+                    performance
+                ].mirrored_write_bytes_per_sec,
+                "mirrored_writes_per_sec": r_perfs[performance].mirrored_writes_per_sec,
+                "others_per_sec": r_perfs[performance].others_per_sec,
+                "qos_rate_limit_usec_per_mirrored_write_op": r_perfs[
+                    performance
+                ].qos_rate_limit_usec_per_mirrored_write_op,
+                "qos_rate_limit_usec_per_read_op": r_perfs[
+                    performance
+                ].qos_rate_limit_usec_per_mirrored_write_op,
+                "qos_rate_limit_usec_per_write_op": r_perfs[
+                    performance
+                ].qos_rate_limit_usec_per_read_op,
+                "queue_usec_per_mirrored_write_op": r_perfs[
+                    performance
+                ].queue_usec_per_mirrored_write_op,
+                "queue_usec_per_read_op": r_perfs[performance].queue_usec_per_read_op,
+                "queue_usec_per_write_op": r_perfs[performance].queue_usec_per_write_op,
+                "read_bytes_per_sec": r_perfs[performance].read_bytes_per_sec,
+                "reads_per_sec": r_perfs[performance].reads_per_sec,
+                "san_usec_per_mirrored_write_op": r_perfs[
+                    performance
+                ].san_usec_per_mirrored_write_op,
+                "san_usec_per_read_op": r_perfs[performance].san_usec_per_read_op,
+                "san_usec_per_write_op": r_perfs[performance].san_usec_per_write_op,
+                "service_usec_per_mirrored_write_op": r_perfs[
+                    performance
+                ].service_usec_per_mirrored_write_op,
+                "service_usec_per_read_op": r_perfs[
+                    performance
+                ].service_usec_per_read_op,
+                "service_usec_per_write_op": r_perfs[
+                    performance
+                ].service_usec_per_write_op,
+                "usec_per_mirrored_write_op": r_perfs[
+                    performance
+                ].usec_per_mirrored_write_op,
+                "usec_per_other_op": r_perfs[performance].usec_per_other_op,
+                "usec_per_read_op": r_perfs[performance].usec_per_read_op,
+                "usec_per_write_op": r_perfs[performance].usec_per_write_op,
+                "write_bytes_per_sec": r_perfs[performance].write_bytes_per_sec,
+                "writes_per_sec": r_perfs[performance].writes_per_sec,
+            }
+    return realms_info
+
+
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
@@ -3142,6 +3243,7 @@ def main():
         "alerts",
         "virtual_machines",
         "subscriptions",
+        "realms",
     )
     subset_test = (test in valid_subsets for test in subset)
     if not all(subset_test):
@@ -3243,7 +3345,10 @@ def main():
         ):
             info["virtual_machines"] = generate_vm_dict(array_v6)
             info["virtual_machines_snaps"] = generate_vmsnap_dict(array_v6)
-
+        if DSROLE_POLICY_API_VERSION in api_version and (
+            "realms" in subset or "all" in subset
+        ):
+            info["realms"] = generate_realms_dict(array_v6, performance)
     module.exit_json(changed=False, purefa_info=info)
 
 
