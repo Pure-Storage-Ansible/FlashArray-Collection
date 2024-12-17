@@ -17,7 +17,7 @@ ANSIBLE_METADATA = {
 DOCUMENTATION = r"""
 ---
 module: purefa_fleet
-version_added: '1.32.0'
+version_added: '1.33.0'
 short_description: Manage Fusion Fleet
 description:
 - Create/Modify/Delete Fusion fleet and members
@@ -45,11 +45,38 @@ options:
     description:
     - API token for target array
     type: str
+  rename:
+    description:
+    - new name for fleet
+    type: str
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
 
 EXAMPLES = r"""
+- name: Create a new fleet
+  purestorage.flasharray.purefa_fleet:
+    name: foo
+    state: create
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Add a member to fleet foo
+  purestorage.flasharray.purefa_fleet:
+    name: foo
+    member_url: array2
+    member_api: c6033033-fe69-2515-a9e8-966bb7fe4b40
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Delete a member from fleet foo
+  purestorage.flasharray.purefa_fleet:
+    name: foo
+    member_url: array2
+    member_api: c6033033-fe69-2515-a9e8-966bb7fe4b40
+    state: absent
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
 
 RETURN = r"""
@@ -73,7 +100,8 @@ try:
     from pypureclient.flasharray import (
         FleetMemberPost,
         FleetmemberpostMember,
-        FleetmemberspostMembers,
+        FleetmemberpostMembers,
+        FleetPatch,
     )
 except ImportError:
     HAS_PURESTORAGE = False
@@ -86,92 +114,154 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+import platform
 
 VERSION = 1.5
 USER_AGENT_BASE = "Ansible"
-MIN_REQUIRED_API_VERSION = "2.36"
+MIN_REQUIRED_API_VERSION = "2.38"
 
 
-def create_fleet(module, array, fleet):
+def create_fleet(module, array):
     """Create new fleet - only ever called once per fleet"""
-    changed = False
-    if not fleet:
-        changed = True
-        if not module.check_mode:
-            res = array.post_fleets(names=[module.params["name"]])
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to create fleet {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
+    changed = True
+    if not module.check_mode:
+        res = array.post_fleets(names=[module.params["name"]])
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Failed to create fleet {0}. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
                 )
+            )
     module.exit_json(changed=changed)
 
 
-def add_fleet_members(module, array, fleet):
-    """Add new members to the fleet"""
+def add_fleet_members(module, array):
+    """Add new member to the fleet"""
     changed = False
-    part_failure = False
+    existing = False
+    if not module.params["member_url"] and not module.params["member_api"]:
+        module.fail_json(msg="missing required arguments: member_api, member_url")
     try:
         fleet_key = list(array.post_fleets_fleet_key().items)[0].fleet_key
     except Exception:
         module.fail_json(msg="Fleet key generation failed")
-    for member in module.params["member"]:
-        if HAS_URLLIB3 and module.params["disable_warnings"]:
-            urllib3.disable_warnings()
-        if HAS_DISTRO:
-            user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
-                "base": USER_AGENT_BASE,
-                "class": __name__,
-                "version": VERSION,
-                "platform": distro.name(pretty=True),
-            }
-        else:
-            user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
-                "base": USER_AGENT_BASE,
-                "class": __name__,
-                "version": VERSION,
-                "platform": platform.platform(),
-            }
+    if HAS_URLLIB3 and module.params["disable_warnings"]:
+        urllib3.disable_warnings()
+    if HAS_DISTRO:
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": USER_AGENT_BASE,
+            "class": __name__,
+            "version": VERSION,
+            "platform": distro.name(pretty=True),
+        }
+    else:
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": USER_AGENT_BASE,
+            "class": __name__,
+            "version": VERSION,
+            "platform": platform.platform(),
+        }
+    remote_system = flasharray.Client(
+        target=module.params["member_url"],
+        api_token=module.params["member_api"],
+        user_agent=user_agent,
+    )
+    local_name = list(remote_system.get_arrays().items)[0].name
+    members = list(array.get_fleets_members().items)
+    for member in range(0, len(members)):
+        if members[member].member.name == local_name:
+            existing = True
+    if not existing:
         changed = True
         if not module.check_mode:
-            remote_system = flasharray.Client(
-                target=module.params["member"][mmeber]["mmeber_url"],
-                api_token=module.params["member"][member]["member_api"],
-                user_agent=user_agent,
-            )
-            local_name = list(remote_system.get_arrays().items)[0].name
             res = remote_system.post_fleets_members(
-                fleet_names=module.params["fleet"],
+                fleet_names=[module.params["name"]],
                 members=FleetMemberPost(
-                    members=FleetmemberspostMembers(
-                        key=fleet_key, member=FleetmemberpostMember(name=local_name)
-                    )
+                    members=[
+                        FleetmemberpostMembers(
+                            key=fleet_key,
+                            member=FleetmemberpostMember(
+                                name=local_name, resource_type="remote-arrays"
+                            ),
+                        )
+                    ]
                 ),
             )
             if res.status_code != 200:
-                module.warn(
+                module.fail_json(
                     "Array {0} failed to join fleet {1}. Error: {2}".format(
-                        local_name, module.params["fleet"], res.errors[0].message
+                        local_name, module.params["name"], res.errors[0].message
                     )
                 )
-                part_failure = True
-    if part_failure:
-        module.fail_json(
-            msg="At least one member failed to join the fleet. See previous messages"
-        )
     module.exit_json(changed=changed)
 
 
-def delete_fleet_members(module, array, fleet):
-    """Create new fleet - only ever called once"""
+def delete_fleet_members(module, array):
+    """Delete member from a fleet"""
     changed = False
-    if module.params["member"]:
-        # Remove member from fleet
-        changed = True
+    if not module.params["member_url"] and not module.params["member_api"]:
+        module.fail_json(msg="missing required arguments: member_api, member_url")
+    if HAS_URLLIB3 and module.params["disable_warnings"]:
+        urllib3.disable_warnings()
+    if HAS_DISTRO:
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": USER_AGENT_BASE,
+            "class": __name__,
+            "version": VERSION,
+            "platform": distro.name(pretty=True),
+        }
     else:
-        # Delete the entire fleet
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": USER_AGENT_BASE,
+            "class": __name__,
+            "version": VERSION,
+            "platform": platform.platform(),
+        }
+    remote_system = flasharray.Client(
+        target=module.params["member_url"],
+        api_token=module.params["member_api"],
+        user_agent=user_agent,
+    )
+    local_name = list(remote_system.get_arrays().items)[0].name
+    members = list(array.get_fleets_members().items)
+    for member in range(0, len(members)):
+        if members[member].member.name == local_name:
+            changed = True
+            if not module.check_mode:
+                if members[member].status not in [
+                    "joined",
+                    "connected",
+                    "partially connected",
+                ]:
+                    res = array.delete_fleets_members(
+                        member_names=[local_name], unreachable=True
+                    )
+                else:
+                    res = array.delete_fleets_members(member_names=[local_name])
+                if res.status_code != 200:
+                    module.fail_json(
+                        "Array {0} failed to be removed from fleet. Error: {1}".format(
+                            module.params["member_url"], res.errors[0].message
+                        )
+                    )
+    module.exit_json(changed=changed)
+
+
+def rename_fleet(module, array):
+    """Rename the fleet"""
+    changed = False
+    fleet = list(array.get_fleets().items)[0].name
+    if module.params["rename"] != fleet:
         changed = True
+        if not module.check_mode:
+            res = array.patch_fleets(
+                names=[module.params["name"]],
+                fleet=FleetPatch(name=module.params["rename"]),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Fleet rename failed. Error: {0}".format(res.errors[0].message)
+                )
     module.exit_json(changed=changed)
 
 
@@ -185,14 +275,11 @@ def main():
             ),
             member_url=dict(type="str"),
             member_api=dict(type="str"),
+            rename=dict(type="str"),
         )
     )
 
-    required_if = ["state", "present", ["member_url", "member_api"]]
-
-    module = AnsibleModule(
-        argument_spec, required_if=required_if, supports_check_mode=True
-    )
+    module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
@@ -213,14 +300,19 @@ def main():
             "Please speak to Pure Support to enable this feature"
         )
     else:
-        fleet = list(fleet_res.items)
+        try:
+            fleet = list(fleet_res.items)
+        except Exception:
+            fleet = False
 
-    if state == "create":
-        create_fleet(module, array, fleet)
+    if state == "create" and not fleet:
+        create_fleet(module, array)
+    elif state == "present" and module.params["rename"]:
+        rename_fleet(module, array)
     elif state == "present" and fleet:
-        add_fleet_members(modue, array, fleet)
+        add_fleet_members(module, array)
     elif state == "absent" and fleet:
-        delete_fleet_members(modue, array, fleet)
+        delete_fleet_members(module, array)
     else:
         module.exit_json(changed=False)
 
