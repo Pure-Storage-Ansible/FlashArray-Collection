@@ -144,6 +144,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_policy - manage FlashArray NFS, SMB and snapshot policies
 - purefa_proxy - manage the phonehome HTTPS proxy setting for the FlashArray
 - purefa_ra - manage the Remote Assist setting for the FlashArray
+- purefa_realm - manage the FlashArray realms
 - purefa_saml - manage FlashArray SAML2 service and identity providers
 - purefa_sessions - get FlashArray sessions log
 - purefa_smis - manage SMI-S settings on the FlashArray

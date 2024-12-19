@@ -37,10 +37,10 @@ options:
     default: false
     version_added: '1.29.0'
 notes:
-  - This module requires the C(purestorage) and C(py-pure-client) Python libraries
-  - Additional Python librarues may be required for specific modules.
+  - This module requires the C(purestorage) and C(py-pure-client) Python libraries.
+  - Additional Python libraries may be required for specific modules.
   - You must set C(PUREFA_URL) and C(PUREFA_API) environment variables
-    if I(fa_url) and I(api_token) arguments are not passed to the module directly
+    if I(fa_url) and I(api_token) arguments are not passed to the module directly.
 requirements:
   - python >= 3.3
   - purestorage >= 1.19
