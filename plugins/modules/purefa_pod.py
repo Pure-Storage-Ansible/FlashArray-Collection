@@ -198,6 +198,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 
 POD_QUOTA_VERSION = "2.23"
 THROTTLE_VERSION = "2.31"
+MEMBERS_VERSION = "2.36"
 
 
 def get_pod(module, array):
@@ -346,10 +347,16 @@ def create_pod(module, array):
         if module.params["stretch"]:
             current_array = list(array.get_arrays().items)[0].name
             if module.params["stretch"] != current_array:
-                res = array.post_pods_arrays(
-                    group_names=[module.params["name"]],
-                    member_names=[module.params["stretch"]],
-                )
+                if LooseVersion(MEMBERS_VERSION) <= LooseVersion(api_version):
+                    res = array.post_pods_members(
+                        pod_names=[module.params["name"]],
+                        member_names=[module.params["stretch"]],
+                    )
+                else:
+                    res = array.post_pods_arrays(
+                        group_names=[module.params["name"]],
+                        member_names=[module.params["stretch"]],
+                    )
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Failed to stretch pod {0} to array {1}. Error: {2}".format(
@@ -574,6 +581,7 @@ def update_pod(module, array):
 
 def stretch_pod(module, array):
     """Stretch/unstretch Pod configuration"""
+    api_version = array.get_rest_version()
     changed = False
     current_config = list(array.get_pods(names=[module.params["name"]]).items)[0]
     if module.params["stretch"]:
@@ -586,10 +594,16 @@ def stretch_pod(module, array):
         ):
             changed = True
             if not module.check_mode:
-                res = array.post_pods_arrays(
-                    group_names=[module.params["name"]],
-                    member_names=[module.params["stretch"]],
-                )
+                if LooseVersion(MEMBERS_VERSION) <= LooseVersion(api_version):
+                    res = array.post_pods_members(
+                        pod_names=[module.params["name"]],
+                        member_names=[module.params["stretch"]],
+                    )
+                else:
+                    res = array.post_pods_arrays(
+                        group_names=[module.params["name"]],
+                        member_names=[module.params["stretch"]],
+                    )
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Failed to stretch pod {0} to array {1}. Error: {2}".format(
@@ -605,15 +619,22 @@ def stretch_pod(module, array):
         ):
             changed = True
             if not module.check_mode:
-                try:
-                    array.delete_pods_arrays(
+                if LooseVersion(MEMBERS_VERSION) <= LooseVersion(api_version):
+                    res = array.delete_pods_members(
+                        pod_names=[module.params["name"]],
+                        member_names=[module.params["stretch"]],
+                    )
+                else:
+                    res = array.delete_pods_arrays(
                         group_names=[module.params["name"]],
                         member_names=[module.params["stretch"]],
                     )
-                except Exception:
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to unstretch pod {0} from array {1}.".format(
-                            module.params["name"], module.params["stretch"]
+                        msg="Failed to unstretch pod {0} from array {1}. Error: {2}".format(
+                            module.params["name"],
+                            module.params["stretch"],
+                            res.errors[0].message,
                         )
                     )
 
