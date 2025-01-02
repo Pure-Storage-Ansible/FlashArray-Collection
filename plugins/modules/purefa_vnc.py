@@ -163,7 +163,7 @@ def main():
     array = get_array(module)
     api_version = array.get_rest_version()
     if LooseVersion(MAX_API_VERSION) <= LooseVersion(api_version):
-        module.warn(msg="VNC feature deprecated from Purity//FA 6.8.0 and higher")
+        module.warn("VNC feature deprecated from Purity//FA 6.8.0 and higher")
         module.exit_json(changed=False)
     res = array.get_apps(names=[module.params["name"]])
     if res.status_code != 200:
