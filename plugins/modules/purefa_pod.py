@@ -424,7 +424,7 @@ def update_pod(module, array):
     changed = False
     current_config = list(array.get_pods(names=[module.params["name"]]).items)[0]
     if module.params["failover"]:
-        current_failover = current_config.failover_preference
+        current_failover = current_config.failover_preferences
         if current_failover == [] or sorted(module.params["failover"]) != sorted(
             current_failover
         ):
