@@ -86,12 +86,16 @@ try:
 except ImportError:
     HAS_PURESTORAGE = False
 
-
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
+
+MAX_API_VERSION = "2.36"
 
 
 def enable_vnc(module, array, app):
@@ -157,7 +161,10 @@ def main():
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
     array = get_array(module)
-
+    api_version = array.get_rest_version()
+    if LooseVersion(MAX_API_VERSION) <= LooseVersion(api_version):
+        module.warn("VNC feature deprecated from Purity//FA 6.8.0 and higher")
+        module.exit_json(changed=False)
     res = array.get_apps(names=[module.params["name"]])
     if res.status_code != 200:
         module.fail_json(

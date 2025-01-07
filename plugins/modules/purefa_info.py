@@ -2549,7 +2549,10 @@ def generate_apps_dict(array):
         for app in range(0, len(app_nodes)):
             appname = app_nodes[app]["name"]
             apps_info[appname]["index"] = app_nodes[app]["index"]
-            apps_info[appname]["vnc"] = app_nodes[app]["vnc"]
+            if DSROLE_POLICY_API_VERSION in api_version:
+                apps_info[appname]["vnc"] = "Deprecated"
+            else:
+                apps_info[appname]["vnc"] = app_nodes[app]["vnc"]
     return apps_info
 
 
