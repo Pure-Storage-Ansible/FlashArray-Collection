@@ -49,6 +49,33 @@ options:
     description:
     - Domain name.
     type: str
+  sender:
+    description:
+    - The local-part of the email address used when sending alert email messages.
+    type: str
+    version_added: "1.33.0"
+  subject_prefix:
+    description:
+    - Optional string added to the beginning of the subject when sending alert
+      email messages.
+    - HTML tags are not allowed.
+    type: str
+    version_added: "1.33.0"
+  body_prefix:
+    description:
+    - Optional string added to the beginning of the email body when sending
+      alert email messages.
+    - HTML tags are not allowed.
+    type: str
+    version_added: "1.33.0"
+  encryption_mode:
+    description:
+    - Enforces an encryption mode when sending alert email messages.
+    - Use empty string to clear.
+    type: str
+    choices: [ 'starttls', '' ]
+    default: starttls
+    version_added: "1.33.0"
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -64,6 +91,9 @@ EXAMPLES = r"""
     sender_domain: purestorage.com
     password: account_password
     user: smtp_account
+    sender: array_email
+    body_prefix: "SMTP-Body"
+    subject_prefix: "SMTP"
     relay_host: 10.2.56.78:2345
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
@@ -72,9 +102,15 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import SmtpServer
+except ImportError:
+    HAS_PURESTORAGE = False
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
 
@@ -82,51 +118,122 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 def delete_smtp(module, array):
     """Delete SMTP settings"""
     changed = True
+    api_version = array.get_rest_version()
     if not module.check_mode:
-        try:
-            array.set_smtp(
-                sender_domain="None", user_name="", password="", relay_host=""
+        res = array.patch_smtp_servers(
+            smtp=SmtpServer(
+                sender_domain="None",
+                user_name="",
+                password="",
+                relay_host="",
+                encryption_mode="",
+                sender_username="",
+                subject_prefix="",
+                body_prefix="",
             )
-        except Exception:
-            module.fail_json(msg="Delete SMTP settigs failed")
+        )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Delete SMTP settigs failed. Error: {0}".foramt(
+                    res.errors[0].message
+                )
+            )
     module.exit_json(changed=changed)
 
 
 def create_smtp(module, array):
     """Set SMTP settings"""
-    changed = changed_sender = changed_relay = changed_creds = False
-    current_smtp = array.get_smtp()
+    api_version = array.get_rest_version()
+    changed = False
+    # Currently only 1 SMTP server is configurable
+    current_smtp = list(array.get_smtp_servers().items)[0]
+    current_server = {
+        "sender_domain": getattr(current_smtp, "sender_domain", None),
+        "relay_host": getattr(current_smtp, "relay_host", None),
+        "user_name": getattr(current_smtp, "user_name", None),
+        "encryption_mode": getattr(current_smtp, "encryption_mode", None),
+        "sender_username": getattr(current_smtp, "sender_username", None),
+        "subject_prefix": getattr(current_smtp, "subject_prefix", None),
+        "body_prefix": getattr(current_smtp, "body_prefix", None),
+    }
+    new_server = {
+        "sender_domain": getattr(current_smtp, "sender_domain", ""),
+        "relay_host": getattr(current_smtp, "relay_host", ""),
+        "user_name": getattr(current_smtp, "user_name", ""),
+        "encryption_mode": getattr(current_smtp, "encryption_mode", ""),
+        "sender_username": getattr(current_smtp, "sender_username", ""),
+        "subject_prefix": getattr(current_smtp, "subject_prefix", ""),
+        "body_prefix": getattr(current_smtp, "body_prefix", ""),
+    }
+
     if (
         module.params["sender_domain"]
-        and current_smtp["sender_domain"] != module.params["sender_domain"]
+        and current_server["sender_domain"] != module.params["sender_domain"]
     ):
-        changed_sender = True
-        if not module.check_mode:
-            try:
-                array.set_smtp(sender_domain=module.params["sender_domain"])
-            except Exception:
-                module.fail_json(msg="Set SMTP sender domain failed.")
+        new_server["sender_domain"] = module.params["sender_domain"]
     if (
         module.params["relay_host"]
-        and current_smtp["relay_host"] != module.params["relay_host"]
+        and current_server["relay_host"] != module.params["relay_host"]
     ):
-        changed_relay = True
+        new_server["relay_host"] = module.params["relay_host"]
+    if (
+        module.params["user"]
+        and current_server["user_name"] != module.params["user_name"]
+    ):
+        new_server["user_name"] = module.params["user"]
+    if (
+        module.params["sender"]
+        and current_server["sender_username"] != module.params["sender"]
+    ):
+        new_server["sender_username"] = module.params["sender"]
+    if (
+        module.params["body_prefix"]
+        and current_server["body_prefix"] != module.params["body_prefix"]
+    ):
+        new_server["body_prefix"] = module.params["body_prefix"]
+    if (
+        module.params["subject_prefix"]
+        and current_server["subject_prefix"] != module.params["subject_prefix"]
+    ):
+        new_server["subject_prefix"] = module.params["subject_prefix"]
+    if (
+        module.params["encryption_mode"]
+        and current_server["encryption_mode"] != module.params["encryption_mode"]
+    ):
+        new_server["encryption_mode"] = module.params["encryption_mode"]
+    if new_server != current_server or module.params["password"]:
+        changed = True
         if not module.check_mode:
-            try:
-                array.set_smtp(relay_host=module.params["relay_host"])
-            except Exception:
-                module.fail_json(msg="Set SMTP relay host failed.")
-    if module.params["user"]:
-        changed_creds = True
-        if not module.check_mode:
-            try:
-                array.set_smtp(
-                    user_name=module.params["user"], password=module.params["password"]
+            if module.params["password"]:
+                res = array.patch_smtp_servers(
+                    smtp=SmtpServer(
+                        sender_domain=new_server["sender_domain"],
+                        user_name=module.params["user"],
+                        password=module.params["password"],
+                        relay_host=new_server["sender_domain"],
+                        encryption_mode=new_server["encryption_mode"],
+                        sender_username=new_server["sender_username"],
+                        subject_prefix=new_server["subject_prefix"],
+                        body_prefix=new_server["body_prefix"],
+                    )
                 )
-            except Exception:
-                module.fail_json(msg="Set SMTP username/password failed.")
-    changed = bool(changed_sender or changed_relay or changed_creds)
-
+            else:
+                res = array.patch_smtp_servers(
+                    smtp=SmtpServer(
+                        sender_domain=new_server["sender_domain"],
+                        relay_host=new_server["sender_domain"],
+                        encryption_mode=new_server["encryption_mode"],
+                        sender_username=new_server["sender_username"],
+                        subject_prefix=new_server["subject_prefix"],
+                        body_prefix=new_server["body_prefix"],
+                    )
+                )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to change SMTP server details. Error: {0}".format(
+                        res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
@@ -138,18 +245,30 @@ def main():
             sender_domain=dict(type="str"),
             password=dict(type="str", no_log=True),
             user=dict(type="str"),
+            sender=dict(type="str"),
+            subject_prefix=dict(type="str"),
+            body_prefix=dict(type="str"),
+            encryption_mode=dict(
+                type="str", choices=["starttls", ""], default="starttls"
+            ),
             relay_host=dict(type="str"),
         )
     )
 
     required_together = [["user", "password"]]
+    required_if = [["encryption_mode", "starttls", ["user", "password"]]]
 
     module = AnsibleModule(
-        argument_spec, required_together=required_together, supports_check_mode=True
+        argument_spec,
+        required_together=required_together,
+        required_if=required_if,
+        supports_check_mode=True,
     )
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this mudule")
 
     state = module.params["state"]
-    array = get_system(module)
+    array = get_array(module)
 
     if state == "absent":
         delete_smtp(module, array)
