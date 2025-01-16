@@ -123,6 +123,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_eula - sign, or resign, FlashArray EULA
 - purefa_export - manage FlashArrray managed file system exports
 - purefa_file - copy file between managed directories
+- purefa_fleet - manage FlashArray Fusion fleets and members
 - purefa_fs - manage FlashArray managed file systems
 - purefa_hardware - manage component identification LEDs
 - purefa_hg - manage hostgroups on the FlashArray
