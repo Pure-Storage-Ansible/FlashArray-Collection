@@ -35,7 +35,7 @@ options:
         capacity, network, subnet, interfaces, hgroups, pgroups, hosts,
         admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
         arrays, certs, kmip, clients, policies, dir_snaps, filesystems,
-        alerts, virtual_machines, subscriptions and realms.
+        alerts, virtual_machines, subscriptions, realms and fleet.
     type: list
     elements: str
     required: false
@@ -3245,6 +3245,20 @@ def generate_subs_dict(array):
     return subs_info
 
 
+def generate_fleet_dict(array):
+    fleet_info = {}
+    fleet = list(array.get_fleets().items)
+    if fleet:
+        fleet_name = list(array.get_fleets().items)[0].name
+        fleet_info[fleet_name] = {
+            "members": [],
+        }
+        members = list(array.get_fleets_members().items)
+        for member in range(0, len(members)):
+            fleet_info[fleet_name]["members"].append(members[member].member.name)
+    return fleet_info
+
+
 def generate_realms_dict(array, performance):
     realms_info = {}
     realms = list(array.get_realms().items)
@@ -3379,6 +3393,7 @@ def main():
         "virtual_machines",
         "subscriptions",
         "realms",
+        "fleet",
     )
     subset_test = (test in valid_subsets for test in subset)
     if not all(subset_test):
@@ -3480,10 +3495,11 @@ def main():
         ):
             info["virtual_machines"] = generate_vm_dict(array_v6)
             info["virtual_machines_snaps"] = generate_vmsnap_dict(array_v6)
-        if DSROLE_POLICY_API_VERSION in api_version and (
-            "realms" in subset or "all" in subset
-        ):
-            info["realms"] = generate_realms_dict(array_v6, performance)
+        if DSROLE_POLICY_API_VERSION in api_version:
+            if "realms" in subset or "all" in subset:
+                info["realms"] = generate_realms_dict(array_v6, performance)
+            if "fleet" in subset or "all" in subset:
+                info["fleet"] = generate_fleet_dict(array_v6)
     module.exit_json(changed=False, purefa_info=info)
 
 
