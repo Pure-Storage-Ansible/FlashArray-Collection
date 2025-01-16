@@ -20,7 +20,7 @@ module: purefa_ra
 version_added: '1.0.0'
 short_description: Enable or Disable Pure Storage FlashArray Remote Assist
 description:
-- Enablke or Disable Remote Assist for a Pure Storage FlashArray.
+- Enable or Disable Remote Assist for a Pure Storage FlashArray.
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
@@ -34,7 +34,7 @@ options:
     choices: [ enable, disable, absent, present, test ]
   duration:
     description:
-    - Number of hours Remote Assist port statys open for.
+    - Number of hours Remote Assist port stays open for.
     - Must be an integer between 4 and 48
     type: int
     default: 24
