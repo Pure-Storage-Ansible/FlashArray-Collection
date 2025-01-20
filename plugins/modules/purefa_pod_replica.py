@@ -85,7 +85,7 @@ EXAMPLES = """
 RETURN = """
 """
 
-MIN_REQUIRED_API_VERSION = "1.19"
+CONTEXT_API_VERSION = "2.38"
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
@@ -242,11 +242,7 @@ def main():
     module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     state = module.params["state"]
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
-
-    if MIN_REQUIRED_API_VERSION not in api_version:
-        module.fail_json(msg="Purity v6.0.0 or higher required.")
+    array = get_arrau(module)
 
     local_pod = get_local_pod(module, array)
     local_replica_link = get_local_rl(module, array)
