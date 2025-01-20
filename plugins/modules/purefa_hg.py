@@ -68,6 +68,13 @@ options:
     type: bool
     default: false
     version_added: '1.32.0'
+  context:
+    description:
+    - Name of fleet member on which to perform the volume operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    version_added: '1.33.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -158,10 +165,12 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 # )
 
 DELETE_API_VERSION = "2.36"
+CONTEXT_API_VERSION = "2.38"
 
 
 def rename_exists(module, array):
     """Determine if rename target already exists"""
+    api_version = array.get_rest_version()
     exists = False
     res = array.get_host_groups(names=[module.params["rename"]])
     if res.status_code == 200:
@@ -170,6 +179,7 @@ def rename_exists(module, array):
 
 
 def get_hostgroup_hosts(module, array):
+    api_version = array.get_rest_version()
     hostgroup = None
     res = array.get_host_groups_hosts(group_names=[module.params["name"]])
     if res.status_code == 200:
@@ -178,6 +188,7 @@ def get_hostgroup_hosts(module, array):
 
 
 def get_hostgroup(module, array):
+    api_version = array.get_rest_version()
     hostgroup = None
     res = array.get_host_groups(names=[module.params["name"]])
     if res.status_code == 200:
@@ -186,6 +197,7 @@ def get_hostgroup(module, array):
 
 
 def make_hostgroup(module, array):
+    api_version = array.get_rest_version()
     if module.params["rename"]:
         module.fail_json(
             msg="Hostgroup {0} does not exist - rename failed.".format(
@@ -242,6 +254,7 @@ def make_hostgroup(module, array):
 
 
 def update_hostgroup(module, array):
+    api_version = array.get_rest_version()
     changed = False
     renamed = False
     hgroup = get_hostgroup_hosts(module, array)
@@ -461,6 +474,7 @@ def main():
             rename=dict(type="str"),
             volume=dict(type="list", elements="str"),
             eradicate=dict(type="bool", default=False),
+            context=dict(type="str"),
         )
     )
 
