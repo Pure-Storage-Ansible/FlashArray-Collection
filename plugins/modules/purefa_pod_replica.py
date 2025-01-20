@@ -53,6 +53,14 @@ options:
       - Pause/unpause a pod replica link
     required: false
     type: bool
+  context:
+    description:
+    - Name of fleet member on which to perform the volume operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.33.0'
 extends_documentation_fragment:
     - purestorage.flasharray.purestorage.fa
 """
@@ -85,74 +93,105 @@ EXAMPLES = """
 RETURN = """
 """
 
-CONTEXT_API_VERSION = "2.38"
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import PodReplicaLinkPatch
+except ImportError:
+    HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
+
+CONTEXT_VERSION = "2.38"
 
 
 def get_local_pod(module, array):
     """Return Pod or None"""
-    try:
-        return array.get_pod(module.params["name"])
-    except Exception:
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        res = array.get_pods(
+            names=[module.params["name"]], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_pods(names=[module.params["name"]])
+    if res.status_code != 200:
         return None
+    else:
+        return list(res.items)[0]
 
 
 def get_local_rl(module, array):
     """Return Pod Replica Link or None"""
-    try:
-        rlinks = array.list_pod_replica_links()
-        for link in range(0, len(rlinks)):
-            if rlinks[link]["local_pod_name"] == module.params["name"]:
-                return rlinks[link]
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        res = array.get_pod_replica_links(
+            local_pod_names=[module.params["name"]],
+            context_names=[module.params["context"]],
+            total_item_count=True,
+        )
+    else:
+        res = array.get_pod_replica_links(
+            local_pod_names=[module.params["name"]], total_item_count=True
+        )
+    if res.total_item_count == 0:
         return None
-    except Exception:
-        return None
-
-
-def _get_arrays(array):
-    """Get Connected Arrays"""
-    arrays = []
-    array_details = array.list_array_connections()
-    for arraycnt in range(0, len(array_details)):
-        arrays.append(array_details[arraycnt]["array_name"])
-    return arrays
+    else:
+        return list(res.items)[0]
 
 
 def update_rl(module, array, local_rl):
     """Create Pod Replica Link"""
+    api_version = array.get_rest_version()
     changed = False
     if module.params["pause"] is not None:
-        if local_rl["status"] != "paused" and module.params["pause"]:
+        if local_rl.status != "paused" and module.params["pause"]:
             changed = True
             if not module.check_mode:
-                try:
-                    array.pause_pod_replica_link(
-                        local_pod_name=module.params["name"],
-                        remote_pod_name=local_rl["remote_pod_name"],
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_pod_replica_links(
+                        local_pod_names=module.params["name"],
+                        context_names=[module.params["context"]],
+                        remote_pod_names=local_rl["remote_pod"]["name"],
+                        pod_replica_link=PodReplicaLinkPatch(paused=True),
                     )
-                except Exception:
+                else:
+                    res = array.patch_pod_replica_links(
+                        local_pod_names=module.params["name"],
+                        remote_pod_names=local_rl["remote_pod"]["name"],
+                        pod_replica_link=PodReplicaLinkPatch(paused=True),
+                    )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to pause replica link {0}.".format(
-                            module.params["name"]
+                        msg="Failed to pause replica link {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
-        elif local_rl["status"] == "paused" and not module.params["pause"]:
+        elif local_rl.status == "paused" and not module.params["pause"]:
             changed = True
             if not module.check_mode:
-                try:
-                    array.resume_pod_replica_link(
-                        local_pod_name=module.params["name"],
-                        remote_pod_name=local_rl["remote_pod_name"],
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_pod_replica_links(
+                        local_pod_names=module.params["name"],
+                        context_names=[module.params["context"]],
+                        remote_pod_names=local_rl["remote_pod"]["name"],
+                        pod_replica_link=PodReplicaLinkPatch(paused=False),
                     )
-                except Exception:
+                else:
+                    res = array.patch_pod_replica_links(
+                        local_pod_names=module.params["name"],
+                        remote_pod_names=local_rl["remote_pod"]["name"],
+                        pod_replica_link=PodReplicaLinkPatch(paused=False),
+                    )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to resume replica link {0}.".format(
-                            module.params["name"]
+                        msg="Failed to resume replica link {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
     module.exit_json(changed=changed)
@@ -160,51 +199,59 @@ def update_rl(module, array, local_rl):
 
 def create_rl(module, array):
     """Create Pod Replica Link"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.params["target_pod"]:
         module.fail_json(msg="target_pod required to create a new replica link.")
     if not module.params["target_array"]:
         module.fail_json(msg="target_array required to create a new replica link.")
-    try:
-        connected_arrays = array.list_array_connections()
-        if connected_arrays == []:
-            module.fail_json(msg="No connected arrays.")
-        else:
-            good_array = False
-            for conn_array in range(0, len(connected_arrays)):
-                if connected_arrays[conn_array]["array_name"] == module.params[
-                    "target_array"
-                ] and connected_arrays[conn_array]["status"] in [
-                    "connected",
-                    "connecting",
-                    "partially_connected",
-                ]:
-                    good_array = True
-                    break
-            if not good_array:
-                module.fail_json(
-                    msg="Target array {0} is not connected to the source array.".format(
-                        module.params["target_array"]
-                    )
+    if array.get_array_connections(total_item_count=True).total_item_count == 0:
+        module.fail_json(msg="No connected arrays.")
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        res = array.get_array_connections(
+            names=[module.params["target_array"]],
+            context_names=[module.params["context"]],
+        )
+    else:
+        res = array.get_array_connections(names=[module.params["target_array"]])
+    if res.status_code != 200:
+        module.fail_json(
+            msg="Target array {0} is not connected to the source array.".format(
+                module.params["target_array"]
+            )
+        )
+    connection = list(res.items)[0]
+    if connection.status in [
+        "connected",
+        "connecting",
+        "partially_connected",
+    ]:
+        if not module.check_mode:
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.post_pod_replica_links(
+                    context_names=[module.params["context"]],
+                    local_pod_names=[module.params["name"]],
+                    remote_names=[module.params["target_array"]],
+                    remote_pod_names=[module.params["target_pod"]],
                 )
             else:
-                if not module.check_mode:
-                    try:
-                        array.create_pod_replica_link(
-                            local_pod_name=module.params["name"],
-                            remote_name=module.params["target_array"],
-                            remote_pod_name=module.params["target_pod"],
-                        )
-                    except Exception:
-                        module.fail_json(
-                            msg="Failed to create replica link {0} to target array {1}".format(
-                                module.params["name"], module.params["target_array"]
-                            )
-                        )
-    except Exception:
+                res = array.post_pod_replica_links(
+                    local_pod_names=[module.params["name"]],
+                    remote_names=[module.params["target_array"]],
+                    remote_pod_names=[module.params["target_pod"]],
+                )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to create replica link {0} to target array {1}. Error: {2}".format(
+                        module.params["name"],
+                        module.params["target_array"],
+                        res.errors[0].message,
+                    )
+                )
+    else:
         module.fail_json(
-            msg="Failed to create replica link for pod {0}.".format(
-                module.params["name"]
+            msg="Failed to create replica link for pod {0}. Bad status: {1}".format(
+                module.params["name"], connection.status
             )
         )
     module.exit_json(changed=changed)
@@ -212,16 +259,24 @@ def create_rl(module, array):
 
 def delete_rl(module, array, local_rl):
     """Delete Pod Replica Link"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        try:
-            array.delete_pod_replica_link(
-                module.params["name"], remote_pod_name=local_rl["remote_pod_name"]
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.delete_pod_replica_links(
+                local_pod_names=[module.params["name"]],
+                remote_pod_names=[local_rl["remote_pod"]["name"]],
+                context_names=[module.params["context"]],
             )
-        except Exception:
+        else:
+            res = array.delete_pod_replica_links(
+                local_pod_names=[module.params["name"]],
+                remote_pod_names=[local_rl["remote_pod"]["name"]],
+            )
+        if res.status_code != 200:
             module.fail_json(
-                msg="Failed to delete replica link for pod {0}.".format(
-                    module.params["name"]
+                msg="Failed to delete replica link for pod {0}. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
                 )
             )
     module.exit_json(changed=changed)
@@ -236,29 +291,32 @@ def main():
             target_array=dict(type="str"),
             pause=dict(type="bool"),
             state=dict(default="present", choices=["present", "absent"]),
+            context=dict(type="str", default=""),
         )
     )
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     state = module.params["state"]
-    array = get_arrau(module)
+    array = get_array(module)
 
     local_pod = get_local_pod(module, array)
-    local_replica_link = get_local_rl(module, array)
 
     if not local_pod:
         module.fail_json(
             msg="Selected local pod {0} does not exist.".format(module.params["name"])
         )
 
-    if len(local_pod["arrays"]) > 1:
+    if local_pod.array_count > 1:
         module.fail_json(
-            msg="Local Pod {0} is already stretched.".format(module.params["name"])
+            msg="Local Pod {0} is already stretched to a remote array.".format(
+                module.params["name"]
+            )
         )
 
+    local_replica_link = get_local_rl(module, array)
     if local_replica_link:
-        if local_replica_link["status"] == "unhealthy":
+        if local_replica_link.status == "unhealthy":
             module.fail_json(msg="Replca Link unhealthy - please check remote array")
     if state == "present" and not local_replica_link:
         create_rl(module, array)
