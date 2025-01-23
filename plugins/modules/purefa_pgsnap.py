@@ -107,6 +107,13 @@ options:
     type: list
     elements: str
     version_added: '1.27.0'
+  context:
+    description:
+    - Name of fleet member on which to perform the volume operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    version_added: '1.33.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -224,84 +231,162 @@ from datetime import datetime
 
 THROTTLE_API = "2.25"
 DEFAULT_API = "2.16"
+CONTEXT_API_VERSION = "2.38"
 
 
 def _check_offload(module, array):
-    try:
-        offload = list(array.get_offloads(names=[module.params["offload"]]).items)[0]
-        if offload.status == "connected":
-            return True
-        return False
-    except Exception:
-        return None
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_offloads(
+            names=[module.params["offload"]], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_offloads(names=[module.params["offload"]])
+    if res.status_code == 200:
+        return bool(list(res.items)[0].status == "connected")
+    return False
 
 
 def get_pgroup(module, array):
-    """Return Protection Group or None"""
-    try:
-        return list(array.get_protection_groups(names=[module.params["name"]]).items)[0]
-    except Exception:
-        return None
+    """Return Protection Group"""
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        return bool(
+            array.get_protection_groups(
+                names=[module.params["name"]], context_names=[module.params["context"]]
+            ).status_code
+            == 200
+        )
+    else:
+        return bool(
+            array.get_protection_groups(names=[module.params["name"]]).status_code
+            == 200
+        )
 
 
 def get_pgroupvolume(module, array):
     """Return Protection Group Volume or None"""
+    api_version = array.get_rest_version()
     try:
         volumes = []
-        pgroup = list(array.get_protection_groups(names=[module.params["name"]]).items)[
-            0
-        ]
-        if pgroup.host_count > 0:  # We have a host PG
-            host_dict = list(
-                array.get_protection_groups_hosts(
-                    group_names=[module.params["name"]]
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            pgroup = list(
+                array.get_protection_groups(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
                 ).items
-            )
-            for host in range(0, len(host_dict)):
-                hostvols = list(
-                    array.get_connections(
-                        host_names=[host_dict[host].member["name"]]
+            )[0]
+        else:
+            pgroup = list(
+                array.get_protection_groups(names=[module.params["name"]]).items
+            )[0]
+        if pgroup.host_count > 0:  # We have a host PG
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                host_dict = list(
+                    array.get_protection_groups_hosts(
+                        context_names=[module.params["context"]],
+                        group_names=[module.params["name"]],
                     ).items
                 )
+            else:
+                host_dict = list(
+                    array.get_protection_groups_hosts(
+                        group_names=[module.params["name"]]
+                    ).items
+                )
+            for host in range(0, len(host_dict)):
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    hostvols = list(
+                        array.get_connections(
+                            context_names=[module.params["context"]],
+                            host_names=[host_dict[host].member["name"]],
+                        ).items
+                    )
+                else:
+                    hostvols = list(
+                        array.get_connections(
+                            host_names=[host_dict[host].member["name"]]
+                        ).items
+                    )
                 for hvol in range(0, len(hostvols)):
                     volumes.append(hostvols[hvol].volume["name"])
         elif pgroup.host_group_count > 0:  # We have a hostgroup PG
-            hgroup_dict = list(
-                array.get_protection_groups_host_groups(
-                    group_names=[module.params["name"]]
-                ).items
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                hgroup_dict = list(
+                    array.get_protection_groups_host_groups(
+                        context_names=[module.params["context"]],
+                        group_names=[module.params["name"]],
+                    ).items
+                )
+            else:
+                hgroup_dict = list(
+                    array.get_protection_groups_host_groups(
+                        group_names=[module.params["name"]]
+                    ).items
+                )
             hgroups = []
             # First check if there are any volumes in the host groups
             for hgentry in range(0, len(hgroup_dict)):
-                hgvols = list(
-                    array.get_connections(
-                        host_group_names=[hgroup_dict[hgentry].member["name"]]
-                    ).items
-                )
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    hgvols = list(
+                        array.get_connections(
+                            context_names=[module.params["context"]],
+                            host_group_names=[hgroup_dict[hgentry].member["name"]],
+                        ).items
+                    )
+                else:
+                    hgvols = list(
+                        array.get_connections(
+                            host_group_names=[hgroup_dict[hgentry].member["name"]]
+                        ).items
+                    )
                 for hgvol in range(0, len(hgvols)):
                     volumes.append(hgvols[hgvol].volume["name"])
             # Second check for host specific volumes
             for hgroup in range(0, len(hgroup_dict)):
-                hg_hosts = list(
-                    array.get_host_groups_hosts(
-                        group_names=[hgroup_dict[hgroup].member["name"]]
-                    ).items
-                )
-                for hg_host in range(0, len(hg_hosts)):
-                    host_vols = list(
-                        array.get_connections(
-                            host_names=[hg_hosts[hg_host].member["name"]]
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    hg_hosts = list(
+                        array.get_host_groups_hosts(
+                            context_names=[module.params["context"]],
+                            group_names=[hgroup_dict[hgroup].member["name"]],
                         ).items
                     )
+                else:
+                    hg_hosts = list(
+                        array.get_host_groups_hosts(
+                            group_names=[hgroup_dict[hgroup].member["name"]]
+                        ).items
+                    )
+                for hg_host in range(0, len(hg_hosts)):
+                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                        host_vols = list(
+                            array.get_connections(
+                                context_names=[module.params["context"]],
+                                host_names=[hg_hosts[hg_host].member["name"]],
+                            ).items
+                        )
+                    else:
+                        host_vols = list(
+                            array.get_connections(
+                                host_names=[hg_hosts[hg_host].member["name"]]
+                            ).items
+                        )
                     for host_vol in range(0, len(host_vols)):
                         volumes.append(host_vols[host_vol].volume["name"])
         else:  # We have a volume PG
-            vol_dict = list(
-                array.get_protection_groups_volumes(
-                    group_names=[module.params["name"]]
-                ).items
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                vol_dict = list(
+                    array.get_protection_groups_volumes(
+                        context_names=[module.params["context"]],
+                        group_names=[module.params["name"]],
+                    ).items
+                )
+            else:
+                vol_dict = list(
+                    array.get_protection_groups_volumes(
+                        group_names=[module.params["name"]]
+                    ).items
+                )
             for entry in range(0, len(vol_dict)):
                 volumes.append(vol_dict[entry].member["name"])
         volumes = list(set(volumes))
@@ -320,28 +405,41 @@ def get_pgroupvolume(module, array):
 
 def get_rpgsnapshot(module, array):
     """Return Replicated Snapshot or None"""
-    try:
-        snapname = (
-            module.params["name"]
-            + "."
-            + module.params["suffix"]
-            + "."
-            + module.params["restore"]
-        )
-        array.get_volume_snapshots(names=[snapname])
-        return snapname
-    except AttributeError:
-        return None
+    api_version = array.get_rest_version()
+    snapname = (
+        module.params["name"]
+        + "."
+        + module.params["suffix"]
+        + "."
+        + module.params["restore"]
+    )
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if (
+            array.get_volume_snapshots(
+                names=[snapname], context_names=[module.params["context"]]
+            ).status_code
+            == 200
+        ):
+            return snapname
+    else:
+        if array.get_volume_snapshots(names=[snapname]).status_code == 200:
+            return snapname
+    return None
 
 
 def get_pgsnapshot(module, array):
     """Return Snapshot (active or deleted) or None"""
+    api_version = array.get_rest_version()
     snapname = module.params["name"] + "." + module.params["suffix"]
-    res = array.get_protection_group_snapshots(names=[snapname])
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_protection_group_snapshots(
+            names=[snapname], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_protection_group_snapshots(names=[snapname])
     if res.status_code == 200:
         return list(res.items)[0]
-    else:
-        return None
+    return None
 
 
 def create_pgsnapshot(module, array):
@@ -425,6 +523,7 @@ def create_pgsnapshot(module, array):
 
 def restore_pgsnapvolume(module, array):
     """Restore a Protection Group Snapshot Volume"""
+    api_version = array.get_rest_version()
     changed = True
     if module.params["suffix"] == "latest":
         latest_snapshot = list(
@@ -510,6 +609,7 @@ def restore_pgsnapvolume(module, array):
 def delete_offload_snapshot(module, array):
     """Delete Offloaded Protection Group Snapshot"""
     changed = False
+    api_version = array.get_rest_version()
     snapname = module.params["name"] + "." + module.params["suffix"]
     if ":" in module.params["name"] and module.params["offload"]:
         if _check_offload(module, array):
@@ -583,6 +683,7 @@ def delete_offload_snapshot(module, array):
 def delete_pgsnapshot(module, array):
     """Delete Protection Group Snapshot"""
     changed = True
+    api_version = array.get_rest_version()
     if not module.check_mode:
         snapname = module.params["name"] + "." + module.params["suffix"]
         res = array.patch_protection_group_snapshots(
@@ -609,6 +710,7 @@ def delete_pgsnapshot(module, array):
 def eradicate_pgsnapshot(module, array):
     """Eradicate Protection Group Snapshot"""
     changed = True
+    api_version = array.get_rest_version()
     if not module.check_mode:
         snapname = module.params["name"] + "." + module.params["suffix"]
         res = array.delete_protection_group_snapshots(names=[snapname])
@@ -624,6 +726,7 @@ def eradicate_pgsnapshot(module, array):
 def update_pgsnapshot(module, array):
     """Update Protection Group Snapshot - basically just rename..."""
     changed = True
+    api_version = array.get_rest_version()
     if not module.check_mode:
         current_name = module.params["name"] + "." + module.params["suffix"]
         new_name = module.params["name"] + "." + module.params["target"]
@@ -662,6 +765,7 @@ def main():
             ),
             with_default_protection=dict(type="bool", default=True),
             add_to_pgs=dict(type="list", elements="str"),
+            context=dict(type="str"),
         )
     )
 
@@ -674,6 +778,8 @@ def main():
         mutually_exclusive=mutually_exclusive,
         supports_check_mode=True,
     )
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is not installed")
     state = module.params["state"]
     pattern = re.compile("^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$")
     if state == "present":
@@ -706,12 +812,8 @@ def main():
             )
     array = get_array(module)
     api_version = array.get_rest_version()
-    if not HAS_PURESTORAGE and module.params["throttle"]:
-        module.warn(
-            "Throttle capability disable as py-pure-client sdk is not installed"
-        )
     pgroup = get_pgroup(module, array)
-    if pgroup is None:
+    if not pgroup:
         module.fail_json(
             msg="Protection Group {0} does not exist.".format(module.params["name"])
         )
