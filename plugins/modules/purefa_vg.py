@@ -117,7 +117,7 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: Create new volune group
+- name: Create new volume group
   purestorage.flasharray.purefa_vg:
     name: foo
     bw_qos: 50M
