@@ -137,6 +137,7 @@ TLS_CONNECTION_API_VERSION = "2.33"
 PWD_POLICY_API_VERSION = "2.34"
 RA_API_VERSION = "2.35"
 DSROLE_POLICY_API_VERSION = "2.36"
+CONTEXT_API_VERSION = "2.38"
 
 
 def _is_cbs(array):
@@ -3251,11 +3252,15 @@ def generate_fleet_dict(array):
     if fleet:
         fleet_name = list(array.get_fleets().items)[0].name
         fleet_info[fleet_name] = {
-            "members": [],
+            "members": {},
         }
         members = list(array.get_fleets_members().items)
         for member in range(0, len(members)):
-            fleet_info[fleet_name]["members"].append(members[member].member.name)
+            name = members[member].member.name
+            fleet_info[fleet_name]["members"][name] = {
+                "status": members[member].status,
+                "status_details": members[member].status_details,
+            }
     return fleet_info
 
 
@@ -3498,6 +3503,7 @@ def main():
         if DSROLE_POLICY_API_VERSION in api_version:
             if "realms" in subset or "all" in subset:
                 info["realms"] = generate_realms_dict(array_v6, performance)
+        if CONTEXT_API_VERSION in api_version:
             if "fleet" in subset or "all" in subset:
                 info["fleet"] = generate_fleet_dict(array_v6)
     module.exit_json(changed=False, purefa_info=info)
