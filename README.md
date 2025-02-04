@@ -104,7 +104,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_ad - manage FlashArray Active Directoy accounts
 - purefa_admin - Configure Pure Storage FlashArray Global Admin settings
 - purefa_alert - manage email alert settings on the FlashArray
-- purefa_apiclient - manageFlashArray API clients
+- purefa_apiclient - manage FlashArray API clients
 - purefa_arrayname - manage the name of the FlashArray
 - pureaf_audits - get FlashArray audit events
 - purefa_banner - manage the CLI and GUI login banner of the FlashArray

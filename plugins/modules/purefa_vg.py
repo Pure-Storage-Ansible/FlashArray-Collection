@@ -104,12 +104,20 @@ options:
     - Value to rename the specified volume group to
     type: str
     version_added: '1.22.0'
+  context:
+    description:
+    - Name of fleet member on which to perform the volume operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.33.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
 
 EXAMPLES = r"""
-- name: Create new volune group
+- name: Create new volume group
   purestorage.flasharray.purefa_vg:
     name: foo
     bw_qos: 50M
@@ -117,7 +125,7 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Create 10 volune groups of pattern foo#bar with QoS
+- name: Create 10 volume groups of pattern foo#bar with QoS
   purestorage.flasharray.purefa_vg:
     name: foo
     suffix: bar
@@ -129,7 +137,7 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Update volune group QoS limits
+- name: Update volume group QoS limits
   purestorage.flasharray.purefa_vg:
     name: foo
     bw_qos: 0
@@ -137,7 +145,7 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Update volune group DMM Priority Adjustment (Purity//FA 6.1.2+)
+- name: Update volume group DMM Priority Adjustment (Purity//FA 6.1.2+)
   purestorage.flasharray.purefa_vg:
     name: foo
     priority_operator: '-'
@@ -152,7 +160,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
 
-- name: Recover deleted volune group - no changes are made to the volume group on recovery
+- name: Recover deleted volume group - no changes are made to the volume group on recovery
   purestorage.flasharray.purefa_vg:
     name: foo
     fa_url: 10.10.10.2
@@ -179,43 +187,48 @@ RETURN = r"""
 
 HAS_PURESTORAGE = True
 try:
-    from pypureclient import flasharray
+    from pypureclient.flasharray import (
+        VolumeGroupPost,
+        VolumeGroupPatch,
+        Qos,
+        PriorityAdjustment,
+    )
 except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
-    get_system,
     purefa_argument_spec,
 )
 from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
     human_to_bytes,
     human_to_real,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
 
-
-VGROUP_API_VERSION = "1.13"
-VG_IOPS_VERSION = "1.17"
-MULTI_VG_VERSION = "2.2"
 PRIORITY_API_VERSION = "2.11"
+CONTEXT_API_VERSION = "2.38"
 
 
 def rename_exists(module, array):
     """Determine if rename target already exists"""
-    exists = False
-    new_name = module.params["rename"]
-    for vgroup in array.list_vgroups():
-        if vgroup["name"].casefold() == new_name.casefold():
-            exists = True
-            break
-    return exists
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_volume_groups(
+            names=[module.params["rename"]], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_volume_groups(names=[module.params["rename"]])
+    return bool(res.status_code == 200)
 
 
-def get_multi_vgroups(module, destroyed=False):
+def get_multi_vgroups(module, array):
     """Return True is all volume groups exist or None"""
+    api_version = array.get_rest_version()
     names = []
-    array = get_array(module)
     for vg_num in range(
         module.params["start"], module.params["count"] + module.params["start"]
     ):
@@ -224,148 +237,207 @@ def get_multi_vgroups(module, destroyed=False):
             + str(vg_num).zfill(module.params["digits"])
             + module.params["suffix"]
         )
-    return bool(
-        array.get_volume_groups(names=names, destroyed=destroyed).status_code == 200
-    )
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_volume_groups(
+            names=names, context_names=[module.params["context"]], destroyed=False
+        )
+    else:
+        res = array.get_volume_groups(names=names, destroyed=False)
+    return bool(res.status_code == 200)
 
 
 def get_pending_vgroup(module, array):
     """Get Deleted Volume Group"""
-    vgroup = None
-    for vgrp in array.list_vgroups(pending=True):
-        if vgrp["name"] == module.params["name"] and vgrp["time_remaining"]:
-            vgroup = vgrp
-            break
-
-    return vgroup
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_volume_groups(
+            names=[module.params["name"]],
+            destroyed=True,
+            context_names=[module.params["context"]],
+        )
+    else:
+        res = array.get_volume_groups(names=[module.params["name"]], destroyed=True)
+    return bool(res.status_code == 200)
 
 
 def get_vgroup(module, array):
     """Get Volume Group"""
-    vgroup = None
-    for vgrp in array.list_vgroups():
-        if vgrp["name"] == module.params["name"]:
-            vgroup = vgrp
-            break
-
-    return vgroup
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_volume_groups(
+            names=[module.params["name"]],
+            destroyed=False,
+            context_names=[module.params["context"]],
+        )
+    else:
+        res = array.get_volume_groups(names=[module.params["name"]], destroyed=False)
+    return bool(res.status_code == 200)
 
 
 def rename_vgroup(module, array):
-    changed = True
+    changed = False
+    api_version = array.get_rest_version()
     if not rename_exists(module, array):
-        try:
-            if not module.check_mode:
-                array.rename_vgroup(module.params["name"], module.params["rename"])
-        except Exception:
-            module.fail_json(
-                msg="Rename to {0} failed.".format(module.params["rename"])
-            )
-    else:
-        module.warn(
-            "Rename failed. Volume Group {0} already exists.".format(
-                module.params["rename"]
-            )
-        )
+        changed = True
+        if not module.check_mode:
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_volume_groups(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                    volume_group=VolumeGroupPatch(name=module.params["rename"]),
+                )
+            else:
+                res = array.patch_volume_groups(
+                    names=[module.params["name"]],
+                    volume_group=VolumeGroupPatch(name=module.params["rename"]),
+                )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Rename to {0} failed. Error: {1}".format(
+                        module.params["rename"], res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
 def make_vgroup(module, array):
     """Create Volume Group"""
+    api_version = array.get_rest_version()
     changed = True
-    api_version = array._list_available_rest_versions()
-    if (
-        module.params["bw_qos"]
-        or module.params["iops_qos"]
-        and VG_IOPS_VERSION in api_version
-    ):
-        if module.params["bw_qos"] and not module.params["iops_qos"]:
-            if int(human_to_bytes(module.params["bw_qos"])) in range(
-                1048576, 549755813888
-            ):
-                changed = True
-                if not module.check_mode:
-                    try:
-                        array.create_vgroup(
-                            module.params["name"],
-                            bandwidth_limit=module.params["bw_qos"],
-                        )
-                    except Exception:
-                        module.fail_json(
-                            msg="Vgroup {0} creation failed.".format(
-                                module.params["name"]
+    if module.params["bw_qos"] and not module.params["iops_qos"]:
+        if int(human_to_bytes(module.params["bw_qos"])) in range(1048576, 549755813888):
+            changed = True
+            if not module.check_mode:
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_volume_groups(
+                        context_names=[module.params["context"]],
+                        names=[module.params["name"]],
+                        volume_group=VolumeGroupPost(
+                            qos=Qos(
+                                bandwidth_limit=int(
+                                    human_to_bytes(module.params["bw_qos"])
+                                )
                             )
-                        )
-            else:
-                module.fail_json(
-                    msg="Bandwidth QoS value {0} out of range.".format(
-                        module.params["bw_qos"]
+                        ),
                     )
-                )
-        elif module.params["iops_qos"] and not module.params["bw_qos"]:
-            if int(human_to_real(module.params["iops_qos"])) in range(100, 100000000):
-                changed = True
-                if not module.check_mode:
-                    try:
-                        array.create_vgroup(
-                            module.params["name"], iops_limit=module.params["iops_qos"]
-                        )
-                    except Exception:
-                        module.fail_json(
-                            msg="Vgroup {0} creation failed.".format(
-                                module.params["name"]
+                else:
+                    res = array.post_volume_groups(
+                        names=[module.params["name"]],
+                        volume_group=VolumeGroupPost(
+                            qos=Qos(
+                                bandwidth_limit=int(
+                                    human_to_bytes(module.params["bw_qos"])
+                                )
                             )
-                        )
-            else:
-                module.fail_json(
-                    msg="IOPs QoS value {0} out of range.".format(
-                        module.params["iops_qos"]
+                        ),
                     )
-                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Vgroup {0} creation failed. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
         else:
-            bw_qos_size = int(human_to_bytes(module.params["bw_qos"]))
-            if int(human_to_real(module.params["iops_qos"])) in range(
-                100, 100000000
-            ) and bw_qos_size in range(1048576, 549755813888):
-                changed = True
-                if not module.check_mode:
-                    try:
-                        array.create_vgroup(
-                            module.params["name"],
-                            iops_limit=module.params["iops_qos"],
-                            bandwidth_limit=module.params["bw_qos"],
-                        )
-                    except Exception:
-                        module.fail_json(
-                            msg="Vgroup {0} creation failed.".format(
-                                module.params["name"]
-                            )
-                        )
-            else:
-                module.fail_json(msg="IOPs or Bandwidth QoS value out of range.")
-    else:
-        changed = True
-        if not module.check_mode:
-            try:
-                array.create_vgroup(module.params["name"])
-            except Exception:
-                module.fail_json(
-                    msg="creation of volume group {0} failed.".format(
-                        module.params["name"]
-                    )
+            module.fail_json(
+                msg="Bandwidth QoS value {0} out of range.".format(
+                    module.params["bw_qos"]
                 )
-    if PRIORITY_API_VERSION in api_version:
-        array = get_array(module)
-        volume_group = flasharray.VolumeGroup(
-            priority_adjustment=flasharray.PriorityAdjustment(
+            )
+    elif module.params["iops_qos"] and not module.params["bw_qos"]:
+        if int(human_to_real(module.params["iops_qos"])) in range(100, 100000000):
+            changed = True
+            if not module.check_mode:
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_volume_groups(
+                        context_names=[module.params["context"]],
+                        names=[module.params["name"]],
+                        volume_group=VolumeGroupPost(
+                            qos=Qos(
+                                iops_limit=int(human_to_real(module.params["iops_qos"]))
+                            )
+                        ),
+                    )
+                else:
+                    res = array.post_volume_groups(
+                        names=[module.params["name"]],
+                        volume_group=VolumeGroupPost(
+                            qos=Qos(
+                                iops_limit=int(human_to_real(module.params["iops_qos"]))
+                            )
+                        ),
+                    )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Vgroup {0} creation failed. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+        else:
+            module.fail_json(
+                msg="IOPs QoS value {0} out of range.".format(module.params["iops_qos"])
+            )
+    else:
+        bw_qos_size = int(human_to_bytes(module.params["bw_qos"]))
+        if int(human_to_real(module.params["iops_qos"])) in range(
+            100, 100000000
+        ) and bw_qos_size in range(1048576, 549755813888):
+            changed = True
+            if not module.check_mode:
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_volume_groups(
+                        context_names=[module.params["context"]],
+                        names=[module.params["name"]],
+                        volume_group=VolumeGroupPost(
+                            qos=Qos(
+                                iops_limit=int(
+                                    human_to_real(module.params["iops_qos"])
+                                ),
+                                bandwidth_limit=int(
+                                    human_to_bytes(module.params["bw_qos"])
+                                ),
+                            )
+                        ),
+                    )
+                else:
+                    res = array.post_volume_groups(
+                        names=[module.params["name"]],
+                        volume_group=VolumeGroupPost(
+                            qos=Qos(
+                                iops_limit=int(
+                                    human_to_real(module.params["iops_qos"])
+                                ),
+                                bandwidth_limit=int(
+                                    human_to_bytes(module.params["bw_qos"])
+                                ),
+                            )
+                        ),
+                    )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Vgroup {0} creation failed. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+        else:
+            module.fail_json(msg="IOPs or Bandwidth QoS value out of range.")
+    if LooseVersion(PRIORITY_API_VERSION) <= LooseVersion(api_version):
+        volume_group = VolumeGroupPatch(
+            priority_adjustment=PriorityAdjustment(
                 priority_adjustment_operator=module.params["priority_operator"],
                 priority_adjustment_value=module.params["priority_value"],
             ),
         )
         if not module.check_mode:
-            res = array.patch_volume_groups(
-                names=[module.params["name"]], volume_group=volume_group
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_volume_groups(
+                    names=[module.params["name"]],
+                    volume_group=volume_group,
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_volume_groups(
+                    names=[module.params["name"]], volume_group=volume_group
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to set priority adjustment for volume group {0}. Error: {1}".format(
@@ -378,11 +450,10 @@ def make_vgroup(module, array):
 
 def make_multi_vgroups(module, array):
     """Create multiple Volume Groups"""
+    api_version = array.get_rest_version()
     changed = True
     bw_qos_size = iops_qos_size = 0
     names = []
-    api_version = array._list_available_rest_versions()
-    array = get_array(module)
     for vg_num in range(
         module.params["start"], module.params["count"] + module.params["start"]
     ):
@@ -404,21 +475,24 @@ def make_multi_vgroups(module, array):
         else:
             module.fail_json(msg="IOPs QoS value out of range.")
     if bw_qos_size != 0 and iops_qos_size != 0:
-        volume_group = flasharray.VolumeGroupPost(
-            qos=flasharray.Qos(bandwidth_limit=bw_qos_size, iops_limit=iops_qos_size)
+        volume_group = VolumeGroupPost(
+            qos=Qos(bandwidth_limit=bw_qos_size, iops_limit=iops_qos_size)
         )
     elif bw_qos_size == 0 and iops_qos_size == 0:
-        volume_group = flasharray.VolumeGroupPost()
+        volume_group = VolumeGroupPost()
     elif bw_qos_size == 0 and iops_qos_size != 0:
-        volume_group = flasharray.VolumeGroupPost(
-            qos=flasharray.Qos(iops_limit=iops_qos_size)
-        )
+        volume_group = VolumeGroupPost(qos=Qos(iops_limit=iops_qos_size))
     elif bw_qos_size != 0 and iops_qos_size == 0:
-        volume_group = flasharray.VolumeGroupPost(
-            qos=flasharray.Qos(bandwidth_limit=bw_qos_size)
-        )
+        volume_group = VolumeGroupPost(qos=Qos(bandwidth_limit=bw_qos_size))
     if not module.check_mode:
-        res = array.post_volume_groups(names=names, volume_group=volume_group)
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.post_volume_groups(
+                names=names,
+                volume_group=volume_group,
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.post_volume_groups(names=names, volume_group=volume_group)
         if res.status_code != 200:
             module.fail_json(
                 msg="Multi-Vgroup {0}#{1} creation failed: {2}".format(
@@ -427,14 +501,21 @@ def make_multi_vgroups(module, array):
                     res.errors[0].message,
                 )
             )
-        if PRIORITY_API_VERSION in api_version:
-            volume_group = flasharray.VolumeGroup(
-                priority_adjustment=flasharray.PriorityAdjustment(
+        if LooseVersion(PRIORITY_API_VERSION) <= LooseVersion(api_version):
+            volume_group = VolumeGroupPatch(
+                priority_adjustment=PriorityAdjustment(
                     priority_adjustment_operator=module.params["priority_operator"],
                     priority_adjustment_value=module.params["priority_value"],
                 ),
             )
-            res = array.patch_volume_groups(names=names, volume_group=volume_group)
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_volume_groups(
+                    names=names,
+                    volume_group=volume_group,
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_volume_groups(names=names, volume_group=volume_group)
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to set priority adjustments for multi-vgroup {0}#{1}. Error: {2}".format(
@@ -448,13 +529,18 @@ def make_multi_vgroups(module, array):
 
 def update_vgroup(module, array):
     """Update Volume Group"""
+    api_version = array.get_rest_version()
     changed = False
-    api_version = array._list_available_rest_versions()
-    if PRIORITY_API_VERSION in api_version:
-        arrayv6 = get_array(module)
-        vg_prio = list(arrayv6.get_volume_groups(names=[module.params["name"]]).items)[
-            0
-        ].priority_adjustment
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        vg_all = list(
+            array.get_volume_groups(
+                names=[module.params["name"]], context_names=[module.params["context"]]
+            ).items
+        )[0]
+    else:
+        vg_all = list(array.get_volume_groups(names=[module.params["name"]]).items)[0]
+    if LooseVersion(PRIORITY_API_VERSION) <= LooseVersion(api_version):
+        vg_prio = vg_all.priority_adjustment
         if (
             module.params["priority_operator"]
             and vg_prio.priority_adjustment_operator
@@ -470,46 +556,57 @@ def update_vgroup(module, array):
         else:
             new_value = vg_prio.priority_adjustment_value
         if changed and not module.check_mode:
-            volume_group = flasharray.VolumeGroup(
-                priority_adjustment=flasharray.PriorityAdjustment(
+            volume_group = VolumeGroupPatch(
+                priority_adjustment=PriorityAdjustment(
                     priority_adjustment_operator=new_operator,
                     priority_adjustment_value=new_value,
                 )
             )
-            res = arrayv6.patch_volume_groups(
-                names=[module.params["name"]], volume_group=volume_group
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_volume_groups(
+                    names=[module.params["name"]],
+                    volume_group=volume_group,
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_volume_groups(
+                    names=[module.params["name"]], volume_group=volume_group
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to changfe DMM Priority for volume group {0}. Error: {1}".format(
                         module.params["name"], res.errors[0].message
                     )
                 )
-    if VG_IOPS_VERSION in api_version:
-        try:
-            vg_qos = array.get_vgroup(module.params["name"], qos=True)
-        except Exception:
-            module.fail_json(
-                msg="Failed to get QoS settings for vgroup {0}.".format(
-                    module.params["name"]
-                )
-            )
-    if VG_IOPS_VERSION in api_version:
-        if vg_qos["bandwidth_limit"] is None:
-            vg_qos["bandwidth_limit"] = 0
-        if vg_qos["iops_limit"] is None:
-            vg_qos["iops_limit"] = 0
-    if module.params["bw_qos"] and VG_IOPS_VERSION in api_version:
-        if human_to_bytes(module.params["bw_qos"]) != vg_qos["bandwidth_limit"]:
+    vg_qos = vg_all.qos
+    if not hasattr(vg_qos, "bandwidth_limit"):
+        vg_qos.bandwidth_limit = 549755813888
+    if not hasattr(vg_qos, "iops_limit"):
+        vg_qos.iops_limit = 100000000
+    if module.params["bw_qos"]:
+        if int(human_to_bytes(module.params["bw_qos"])) != vg_qos.bandwidth_limit:
             if module.params["bw_qos"] == "0":
                 changed = True
                 if not module.check_mode:
-                    try:
-                        array.set_vgroup(module.params["name"], bandwidth_limit="")
-                    except Exception:
+                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                        res = array.patch_volume_groups(
+                            names=[module.params["name"]],
+                            context_names=[module.params["context"]],
+                            volume_group=VolumeGroupPatch(
+                                qos=Qos(bandwidth_limit=vg_qos.bandwidth_limit)
+                            ),
+                        )
+                    else:
+                        res = array.patch_volume_groups(
+                            names=[module.params["name"]],
+                            volume_group=VolumeGroupPatch(
+                                qos=Qos(bandwidth_limit=vg_qos.bandwidth_limit)
+                            ),
+                        )
+                    if res.status_code != 200:
                         module.fail_json(
-                            msg="Vgroup {0} Bandwidth QoS removal failed.".format(
-                                module.params["name"]
+                            msg="Vgroup {0} Bandwidth QoS removal failed. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
                             )
                         )
             elif int(human_to_bytes(module.params["bw_qos"])) in range(
@@ -517,15 +614,25 @@ def update_vgroup(module, array):
             ):
                 changed = True
                 if not module.check_mode:
-                    try:
-                        array.set_vgroup(
-                            module.params["name"],
-                            bandwidth_limit=module.params["bw_qos"],
+                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                        res = array.patch_volume_groups(
+                            names=[module.params["name"]],
+                            context_names=[module.params["context"]],
+                            volume_group=VolumeGroupPatch(
+                                qos=Qos(bandwidth_limit=vg_qos.bandwidth_limit)
+                            ),
                         )
-                    except Exception:
+                    else:
+                        res = array.patch_volume_groups(
+                            names=[module.params["name"]],
+                            volume_group=VolumeGroupPatch(
+                                qos=Qos(bandwidth_limit=vg_qos.bandwidth_limit)
+                            ),
+                        )
+                    if res.status_code != 200:
                         module.fail_json(
-                            msg="Vgroup {0} Bandwidth QoS change failed.".format(
-                                module.params["name"]
+                            msg="Vgroup {0} Bandwidth QoS change failed. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
                             )
                         )
             else:
@@ -534,30 +641,54 @@ def update_vgroup(module, array):
                         module.params["bw_qos"]
                     )
                 )
-    if module.params["iops_qos"] and VG_IOPS_VERSION in api_version:
-        if human_to_real(module.params["iops_qos"]) != vg_qos["iops_limit"]:
+    if module.params["iops_qos"]:
+        if human_to_real(module.params["iops_qos"]) != vg_qos.iops_limit:
             if module.params["iops_qos"] == "0":
                 changed = True
                 if not module.check_mode:
-                    try:
-                        array.set_vgroup(module.params["name"], iops_limit="")
-                    except Exception:
+                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                        res = array.patch_volume_groups(
+                            names=[module.params["name"]],
+                            context_names=[module.params["context"]],
+                            volume_group=VolumeGroupPatch(
+                                qos=Qos(iops_limit=vg_qos.iops_limit)
+                            ),
+                        )
+                    else:
+                        res = array.patch_volume_groups(
+                            names=[module.params["name"]],
+                            volume_group=VolumeGroupPatch(
+                                qos=Qos(iops_limit=vg_qos.iops_limit)
+                            ),
+                        )
+                    if res.status_code != 200:
                         module.fail_json(
-                            msg="Vgroup {0} IOPs QoS removal failed.".format(
-                                module.params["name"]
+                            msg="Vgroup {0} IOPs QoS removal failed. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
                             )
                         )
             elif int(human_to_real(module.params["iops_qos"])) in range(100, 100000000):
                 changed = True
                 if not module.check_mode:
-                    try:
-                        array.set_vgroup(
-                            module.params["name"], iops_limit=module.params["iops_qos"]
+                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                        res = array.patch_volume_groups(
+                            names=[module.params["name"]],
+                            context_names=[module.params["context"]],
+                            volume_group=VolumeGroupPatch(
+                                qos=Qos(iops_limit=vg_qos.iops_limit)
+                            ),
                         )
-                    except Exception:
+                    else:
+                        res = array.patch_volume_groups(
+                            names=[module.params["name"]],
+                            volume_group=VolumeGroupPatch(
+                                qos=Qos(iops_limit=vg_qos.iops_limit)
+                            ),
+                        )
+                    if res.status_code != 200:
                         module.fail_json(
-                            msg="Vgroup {0} IOPs QoS change failed.".format(
-                                module.params["name"]
+                            msg="Vgroup {0} IOPs QoS removal failed. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
                             )
                         )
             else:
@@ -572,13 +703,25 @@ def update_vgroup(module, array):
 
 def recover_vgroup(module, array):
     """Recover Volume Group"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        try:
-            array.recover_vgroup(module.params["name"])
-        except Exception:
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.patch_volume_groups(
+                names=[module.params["name"]],
+                context_names=[module.params["context"]],
+                volume_group=VolumeGroupPatch(destroyed=False),
+            )
+        else:
+            res = array.patch_volume_groups(
+                names=[module.params["name"]],
+                volume_group=VolumeGroupPatch(destroyed=False),
+            )
+        if res.status_code != 200:
             module.fail_json(
-                msg="Recovery of volume group {0} failed.".format(module.params["name"])
+                msg="Recovery of volume group {0} failed. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
             )
 
     module.exit_json(changed=changed)
@@ -586,26 +729,45 @@ def recover_vgroup(module, array):
 
 def eradicate_vgroup(module, array):
     """Eradicate Volume Group"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        try:
-            array.eradicate_vgroup(module.params["name"])
-        except Exception:
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.delete_volume_groups(
+                names=[module.params["name"]], context_names=[module.params["context"]]
+            )
+        else:
+            res = array.delete_volume_groups(names=[module.params["name"]])
+        if res.status_code != 200:
             module.fail_json(
-                msg="Eradicating vgroup {0} failed.".format(module.params["name"])
+                msg="Eradicating vgroup {0} failed. Errors: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
             )
     module.exit_json(changed=changed)
 
 
 def delete_vgroup(module, array):
     """Delete Volume Group"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        try:
-            array.destroy_vgroup(module.params["name"])
-        except Exception:
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.patch_volume_groups(
+                names=[module.params["name"]],
+                context_names=[module.params["context"]],
+                volume_group=VolumeGroupPatch(destroyed=True),
+            )
+        else:
+            res = array.patch_volume_groups(
+                names=[module.params["name"]],
+                volume_group=VolumeGroupPatch(destroyed=True),
+            )
+        if res.status_code != 200:
             module.fail_json(
-                msg="Deleting vgroup {0} failed.".format(module.params["name"])
+                msg="Deletion of volume group {0} failed. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
             )
     if module.params["eradicate"]:
         eradicate_vgroup(module, array)
@@ -629,34 +791,28 @@ def main():
             priority_value=dict(type="int", choices=[0, 10], default=0),
             eradicate=dict(type="bool", default=False),
             rename=dict(type="str"),
+            context=dict(type="str", default=""),
         )
     )
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
 
+    if not HAS_PURESTORAGE:
+        module.fail_json(
+            msg="py-pure-client sdk is required to support 'count' parameter"
+        )
     state = module.params["state"]
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
-    if VGROUP_API_VERSION not in api_version:
-        module.fail_json(msg="API version does not support volume groups.")
-
+    array = get_array(module)
+    api_version = array.get_rest_version()
     vgroup = get_vgroup(module, array)
     xvgroup = get_pending_vgroup(module, array)
 
     if module.params["count"]:
-        if not HAS_PURESTORAGE:
-            module.fail_json(
-                msg="py-pure-client sdk is required to support 'count' parameter"
-            )
-        if MULTI_VG_VERSION not in api_version:
-            module.fail_json(
-                msg="'count' parameter is not supported until Purity//FA 6.0.0 or higher"
-            )
         if module.params["digits"] and module.params["digits"] not in range(1, 10):
             module.fail_json(msg="'digits' must be in the range of 1 to 10")
         if module.params["start"] < 0:
             module.fail_json(msg="'start' must be a positive number")
-        vgroup = get_multi_vgroups(module)
+        vgroup = get_multi_vgroups(module, array)
         if state == "present" and not vgroup:
             make_multi_vgroups(module, array)
         elif state == "absent" and not vgroup:
