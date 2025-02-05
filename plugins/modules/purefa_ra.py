@@ -20,7 +20,7 @@ module: purefa_ra
 version_added: '1.0.0'
 short_description: Enable or Disable Pure Storage FlashArray Remote Assist
 description:
-- Enablke or Disable Remote Assist for a Pure Storage FlashArray.
+- Enable or Disable Remote Assist for a Pure Storage FlashArray.
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
@@ -34,7 +34,7 @@ options:
     choices: [ enable, disable, absent, present, test ]
   duration:
     description:
-    - Number of hours Remote Assist port statys open for.
+    - Number of hours Remote Assist port stays open for.
     - Must be an integer between 4 and 48
     type: int
     default: 24
@@ -125,7 +125,7 @@ def enable_ra(module, array):
         api_version = array.get_rest_version()
         if not module.check_mode:
             if LooseVersion(DURATION_API) > LooseVersion(api_version):
-                if 4 <= module.params["duration"] <= 48:
+                if not 4 <= module.params["duration"] <= 48:
                     module.fail_json(msg="The duration must be between 4-48 hours.")
                 else:
                     duration = module.params["duration"] * 3600000
