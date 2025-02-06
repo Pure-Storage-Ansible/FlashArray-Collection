@@ -125,9 +125,21 @@ RETURN = r"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
+
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import (
+        SnmpManagerPost,
+        SnmpManagerPatch,
+        SnmpV2c,
+        SnmpV3Patch,
+        SnmpV3Post,
+    )
+except ImportError:
+    HAS_PURESTORAGE = False
 
 
 def test_manager(module, array):
@@ -162,89 +174,102 @@ def test_manager(module, array):
 def update_manager(module, array):
     """Update SNMP Manager"""
     changed = False
-    try:
-        mgr = array.get_snmp_manager(module.params["name"])
-    except Exception:
+    res = array.get_snmp_managers(names=module.params["name"])
+    if res.status_code != 200:
         module.fail_json(
             msg="Failed to get configuration for SNMP manager {0}.".format(
                 module.params["name"]
             )
         )
-    if mgr["version"] != module.params["version"]:
+    else:
+        mgr = list(res.items)[0]
+    if mgr.version != module.params["version"]:
         module.fail_json(msg="Changing an SNMP managers version is not supported.")
     elif module.params["version"] == "v2c":
         changed = True
         if not module.check_mode:
-            try:
-                array.set_snmp_manager(
-                    module.params["name"],
-                    community=module.params["community"],
+            res = array.patch_snmp_managers(
+                names=module.params["name"],
+                snmp_manager=SnmpManagerPatch(
+                    version=module.params["version"],
+                    v2c=SnmpV2c(community=module.params["community"]),
                     notification=module.params["notification"],
                     host=module.params["host"],
-                )
-            except Exception:
+                ),
+            )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Failed to update SNMP manager {0}.".format(
-                        module.params["name"]
+                    msg="Failed to update SNMP manager {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
                     )
                 )
     else:
         if module.params["auth_protocol"] and module.params["privacy_protocol"]:
             changed = True
             if not module.check_mode:
-                try:
-                    array.set_snmp_manager(
-                        module.params["name"],
-                        auth_passphrase=module.params["auth_passphrase"],
-                        auth_protocol=module.params["auth_protocol"],
-                        privacy_passphrase=module.params["privacy_passphrase"],
-                        privacy_protocol=module.params["privacy_protocol"],
+                res = array.patch_snmp_managers(
+                    names=module.params["name"],
+                    snmp_manager=SnmpManagerPatch(
+                        version=module.params["version"],
+                        v3=SnmpV3Patch(
+                            auth_passphrase=module.params["auth_passphrase"],
+                            auth_protocol=module.params["auth_protocol"],
+                            privacy_passphrase=module.params["privacy_passphrase"],
+                            privacy_protocol=module.params["privacy_protocol"],
+                            user=module.params["user"],
+                        ),
                         notification=module.params["notification"],
-                        user=module.params["user"],
                         host=module.params["host"],
-                    )
-                except Exception:
+                    ),
+                )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to update SNMP manager {0}.".format(
-                            module.params["name"]
+                        msg="Failed to update SNMP manager {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
         elif module.params["auth_protocol"] and not module.params["privacy_protocol"]:
             changed = True
             if not module.check_mode:
-                try:
-                    array.set_snmp_manager(
-                        module.params["name"],
-                        version=module.params["version"],
-                        auth_passphrase=module.params["auth_passphrase"],
-                        auth_protocol=module.params["auth_protocol"],
+                res = array.patch_snmp_managers(
+                    names=module.params["name"],
+                    snmp_manager=SnmpManagerPatch(
                         notification=module.params["notification"],
-                        user=module.params["user"],
+                        version=module.params["version"],
                         host=module.params["host"],
-                    )
-                except Exception:
+                        v3=SnmpV3Patch(
+                            auth_passphrase=module.params["auth_passphrase"],
+                            auth_protocol=module.params["auth_protocol"],
+                            user=module.params["user"],
+                        ),
+                    ),
+                )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to update SNMP manager {0}.".format(
-                            module.params["name"]
+                        msg="Failed to update SNMP manager {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
         elif not module.params["auth_protocol"] and module.params["privacy_protocol"]:
             changed = True
             if not module.check_mode:
-                try:
-                    array.set_snmp_manager(
-                        module.params["name"],
-                        version=module.params["version"],
-                        privacy_passphrase=module.params["privacy_passphrase"],
-                        privacy_protocol=module.params["privacy_protocol"],
+                res = array.patch_snmp_managers(
+                    names=module.params["name"],
+                    snmp_manager=SnmpManagerPatch(
                         notification=module.params["notification"],
-                        user=module.params["user"],
+                        version=module.params["version"],
                         host=module.params["host"],
-                    )
-                except Exception:
+                        v3=SnmpV3Patch(
+                            privacy_passphrase=module.params["privacy_passphrase"],
+                            privacy_protocol=module.params["privacy_protocol"],
+                            user=module.params["user"],
+                        ),
+                    ),
+                )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to update SNMP manager {0}.".format(
-                            module.params["name"]
+                        msg="Failed to update SNMP manager {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
         elif (
@@ -252,18 +277,19 @@ def update_manager(module, array):
         ):
             changed = True
             if not module.check_mode:
-                try:
-                    array.set_snmp_manager(
-                        module.params["name"],
+                res = array.patch_snmp_managers(
+                    names=module.params["name"],
+                    snmp_manager=SnmpManagerPatch(
                         version=module.params["version"],
                         notification=module.params["notification"],
-                        user=module.params["user"],
                         host=module.params["host"],
-                    )
-                except Exception:
+                        v3=SnmpV3Patch(user=module.params["user"]),
+                    ),
+                )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to update SNMP manager {0}.".format(
-                            module.params["name"]
+                        msg="Failed to update SNMP manager {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].name
                         )
                     )
         else:
@@ -278,11 +304,12 @@ def delete_manager(module, array):
     """Delete SNMP Manager"""
     changed = True
     if not module.check_mode:
-        try:
-            array.delete_snmp_manager(module.params["name"])
-        except Exception:
+        res = array.delete_snmp_managers(names=[module.params["name"]])
+        if res.status_code != 200:
             module.fail_json(
-                msg="Delete SNMP manager {0} failed".format(module.params["name"])
+                msg="Delete SNMP manager {0} failed. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
             )
     module.exit_json(changed=changed)
 
@@ -292,94 +319,109 @@ def create_manager(module, array):
     changed = True
     if not module.check_mode:
         if module.params["version"] == "v2c":
-            try:
-                array.create_snmp_manager(
-                    module.params["name"],
+            res = array.post_snmp_managers(
+                names=module.params["name"],
+                snmp_manager=SnmpManagerPost(
                     version=module.params["version"],
-                    community=module.params["community"],
                     notification=module.params["notification"],
                     host=module.params["host"],
-                )
-            except Exception:
+                    v2c=SnmpV2c(
+                        community=module.params["community"],
+                    ),
+                ),
+            )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Failed to create SNMP manager {0}.".format(
-                        module.params["name"]
+                    msg="Failed to create SNMP manager {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
                     )
                 )
         else:
             if module.params["auth_protocol"] and module.params["privacy_protocol"]:
-                try:
-                    array.create_snmp_manager(
-                        module.params["name"],
-                        version=module.params["version"],
-                        auth_passphrase=module.params["auth_passphrase"],
-                        auth_protocol=module.params["auth_protocol"],
-                        privacy_passphrase=module.params["privacy_passphrase"],
-                        privacy_protocol=module.params["privacy_protocol"],
-                        notification=module.params["notification"],
-                        user=module.params["user"],
+                res = array.post_snmp_managers(
+                    names=module.params["name"],
+                    snmp_manager=SnmpManagerPost(
                         host=module.params["host"],
-                    )
-                except Exception:
+                        notification=module.params["notification"],
+                        version=module.params["version"],
+                        v3=SnmpV3Post(
+                            auth_passphrase=module.params["auth_passphrase"],
+                            auth_protocol=module.params["auth_protocol"],
+                            privacy_passphrase=module.params["privacy_passphrase"],
+                            privacy_protocol=module.params["privacy_protocol"],
+                            user=module.params["user"],
+                        ),
+                    ),
+                )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to create SNMP manager {0}.".format(
-                            module.params["name"]
+                        msg="Failed to create SNMP manager {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
             elif (
                 module.params["auth_protocol"] and not module.params["privacy_protocol"]
             ):
-                try:
-                    array.create_snmp_manager(
-                        module.params["name"],
+                res = array.post_snmp_managers(
+                    names=module.params["name"],
+                    snmp_manager=SnmpManagerPost(
                         version=module.params["version"],
-                        auth_passphrase=module.params["auth_passphrase"],
-                        auth_protocol=module.params["auth_protocol"],
                         notification=module.params["notification"],
-                        user=module.params["user"],
                         host=module.params["host"],
-                    )
-                except Exception:
+                        v3=SnmpV3Post(
+                            auth_passphrase=module.params["auth_passphrase"],
+                            auth_protocol=module.params["auth_protocol"],
+                            user=module.params["user"],
+                        ),
+                    ),
+                )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to create SNMP manager {0}.".format(
-                            module.params["name"]
+                        msg="Failed to create SNMP manager {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
             elif (
                 not module.params["auth_protocol"] and module.params["privacy_protocol"]
             ):
-                try:
-                    array.create_snmp_manager(
-                        module.params["name"],
-                        version=module.params["version"],
-                        privacy_passphrase=module.params["privacy_passphrase"],
-                        privacy_protocol=module.params["privacy_protocol"],
+                res = array.post_snmp_managers(
+                    names=module.params["name"],
+                    host=module.params["host"],
+                    snmp_managers=SnmpManagerPost(
                         notification=module.params["notification"],
-                        user=module.params["user"],
-                        host=module.params["host"],
-                    )
-                except Exception:
+                        version=module.params["version"],
+                        v3=SnmpV3Post(
+                            privacy_passphrase=module.params["privacy_passphrase"],
+                            privacy_protocol=module.params["privacy_protocol"],
+                            user=module.params["user"],
+                        ),
+                    ),
+                )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to create SNMP manager {0}.".format(
-                            module.params["name"]
+                        msg="Failed to create SNMP manager {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
             elif (
                 not module.params["auth_protocol"]
                 and not module.params["privacy_protocol"]
             ):
-                try:
-                    array.create_snmp_manager(
-                        module.params["name"],
-                        version=module.params["version"],
+                res = array.post_snmp_managers(
+                    names=module.params["name"],
+                    host=module.params["host"],
+                    snmp_manager=SnmpManagerPost(
                         notification=module.params["notification"],
-                        user=module.params["user"],
-                        host=module.params["host"],
-                    )
-                except Exception:
+                        version=module.params["version"],
+                        v3=SnmpV3Post(
+                            user=module.params["user"],
+                        ),
+                    ),
+                )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to create SNMP manager {0}.".format(
-                            module.params["name"]
+                        msg="Failed to create SNMP manager {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
             else:
@@ -420,12 +462,15 @@ def main():
         supports_check_mode=True,
     )
 
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this module")
+
     state = module.params["state"]
-    array = get_system(module)
+    array = get_array(module)
     mgr_configured = False
-    mgrs = array.list_snmp_managers()
+    mgrs = list(array.get_snmp_managers().items)
     for mgr in range(0, len(mgrs)):
-        if mgrs[mgr]["name"] == module.params["name"]:
+        if mgrs[mgr].name == module.params["name"]:
             mgr_configured = True
             break
     if not module.params["host"]:
