@@ -493,7 +493,7 @@ def get_endpoint(module, name, array):
         res = array.get_volumes(names=[name])
     if res.status_code == 200:
         volume = list(res.items)[0]
-        if hasattr(volume.protocol_endpoint, "container_version"):
+        if volume.subtype == "protocol_endpoint":
             return volume
     return None
 
