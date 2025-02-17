@@ -126,6 +126,11 @@ plugins:
       name: purefa_file
       namespace: ''
       version_added: 1.22.0
+    purefa_fleet:
+      description: Manage Fusion Fleet
+      name: purefa_fleet
+      namespace: ''
+      version_added: 1.33.0
     purefa_fs:
       description: Manage FlashArray File Systems
       name: purefa_fs
@@ -237,6 +242,11 @@ plugins:
       name: purefa_ra
       namespace: ''
       version_added: 1.0.0
+    purefa_realm:
+      description: Manage realms on Pure Storage FlashArrays
+      name: purefa_realm
+      namespace: ''
+      version_added: 1.33.0
     purefa_saml:
       description: Manage FlashArray SAML2 service and identity providers
       name: purefa_saml
@@ -337,4 +347,4 @@ plugins:
   strategy: {}
   test: {}
   vars: {}
-version: 1.32.0
+version: 1.33.0
