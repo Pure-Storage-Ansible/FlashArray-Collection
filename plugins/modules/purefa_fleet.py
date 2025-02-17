@@ -34,6 +34,8 @@ options:
     - Define whether to add or remove member from a fleet.
     - Create a new fleet if one does not exist.
       This will use the current array as the first member.
+    - Fleet deletion can only occiur when the current array
+      is the only fleet member.
     default: present
     choices: [ absent, present, create ]
     type: str
@@ -74,6 +76,13 @@ EXAMPLES = r"""
     name: foo
     member_url: array2
     member_api: c6033033-fe69-2515-a9e8-966bb7fe4b40
+    state: absent
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Delete fleet foo
+  purestorage.flasharray.purefa_fleet:
+    name: foo
     state: absent
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
@@ -119,6 +128,7 @@ import platform
 VERSION = 1.5
 USER_AGENT_BASE = "Ansible"
 MIN_REQUIRED_API_VERSION = "2.38"
+DELETE_FLEET_API_VERSION = "2.39"
 
 
 def create_fleet(module, array):
@@ -132,6 +142,29 @@ def create_fleet(module, array):
                     module.params["name"], res.errors[0].message
                 )
             )
+    module.exit_json(changed=changed)
+
+
+def delete_fleet(module, array):
+    """Delete the fleet.
+
+    Only works when the current array is the only remaining
+    memebr of the fleet'
+    """
+    changed = True
+    api_version = array.get_rest_version()
+    if LooseVersion(DELETE_FLEET_API_VERSION) <= LooseVersion(api_version):
+        res = array.delete_fleets(names=[module.params["name"]])
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Fleet {0} deletion failed. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
+            )
+    else:
+        module.fail_json(
+            msg="Purity//FA version not supported. Minimum version required: 6.8.2"
+        )
     module.exit_json(changed=changed)
 
 
@@ -199,8 +232,6 @@ def add_fleet_members(module, array):
 def delete_fleet_members(module, array):
     """Delete member from a fleet"""
     changed = False
-    if not module.params["member_url"] and not module.params["member_api"]:
-        module.fail_json(msg="missing required arguments: member_api, member_url")
     if HAS_URLLIB3 and module.params["disable_warnings"]:
         urllib3.disable_warnings()
     if HAS_DISTRO:
@@ -279,7 +310,11 @@ def main():
         )
     )
 
-    module = AnsibleModule(argument_spec, supports_check_mode=True)
+    required_together = [["member_url", "member_api"]]
+
+    module = AnsibleModule(
+        argument_spec, required_together=required_together, supports_check_mode=True
+    )
 
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
@@ -311,8 +346,10 @@ def main():
         rename_fleet(module, array)
     elif state == "present" and fleet:
         add_fleet_members(module, array)
-    elif state == "absent" and fleet:
+    elif state == "absent" and fleet and module.params["member_url"]:
         delete_fleet_members(module, array)
+    elif state == "absent" and fleet:
+        delete_fleet(module, array)
     else:
         module.exit_json(changed=False)
 
