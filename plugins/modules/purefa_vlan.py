@@ -89,51 +89,50 @@ EXAMPLES = """
 RETURN = """
 """
 
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import (
+        NetworkInterfacePatch,
+        NetworkInterfacePost,
+        ReferenceNoId,
+        NetworkinterfacepatchEth,
+        NetworkinterfacepostEth,
+    )
+except ImportError:
+    HAS_PURESTORAGE = False
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
 
 
 def _get_subnet(module, array):
     """Return subnet or None"""
-    subnet = {}
-    try:
-        subnet = array.get_subnet(module.params["subnet"])
-    except Exception:
+    res = array.get_subnets(names=[module.params["subnet"]])
+    if res.status_code != 200:
         return None
-    return subnet
+    return list(res.items)[0]
 
 
 def _get_interface(module, array):
     """Return Interface or None"""
-    interface = {}
     if "ct" in module.params["name"]:
-        try:
-            interfaces = array.list_network_interfaces()
-        except Exception:
+        res = array.get_network_interfaces(names=[module.params["name"]])
+        if res.status_code != 200:
             return None
-        for ints in range(0, len(interfaces)):
-            if interfaces[ints]["name"] == module.params["name"]:
-                interface = interfaces[ints]
-                break
-    return interface
+        return list(res.items)[0]
+    return None
 
 
 def _get_vif(array, interface, subnet):
     """Return VLAN Interface or None"""
-    vif_info = {}
     vif_name = interface["name"] + "." + str(subnet["vlan"])
-    try:
-        interfaces = array.list_network_interfaces()
-    except Exception:
+    res = array.get_network_interfaces(names=[vif_name])
+    if res.status_code != 200:
         return None
-    for ints in range(0, len(interfaces)):
-        if interfaces[ints]["name"] == vif_name:
-            vif_info = interfaces[ints]
-            break
-    return vif_info
+    return list(res.items)[0]
 
 
 def create_vif(module, array, interface, subnet):
@@ -142,28 +141,60 @@ def create_vif(module, array, interface, subnet):
     if not module.check_mode:
         vif_name = interface["name"] + "." + str(subnet["vlan"])
         if module.params["address"]:
-            try:
-                array.create_vlan_interface(
-                    vif_name, module.params["subnet"], address=module.params["address"]
-                )
-            except Exception:
+            res = array.post_network_interfaces(
+                names=[vif_name],
+                network=NetworkInterfacePost(
+                    eth=(
+                        NetworkinterfacepostEth(
+                            subtype="vif",
+                            subnet=ReferenceNoId(name=module.params["subnet"]),
+                            address=module.params["address"],
+                        )
+                    )
+                ),
+            )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Failed to create VLAN interface {0}.".format(vif_name)
+                    msg="Failed to create VLAN interface {0}. Error: {1}".format(
+                        vif_name, res.errors[0].message
+                    )
                 )
         else:
-            try:
-                array.create_vlan_interface(vif_name, module.params["subnet"])
-            except Exception:
+            res = array.post_network_interfaces(
+                names=[vif_name],
+                network=NetworkInterfacePost(
+                    eth=(
+                        NetworkinterfacepostEth(
+                            subtype="vif",
+                            subnet=ReferenceNoId(name=module.params["subnet"]),
+                        )
+                    )
+                ),
+            )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Failed to create VLAN interface {0}.".format(vif_name)
+                    msg="Failed to create VLAN interface {0}. Error: {1}".format(
+                        vif_name, res.errors[0].message
+                    )
                 )
         if not module.params["enabled"]:
-            try:
-                array.set_network_interface(vif_name, enabled=False)
-            except Exception:
+            res = array.patch_network_interfaces(
+                names=[vif_name], network=NetworkInterfacePatch(enabled=False)
+            )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Failed to disable VLAN interface {0} on creation.".format(
-                        vif_name
+                    msg="Failed to disable VLAN interface {0}. Error: {1}".format(
+                        vif_name, res.errors[0].message
+                    )
+                )
+        else:
+            res = array.patch_network_interfaces(
+                names=[vif_name], network=NetworkInterfacePatch(enabled=True)
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to disable VLAN interface {0}. Error: {1}".format(
+                        vif_name, res.errors[0].message
                     )
                 )
     module.exit_json(changed=changed)
@@ -178,14 +209,16 @@ def update_vif(module, array, interface, subnet):
         if module.params["address"] != vif_info["address"]:
             changed = True
             if not module.check_mode:
-                try:
-                    array.set_network_interface(
-                        vif_name, address=module.params["address"]
-                    )
-                except Exception:
+                res = array.patch_network_interfaces(
+                    names=[vif_name],
+                    network=NetworkInterfacePatch(
+                        eth=NetworkinterfacepatchEth(address=module.params["address"])
+                    ),
+                )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to change IP address for VLAN interface {0}.".format(
-                            subnet
+                        msg="Failed to change IP address for VLAN interface {0}. Error: {1}".format(
+                            subnet, res.errors[0].message
                         )
                     )
 
@@ -193,20 +226,26 @@ def update_vif(module, array, interface, subnet):
         if module.params["enabled"]:
             changed = True
             if not module.check_mode:
-                try:
-                    array.set_network_interface(vif_name, enabled=True)
-                except Exception:
+                res = array.patch_network_interfaces(
+                    names=[vif_name], network=NetworkInterfacePatch(enabled=True)
+                )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to enable VLAN interface {0}.".format(vif_name)
+                        msg="Failed to enable VLAN interface {0}. Error: {1}".format(
+                            vif_name, res.errors[0].message
+                        )
                     )
         else:
             changed = True
             if not module.check_mode:
-                try:
-                    array.set_network_interface(vif_name, enabled=False)
-                except Exception:
+                res = array.patch_network_interfaces(
+                    names=[vif_name], network=NetworkInterfacePatch(enabled=False)
+                )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to disable VLAN interface {0}.".format(vif_name)
+                        msg="Failed to disable VLAN interface {0}. Error: {1}".format(
+                            vif_name, res.errors[0].message
+                        )
                     )
 
     module.exit_json(changed=changed)
@@ -217,10 +256,9 @@ def delete_vif(module, array, subnet):
     changed = True
     if not module.check_mode:
         vif_name = module.params["name"] + "." + str(subnet["vlan"])
-        try:
-            array.delete_vlan_interface(vif_name)
-        except Exception:
-            module.fail_json(msg="Failed to delete VLAN inerface {0}".format(vif_name))
+        res = array.delete_network_interfaces(names=[vif_name])
+        if res.status_code != 200:
+            module.fail_json(msg="Failed to delete VLAN interface {0}".format(vif_name))
     module.exit_json(changed=changed)
 
 
@@ -239,20 +277,16 @@ def main():
     module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     state = module.params["state"]
-    array = get_system(module)
+    array = get_array(module)
     subnet = _get_subnet(module, array)
     interface = _get_interface(module, array)
     if not subnet:
         module.fail_json(msg="Invalid subnet specified.")
     if not interface:
         module.fail_json(msg="Invalid interface specified.")
-    if ("iscsi" or "nvme-roce" or "nvme-tcp" or "file") not in interface["services"]:
-        module.fail_json(
-            msg="Invalid interface specified - must have service type of iSCSI, NVMe-RoCE, NVMe-TCP or file enabled."
-        )
     if subnet["vlan"]:
         vif_name = module.params["name"] + "." + str(subnet["vlan"])
-    vif = bool(vif_name in subnet["interfaces"])
+    vif = bool(array.get_network_interfaces(names=[vif_name]).status_code == 200)
 
     if state == "present" and not vif:
         create_vif(module, array, interface, subnet)
