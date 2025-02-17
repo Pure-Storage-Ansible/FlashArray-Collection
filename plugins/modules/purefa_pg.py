@@ -95,6 +95,14 @@ options:
     type: bool
     default: false
     version_added: '1.13.0'
+  context:
+    description:
+    - Name of fleet member on which to perform the volume operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.33.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -205,243 +213,343 @@ RETURN = r"""
 import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
-    get_array,
     purefa_argument_spec,
+    get_array,
+)
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
 )
 
 HAS_PURESTORAGE = True
 try:
-    from pypureclient import flasharray
+    from pypureclient.flasharray import (
+        ProtectionGroup,
+        ReplicationSchedule,
+        SnapshotSchedule,
+        FixedReference,
+    )
 except ImportError:
     HAS_PURESTORAGE = False
 
 
-OFFLOAD_API_VERSION = "1.16"
-P53_API_VERSION = "1.17"
-AC_PG_API_VERSION = "1.13"
 RETENTION_LOCK_VERSION = "2.13"
+CONTEXT_API_VERSION = "2.38"
 
 
 def get_pod(module, array):
     """Get ActiveCluster Pod"""
+    api_version = array.get_rest_version()
     pod_name = module.params["name"].split("::")[0]
-    try:
-        return array.get_pod(pod=pod_name)
-    except Exception:
-        return None
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_pods(names=[pod_name], context_names=[module.params["context"]])
+    else:
+        res = array.get_pods(names=[pod_name])
+    if res.status_code == 200:
+        return list(res.items)[0]
+    return None
 
 
-def get_targets(array):
+def get_targets(module, array):
     """Get Offload Targets"""
+    api_version = array.get_rest_version()
     targets = []
-    try:
-        target_details = array.list_offload()
-    except Exception:
-        return None
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        target_details = list(
+            array.get_offloads(context_names=[module.params["context"]]).items
+        )
+    else:
+        target_details = list(array.get_offloads().items)
 
     for targetcnt in range(0, len(target_details)):
-        if target_details[targetcnt]["status"] in ["connected", "partially_connected"]:
-            targets.append(target_details[targetcnt]["name"])
+        if target_details[targetcnt].status in ["connected", "partially_connected"]:
+            targets.append(target_details[targetcnt].name)
     return targets
 
 
-def get_arrays(array):
+def get_arrays(module, array):
     """Get Connected Arrays"""
+    api_version = array.get_rest_version()
     arrays = []
-    array_details = array.list_array_connections()
-    api_version = array._list_available_rest_versions()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        array_details = list(
+            array.get_array_connections(context_names=[module.params["context"]]).items
+        )
+    else:
+        array_details = list(array.get_array_connections().items)
     for arraycnt in range(0, len(array_details)):
-        if P53_API_VERSION in api_version:
-            if array_details[arraycnt]["status"] in [
-                "connected",
-                "partially_connected",
-            ]:
-                arrays.append(array_details[arraycnt]["array_name"])
-        else:
-            if array_details[arraycnt]["connected"]:
-                arrays.append(array_details[arraycnt]["array_name"])
+        if array_details[arraycnt].status in [
+            "connected",
+            "partially_connected",
+        ]:
+            arrays.append(array_details[arraycnt].name)
     return arrays
 
 
 def get_pending_pgroup(module, array):
     """Get Protection Group"""
-    pgroup = None
-    if ":" in module.params["name"]:
-        if "::" not in module.params["name"]:
-            for pgrp in array.list_pgroups(pending=True, on="*"):
-                if pgrp["name"].casefold() == module.params["name"].casefold():
-                    pgroup = pgrp
-                    break
-        else:
-            for pgrp in array.list_pgroups(pending=True):
-                if (
-                    pgrp["name"].casefold() == module.params["name"].casefold()
-                    and pgrp["time_remaining"]
-                ):
-                    pgroup = pgrp
-                    break
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_protection_groups(
+            names=[module.params["name"]],
+            destroyed=True,
+            context_names=[module.params["context"]],
+        )
     else:
-        for pgrp in array.list_pgroups(pending=True):
-            if (
-                pgrp["name"].casefold() == module.params["name"].casefold()
-                and pgrp["time_remaining"]
-            ):
-                pgroup = pgrp
-                break
-
-    return pgroup
+        res = array.get_protection_groups(names=[module.params["name"]], destroyed=True)
+    if res.status_code == 200:
+        return list(res.items)[0]
+    return None
 
 
 def get_pgroup(module, array):
     """Get Protection Group"""
-    pgroup = None
-    if ":" in module.params["name"]:
-        if "::" not in module.params["name"]:
-            for pgrp in array.list_pgroups(on="*"):
-                if pgrp["name"].casefold() == module.params["name"].casefold():
-                    pgroup = pgrp
-                    break
-        else:
-            for pgrp in array.list_pgroups():
-                if pgrp["name"].casefold() == module.params["name"].casefold():
-                    pgroup = pgrp
-                    break
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_protection_groups(
+            names=[module.params["name"]],
+            destroyed=False,
+            context_names=[module.params["context"]],
+        )
     else:
-        for pgrp in array.list_pgroups():
-            if pgrp["name"].casefold() == module.params["name"].casefold():
-                pgroup = pgrp
-                break
-
-    return pgroup
+        res = array.get_protection_groups(
+            names=[module.params["name"]], destroyed=False
+        )
+    if res.status_code == 200:
+        return list(res.items)[0]
+    return None
 
 
 def get_pgroup_sched(module, array):
     """Get Protection Group Schedule"""
-    pgroup = None
-
-    for pgrp in array.list_pgroups(schedule=True):
-        if pgrp["name"].casefold() == module.params["name"].casefold():
-            pgroup = pgrp
-            break
-
-    return pgroup
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_protection_groups(
+            names=[module.params["name"]],
+            destroyed=False,
+            context_names=[module.params["context"]],
+        )
+    else:
+        res = array.get_protection_groups(
+            names=[module.params["name"]], destroyed=False
+        )
+    if res.status_code == 200:
+        return list(res.items)[0]
+    return None
 
 
 def check_pg_on_offload(module, array):
     """Check if PG already exists on offload target"""
-    array_name = array.get()["array_name"]
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        array_name = list(
+            array.get_arrays(context_names=[module.params["context"]]).items
+        )[0].name
+    else:
+        array_name = list(array.get_arrays().items)[0].name
     remote_pg = array_name + ":" + module.params["name"]
-    targets = get_targets(array)
-    for target in targets:
-        remote_pgs = array.list_pgroups(pending=True, on=target)
-        for rpg in range(0, len(remote_pgs)):
-            if remote_pg == remote_pgs[rpg]["name"]:
-                return target
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_remote_protection_groups(
+            names=[remote_pg], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_remote_protection_groups(names=[remote_pg])
+    if res.status_code == 200:
+        return list(res.items)[0].remote.name
     return None
 
 
 def make_pgroup(module, array):
     """Create Protection Group"""
+    api_version = array.get_rest_version()
     changed = True
     if module.params["target"]:
-        api_version = array._list_available_rest_versions()
         connected_targets = []
-        connected_arrays = get_arrays(array)
-        if OFFLOAD_API_VERSION in api_version:
-            connected_targets = get_targets(array)
-            offload_name = check_pg_on_offload(module, array)
-            if offload_name and offload_name in module.params["target"][0:4]:
-                module.fail_json(
-                    msg="Protection Group {0} already exists on offload target {1}.".format(
-                        module.params["name"], offload_name
-                    )
+        connected_arrays = get_arrays(module, array)
+        connected_targets = get_targets(module, array)
+        offload_name = check_pg_on_offload(module, array)
+        if offload_name and offload_name in module.params["target"][0:4]:
+            module.fail_json(
+                msg="Protection Group {0} already exists on offload target {1}.".format(
+                    module.params["name"], offload_name
                 )
+            )
 
         connected_arrays = connected_arrays + connected_targets
         if connected_arrays == []:
             module.fail_json(msg="No connected targets on source array.")
         if set(module.params["target"][0:4]).issubset(connected_arrays):
             if not module.check_mode:
-                try:
-                    array.create_pgroup(
-                        module.params["name"], targetlist=module.params["target"][0:4]
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_protection_groups(
+                        names=[module.params["name"]],
+                        context_names=[module.params["context"]],
                     )
-                except Exception:
+                else:
+                    res = array.post_protection_groups(names=[module.params["name"]])
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Creation of replicated pgroup {0} failed. {1}".format(
-                            module.params["name"], module.params["target"][0:4]
+                        msg="Failed to create protection group {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
+                for target in range(0, len(module.params["target"][0:4])):
+                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                        res = array.post_protection_groups_targets(
+                            group_names=[module.params["name"]],
+                            members=[
+                                FixedReference(name=module.params["target"][target])
+                            ],
+                            context_names=[module.params["context"]],
+                        )
+                    else:
+                        res = array.post_protection_groups_targets(
+                            group_names=[module.params["name"]],
+                            members=[
+                                FixedReference(name=module.params["target"][target])
+                            ],
+                        )
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to add targets to protection group {0}. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
+                            )
+                        )
         else:
             module.fail_json(
                 msg="Check all selected targets are connected to the source array."
             )
     else:
         if not module.check_mode:
-            try:
-                array.create_pgroup(module.params["name"])
-            except Exception:
-                module.fail_json(
-                    msg="Creation of pgroup {0} failed.".format(module.params["name"])
-                )
-    if not module.check_mode:
-        try:
-            if module.params["target"]:
-                array.set_pgroup(
-                    module.params["name"],
-                    replicate_enabled=module.params["enabled"],
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.post_protection_groups(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
                 )
             else:
-                array.set_pgroup(
-                    module.params["name"], snap_enabled=module.params["enabled"]
+                res = array.post_protection_groups(names=[module.params["name"]])
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to create protection group {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
                 )
-        except Exception:
+    if not module.check_mode:
+        if module.params["target"]:
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_protection_groups(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                    protection_group=ProtectionGroup(
+                        replication_schedule=ReplicationSchedule(
+                            enabled=module.params["enabled"]
+                        )
+                    ),
+                )
+            else:
+                res = array.patch_protection_groups(
+                    names=[module.params["name"]],
+                    protection_group=ProtectionGroup(
+                        replication_schedule=ReplicationSchedule(
+                            enabled=module.params["enabled"]
+                        )
+                    ),
+                )
+        else:
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_protection_groups(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                    protection_group=ProtectionGroup(
+                        snapshot_schedule=SnapshotSchedule(
+                            enabled=module.params["enabled"]
+                        )
+                    ),
+                )
+            else:
+                res = array.patch_protection_groups(
+                    names=[module.params["name"]],
+                    protection_group=ProtectionGroup(
+                        snapshot_schedule=SnapshotSchedule(
+                            enabled=module.params["enabled"]
+                        )
+                    ),
+                )
+        if res.status_code != 200:
             module.fail_json(
-                msg="Enabling pgroup {0} failed.".format(module.params["name"])
+                msg="Enabling pgroup {0} failed. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
             )
         if module.params["volume"]:
-            try:
-                array.set_pgroup(module.params["name"], vollist=module.params["volume"])
-            except Exception:
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.post_protection_groups_volumes(
+                    group_names=[module.params["name"]],
+                    member_names=module.params["volume"],
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.post_protection_groups_volumes(
+                    group_names=[module.params["name"]],
+                    member_names=module.params["volume"],
+                )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Adding volumes to pgroup {0} failed.".format(
-                        module.params["name"]
+                    msg="Adding volumes to pgroup {0} failed. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
                     )
                 )
         if module.params["host"]:
-            try:
-                array.set_pgroup(module.params["name"], hostlist=module.params["host"])
-            except Exception:
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.post_protection_groups_hosts(
+                    group_names=[module.params["name"]],
+                    member_names=module.params["host"],
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.post_protection_groups_hosts(
+                    group_names=[module.params["name"]],
+                    member_names=module.params["host"],
+                )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Adding hosts to pgroup {0} failed.".format(
-                        module.params["name"]
+                    msg="Adding hosts to pgroup {0} failed. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
                     )
                 )
         if module.params["hostgroup"]:
-            try:
-                array.set_pgroup(
-                    module.params["name"], hgrouplist=module.params["hostgroup"]
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.post_protection_groups_host_groups(
+                    group_names=[module.params["name"]],
+                    member_names=module.params["hostgroup"],
+                    context_names=[module.params["context"]],
                 )
-            except Exception:
+            else:
+                res = array.post_protection_groups_host_groups(
+                    group_names=[module.params["name"]],
+                    member_names=module.params["hostgroup"],
+                )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Adding hostgroups to pgroup {0} failed.".format(
-                        module.params["name"]
+                    msg="Adding hostgroups to pgroup {0} failed. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
                     )
                 )
         if module.params["safe_mode"]:
-            arrayv6 = get_array(module)
-            try:
-                arrayv6.patch_protection_groups(
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_protection_groups(
+                    context_names=[module.params["context"]],
                     names=[module.params["name"]],
-                    protection_group=flasharray.ProtectionGroup(
-                        retention_lock="ratcheted"
-                    ),
+                    protection_group=ProtectionGroup(retention_lock="ratcheted"),
                 )
-            except Exception:
+            else:
+                res = array.patch_protection_groups(
+                    names=[module.params["name"]],
+                    protection_group=ProtectionGroup(retention_lock="ratcheted"),
+                )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Failed to set SafeMode on pgroup {0}".format(
-                        module.params["name"]
+                    msg="Failed to set SafeMode on pgroup {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
                     )
                 )
     module.exit_json(changed=changed)
@@ -449,40 +557,54 @@ def make_pgroup(module, array):
 
 def rename_exists(module, array):
     """Determine if rename target already exists"""
-    exists = False
+    api_version = array.get_rest_version()
     new_name = module.params["rename"]
     if ":" in module.params["name"]:
         container = module.params["name"].split(":")[0]
         new_name = container + ":" + module.params["rename"]
         if "::" in module.params["name"]:
             new_name = container + "::" + module.params["rename"]
-    for pgroup in array.list_pgroups(pending=True):
-        if pgroup["name"].casefold() == new_name.casefold():
-            exists = True
-            break
-    return exists
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_protection_groups(
+            names=[new_name], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_protection_groups(names=[new_name])
+    if res.status_code == 200:
+        return True
+    return False
 
 
 def update_pgroup(module, array):
     """Update Protection Group"""
+    api_version = array.get_rest_version()
     changed = renamed = False
     state = module.params["state"]
-    api_version = array._list_available_rest_versions()
     if module.params["target"]:
         connected_targets = []
-        connected_arrays = get_arrays(array)
-
-        if OFFLOAD_API_VERSION in api_version:
-            connected_targets = get_targets(array)
+        connected_arrays = get_arrays(module, array)
+        connected_targets = get_targets(module, array)
         connected_arrays = connected_arrays + connected_targets
         if connected_arrays == []:
             module.fail_json(msg="No targets connected to source array.")
-        current_connects = array.get_pgroup(module.params["name"])["targets"]
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            current_connects = list(
+                array.get_protection_groups_targets(
+                    group_names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                ).items
+            )
+        else:
+            current_connects = list(
+                array.get_protection_groups_targets(
+                    group_names=[module.params["name"]]
+                ).items
+            )
         current_targets = []
 
         if current_connects:
             for targetcnt in range(0, len(current_connects)):
-                current_targets.append(current_connects[targetcnt]["name"])
+                current_targets.append(current_connects[targetcnt].member.name)
 
         if set(module.params["target"][0:4]) != set(current_targets):
             if not set(module.params["target"][0:4]).issubset(connected_arrays):
@@ -491,203 +613,357 @@ def update_pgroup(module, array):
                 )
             changed = True
             if not module.check_mode:
-                try:
-                    array.set_pgroup(
-                        module.params["name"],
-                        targetlist=module.params["target"][0:4],
-                    )
-                except Exception:
-                    module.fail_json(
-                        msg="Changing targets for pgroup {0} failed.".format(
-                            module.params["name"]
+                for target in range(0, len(module.params["target"][0:4])):
+                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                        res = array.post_protection_groups_targets(
+                            group_names=[module.params["name"]],
+                            context_names=[module.params["context"]],
+                            member_names=[
+                                FixedReference(name=module.params["target"][target])
+                            ],
                         )
-                    )
+                    else:
+                        res = array.post_protection_groups_targets(
+                            group_names=[module.params["name"]],
+                            member_names=[
+                                FixedReference(name=module.params["target"][target])
+                            ],
+                        )
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Changing targets for pgroup {0} failed. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
+                            )
+                        )
 
     if (
         module.params["target"]
         and module.params["enabled"]
-        != get_pgroup_sched(module, array)["replicate_enabled"]
+        != get_pgroup_sched(module, array).replication_schedule.enabled
     ):
         changed = True
         if not module.check_mode:
-            try:
-                array.set_pgroup(
-                    module.params["name"], replicate_enabled=module.params["enabled"]
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_protection_groups(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                    protection_group=ProtectionGroup(
+                        replication_schedule=ReplicationSchedule(
+                            enabled=module.params["enabled"]
+                        ),
+                    ),
                 )
-            except Exception:
+            else:
+                res = array.patch_protection_groups(
+                    names=[module.params["name"]],
+                    protection_group=ProtectionGroup(
+                        replication_schedule=ReplicationSchedule(
+                            enabled=module.params["enabled"]
+                        )
+                    ),
+                )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Changing enabled status of pgroup {0} failed.".format(
-                        module.params["name"]
+                    msg="Changing replication enabled state of pgroup {0} failed. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
                     )
                 )
     elif (
         not module.params["target"]
-        and module.params["enabled"] != get_pgroup_sched(module, array)["snap_enabled"]
+        and module.params["enabled"]
+        != get_pgroup_sched(module, array).snapshot_schedule.enabled
     ):
         changed = True
         if not module.check_mode:
-            try:
-                array.set_pgroup(
-                    module.params["name"], snap_enabled=module.params["enabled"]
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_protection_groups(
+                    names=[module.params["name"]],
+                    protection_group=ProtectionGroup(
+                        snapshot_schedule=SnapshotSchedule(
+                            enabled=module.params["enabled"]
+                        ),
+                        context_names=[module.params["context"]],
+                    ),
                 )
-            except Exception:
+            else:
+                res = array.patch_protection_groups(
+                    names=[module.params["name"]],
+                    protection_group=ProtectionGroup(
+                        snapshot_schedule=SnapshotSchedule(
+                            enabled=module.params["enabled"]
+                        )
+                    ),
+                )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Changing enabled status of pgroup {0} failed.".format(
-                        module.params["name"]
+                    msg="Changing snapshot enabled state of pgroup {0} failed. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
                     )
                 )
-
     if (
         module.params["volume"]
-        and get_pgroup(module, array)["hosts"] is None
-        and get_pgroup(module, array)["hgroups"] is None
+        and get_pgroup(module, array).host_count == 0
+        and get_pgroup(module, array).host_group_count == 0
     ):
-        if get_pgroup(module, array)["volumes"] is None:
+        if get_pgroup(module, array).volume_count == 0:
             if not module.check_mode:
                 changed = True
-                try:
-                    array.set_pgroup(
-                        module.params["name"], vollist=module.params["volume"]
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_protection_groups_volumes(
+                        group_names=[module.params["name"]],
+                        member_names=module.params["volume"],
+                        context_names=[module.params["context"]],
                     )
-                except Exception:
+                else:
+                    res = array.post_protection_groups_volumes(
+                        group_names=[module.params["name"]],
+                        member_names=module.params["volume"],
+                    )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Adding volumes to pgroup {0} failed.".format(
-                            module.params["name"]
+                        msg="Adding volumes to pgroup {0} failed. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
         else:
-            cased_vols = list(module.params["volume"])
-            cased_pgvols = list(get_pgroup(module, array)["volumes"])
+            pgvols = []
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                vols = list(
+                    array.get_protection_groups_volumes(
+                        group_names=[module.params["name"]],
+                        context_names=[module.params["context"]],
+                    ).items
+                )
+            else:
+                vols = list(
+                    array.get_protection_groups_volumes(
+                        group_names=[module.params["name"]]
+                    ).items
+                )
+            for vol in range(0, len(vols)):
+                pgvols.append(vols[vol].member["name"])
             if state == "present":
-                if not all(x in cased_pgvols for x in cased_vols):
+                if not all(x in pgvols for x in module.params["volume"]):
                     if not module.check_mode:
                         changed = True
-                        try:
-                            array.set_pgroup(
-                                module.params["name"],
-                                addvollist=module.params["volume"],
+                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
+                            api_version
+                        ):
+                            res = array.post_protection_groups_volumes(
+                                group_names=[module.params["name"]],
+                                context_names=[module.params["context"]],
+                                member_names=module.params["volume"],
                             )
-                        except Exception:
+                        else:
+                            res = array.post_protection_groups_volumes(
+                                group_names=[module.params["name"]],
+                                member_names=module.params["volume"],
+                            )
+                        if res.status_code != 200:
                             module.fail_json(
-                                msg="Adding volumes in pgroup {0} failed.".format(
-                                    module.params["name"]
+                                msg="Adding volumes in pgroup {0} failed. Error: {1}".format(
+                                    module.params["name"], res.errors[0].message
                                 )
                             )
             else:
-                if all(x in cased_pgvols for x in cased_vols):
+                if all(x in pgvols for x in module.params["volume"]):
                     if not module.check_mode:
                         changed = True
-                        try:
-                            array.set_pgroup(
-                                module.params["name"],
-                                remvollist=module.params["volume"],
+                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
+                            api_version
+                        ):
+                            res = array.delete_protection_groups_volumes(
+                                group_names=[module.params["name"]],
+                                context_names=[module.params["context"]],
+                                member_names=module.params["volume"],
                             )
-                        except Exception:
+                        else:
+                            res = array.delete_protection_groups_volumes(
+                                group_names=[module.params["name"]],
+                                member_names=module.params["volume"],
+                            )
+                        if res.status_code != 200:
                             module.fail_json(
-                                msg="Removing volumes in pgroup {0} failed.".format(
-                                    module.params["name"]
+                                msg="Removing volumes from pgroup {0} failed. Error: {1}".format(
+                                    module.params["name"], res.errors[0].message
                                 )
                             )
 
     if (
         module.params["host"]
-        and get_pgroup(module, array)["volumes"] is None
-        and get_pgroup(module, array)["hgroups"] is None
+        and get_pgroup(module, array).volume_count == 0
+        and get_pgroup(module, array).host_group_count == 0
     ):
-        if get_pgroup(module, array)["hosts"] is None:
+        if get_pgroup(module, array).host_count == 0:
             if not module.check_mode:
                 changed = True
-                try:
-                    array.set_pgroup(
-                        module.params["name"], hostlist=module.params["host"]
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_protection_groups_hosts(
+                        group_names=[module.params["name"]],
+                        member_names=module.params["host"],
+                        context_names=[module.params["context"]],
                     )
-                except Exception:
+                else:
+                    res = array.post_protection_groups_hosts(
+                        group_names=[module.params["name"]],
+                        member_names=module.params["host"],
+                    )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Adding hosts to pgroup {0} failed.".format(
-                            module.params["name"]
+                        msg="Adding hosts to pgroup {0} failed. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
         else:
-            cased_hosts = list(module.params["host"])
-            cased_pghosts = list(get_pgroup(module, array)["hosts"])
+            pghosts = []
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                hosts = list(
+                    array.get_protection_groups_hosts(
+                        group_names=[module.params["name"]],
+                        context_names=[module.params["context"]],
+                    ).items
+                )
+            else:
+                hosts = list(
+                    array.get_protection_groups_hosts(
+                        group_names=[module.params["name"]]
+                    ).items
+                )
+            for host in range(0, len(hosts)):
+                pghosts.append(hosts[host].member["name"])
             if state == "present":
-                if not all(x in cased_pghosts for x in cased_hosts):
+                if not all(x in pghosts for x in module.params["host"]):
                     if not module.check_mode:
                         changed = True
-                        try:
-                            array.set_pgroup(
-                                module.params["name"], addhostlist=module.params["host"]
+                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
+                            api_version
+                        ):
+                            res = array.post_protection_groups_hosts(
+                                group_names=[module.params["name"]],
+                                context_names=[module.params["context"]],
+                                member_names=module.params["host"],
                             )
-                        except Exception:
+                        else:
+                            res = array.post_protection_groups_hosts(
+                                group_names=[module.params["name"]],
+                                member_names=module.params["host"],
+                            )
+                        if res.status_code != 200:
                             module.fail_json(
-                                msg="Adding hosts in pgroup {0} failed.".format(
-                                    module.params["name"]
+                                msg="Adding hosts in pgroup {0} failed. Error: {1}".format(
+                                    module.params["name"], res.errors[0].message
                                 )
                             )
             else:
-                if all(x in cased_pghosts for x in cased_hosts):
+                if all(x in pghosts for x in module.params["host"]):
                     if not module.check_mode:
                         changed = True
-                        try:
-                            array.set_pgroup(
-                                module.params["name"], remhostlist=module.params["host"]
+                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
+                            api_version
+                        ):
+                            res = array.delete_protection_groups_hosts(
+                                group_names=[module.params["name"]],
+                                context_names=[module.params["context"]],
+                                member_names=module.params["host"],
                             )
-                        except Exception:
+                        else:
+                            res = array.delete_protection_groups_hosts(
+                                group_names=[module.params["name"]],
+                                member_names=module.params["host"],
+                            )
+                        if res.status_code != 200:
                             module.fail_json(
-                                msg="Removing hosts in pgroup {0} failed.".format(
-                                    module.params["name"]
+                                msg="Removing hosts from pgroup {0} failed. Error: {1}".format(
+                                    module.params["name"], res.errors[0].message
                                 )
                             )
 
     if (
         module.params["hostgroup"]
-        and get_pgroup(module, array)["hosts"] is None
-        and get_pgroup(module, array)["volumes"] is None
+        and get_pgroup(module, array).host_count == 0
+        and get_pgroup(module, array).volume_count == 0
     ):
-        if get_pgroup(module, array)["hgroups"] is None:
+        if get_pgroup(module, array).host_group_count == 0:
             if not module.check_mode:
                 changed = True
-                try:
-                    array.set_pgroup(
-                        module.params["name"], hgrouplist=module.params["hostgroup"]
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_protection_groups_host_groups(
+                        group_names=[module.params["name"]],
+                        context_names=[module.params["context"]],
+                        member_names=module.params["host"],
                     )
-                except Exception:
+                else:
+                    res = array.post_protection_groups_host_groups(
+                        group_names=[module.params["name"]],
+                        member_names=module.params["host"],
+                    )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Adding hostgroups to pgroup {0} failed.".format(
-                            module.params["name"]
+                        msg="Adding hostgroups in pgroup {0} failed. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
         else:
-            cased_hostg = list(module.params["hostgroup"])
-            cased_pghostg = list(get_pgroup(module, array)["hgroups"])
+            pghostgs = []
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                hostgs = list(
+                    array.get_protection_groups_host_groups(
+                        group_names=[module.params["name"]],
+                        context_names=[module.params["context"]],
+                    ).items
+                )
+            else:
+                hostgs = list(
+                    array.get_protection_groups_host_groups(
+                        group_names=[module.params["name"]]
+                    ).items
+                )
+            for hostg in range(0, len(hostgs)):
+                pghostgs.append(hostgs[hostg].member["name"])
             if state == "present":
-                if not all(x in cased_pghostg for x in cased_hostg):
+                if not all(x in pghostgs for x in module.params["hostgroup"]):
                     if not module.check_mode:
                         changed = True
-                        try:
-                            array.set_pgroup(
-                                module.params["name"],
-                                addhgrouplist=module.params["hostgroup"],
+                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
+                            api_version
+                        ):
+                            res = array.post_protection_groups_host_groups(
+                                group_names=[module.params["name"]],
+                                context_names=[module.params["context"]],
+                                member_names=module.params["hostgroup"],
                             )
-                        except Exception:
+                        else:
+                            res = array.post_protection_groups_host_groups(
+                                group_names=[module.params["name"]],
+                                member_names=module.params["hostgroup"],
+                            )
+                        if res.status_code != 200:
                             module.fail_json(
-                                msg="Adding hostgroups in pgroup {0} failed.".format(
-                                    module.params["name"]
+                                msg="Adding hostgroups in pgroup {0} failed. Error: {1}".format(
+                                    module.params["name"], res.errors[0].message
                                 )
                             )
             else:
-                if all(x in cased_pghostg for x in cased_hostg):
+                if all(x in pghostgs for x in module.params["hostgroup"]):
                     if not module.check_mode:
                         changed = True
-                        try:
-                            array.set_pgroup(
-                                module.params["name"],
-                                remhgrouplist=module.params["hostgroup"],
+                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
+                            api_version
+                        ):
+                            res = array.delete_protection_groups_host_groups(
+                                group_names=[module.params["name"]],
+                                context_names=[module.params["context"]],
+                                member_names=module.params["hostgroup"],
                             )
-                        except Exception:
+                        else:
+                            res = array.delete_protection_groups_host_groups(
+                                group_names=[module.params["name"]],
+                                member_names=module.params["hostgroup"],
+                            )
+                        if res.status_code != 200:
                             module.fail_json(
-                                msg="Removing hostgroups in pgroup {0} failed.".format(
-                                    module.params["name"]
+                                msg="Removing hostgroups from pgroup {0} failed. Error: {1}".format(
+                                    module.params["name"], res.errors[0].message
                                 )
                             )
     if module.params["rename"]:
@@ -702,31 +978,56 @@ def update_pgroup(module, array):
                 rename = module.params["rename"]
             renamed = True
             if not module.check_mode:
-                try:
-                    array.rename_pgroup(module.params["name"], rename)
-                    module.params["name"] = rename
-                except Exception:
-                    module.fail_json(msg="Rename to {0} failed.".format(rename))
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_protection_groups(
+                        names=[module.params["name"]],
+                        protection_group=ProtectionGroup(name=rename),
+                        context_names=[module.params["context"]],
+                    )
+                else:
+                    res = array.patch_protection_groups(
+                        names=[module.params["name"]],
+                        protection_group=ProtectionGroup(name=rename),
+                    )
+                module.params["name"] = rename
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Rename to {0} failed. Error: {1}".format(
+                            rename, res.errors[0].message
+                        )
+                    )
         else:
             module.warn(
                 "Rename failed. Protection group {0} already exists in container. Continuing with other changes...".format(
                     module.params["rename"]
                 )
             )
-    if RETENTION_LOCK_VERSION in api_version:
-        arrayv6 = get_array(module)
-        current_pg = list(
-            arrayv6.get_protection_groups(names=[module.params["name"]]).items
-        )[0]
+    if LooseVersion(RETENTION_LOCK_VERSION) <= LooseVersion(api_version):
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            current_pg = list(
+                array.get_protection_groups(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                ).items
+            )[0]
+        else:
+            current_pg = list(
+                array.get_protection_groups(names=[module.params["name"]]).items
+            )[0]
         if current_pg.retention_lock == "unlocked" and module.params["safe_mode"]:
             changed = True
             if not module.check_mode:
-                res = arrayv6.patch_protection_groups(
-                    names=[module.params["name"]],
-                    protection_group=flasharray.ProtectionGroup(
-                        retention_lock="ratcheted"
-                    ),
-                )
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_protection_groups(
+                        names=[module.params["name"]],
+                        context_names=[module.params["context"]],
+                        protection_group=ProtectionGroup(retention_lock="ratcheted"),
+                    )
+                else:
+                    res = array.patch_protection_groups(
+                        names=[module.params["name"]],
+                        protection_group=ProtectionGroup(retention_lock="ratcheted"),
+                    )
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Failed to set SafeMode on protection group {0}. Error: {1}".format(
@@ -746,67 +1047,46 @@ def update_pgroup(module, array):
 
 def eradicate_pgroup(module, array):
     """Eradicate Protection Group"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if ":" in module.params["name"]:
-            if "::" not in module.params["name"]:
-                try:
-                    target = "".join(module.params["target"])
-                    array.destroy_pgroup(
-                        module.params["name"], on=target, eradicate=True
-                    )
-                except Exception:
-                    module.fail_json(
-                        msg="Eradicating pgroup {0} failed.".format(
-                            module.params["name"]
-                        )
-                    )
-            else:
-                try:
-                    array.destroy_pgroup(module.params["name"], eradicate=True)
-                except Exception:
-                    module.fail_json(
-                        msg="Eradicating pgroup {0} failed.".format(
-                            module.params["name"]
-                        )
-                    )
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.delete_protection_groups(
+                names=[module.params["name"]], context_names=[module.params["context"]]
+            )
         else:
-            try:
-                array.destroy_pgroup(module.params["name"], eradicate=True)
-            except Exception:
-                module.fail_json(
-                    msg="Eradicating pgroup {0} failed.".format(module.params["name"])
+            res = array.delete_protection_groups(names=[module.params["name"]])
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Eradicating pgroup {0} failed. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
                 )
+            )
     module.exit_json(changed=changed)
 
 
 def delete_pgroup(module, array):
     """Delete Protection Group"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if ":" in module.params["name"]:
-            if "::" not in module.params["name"]:
-                try:
-                    target = "".join(module.params["target"])
-                    array.destroy_pgroup(module.params["name"], on=target)
-                except Exception:
-                    module.fail_json(
-                        msg="Deleting pgroup {0} failed.".format(module.params["name"])
-                    )
-            else:
-                try:
-                    array.destroy_pgroup(module.params["name"])
-                except Exception:
-                    module.fail_json(
-                        msg="Deleting pgroup {0} failed.".format(module.params["name"])
-                    )
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.patch_protection_groups(
+                names=[module.params["name"]],
+                context_names=[module.params["context"]],
+                protection_group=ProtectionGroup(destroyed=True),
+            )
         else:
-            try:
-                array.destroy_pgroup(module.params["name"])
-            except Exception:
-                module.fail_json(
-                    msg="Deleting pgroup {0} failed.".format(module.params["name"])
+            res = array.patch_protection_groups(
+                names=[module.params["name"]],
+                protection_group=ProtectionGroup(destroyed=True),
+            )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Deleting pgroup {0} failed. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
                 )
+            )
         if module.params["eradicate"]:
             eradicate_pgroup(module, array)
 
@@ -815,31 +1095,26 @@ def delete_pgroup(module, array):
 
 def recover_pgroup(module, array):
     """Recover deleted protection group"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if ":" in module.params["name"]:
-            if "::" not in module.params["name"]:
-                try:
-                    target = "".join(module.params["target"])
-                    array.recover_pgroup(module.params["name"], on=target)
-                except Exception:
-                    module.fail_json(
-                        msg="Recover pgroup {0} failed.".format(module.params["name"])
-                    )
-            else:
-                try:
-                    array.recover_pgroup(module.params["name"])
-                except Exception:
-                    module.fail_json(
-                        msg="Recover pgroup {0} failed.".format(module.params["name"])
-                    )
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.patch_protection_groups(
+                names=[module.params["name"]],
+                context_names=[module.params["context"]],
+                protection_group=ProtectionGroup(destroyed=False),
+            )
         else:
-            try:
-                array.recover_pgroup(module.params["name"])
-            except Exception:
-                module.fail_json(
-                    msg="ecover pgroup {0} failed.".format(module.params["name"])
+            res = array.patch_protection_groups(
+                names=[module.params["name"]],
+                protection_group=ProtectionGroup(destroyed=False),
+            )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Recover pgroup {0} failed. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
                 )
+            )
     module.exit_json(changed=changed)
 
 
@@ -857,6 +1132,7 @@ def main():
             eradicate=dict(type="bool", default=False),
             enabled=dict(type="bool", default=True),
             rename=dict(type="str"),
+            context=dict(type="str", default=""),
         )
     )
 
@@ -864,13 +1140,11 @@ def main():
     module = AnsibleModule(
         argument_spec, mutually_exclusive=mutually_exclusive, supports_check_mode=True
     )
-    if not HAS_PURESTORAGE and module.params["safe_mode"]:
-        module.fail_json(
-            msg="py-pure-client sdk is required to support 'safe_mode' parameter"
-        )
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required.")
 
     state = module.params["state"]
-    array = get_system(module)
+    array = get_array(module)
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
     if module.params["rename"]:
         if not pattern.match(module.params["rename"]):
@@ -885,16 +1159,12 @@ def main():
                     module.params["name"]
                 )
             )
-    api_version = array._list_available_rest_versions()
-    if module.params["safe_mode"] and RETENTION_LOCK_VERSION not in api_version:
+    api_version = array.get_rest_version()
+    if module.params["safe_mode"] and LooseVersion(
+        RETENTION_LOCK_VERSION
+    ) <= LooseVersion(api_version):
         module.fail_json(
             msg="API version does not support setting SafeMode on a protection group."
-        )
-    if ":" in module.params["name"] and OFFLOAD_API_VERSION not in api_version:
-        module.fail_json(msg="API version does not support offload protection groups.")
-    if "::" in module.params["name"] and AC_PG_API_VERSION not in api_version:
-        module.fail_json(
-            msg="API version does not support ActiveCluster protection groups."
         )
     if ":" in module.params["name"]:
         if "::" in module.params["name"]:
@@ -926,18 +1196,33 @@ def main():
             )
 
     if module.params["host"]:
-        try:
-            for hst in module.params["host"]:
-                array.get_host(hst)
-        except Exception:
-            module.fail_json(msg="Host {0} not found".format(hst))
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            host_exists = array.get_hosts(
+                names=module.params["host"], context_names=[module.params["context"]]
+            )
+        else:
+            host_exists = array.get_hosts(names=module.params["host"])
+        if host_exists.status_code != 200:
+            module.fail_json(
+                msg="Host {0} not found. Error: {1}".format(
+                    host_exists.errors[0].context, host_exists.errors[0].message
+                )
+            )
 
     if module.params["hostgroup"]:
-        try:
-            for hstg in module.params["hostgroup"]:
-                array.get_hgroup(hstg)
-        except Exception:
-            module.fail_json(msg="Hostgroup {0} not found".format(hstg))
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            hg_exists = array.get_host_groups(
+                names=module.params["hostgroup"],
+                context_names=[module.params["context"]],
+            )
+        else:
+            hg_exists = array.get_host_groups(names=module.params["hostgroup"])
+        if hg_exists.status_code != 200:
+            module.fail_json(
+                msg="Host Group {0} not found. Error: {1}".format(
+                    hg_exists.errors[0].context, hg_exists.errors[0].message
+                )
+            )
 
     if pgroup and state == "present":
         update_pgroup(module, array)

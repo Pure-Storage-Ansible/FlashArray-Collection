@@ -75,6 +75,14 @@ options:
     type: bool
     default: false
     version_added: '1.21.0'
+  context:
+    description:
+    - Name of fleet member on which to perform the volume operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.33.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -159,15 +167,16 @@ suffix:
     returned: success
 """
 
-HAS_PUREERROR = True
-try:
-    from purestorage import PureHTTPError
-except ImportError:
-    HAS_PUREERROR = False
-
 HAS_PURESTORAGE = True
 try:
-    from pypureclient import flasharray
+    from pypureclient.flasharray import (
+        RemoteVolumeSnapshotPost,
+        VolumeSnapshotPost,
+        DestroyedPatchPost,
+        VolumeSnapshotPatch,
+        VolumePost,
+        Reference,
+    )
 except ImportError:
     HAS_PURESTORAGE = False
 
@@ -175,50 +184,79 @@ import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
-    get_system,
     purefa_argument_spec,
+)
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
 )
 from datetime import datetime
 
-GET_SEND_API = "2.4"
 THROTTLE_API = "2.25"
 SNAPSHOT_SUFFIX_API = "2.28"
+CONTEXT_API_VERSION = "2.38"
 
 
 def _check_offload(module, array):
-    try:
-        offload = list(array.get_offloads(names=[module.params["offload"]]).items)[0]
-        if offload.status == "connected":
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_offloads(
+            names=[module.params["offload"]], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_offloads(names=[module.params["offload"]])
+    if res.status_code == 200:
+        if list(res.items)[0].status == "connected":
             return True
-        return False
-    except Exception:
-        return False
+    return False
 
 
 def _check_target(module, array):
-    try:
-        target = list(
-            array.get_array_connections(names=[module.params["offload"]]).items
-        )[0]
-        if target.status == "connected":
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_array_connections(
+            names=[module.params["offload"]], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_array_connections(names=[module.params["offload"]])
+    if res.status_code == 200:
+        if list(res.items)[0].status == "connected":
             return True
-        return False
-    except Exception:
-        return False
+    return False
 
 
 def _check_offload_snapshot(module, array):
     """Return Remote Snapshot (active or deleted) or None"""
-    source_array = list(array.get_arrays().items)[0].name
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        source_array = list(
+            array.get_arrays(context_names=[module.params["context"]]).items
+        )[0].name
+    else:
+        source_array = list(array.get_arrays().items)[0].name
     snapname = (
         source_array + ":" + module.params["name"] + "." + module.params["suffix"]
     )
     if _check_offload(module, array):
-        res = array.get_remote_volume_snapshots(
-            on=module.params["offload"], names=[snapname], destroyed=False
-        )
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.get_remote_volume_snapshots(
+                on=module.params["offload"],
+                names=[snapname],
+                destroyed=False,
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.get_remote_volume_snapshots(
+                on=module.params["offload"], names=[snapname], destroyed=False
+            )
     else:
-        res = array.get_volume_snapshots(names=[snapname], destroyed=False)
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.get_volume_snapshots(
+                names=[snapname],
+                destroyed=False,
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.get_volume_snapshots(names=[snapname], destroyed=False)
     if res.status_code != 200:
         return None
     return list(res.items)[0]
@@ -226,78 +264,134 @@ def _check_offload_snapshot(module, array):
 
 def get_volume(module, array):
     """Return Volume or None"""
-    try:
-        return array.get_volume(module.params["name"])
-    except Exception:
-        return None
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_volumes(
+            names=[module.params["name"]], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_volumes(names=[module.params["name"]])
+    if res.status_code == 200:
+        return list(res.items)[0]
+    return None
 
 
 def get_target(module, array):
     """Return Volume or None"""
-    try:
-        return array.get_volume(module.params["target"])
-    except Exception:
-        return None
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_volumes(
+            names=[module.params["target"]], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_volumes(names=[module.params["target"]])
+    if res.status_code == 200:
+        return list(res.items)[0]
+    return None
 
 
-def get_deleted_snapshot(module, array, arrayv6):
+def get_deleted_snapshot(module, array):
     """Return Deleted Snapshot"""
+    api_version = array.get_rest_version()
     snapname = module.params["name"] + "." + module.params["suffix"]
     if module.params["offload"]:
-        source_array = list(arrayv6.get_arrays().items)[0].name
+        source_array = list(array.get_arrays().items)[0].name
         snapname = module.params["name"] + "." + module.params["suffix"]
         full_snapname = source_array + ":" + snapname
-        if _check_offload(module, arrayv6):
-            res = arrayv6.get_remote_volume_snapshots(
-                on=module.params["offload"], names=[full_snapname], destroyed=True
-            )
+        if _check_offload(module, array):
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.get_remote_volume_snapshots(
+                    context_names=[module.params["context"]],
+                    on=module.params["offload"],
+                    names=[full_snapname],
+                    destroyed=True,
+                )
+            else:
+                res = array.get_remote_volume_snapshots(
+                    on=module.params["offload"], names=[full_snapname], destroyed=True
+                )
         else:
-            res = arrayv6.get_volume_snapshots(names=[snapname], destroyed=True)
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.get_volume_snapshots(
+                    names=[snapname],
+                    destroyed=True,
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.get_volume_snapshots(names=[snapname], destroyed=True)
         if res.status_code == 200:
-            return list(res.items)[0].destroyed
+            return True
         else:
             return False
     else:
-        try:
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
             return bool(
-                array.get_volume(snapname, snap=True, pending=True)[0]["time_remaining"]
-                != ""
+                array.get_volume_snapshots(
+                    names=[snapname],
+                    context_names=[module.params["context"]],
+                    destroyed=True,
+                ).status_code
+                == 200
             )
-        except Exception:
-            return False
+        else:
+            return bool(
+                array.get_volume_snapshots(names=[snapname], destroyed=True).status_code
+                == 200
+            )
 
 
 def get_snapshot(module, array):
     """Return True if snapshot exists, False otherwise"""
-    try:
-        snapname = module.params["name"] + "." + module.params["suffix"]
-        name = module.params["name"]
-        if len(name.split(":")) == 2:
-            # API 1.x raises exception if name is a remote snap
-            name = module.params["name"] + "*"
-        for snaps in array.get_volume(name, snap=True, pending=False):
-            if snaps["name"] == snapname:
-                return True
-    except Exception:
-        return False
+    api_version = array.get_rest_version()
+    snapname = module.params["name"] + "." + module.params["suffix"]
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        return bool(
+            array.get_volume_snapshots(
+                names=[snapname],
+                destroyed=False,
+                context_names=[module.params["context"]],
+            ).status_code
+            == 200
+        )
+    else:
+        return bool(
+            array.get_volume_snapshots(names=[snapname], destroyed=False).status_code
+            == 200
+        )
 
 
-def create_snapshot(module, array, arrayv6):
+def create_snapshot(module, array):
     """Create Snapshot"""
     changed = False
-    api_version = array._list_available_rest_versions()
+    api_version = array.get_rest_version()
     if module.params["offload"]:
-        if SNAPSHOT_SUFFIX_API not in api_version:
+        if LooseVersion(SNAPSHOT_SUFFIX_API) > LooseVersion(api_version):
             module.params["suffix"] = None
         changed = True
         if not module.check_mode:
-            res = arrayv6.post_remote_volume_snapshots(
-                source_names=[module.params["name"]],
-                on=module.params["offload"],
-                remote_volume_snapshot=flasharray.RemoteVolumeSnapshotPost(
-                    suffix=module.params["suffix"]
-                ),
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.post_remote_volume_snapshots(
+                    source_names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                    on=module.params["offload"],
+                    remote_volume_snapshot=RemoteVolumeSnapshotPost(
+                        suffix=module.params["suffix"]
+                    ),
+                )
+            else:
+                if module.params["suffix"]:
+                    res = array.post_remote_volume_snapshots(
+                        source_names=[module.params["name"]],
+                        on=module.params["offload"],
+                        remote_volume_snapshot=RemoteVolumeSnapshotPost(
+                            suffix=module.params["suffix"]
+                        ),
+                    )
+                else:
+                    res = array.post_remote_volume_snapshots(
+                        source_names=[module.params["name"]],
+                        on=module.params["offload"],
+                    )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to create remote snapshot for volume {0}. Error: {1}".format(
@@ -305,20 +399,30 @@ def create_snapshot(module, array, arrayv6):
                     )
                 )
             else:
-                if SNAPSHOT_SUFFIX_API not in api_version:
+                if LooseVersion(SNAPSHOT_SUFFIX_API) > LooseVersion(api_version):
                     remote_snap = list(res.items)[0].name
                     module.params["suffix"] = remote_snap.split(".")[1]
     else:
         changed = True
         if not module.check_mode:
-            if THROTTLE_API in api_version:
-                res = arrayv6.post_volume_snapshots(
-                    allow_throttle=module.params["throttle"],
-                    volume_snapshot=flasharray.VolumeSnapshotPost(
-                        suffix=module.params["suffix"]
-                    ),
-                    source_names=[module.params["name"]],
-                )
+            if LooseVersion(THROTTLE_API) <= LooseVersion(api_version):
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_volume_snapshots(
+                        allow_throttle=module.params["throttle"],
+                        context_names=[module.params["context"]],
+                        volume_snapshot=VolumeSnapshotPost(
+                            suffix=module.params["suffix"]
+                        ),
+                        source_names=[module.params["name"]],
+                    )
+                else:
+                    res = array.post_volume_snapshots(
+                        allow_throttle=module.params["throttle"],
+                        volume_snapshot=VolumeSnapshotPost(
+                            suffix=module.params["suffix"]
+                        ),
+                        source_names=[module.params["name"]],
+                    )
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Failed to create snapshot for volume {0}. Error: {1}".format(
@@ -326,14 +430,14 @@ def create_snapshot(module, array, arrayv6):
                         )
                     )
             else:
-                try:
-                    array.create_snapshot(
-                        module.params["name"], suffix=module.params["suffix"]
-                    )
-                except Exception:
+                res = array.post_volume_snapshots(
+                    source_names=[module.params["name"]],
+                    volume_snapshot=VolumeSnapshotPost(suffix=module.params["suffix"]),
+                )
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Failed to create snapshot for volume {0}".format(
-                            module.params["name"]
+                        msg="Failed to create snapshot for volume {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
                     )
     module.exit_json(changed=changed, suffix=module.params["suffix"])
@@ -341,37 +445,72 @@ def create_snapshot(module, array, arrayv6):
 
 def create_from_snapshot(module, array):
     """Create Volume from Snapshot"""
+    api_version = array.get_rest_version()
     source = module.params["name"] + "." + module.params["suffix"]
     tgt = get_target(module, array)
     if tgt is None:
         changed = True
         if not module.check_mode:
-            array.copy_volume(source, module.params["target"])
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.post_volumes(
+                    context_names=[module.params["context"]],
+                    volume=VolumePost(source=Reference(name=source)),
+                    names=[module.params["target"]],
+                )
+            else:
+                res = array.post_volumes(
+                    volume=VolumePost(source=Reference(name=source)),
+                    names=[module.params["target"]],
+                )
     elif tgt is not None and module.params["overwrite"]:
         changed = True
         if not module.check_mode:
-            array.copy_volume(
-                source, module.params["target"], overwrite=module.params["overwrite"]
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.post_volumes(
+                    overwrite=module.params["overwrite"],
+                    context_names=[module.params["context"]],
+                    volume=VolumePost(source=Reference(name=source)),
+                    names=[module.params["target"]],
+                )
+            else:
+                res = array.post_volumes(
+                    overwrite=module.params["overwrite"],
+                    volume=VolumePost(source=Reference(name=source)),
+                    names=[module.params["target"]],
+                )
     elif tgt is not None and not module.params["overwrite"]:
         changed = False
     module.exit_json(changed=changed)
 
 
-def recover_snapshot(module, array, arrayv6):
+def recover_snapshot(module, array):
     """Recover Snapshot"""
+    api_version = array.get_rest_version()
     changed = False
     snapname = module.params["name"] + "." + module.params["suffix"]
-    if module.params["offload"] and _check_offload(module, arrayv6):
-        source_array = list(array.get_arrays().items)[0].name
+    if module.params["offload"] and _check_offload(module, array):
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            source_array = list(
+                array.get_arrays(context_names=[module.params["context"]]).items
+            )[0].name
+        else:
+            source_array = list(array.get_arrays().items)[0].name
         snapname = source_array + module.params["name"] + "." + module.params["suffix"]
         changed = True
         if not module.check_mode:
-            res = arrayv6.patch_remote_volume_snapshots(
-                names=[snapname],
-                on=module.params["offload"],
-                remote_volume_snapshot=flasharray.DestroyedPatchPost(destroyed=False),
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_remote_volume_snapshots(
+                    names=[snapname],
+                    context_names=[module.params["context"]],
+                    on=module.params["offload"],
+                    remote_volume_snapshot=DestroyedPatchPost(destroyed=False),
+                )
+            else:
+                res = array.patch_remote_volume_snapshots(
+                    names=[snapname],
+                    on=module.params["offload"],
+                    remote_volume_snapshot=DestroyedPatchPost(destroyed=False),
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to recover remote snapshot {0}".format(snapname)
@@ -379,23 +518,44 @@ def recover_snapshot(module, array, arrayv6):
     else:
         changed = True
         if not module.check_mode:
-            try:
-                array.recover_volume(snapname)
-            except Exception:
-                module.fail_json(msg="Recovery of snapshot {0} failed".format(snapname))
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_volume_snapshot(
+                    names=[snapname],
+                    context_names=[module.params["context"]],
+                    volume_snapshot=VolumeSnapshotPatch(destroyed=False),
+                )
+            else:
+                res = array.patch_volume_snapshot(
+                    names=[snapname],
+                    volume_snapshot=VolumeSnapshotPatch(destroyed=False),
+                )
+            if res.sttaus_code != 200:
+                module.fail_json(
+                    msg="Recovery of snapshot {0} failed. Error: {1}".format(
+                        snapname, res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
 def update_snapshot(module, array):
     """Update Snapshot - basically just rename..."""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
         current_name = module.params["name"] + "." + module.params["suffix"]
         new_name = module.params["name"] + "." + module.params["target"]
-        res = array.patch_volume_snapshots(
-            names=[current_name],
-            volume_snapshot=flasharray.VolumeSnapshotPatch(name=new_name),
-        )
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.patch_volume_snapshots(
+                names=[current_name],
+                context_names=[module.params["context"]],
+                volume_snapshot=VolumeSnapshotPatch(name=new_name),
+            )
+        else:
+            res = array.patch_volume_snapshots(
+                names=[current_name],
+                volume_snapshot=VolumeSnapshotPatch(name=new_name),
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to rename {0} to {1}. Error: {2}".format(
@@ -405,21 +565,31 @@ def update_snapshot(module, array):
     module.exit_json(changed=changed)
 
 
-def delete_snapshot(module, array, arrayv6):
+def delete_snapshot(module, array):
     """Delete Snapshot"""
+    api_version = array.get_rest_version()
     changed = False
     snapname = module.params["name"] + "." + module.params["suffix"]
-    if module.params["offload"] and _check_offload(module, arrayv6):
-        source_array = list(arrayv6.get_arrays().items)[0].name
+    if module.params["offload"] and _check_offload(module, array):
+        source_array = list(array.get_arrays().items)[0].name
         full_snapname = source_array + ":" + snapname
         changed = True
         if not module.check_mode:
-            res = arrayv6.patch_remote_volume_snapshots(
-                names=[full_snapname],
-                on=module.params["offload"],
-                volume_snapshot=flasharray.VolumeSnapshotPatch(destroyed=True),
-                replication_snapshot=module.params["ignore_repl"],
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_remote_volume_snapshots(
+                    names=[full_snapname],
+                    context_names=[module.params["context"]],
+                    on=module.params["offload"],
+                    volume_snapshot=VolumeSnapshotPatch(destroyed=True),
+                    replication_snapshot=module.params["ignore_repl"],
+                )
+            else:
+                res = array.patch_remote_volume_snapshots(
+                    names=[full_snapname],
+                    on=module.params["offload"],
+                    volume_snapshot=VolumeSnapshotPatch(destroyed=True),
+                    replication_snapshot=module.params["ignore_repl"],
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to delete remote snapshot {0}. Error: {1}".format(
@@ -427,25 +597,41 @@ def delete_snapshot(module, array, arrayv6):
                     )
                 )
             if module.params["eradicate"]:
-                res = arrayv6.delete_remote_volume_snapshots(
-                    names=[full_snapname],
-                    on=module.params["offload"],
-                    replication_snapshot=module.params["ignore_repl"],
-                )
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.delete_remote_volume_snapshots(
+                        names=[full_snapname],
+                        context_names=[module.params["context"]],
+                        on=module.params["offload"],
+                        replication_snapshot=module.params["ignore_repl"],
+                    )
+                else:
+                    res = array.delete_remote_volume_snapshots(
+                        names=[full_snapname],
+                        on=module.params["offload"],
+                        replication_snapshot=module.params["ignore_repl"],
+                    )
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
                             snapname, res.errors[0].message
                         )
                     )
-    elif module.params["offload"] and _check_target(module, arrayv6):
+    elif module.params["offload"] and _check_target(module, array):
         changed = True
         if not module.check_mode:
-            res = arrayv6.patch_volume_snapshots(
-                names=[snapname],
-                volume_snapshot=flasharray.DestroyedPatchPost(destroyed=True),
-                replication_snapshot=module.params["ignore_repl"],
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_volume_snapshots(
+                    names=[snapname],
+                    context_names=[module.params["context"]],
+                    volume_snapshot=DestroyedPatchPost(destroyed=True),
+                    replication_snapshot=module.params["ignore_repl"],
+                )
+            else:
+                res = array.patch_volume_snapshots(
+                    names=[snapname],
+                    volume_snapshot=DestroyedPatchPost(destroyed=True),
+                    replication_snapshot=module.params["ignore_repl"],
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to delete remote snapshot {0}. Error: {1}".format(
@@ -453,9 +639,16 @@ def delete_snapshot(module, array, arrayv6):
                     )
                 )
             if module.params["eradicate"]:
-                res = arrayv6.delete_volume_snapshots(
-                    names=[snapname], replication_snapshot=module.params["ignore_repl"]
-                )
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.delete_volume_snapshots(
+                        names=[snapname],
+                        replication_snapshot=module.params["ignore_repl"],
+                    )
+                else:
+                    res = array.delete_volume_snapshots(
+                        names=[snapname],
+                        replication_snapshot=module.params["ignore_repl"],
+                    )
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
@@ -465,72 +658,90 @@ def delete_snapshot(module, array, arrayv6):
     else:
         changed = True
         if not module.check_mode:
-            api_version = array._list_available_rest_versions()
-            if GET_SEND_API in api_version:
-                res = arrayv6.patch_volume_snapshots(
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_volume_snapshots(
                     names=[snapname],
-                    volume_snapshot=flasharray.DestroyedPatchPost(destroyed=True),
+                    context_names=[module.params["context"]],
+                    volume_snapshot=DestroyedPatchPost(destroyed=True),
                     replication_snapshot=module.params["ignore_repl"],
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to delete remote snapshot {0}. Error: {1}".format(
-                            snapname, res.errors[0].message
-                        )
+            else:
+                res = array.patch_volume_snapshots(
+                    names=[snapname],
+                    volume_snapshot=DestroyedPatchPost(destroyed=True),
+                    replication_snapshot=module.params["ignore_repl"],
+                )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to delete remote snapshot {0}. Error: {1}".format(
+                        snapname, res.errors[0].message
                     )
-                if module.params["eradicate"]:
-                    res = arrayv6.delete_volume_snapshots(
+                )
+            if module.params["eradicate"]:
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.delete_volume_snapshots(
+                        names=[snapname],
+                        context_names=[module.params["context"]],
+                        replication_snapshot=module.params["ignore_repl"],
+                    )
+                else:
+                    res = array.delete_volume_snapshots(
                         names=[snapname],
                         replication_snapshot=module.params["ignore_repl"],
                     )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
-                                snapname, res.errors[0].message
-                            )
-                        )
-            else:
-                try:
-                    array.destroy_volume(snapname)
-                    if module.params["eradicate"]:
-                        try:
-                            array.eradicate_volume(snapname)
-                        except PureHTTPError as err:
-                            module.fail_json(
-                                msg="Error eradicating snapshot. Error: {0}".format(
-                                    err.text
-                                )
-                            )
-                except PureHTTPError as err:
+                if res.status_code != 200:
                     module.fail_json(
-                        msg="Error deleting snapshot. Error: {0}".format(err.text)
+                        msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
+                            snapname, res.errors[0].message
+                        )
                     )
     module.exit_json(changed=changed)
 
 
-def eradicate_snapshot(module, array, arrayv6):
+def eradicate_snapshot(module, array):
     """Eradicate snapshot"""
+    api_version = array.get_rest_version()
     changed = True
     snapname = module.params["name"] + "." + module.params["suffix"]
     if not module.check_mode:
-        if module.params["offload"] and _check_offload(module, arrayv6):
-            source_array = list(arrayv6.get_arrays().items)[0].name
+        if module.params["offload"] and _check_offload(module, array):
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                source_array = list(
+                    array.get_arrays(context_names=[module.params["context"]]).items
+                )[0].name
+            else:
+                source_array = list(array.get_arrays().items)[0].name
             full_snapname = source_array + ":" + snapname
-            res = arrayv6.delete_remote_volume_snapshots(
-                names=[full_snapname],
-                on=module.params["offload"],
-                replication_snapshot=module.params["ignore_repl"],
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.delete_remote_volume_snapshots(
+                    names=[full_snapname],
+                    context_names=[module.params["context"]],
+                    on=module.params["offload"],
+                    replication_snapshot=module.params["ignore_repl"],
+                )
+            else:
+                res = array.delete_remote_volume_snapshots(
+                    names=[full_snapname],
+                    on=module.params["offload"],
+                    replication_snapshot=module.params["ignore_repl"],
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
                         snapname, res.errors[0].message
                     )
                 )
-        elif module.params["offload"] and _check_target(module, arrayv6):
-            res = arrayv6.delete_volume_snapshots(
-                names=[snapname], replication_snapshot=module.params["ignore_repl"]
-            )
+        elif module.params["offload"] and _check_target(module, array):
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.delete_volume_snapshots(
+                    context_names=[module.params["context"]],
+                    names=[snapname],
+                    replication_snapshot=module.params["ignore_repl"],
+                )
+            else:
+                res = array.delete_volume_snapshots(
+                    names=[snapname], replication_snapshot=module.params["ignore_repl"]
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
@@ -538,10 +749,18 @@ def eradicate_snapshot(module, array, arrayv6):
                     )
                 )
         else:
-            try:
-                array.eradicate_volume(snapname)
-            except Exception:
-                changed = False
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.delete_volume_snapshots(
+                    context_names=[module.params["context"]], names=[snapname]
+                )
+            else:
+                res = array.delete_volume_snapshots(names=[snapname])
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
+                        snapname, res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
@@ -562,6 +781,7 @@ def main():
                 default="present",
                 choices=["absent", "copy", "present", "rename"],
             ),
+            context=dict(type="str", default=""),
         )
     )
 
@@ -570,8 +790,6 @@ def main():
     module = AnsibleModule(
         argument_spec, required_if=required_if, supports_check_mode=True
     )
-    if not HAS_PUREERROR:
-        module.fail_json(msg="purestorage sdk is required for this module")
     pattern1 = re.compile(
         "^(?=.*[a-zA-Z-])[a-zA-Z0-9]([a-zA-Z0-9-]{0,63}[a-zA-Z0-9])?$"
     )
@@ -605,35 +823,20 @@ def main():
                 )
             )
 
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
-    if GET_SEND_API not in api_version:
-        arrayv6 = None
-        if module.params["offload"]:
+    array = get_array(module)
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this module")
+    if module.params["offload"]:
+        if not _check_offload(module, array) and not _check_target(module, array):
             module.fail_json(
-                msg="Purity 6.1, or higher, is required to support single volume offload snapshots"
-            )
-        if state == "rename":
-            module.fail_json(
-                msg="Purity 6.1, or higher, is required to support snapshot rename"
-            )
-    else:
-        if not HAS_PURESTORAGE:
-            module.fail_json(msg="py-pure-client sdk is required for this module")
-        arrayv6 = get_array(module)
-        if module.params["offload"]:
-            if not _check_offload(module, arrayv6) and not _check_target(
-                module, arrayv6
-            ):
-                module.fail_json(
-                    msg="Selected offload {0} not connected.".format(
-                        module.params["offload"]
-                    )
+                msg="Selected offload {0} not connected.".format(
+                    module.params["offload"]
                 )
+            )
     if (
         state == "copy"
         and module.params["offload"]
-        and not _check_target(module, arrayv6)
+        and not _check_target(module, array)
     ):
         module.fail_json(
             msg="Snapshot copy is not supported when an offload target is defined"
@@ -642,8 +845,8 @@ def main():
     array_snap = False
     offload_snap = False
     volume = get_volume(module, array)
-    if module.params["offload"] and not _check_target(module, arrayv6):
-        offload_snap = _check_offload_snapshot(module, arrayv6)
+    if module.params["offload"] and not _check_target(module, array):
+        offload_snap = _check_offload_snapshot(module, array)
         if offload_snap is None:
             offload_snap = False
         else:
@@ -653,19 +856,19 @@ def main():
     snap = array_snap or offload_snap
 
     if not snap:
-        destroyed = get_deleted_snapshot(module, array, arrayv6)
+        destroyed = get_deleted_snapshot(module, array)
     if state == "present" and volume and not destroyed:
-        create_snapshot(module, array, arrayv6)
+        create_snapshot(module, array)
     elif state == "present" and destroyed:
-        recover_snapshot(module, array, arrayv6)
+        recover_snapshot(module, array)
     elif state == "rename" and volume and snap:
-        update_snapshot(module, arrayv6)
+        update_snapshot(module, array)
     elif state == "copy" and snap:
         create_from_snapshot(module, array)
     elif state == "absent" and snap and not destroyed:
-        delete_snapshot(module, array, arrayv6)
+        delete_snapshot(module, array)
     elif state == "absent" and destroyed and module.params["eradicate"]:
-        eradicate_snapshot(module, array, arrayv6)
+        eradicate_snapshot(module, array)
     elif state == "absent" and not snap:
         module.exit_json(changed=False)
 
