@@ -889,6 +889,15 @@ releases:
       name: purefa_realm
       namespace: ''
     release_date: '2025-02-17'
+  1.33.1:
+    changes:
+      bugfixes:
+      - purefa_host - Fix issue with no VLAN provided when Purity//FA is a recent
+        version.
+      - purefa_host - Fix issue with setting preferred_arrays for a host.
+    fragments:
+    - 714_host_vlan.yaml
+    release_date: '2025-02-19'
   1.4.0:
     changes:
       bugfixes:
