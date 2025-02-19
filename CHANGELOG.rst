@@ -4,6 +4,15 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.33.1
+=======
+
+Bugfixes
+--------
+
+- purefa_host - Fix issue with no VLAN provided when Purity//FA is a recent version.
+- purefa_host - Fix issue with setting preferred_arrays for a host.
+
 v1.33.0
 =======
 
