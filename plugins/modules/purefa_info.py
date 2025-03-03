@@ -35,7 +35,8 @@ options:
         capacity, network, subnet, interfaces, hgroups, pgroups, hosts,
         admins, volumes, snapshots, pods, replication, vgroups, offload, apps,
         arrays, certs, kmip, clients, policies, dir_snaps, filesystems,
-        alerts, virtual_machines, subscriptions, realms and fleet.
+        alerts, virtual_machines, subscriptions, realms, fleet, presets and
+        workloads.
     type: list
     elements: str
     required: false
@@ -3266,6 +3267,75 @@ def generate_fleet_dict(array):
     return fleet_info
 
 
+def generate_preset_dict(array):
+    preset_info = {}
+    presets = list(array.get_presets_workload().items)
+    if presets:
+        for preset in range(0, len(presets)):
+            preset_info[presets[preset].name] = {
+                "description": getattr(presets[preset], "description", None),
+                "workload_type": presets[preset].workload_type,
+                "parameters": [],
+            }
+            for param in range(0, len(presets[preset].parameters)):
+                preset_info[presets[preset].name]["parameters"].append(
+                    {
+                        "type": presets[preset].parameters[param].type,
+                        "name": presets[preset].parameters[param].name,
+                        "description": presets[preset]
+                        .parameters[param]
+                        .metadata.description,
+                        "display_name": presets[preset]
+                        .parameters[param]
+                        .metadata.display_name,
+                        "constraints": [],
+                    }
+                )
+                if presets[preset].parameters[param].type == "integer":
+                    preset_info[presets[preset].name]["parameters"][
+                        "constraints"
+                    ].append(
+                        {
+                            "allowed_values": presets[preset]
+                            .parameters[param]
+                            .constraints.integer.allowed_values,
+                            "default": getattr(
+                                presets[preset].parameters[param].constraints.integer,
+                                "default",
+                                None,
+                            ),
+                            "minimum": getattr(
+                                presets[preset].parameters[param].constraints.integer,
+                                "minimum",
+                                None,
+                            ),
+                            "maximum": getattr(
+                                presets[preset].parameters[param].constraints.integer,
+                                "maximum",
+                                None,
+                            ),
+                            "subtype": getattr(
+                                presets[preset].parameters[param].constraints.integer,
+                                "subtype",
+                                None,
+                            ),
+                        }
+                    )
+                elif presets[preset].parameters[param].type == "boolean":
+                    preset_info[presets[preset].name]["parameters"]["constraints"] = {}
+                elif presets[preset].parameters[param].type == "string":
+                    preset_info[presets[preset].name]["parameters"]["constraints"] = {}
+                else:  # resource_reference
+                    preset_info[presets[preset].name]["parameters"]["constraints"] = {}
+
+    return preset_info
+
+
+def generate_workload_dict(array):
+    workload_info = {}
+    return workload_info
+
+
 def generate_realms_dict(array, performance):
     realms_info = {}
     realms = list(array.get_realms().items)
@@ -3401,6 +3471,8 @@ def main():
         "subscriptions",
         "realms",
         "fleet",
+        "presets",
+        "workloads",
     )
     subset_test = (test in valid_subsets for test in subset)
     if not all(subset_test):
@@ -3508,6 +3580,10 @@ def main():
         if CONTEXT_API_VERSION in api_version:
             if "fleet" in subset or "all" in subset:
                 info["fleet"] = generate_fleet_dict(array_v6)
+            if "presets" in subset or "all" in subset:
+                info["presets"] = generate_preset_dict(array_v6)
+            if "workloads" in subset or "all" in subset:
+                info["workloads"] = generate_workload_dict(array_v6)
     module.exit_json(changed=False, purefa_info=info)
 
 
