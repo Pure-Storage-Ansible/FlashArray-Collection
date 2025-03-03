@@ -670,13 +670,23 @@ def restore_pgsnapvolume(module, array):
                             overwrite=module.params["overwrite"],
                         )
                 else:
-                    res = array.post_volumes(
-                        names=[module.params["target"]],
-                        volume=VolumePost(source=Reference(name=source_volume)),
-                        with_default_protection=module.params[
-                            "with_default_protection"
-                        ],
-                    )
+                    if module.params["overwrite"]:
+                        res = array.post_volumes(
+                            names=[module.params["target"]],
+                            volume=VolumePost(source=Reference(name=source_volume)),
+                            with_default_protection=module.params[
+                                "with_default_protection"
+                            ],
+                            overwrite=module.params["overwrite"],
+                        )
+                    else:
+                        res = array.post_volumes(
+                            names=[module.params["target"]],
+                            volume=VolumePost(source=Reference(name=source_volume)),
+                            with_default_protection=module.params[
+                                "with_default_protection"
+                            ],
+                        )
         else:
             res = array.post_volumes(
                 names=[module.params["target"]],
