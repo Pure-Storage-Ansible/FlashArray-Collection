@@ -158,8 +158,8 @@ def update_role(module, array):
         "readonly",
     ]:
         if (
-            role.group_base != module.params["group_base"]
-            or role.group != module.params["group"]
+            getattr(role, "group_base", None) != module.params["group_base"]
+            or getattr(role, "group", None) != module.params["group"]
             or role.role.name != module.params["role"]
         ):
             changed = True
@@ -180,8 +180,8 @@ def update_role(module, array):
                     )
     else:
         if (
-            role.group_base != module.params["group_base"]
-            or role.group != module.params["group"]
+            getattr(role, "group_base", None) != module.params["group_base"]
+            or getattr(role, "group", None) != module.params["group"]
         ):
             changed = True
             if not module.check_mode:
