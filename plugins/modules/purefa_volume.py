@@ -738,8 +738,14 @@ def create_multi_volume(module, array, single=False):
                 )
             )
         pod_name = module.params["name"].split("::")[0]
-        if array.get_pod(pod_name)["promotion_status"] == "demoted":
-            module.fail_json(msg="Volume cannot be created in a demoted pod")
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if list(array.get_pods(names=[pod_name],
+                                   context_names=[module.params["context"]]
+                                  ).items)[0].promotion_status == "demoted":
+                module.fail_json(msg="Volume cannot be created in a demoted pod")
+        else:
+            if list(array.get_pods(names=[pod_name]).items)[0].promotion_status == "demoted":
+                module.fail_json(msg="Volume cannot be created in a demoted pod")
     if not single:
         for vol_num in range(
             module.params["start"], module.params["count"] + module.params["start"]
