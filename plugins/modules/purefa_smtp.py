@@ -256,7 +256,6 @@ def main():
     )
 
     required_together = [["user", "password"]]
-    
     module = AnsibleModule(
         argument_spec,
         required_together=required_together,
