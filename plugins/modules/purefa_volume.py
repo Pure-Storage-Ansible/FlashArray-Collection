@@ -817,7 +817,9 @@ def create_multi_volume(module, array, single=False):
                     res = array.post_volumes(
                         names=names,
                         volume=vols,
-                        with_default_protection=module.params["with_default_protection"],
+                        with_default_protection=module.params[
+                            "with_default_protection"
+                        ],
                         add_to_protection_groups=add_to_pgs,
                     )
         else:
@@ -841,7 +843,9 @@ def create_multi_volume(module, array, single=False):
                     res = array.post_volumes(
                         names=names,
                         volume=vols,
-                        with_default_protection=module.params["with_default_protection"],
+                        with_default_protection=module.params[
+                            "with_default_protection"
+                        ],
                     )
         if res.status_code != 200:
             module.fail_json(
