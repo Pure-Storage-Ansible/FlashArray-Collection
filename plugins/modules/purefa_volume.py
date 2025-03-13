@@ -807,12 +807,19 @@ def create_multi_volume(module, array, single=False):
                     msg="Cannot specify a remote fleet member and a protection group"
                 )
             else:
-                res = array.post_volumes(
-                    names=names,
-                    volume=vols,
-                    with_default_protection=module.params["with_default_protection"],
-                    add_to_protection_groups=add_to_pgs,
-                )
+                # Need to initialize res
+                res = {}
+                if "::" in module.params["name"]:
+                    module.fail_json(
+                        msg="Volume cannot join a protection group in a different pod"
+                    )
+                else:
+                    res = array.post_volumes(
+                        names=names,
+                        volume=vols,
+                        with_default_protection=module.params["with_default_protection"],
+                        add_to_protection_groups=add_to_pgs,
+                    )
         else:
             # Need to initialize res
             res = {}
@@ -826,11 +833,16 @@ def create_multi_volume(module, array, single=False):
                     msg="Cannot specify a remote fleet member and default protection group"
                 )
             else:
-                res = array.post_volumes(
-                    names=names,
-                    volume=vols,
-                    with_default_protection=module.params["with_default_protection"],
-                )
+                if "::" in module.params["name"]:
+                    module.fail_json(
+                        msg="Volume cannot join a protection group in a different pod"
+                    )
+                else:
+                    res = array.post_volumes(
+                        names=names,
+                        volume=vols,
+                        with_default_protection=module.params["with_default_protection"],
+                    )
         if res.status_code != 200:
             module.fail_json(
                 msg="Multi-Volume {0}#{1} creation failed. Error: {2}".format(
