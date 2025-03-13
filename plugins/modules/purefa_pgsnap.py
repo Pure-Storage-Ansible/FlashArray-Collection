@@ -642,7 +642,7 @@ def restore_pgsnapvolume(module, array):
                         with_default_protection=module.params[
                             "with_default_protection"
                         ],
-                        add_to_protection_group_names=add_to_pgs,
+                        add_to_protection_groups=add_to_pgs,
                         context_names=[module.params["context"]],
                     )
                 else:
@@ -652,7 +652,7 @@ def restore_pgsnapvolume(module, array):
                         with_default_protection=module.params[
                             "with_default_protection"
                         ],
-                        add_to_protection_group_names=add_to_pgs,
+                        add_to_protection_groups=add_to_pgs,
                     )
             else:
                 if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
@@ -670,13 +670,20 @@ def restore_pgsnapvolume(module, array):
                             overwrite=module.params["overwrite"],
                         )
                 else:
-                    res = array.post_volumes(
-                        names=[module.params["target"]],
-                        volume=VolumePost(source=Reference(name=source_volume)),
-                        with_default_protection=module.params[
-                            "with_default_protection"
-                        ],
-                    )
+                    if module.params["overwrite"]:
+                        res = array.post_volumes(
+                            names=[module.params["target"]],
+                            volume=VolumePost(source=Reference(name=source_volume)),
+                            overwrite=module.params["overwrite"],
+                        )
+                    else:
+                        res = array.post_volumes(
+                            names=[module.params["target"]],
+                            volume=VolumePost(source=Reference(name=source_volume)),
+                            with_default_protection=module.params[
+                                "with_default_protection"
+                            ],
+                        )
         else:
             res = array.post_volumes(
                 names=[module.params["target"]],
@@ -917,7 +924,9 @@ def main():
     )
 
     required_if = [("state", "copy", ["suffix", "restore"])]
-    mutually_exclusive = [["now", "remote"]]
+    mutually_exclusive = [
+        ["now", "remote"],
+    ]
 
     module = AnsibleModule(
         argument_spec,
