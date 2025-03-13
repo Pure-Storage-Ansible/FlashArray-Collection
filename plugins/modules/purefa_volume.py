@@ -853,6 +853,8 @@ def create_multi_volume(module, array, single=False):
                         add_to_protection_groups=add_to_pgs,
                     )
         else:
+            # Initialize res
+            res = {}
             if (
                 LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version)
                 and module.params["context"]
