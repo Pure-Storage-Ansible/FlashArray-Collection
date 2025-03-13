@@ -190,7 +190,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: present
 
-- name: Create new volume named foo in pod bar in protection group pg1
+- name: Create new volume named foo in pod bar in protection group pg1 (this cannot be used with context)
   purestorage.flasharray.purefa_volume:
     name: bar::foo
     pgroup: pg1
@@ -814,6 +814,8 @@ def create_multi_volume(module, array, single=False):
                     add_to_protection_groups=add_to_pgs,
                 )
         else:
+            # Need to initialize res
+            res = {}
             if (
                 LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version)
                 and module.params["context"]
