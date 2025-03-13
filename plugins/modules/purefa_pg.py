@@ -1162,7 +1162,7 @@ def main():
     api_version = array.get_rest_version()
     if module.params["safe_mode"] and LooseVersion(
         RETENTION_LOCK_VERSION
-    ) <= LooseVersion(api_version):
+    ) > LooseVersion(api_version):
         module.fail_json(
             msg="API version does not support setting SafeMode on a protection group."
         )
