@@ -256,12 +256,9 @@ def main():
     )
 
     required_together = [["user", "password"]]
-    required_if = [["encryption_mode", "starttls", ["user", "password"]]]
-
     module = AnsibleModule(
         argument_spec,
         required_together=required_together,
-        required_if=required_if,
         supports_check_mode=True,
     )
     if not HAS_PURESTORAGE:
