@@ -797,8 +797,15 @@ def create_multi_volume(module, array, single=False):
                 add_to_pgs.append(
                     FixedReference(name=module.params["add_to_pgs"][add_pg])
                 )
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version) and  module.params["context"] not in ["", list(array.get_arrays().items)[0].name]:
-                module.fail_json(msg="Cannot specify a remote fleet member and a protection group")
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
+                api_version
+            ) and module.params["context"] not in [
+                "",
+                list(array.get_arrays().items)[0].name,
+            ]:
+                module.fail_json(
+                    msg="Cannot specify a remote fleet member and a protection group"
+                )
             else:
                 res = array.post_volumes(
                     names=names,
@@ -807,8 +814,15 @@ def create_multi_volume(module, array, single=False):
                     add_to_protection_groups=add_to_pgs,
                 )
         else:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version) and module.params["context"] not in ["", list(array.get_arrays().items)[0].name] and module.params["with_default_protection"]:
-                module.fail_json(msg="Cannot specify a remote fleet member and default protection group")
+            if (
+                LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version)
+                and module.params["context"]
+                not in ["", list(array.get_arrays().items)[0].name]
+                and module.params["with_default_protection"]
+            ):
+                module.fail_json(
+                    msg="Cannot specify a remote fleet member and default protection group"
+                )
             else:
                 res = array.post_volumes(
                     names=names,
