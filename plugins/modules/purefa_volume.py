@@ -447,6 +447,13 @@ def get_pgroup(module, array):
     return None
 
 
+def pg_exists(pg, array):
+    """Get Protection Group"""
+    res = array.get_protection_groups(names=[pg])
+    api_version = array.get_rest_version()
+    return bool(res.status_code == 200)
+
+
 def get_multi_volumes(module, array):
     """Return True is all volumes exist or None"""
     names = []
@@ -807,11 +814,34 @@ def create_multi_volume(module, array, single=False):
                     msg="Cannot specify a remote fleet member and a protection group"
                 )
             else:
-                # Need to initialize res
-                res = {}
                 if "::" in module.params["name"]:
-                    module.fail_json(
-                        msg="Volume cannot join a protection group in a different pod"
+                    pod_name = module.params["name"].split("::")[0]
+                    for pgs in range(0, len(module.params["add_to_pgs"])):
+                        if "::" not in module.params["add_to_pgs"][pgs]:
+                            module.fail_json(msg="Specified PG is not a pod PG")
+                        elif (
+                            pg_exists(module.params["add_to_pgs"][pgs], array)
+                            and module.params["name"].split("::")[0]
+                            != module.params["add_to_pgs"][pgs].split("::")[0]
+                        ):
+                            module.fail_json(
+                                msg="Protection Group {0} is not associated with pod {1}".format(
+                                    module.params["add_to_pgs"][pgs],
+                                    module.params["name"].split("::")[0],
+                                )
+                            )
+                        elif not pg_exists(module.params["add_to_pgs"][pgs], array):
+                            module.fail_json(
+                                msg="Protection Group {0} does not exist".format(
+                                    module.params["add_to_pgs"][pgs]
+                                )
+                            )
+                    res = array.post_volumes(
+                        names=names,
+                        volume=vols,
+                        with_default_protection=module.params[
+                            "with_default_protection"
+                        ],
                     )
                 else:
                     res = array.post_volumes(
@@ -823,8 +853,6 @@ def create_multi_volume(module, array, single=False):
                         add_to_protection_groups=add_to_pgs,
                     )
         else:
-            # Need to initialize res
-            res = {}
             if (
                 LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version)
                 and module.params["context"]
@@ -835,18 +863,11 @@ def create_multi_volume(module, array, single=False):
                     msg="Cannot specify a remote fleet member and default protection group"
                 )
             else:
-                if "::" in module.params["name"]:
-                    module.fail_json(
-                        msg="Volume cannot join a protection group in a different pod"
-                    )
-                else:
-                    res = array.post_volumes(
-                        names=names,
-                        volume=vols,
-                        with_default_protection=module.params[
-                            "with_default_protection"
-                        ],
-                    )
+                res = array.post_volumes(
+                    names=names,
+                    volume=vols,
+                    with_default_protection=module.params["with_default_protection"],
+                )
         if res.status_code != 200:
             module.fail_json(
                 msg="Multi-Volume {0}#{1} creation failed. Error: {2}".format(
