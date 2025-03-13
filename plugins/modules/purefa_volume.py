@@ -190,9 +190,9 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: present
 
-- name: Create new volume named foo in pod bar in protection group pg1 (this cannot be used with context)
+- name: Create new volume named foo in protection group pg1 (this cannot be used with context)
   purestorage.flasharray.purefa_volume:
-    name: bar::foo
+    name: foo
     pgroup: pg1
     size: 1T
     fa_url: 10.10.10.2
