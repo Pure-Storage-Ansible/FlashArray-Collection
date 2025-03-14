@@ -865,11 +865,23 @@ def create_multi_volume(module, array, single=False):
                     msg="Cannot specify a remote fleet member and default protection group"
                 )
             else:
-                res = array.post_volumes(
-                    names=names,
-                    volume=vols,
-                    with_default_protection=module.params["with_default_protection"],
-                )
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_volumes(
+                        names=names,
+                        volume=vols,
+                        context_names=[module.params["context"]],
+                        with_default_protection=module.params[
+                            "with_default_protection"
+                        ],
+                    )
+                else:
+                    res = array.post_volumes(
+                        names=names,
+                        volume=vols,
+                        with_default_protection=module.params[
+                            "with_default_protection"
+                        ],
+                    )
         if res.status_code != 200:
             module.fail_json(
                 msg="Multi-Volume {0}#{1} creation failed. Error: {2}".format(
