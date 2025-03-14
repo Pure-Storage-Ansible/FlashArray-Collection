@@ -58,9 +58,15 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import Arrays
+except ImportError:
+    HAS_PURESTORAGE = False
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
 
@@ -69,10 +75,13 @@ def set_timeout(module, array):
     """Set GUI idle timeout"""
     changed = True
     if not module.check_mode:
-        try:
-            array.set(idle_timeout=module.params["timeout"])
-        except Exception:
-            module.fail_json(msg="Failed to set GUI idle timeout")
+        res = array.patch_arrays(array=Arrays(idle_timeout=module.params["timeout"]))
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Failed to set GUI idle timeout. Error: {0}".format(
+                    res.errors[0].message
+                )
+            )
 
     module.exit_json(changed=changed)
 
@@ -81,9 +90,8 @@ def disable_timeout(module, array):
     """Disable idle timeout"""
     changed = True
     if not module.check_mode:
-        try:
-            array.set(idle_timeout=0)
-        except Exception:
+        res = array.patch_arrays(array=Arrays(idle_timeout=0))
+        if res.status_code != 200:
             module.fail_json(msg="Failed to disable GUI idle timeout")
     module.exit_json(changed=changed)
 
@@ -102,8 +110,11 @@ def main():
     state = module.params["state"]
     if 5 < module.params["timeout"] > 180 and module.params["timeout"] != 0:
         module.fail_json(msg="Timeout value must be between 5 and 180 minutes")
-    array = get_system(module)
-    current_timeout = array.get(idle_timeout=True)["idle_timeout"]
+    module.params["timeout"] = module.params["timeout"] * 60000
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this module")
+    array = get_array(module)
+    current_timeout = list(array.get_arrays().items)[0].idle_timeout
     if state == "present" and current_timeout != module.params["timeout"]:
         set_timeout(module, array)
     elif state == "absent" and current_timeout != 0:
