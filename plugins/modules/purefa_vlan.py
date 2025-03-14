@@ -118,12 +118,10 @@ def _get_subnet(module, array):
 
 def _get_interface(module, array):
     """Return Interface or None"""
-    if "ct" in module.params["name"]:
-        res = array.get_network_interfaces(names=[module.params["name"]])
-        if res.status_code != 200:
-            return None
-        return list(res.items)[0]
-    return None
+    res = array.get_network_interfaces(names=[module.params["name"]])
+    if res.status_code != 200:
+        return None
+    return list(res.items)[0]
 
 
 def _get_vif(array, interface, subnet):
@@ -206,7 +204,7 @@ def update_vif(module, array, interface, subnet):
     vif_info = _get_vif(array, interface, subnet)
     vif_name = vif_info["name"]
     if module.params["address"]:
-        if module.params["address"] != vif_info["address"]:
+        if module.params["address"] != vif_info["eth"]["address"]:
             changed = True
             if not module.check_mode:
                 res = array.patch_network_interfaces(
