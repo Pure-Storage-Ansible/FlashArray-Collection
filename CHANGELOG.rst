@@ -4,6 +4,24 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.34.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_timeout - Convert to REST v2
+- purefa_user - Added parameter for SSH public keys and API token timeout
+- purefa_user - Converted to use REST v2
+- purefa_user - When changing API token or timout for an existing user, the user role must be provided or it will revert to ``readonly``
+
+Bugfixes
+--------
+
+- purefa_dsrole - Fixed bug with DS role having no group or group base cannot be updated
+- purefa_pgsnap - Fixed issue with overwrite failing
+- purefa_vlan - Allow LACP bonds to be subnet interfaces
+
 v1.33.1
 =======
 
