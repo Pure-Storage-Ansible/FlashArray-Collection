@@ -190,9 +190,9 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: present
 
-- name: Create new volume named foo in pod bar in protection group pg1
+- name: Create new volume named foo in protection group pg1 (this cannot be used with context)
   purestorage.flasharray.purefa_volume:
-    name: bar::foo
+    name: foo
     pgroup: pg1
     size: 1T
     fa_url: 10.10.10.2
@@ -445,6 +445,13 @@ def get_pgroup(module, array):
     if res.status_code == 200:
         return list(res.items)[0]
     return None
+
+
+def pg_exists(pg, array):
+    """Get Protection Group"""
+    res = array.get_protection_groups(names=[pg])
+    api_version = array.get_rest_version()
+    return bool(res.status_code == 200)
 
 
 def get_multi_volumes(module, array):
@@ -738,8 +745,22 @@ def create_multi_volume(module, array, single=False):
                 )
             )
         pod_name = module.params["name"].split("::")[0]
-        if array.get_pod(pod_name)["promotion_status"] == "demoted":
-            module.fail_json(msg="Volume cannot be created in a demoted pod")
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if (
+                list(
+                    array.get_pods(
+                        names=[pod_name], context_names=[module.params["context"]]
+                    ).items
+                )[0].promotion_status
+                == "demoted"
+            ):
+                module.fail_json(msg="Volume cannot be created in a demoted pod")
+        else:
+            if (
+                list(array.get_pods(names=[pod_name]).items)[0].promotion_status
+                == "demoted"
+            ):
+                module.fail_json(msg="Volume cannot be created in a demoted pod")
     if not single:
         for vol_num in range(
             module.params["start"], module.params["count"] + module.params["start"]
@@ -783,35 +804,84 @@ def create_multi_volume(module, array, single=False):
                 add_to_pgs.append(
                     FixedReference(name=module.params["add_to_pgs"][add_pg])
                 )
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.post_volumes(
-                    names=names,
-                    volume=vols,
-                    context_names=[module.params["context"]],
-                    with_default_protection=module.params["with_default_protection"],
-                    add_to_protection_groups=add_to_pgs,
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
+                api_version
+            ) and module.params["context"] not in [
+                "",
+                list(array.get_arrays().items)[0].name,
+            ]:
+                module.fail_json(
+                    msg="Cannot specify a remote fleet member and a protection group"
                 )
             else:
-                res = array.post_volumes(
-                    names=names,
-                    volume=vols,
-                    with_default_protection=module.params["with_default_protection"],
-                    add_to_protection_groups=add_to_pgs,
-                )
+                if "::" in module.params["name"]:
+                    pod_name = module.params["name"].split("::")[0]
+                    for pgs in range(0, len(module.params["add_to_pgs"])):
+                        if "::" not in module.params["add_to_pgs"][pgs]:
+                            module.fail_json(msg="Specified PG is not a pod PG")
+                        elif (
+                            pg_exists(module.params["add_to_pgs"][pgs], array)
+                            and module.params["name"].split("::")[0]
+                            != module.params["add_to_pgs"][pgs].split("::")[0]
+                        ):
+                            module.fail_json(
+                                msg="Protection Group {0} is not associated with pod {1}".format(
+                                    module.params["add_to_pgs"][pgs],
+                                    module.params["name"].split("::")[0],
+                                )
+                            )
+                        elif not pg_exists(module.params["add_to_pgs"][pgs], array):
+                            module.fail_json(
+                                msg="Protection Group {0} does not exist".format(
+                                    module.params["add_to_pgs"][pgs]
+                                )
+                            )
+                    res = array.post_volumes(
+                        names=names,
+                        volume=vols,
+                        with_default_protection=module.params[
+                            "with_default_protection"
+                        ],
+                    )
+                else:
+                    res = array.post_volumes(
+                        names=names,
+                        volume=vols,
+                        with_default_protection=module.params[
+                            "with_default_protection"
+                        ],
+                        add_to_protection_groups=add_to_pgs,
+                    )
         else:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.post_volumes(
-                    names=names,
-                    context_names=[module.params["context"]],
-                    volume=vols,
-                    with_default_protection=module.params["with_default_protection"],
+            # Initialize res
+            res = {}
+            if (
+                LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version)
+                and module.params["context"]
+                not in ["", list(array.get_arrays().items)[0].name]
+                and module.params["with_default_protection"]
+            ):
+                module.fail_json(
+                    msg="Cannot specify a remote fleet member and default protection group"
                 )
             else:
-                res = array.post_volumes(
-                    names=names,
-                    volume=vols,
-                    with_default_protection=module.params["with_default_protection"],
-                )
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_volumes(
+                        names=names,
+                        volume=vols,
+                        context_names=[module.params["context"]],
+                        with_default_protection=module.params[
+                            "with_default_protection"
+                        ],
+                    )
+                else:
+                    res = array.post_volumes(
+                        names=names,
+                        volume=vols,
+                        with_default_protection=module.params[
+                            "with_default_protection"
+                        ],
+                    )
         if res.status_code != 200:
             module.fail_json(
                 msg="Multi-Volume {0}#{1} creation failed. Error: {2}".format(
@@ -1264,6 +1334,45 @@ def update_volume(module, array):
                             module.params["name"], prio_res.errors[0].message
                         )
                     )
+    if module.params["add_to_pgs"]:
+        pgs_now = []
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            current_pgs = list(
+                array.get_protection_groups_volumes(
+                    context_names=[module.params["context"]],
+                    members=[FixedReference(name=module.params["name"])],
+                ).items
+            )
+        else:
+            current_pgs = list(
+                array.get_protection_groups_volumes(
+                    members=[FixedReference(name=module.params["name"])]
+                ).items
+            )
+        for current_pg in range(0, len(current_pgs)):
+            pgs_now.append(current_pgs[current_pg].group.name)
+        new_pgs = list(filter(lambda x: x not in pgs_now, module.params["add_to_pgs"]))
+        if new_pgs:
+            changed = True
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.post_volumes_protection_groups(
+                    member_names=[module.params["name"]],
+                    group_names=new_pgs,
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.post_volumes_protection_groups(
+                    member_names=[module.params["name"]],
+                    group_names=new_pgs,
+                )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to add volume {0} to new PGs {1}: Error: {2}".format(
+                        module.params["name"],
+                        new_pgs,
+                        res.errors[0].message,
+                    )
+                )
     module.exit_json(
         changed=changed, volume=_volfact(module, array, module.params["name"])
     )
@@ -1543,39 +1652,79 @@ def move_volume(module, array):
 def delete_volume(module, array):
     """Delete Volume"""
     api_version = array.get_rest_version()
-    changed = True
-    if not module.check_mode:
+    changed = False
+    if module.params["add_to_pgs"]:
+        pgs_now = []
         if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.patch_volumes(
-                names=[module.params["name"]],
-                volume=VolumePatch(destroyed=True),
-                context_names=[module.params["context"]],
+            current_pgs = list(
+                array.get_protection_groups_volumes(
+                    context_names=[module.params["context"]],
+                    members=[FixedReference(name=module.params["name"])],
+                ).items
             )
         else:
-            res = array.patch_volumes(
-                names=[module.params["name"]], volume=VolumePatch(destroyed=True)
+            current_pgs = list(
+                array.get_protection_groups_volumes(
+                    members=[FixedReference(name=module.params["name"])]
+                ).items
             )
-        if res.status_code == 200 and module.params["eradicate"]:
+        for current_pg in range(0, len(current_pgs)):
+            pgs_now.append(current_pgs[current_pg].group.name)
+        old_pgs = list(filter(lambda x: x in module.params["add_to_pgs"], pgs_now))
+        if old_pgs:
+            changed = True
+            if not module.check_mode:
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.delete_volumes_protection_groups(
+                        member_names=[module.params["name"]],
+                        group_names=old_pgs,
+                        context_names=[module.params["context"]],
+                    )
+                else:
+                    res = array.delete_volumes_protection_groups(
+                        member_names=[module.params["name"]],
+                        group_names=old_pgs,
+                    )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to remove volume {0} from PGs {1}: Error: {2}".format(
+                            module.params["name"], old_pgs, res.errors[0].message
+                        )
+                    )
+    else:
+        changed = True
+        if not module.check_mode:
             if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.delete_volumes(
+                res = array.patch_volumes(
                     names=[module.params["name"]],
+                    volume=VolumePatch(destroyed=True),
                     context_names=[module.params["context"]],
                 )
             else:
-                res = array.delete_volumes(names=[module.params["name"]])
-            if res.status_code != 200:
+                res = array.patch_volumes(
+                    names=[module.params["name"]], volume=VolumePatch(destroyed=True)
+                )
+            if res.status_code == 200 and module.params["eradicate"]:
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.delete_volumes(
+                        names=[module.params["name"]],
+                        context_names=[module.params["context"]],
+                    )
+                else:
+                    res = array.delete_volumes(names=[module.params["name"]])
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Eradicate volume {0} failed. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+                module.exit_json(changed=changed, volume=[])
+            else:
                 module.fail_json(
-                    msg="Eradicate volume {0} failed. Error: {1}".format(
+                    msg="Delete volume {0} failed. Error: {1}".format(
                         module.params["name"], res.errors[0].message
                     )
                 )
-            module.exit_json(changed=changed, volume=[])
-        else:
-            module.fail_json(
-                msg="Delete volume {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
     module.exit_json(
         changed=changed, volume=_volfact(module, array, module.params["name"])
     )
@@ -1780,7 +1929,13 @@ def main():
         elif (
             state == "present"
             and volume
-            and (size or bw_qos or iops_qos or module.params["promotion_state"])
+            and (
+                size
+                or bw_qos
+                or iops_qos
+                or module.params["promotion_state"]
+                or module.params["add_to_pgs"]
+            )
         ):
             update_volume(module, array)
         elif state == "present" and not volume and module.params["move"]:

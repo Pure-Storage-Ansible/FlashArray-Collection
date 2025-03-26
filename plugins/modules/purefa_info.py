@@ -2578,10 +2578,12 @@ def generate_vgroups_dict(module, array, performance):
             vgroups_info[name]["system"] = vgroups[vgroup].space.unique
             vgroups_info[name]["unique_space"] = vgroups[vgroup].space.unique
             vgroups_info[name]["virtual_space"] = vgroups[vgroup].space.virtual
-            vgroups_info[name]["data_reduction"] = vgroups[vgroup].space.data_reduction
-            vgroups_info[name]["total_reduction"] = vgroups[
-                vgroup
-            ].space.total_reduction
+            vgroups_info[name]["data_reduction"] = (
+                getattr(vgroups[vgroup].space, "data_reduction", None),
+            )
+            vgroups_info[name]["total_reduction"] = (
+                getattr(vgroups[vgroup].space, "total_reduction", None),
+            )
             vgroups_info[name]["total_provisioned"] = vgroups[
                 vgroup
             ].space.total_provisioned
