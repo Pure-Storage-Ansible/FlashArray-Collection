@@ -898,6 +898,26 @@ releases:
     fragments:
     - 714_host_vlan.yaml
     release_date: '2025-02-19'
+  1.34.0:
+    changes:
+      bugfixes:
+      - purefa_dsrole - Fixed bug with DS role having no group or group base cannot
+        be updated
+      - purefa_pgsnap - Fixed issue with overwrite failing
+      - purefa_vlan - Allow LACP bonds to be subnet interfaces
+      minor_changes:
+      - purefa_timeout - Convert to REST v2
+      - purefa_user - Added parameter for SSH public keys and API token timeout
+      - purefa_user - Converted to use REST v2
+      - purefa_user - When changing API token or timout for an existing user, the
+        user role must be provided or it will revert to ``readonly``
+    fragments:
+    - 718_lacp_subnet.yaml
+    - 719_pgsnap_overwrite.yaml
+    - 721_dsrole_bug.yaml
+    - 722_timeout_v2.yaml
+    - 722_user_rest2.yaml
+    release_date: '2025-03-26'
   1.4.0:
     changes:
       bugfixes:
