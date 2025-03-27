@@ -376,7 +376,7 @@ def make_vgroup(module, array):
             module.fail_json(
                 msg="IOPs QoS value {0} out of range.".format(module.params["iops_qos"])
             )
-    else:
+    elif module.params["iops_qos"] and module.params["bw_qos"]:
         bw_qos_size = int(human_to_bytes(module.params["bw_qos"]))
         if int(human_to_real(module.params["iops_qos"])) in range(
             100, 100000000
@@ -420,6 +420,26 @@ def make_vgroup(module, array):
                     )
         else:
             module.fail_json(msg="IOPs or Bandwidth QoS value out of range.")
+    else:
+        changed = True
+        if not module.check_mode:
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.post_volume_groups(
+                    context_names=[module.params["context"]],
+                    names=[module.params["name"]],
+                    volume_group=VolumeGroupPost(),
+                )
+            else:
+                res = array.post_volume_groups(
+                    names=[module.params["name"]],
+                    volume_group=VolumeGroupPost(),
+                )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Vgroup {0} creation failed. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
     if LooseVersion(PRIORITY_API_VERSION) <= LooseVersion(api_version):
         volume_group = VolumeGroupPatch(
             priority_adjustment=PriorityAdjustment(
@@ -585,7 +605,10 @@ def update_vgroup(module, array):
         vg_qos.iops_limit = 100000000
     if module.params["bw_qos"]:
         if int(human_to_bytes(module.params["bw_qos"])) != vg_qos.bandwidth_limit:
-            if module.params["bw_qos"] == "0":
+            if (
+                module.params["bw_qos"] == "0"
+                and vg_qos.bandwidth_limit != 549755813888
+            ):
                 changed = True
                 if not module.check_mode:
                     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
@@ -643,7 +666,7 @@ def update_vgroup(module, array):
                 )
     if module.params["iops_qos"]:
         if human_to_real(module.params["iops_qos"]) != vg_qos.iops_limit:
-            if module.params["iops_qos"] == "0":
+            if module.params["iops_qos"] == "0" and vg_qos.iops_limit != 100000000:
                 changed = True
                 if not module.check_mode:
                     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
