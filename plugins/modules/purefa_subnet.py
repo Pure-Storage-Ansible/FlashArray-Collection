@@ -106,7 +106,7 @@ except ImportError:
 import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
 
@@ -114,11 +114,8 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 def _get_subnet(module, array):
     """Return subnet or None"""
     subnet = {}
-    try:
-        subnet = array.get_subnet(module.params["name"])
-    except Exception:
-        return None
-    return subnet
+    res = array.get_subnets(names=[module.params["name"]])
+    return bool(res.status_code == 200)
 
 
 def update_subnet(module, array, subnet):
@@ -334,7 +331,7 @@ def main():
             "with a letter or number. The name must include at least one letter or '-'."
         )
     state = module.params["state"]
-    array = get_system(module)
+    array = get_array(module)
     subnet = _get_subnet(module, array)
     if module.params["prefix"]:
         module.params["prefix"] = module.params["prefix"].strip("[]")
