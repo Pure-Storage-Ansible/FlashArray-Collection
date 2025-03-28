@@ -1934,11 +1934,6 @@ def update_policy(module, array, api_version, all_squash):
                         "quota": rule_config.quota_limit,
                         "notifications": rule_config.notifications,
                     }
-                    module.warn(
-                        "before: old: {0}, new: {1}".format(
-                            current_rule_config, new_rule_config
-                        )
-                    )
                     if (
                         current_rule_config["enforced"]
                         != module.params["quota_enforced"]
@@ -1950,21 +1945,19 @@ def update_policy(module, array, api_version, all_squash):
                     ):
                         new_rule_config["quota"] = quota
                     if module.params["quota_notifications"]:
+                        if "none" in module.params["quota_notifications"]:
+                            module.params["quota_notifications"] == ["none"]
                         new_notifications = ",".join(
-                            module.params["quota_notifications"].sort(reverse=True)
+                            sorted(module.params["quota_notifications"], reverse=True)
                         )
                         if new_notifications != current_rule_config["notifications"]:
                             new_rule_config["notifications"] = new_notifications
-                    module.warn(
-                        "after: old: {0}, new: {1}".format(
-                            current_rule_config, new_rule_config
-                        )
-                    )
                     if new_rule_config != current_rule_config:
                         changed_rule = True
                         res = array.patch_policies_quota_rules(
                             policy_names=[module.params["name"]],
                             ignore_usage=module.params["ignore_usage"],
+                            names=[module.params["rule_name"]],
                             rules=PolicyRuleQuotaPatch(
                                 rules=[
                                     PolicyrulequotapatchRules(
@@ -1975,15 +1968,14 @@ def update_policy(module, array, api_version, all_squash):
                                 ]
                             ),
                         )
-                        module.warn("{0}".format(res))
-                        #if res.status_code != 200:
-                        #    module.fail_json(
-                        #        msg="Failed to update rule {0} for quota {1}. Error: {2}".format(
-                        #            module.params["rule_name"],
-                        #            module.params["name"],
-                        #            res.errors[0].message,
-                        #        )
-                        #    )
+                        if res.status_code != 200:
+                            module.fail_json(
+                                msg="Failed to update rule {0} for quota {1}. Error: {2}".format(
+                                    module.params["rule_name"],
+                                    module.params["name"],
+                                    res.errors[0].message,
+                                )
+                            )
                 else:
                     one_enforced = False
                     for check_rule in range(0, len(current_rules)):
@@ -1994,6 +1986,8 @@ def update_policy(module, array, api_version, all_squash):
                         if not module.params["quota_notifications"]:
                             current_notifications = "none"
                         else:
+                            if "none" in module.params["quota_notifications"]:
+                                module.params["quota_notifications"] == ["none"]
                             current_notifications = ",".join(
                                 module.params["quota_notifications"]
                             )
@@ -2015,12 +2009,13 @@ def update_policy(module, array, api_version, all_squash):
                             module.fail_json(
                                 msg="Only one enforced rule can be defined per policy"
                             )
+                        if "none" in module.params["quota_notifications"]:
+                            module.params["quota_notifications"] == ["none"]
+                        notifications = ",".join(module.params["quota_notifications"])
                         rules = PolicyrulequotapostRules(
                             enforced=module.params["quota_enforced"],
                             quota_limit=quota,
-                            notifications=",".join(
-                                module.params["quota_notifications"]
-                            ),
+                            notifications=notifications,
                         )
                         rule = PolicyRuleQuotaPost(rules=[rules])
                         changed_quota = True
