@@ -918,6 +918,14 @@ releases:
     - 722_timeout_v2.yaml
     - 722_user_rest2.yaml
     release_date: '2025-03-26'
+  1.34.1:
+    changes:
+      bugfixes:
+      - purefa_vg - Fixed idempotency issue when clearing volume group QoS settings
+      - purefa_vg - Fixed issue with creating non-QoS volume groups
+    fragments:
+    - 736_vg_fix.yaml
+    release_date: '2025-03-27'
   1.4.0:
     changes:
       bugfixes:
