@@ -104,189 +104,192 @@ volume:
             type: str
 """
 
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import (
+        VolumePost,
+        VolumePatch,
+        ProtocolEndpoint,
+    )
+except ImportError:
+    HAS_PURESTORAGE = False
+
+import time
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
 
 
-VGROUPS_API_VERSION = "1.13"
+def _volfact(module, array, volume_name):
+    api_version = array.get_rest_version()
+    if not module.check_mode:
+        volume_data = list(array.get_volumes(names=[volume_name]).items)[0]
+        volfact = {
+            "name": volume_data.name,
+            "source": getattr(volume_data.source, "name", None),
+            "serial": volume_data.serial,
+            "created": time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(volume_data.created / 1000)
+            ),
+            "destroyed": volume_data.destroyed,
+        }
+    else:
+        volfact = {}
+    return volfact
 
 
 def get_volume(volume, array):
     """Return Volume or None"""
-    try:
-        return array.get_volume(volume, pending=True)
-    except Exception:
+    res = array.get_volume(names=[volume])
+    if res.status_code != 200:
         return None
-
-
-def get_target(volume, array):
-    """Return Volume or None"""
-    try:
-        return array.get_volume(volume, pending=True)
-    except Exception:
-        return None
-
-
-def get_endpoint(vol, array):
-    """Return Endpoint or None"""
-    try:
-        return array.get_volume(vol, protocol_endpoint=True)
-    except Exception:
-        return None
-
-
-def get_destroyed_endpoint(vol, array):
-    """Return Endpoint Endpoint or None"""
-    try:
-        return bool(
-            array.get_volume(vol, protocol_endpoint=True, pending=True)[
-                "time_remaining"
-            ]
-            != ""
-        )
-    except Exception:
-        return None
-
-
-def check_vgroup(module, array):
-    """Check is the requested VG to create volume in exists"""
-    vg_exists = False
-    vg_name = module.params["name"].split("/")[0]
-    try:
-        vgs = array.list_vgroups()
-    except Exception:
-        module.fail_json(msg="Failed to get volume groups list. Check array.")
-    for vgroup in range(0, len(vgs)):
-        if vg_name == vgs[vgroup]["name"]:
-            vg_exists = True
-            break
-    return vg_exists
+    else:
+        return list(res.items)[0]
 
 
 def create_endpoint(module, array):
     """Create Endpoint"""
-    changed = False
-    volfact = []
-    if "/" in module.params["name"] and not check_vgroup(module, array):
+    changed = True
+    vg_exists = bool(
+        array.get_volume_groups(names=[module.params["name"].split("/")[0]]).status_code
+        != 200
+    )
+    if "/" in module.params["name"] and not vg_exists:
         module.fail_json(
             msg="Failed to create endpoint {0}. Volume Group does not exist.".format(
                 module.params["name"]
             )
         )
-    try:
-        changed = True
-        if not module.check_mode:
-            volfact = array.create_conglomerate_volume(module.params["name"])
-    except Exception:
-        module.fail_json(
-            msg="Endpoint {0} creation failed.".format(module.params["name"])
+    if not module.check_mode:
+        res = array.post_volumes(
+            names=[module.params["name"]],
+            volume=VolumePost(
+                subtype="protocol_endpoint",
+                protocol_endpoint=ProtocolEndpoint(
+                    container_version=module.params["container_version"]
+                ),
+            ),
         )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Endpoint {0} creation failed. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
+            )
     if module.params["host"]:
-        try:
-            if not module.check_mode:
-                array.connect_host(module.params["host"], module.params["name"])
-        except Exception:
-            module.fail_json(
-                msg="Failed to attach endpoint {0} to host {1}.".format(
-                    module.params["name"], module.params["host"]
+        if not module.check_mode:
+            array.connect_host(module.params["host"], module.params["name"])
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to attach endpoint {0} to host {1}. Error: {2}".format(
+                        module.params["name"],
+                        module.params["host"],
+                        res.errors[0].message,
+                    )
                 )
-            )
     if module.params["hgroup"]:
-        try:
-            if not module.check_mode:
-                array.connect_hgroup(module.params["hgroup"], module.params["name"])
-        except Exception:
-            module.fail_json(
-                msg="Failed to attach endpoint {0} to hostgroup {1}.".format(
-                    module.params["name"], module.params["hgroup"]
+        if not module.check_mode:
+            array.connect_hgroup(module.params["hgroup"], module.params["name"])
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to attach endpoint {0} to hostgroup {1}. Error: {2}".format(
+                        module.params["name"],
+                        module.params["hgroup"],
+                        res.errors[0].message,
+                    )
                 )
-            )
 
-    module.exit_json(changed=changed, volume=volfact)
+    module.exit_json(
+        changed=changed, volume=_volfact(module, array, module.params["name"])
+    )
 
 
 def rename_endpoint(module, array):
     """Rename endpoint within a container, ie vgroup or local array"""
     changed = False
-    volfact = []
     target_name = module.params["rename"]
     if "/" in module.params["rename"] or "::" in module.params["rename"]:
         module.fail_json(msg="Target endpoint cannot include a container name")
     if "/" in module.params["name"]:
         vgroup_name = module.params["name"].split("/")[0]
         target_name = vgroup_name + "/" + module.params["rename"]
-    if get_target(target_name, array) or get_destroyed_endpoint(target_name, array):
-        module.fail_json(msg="Target endpoint {0} already exists.".format(target_name))
-    else:
-        try:
-            changed = True
-            if not module.check_mode:
-                volfact = array.rename_volume(module.params["name"], target_name)
-        except Exception:
-            module.fail_json(
-                msg="Rename endpoint {0} to {1} failed.".format(
-                    module.params["name"], module.params["rename"]
-                )
+    if get_volume(target_name, array):
+        module.fail_json(msg="Target {0} already exists.".format(target_name))
+    changed = True
+    if not module.check_mode:
+        res = array.patch_volumes(
+            names=[module.params["name"]], volume=VolumePatch(name=target_name)
+        )
+    if res.status_code != 200:
+        module.fail_json(
+            msg="Rename endpoint {0} to {1} failed. Error: {2}".format(
+                module.params["name"], module.params["rename"], res.errors[0].message
             )
+        )
 
-    module.exit_json(changed=changed, volume=volfact)
+    module.exit_json(changed=changed, volume=_volfact(module, array, target_name))
 
 
 def delete_endpoint(module, array):
     """Delete Endpoint"""
     changed = True
-    volfact = []
     if not module.check_mode:
-        try:
-            array.destroy_volume(module.params["name"])
-            if module.params["eradicate"]:
-                try:
-                    volfact = array.eradicate_volume(module.params["name"])
-                except Exception:
-                    module.fail_json(
-                        msg="Eradicate endpoint {0} failed.".format(
-                            module.params["name"]
-                        )
-                    )
-        except Exception:
+        res = array.patch_volumes(
+            names=[module.params["name"]], volume=VolumePatch(destroyed=True)
+        )
+        if res.status_code != 200:
             module.fail_json(
-                msg="Delete endpoint {0} failed.".format(module.params["name"])
+                msg="Failed to delete endpoint {0}. Error: {1}".format(
+                    module.params["name"], res.errors[0].name
+                )
             )
-    module.exit_json(changed=changed, volume=volfact)
+        if module.params["eradicate"]:
+            res = array.delete_volumes(names=[module.params["name"]])
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Eradicate endpoint {0} failed. Erro: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
+            module.exit_json(changed=changed, volume=[])
+    module.exit_json(
+        changed=changed, volume=_volfact(module, array, module.params["name"])
+    )
 
 
 def recover_endpoint(module, array):
     """Recover Deleted Endpoint"""
     changed = True
-    volfact = []
     if not module.check_mode:
-        try:
-            array.recover_volume(module.params["name"])
-        except Exception:
+        res = array.patch_volumes(
+            names=[module.params["name"]], volume=VolumePatch(destroyed=False)
+        )
+        if res.ststus_code != 200:
             module.fail_json(
-                msg="Recovery of endpoint {0} failed".format(module.params["name"])
+                msg="Recovery of endpoint {0} failed. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
             )
-    module.exit_json(changed=changed, volume=volfact)
+    module.exit_json(
+        changed=changed, volume=_volfact(module, array, module.params["name"])
+    )
 
 
 def eradicate_endpoint(module, array):
     """Eradicate Deleted Endpoint"""
     changed = True
-    volfact = []
     if not module.check_mode:
         if module.params["eradicate"]:
-            try:
-                array.eradicate_volume(module.params["name"], protocol_endpoint=True)
-            except Exception:
+            res = array.delete_volumes(names=[module.params["name"]])
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Eradication of endpoint {0} failed".format(
-                        module.params["name"]
+                    msg="Eradication of endpoint {0} failed. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
                     )
                 )
-    module.exit_json(changed=changed, volume=volfact)
+    module.exit_json(changed=changed, volume=[])
 
 
 def main():
@@ -308,36 +311,30 @@ def main():
         argument_spec, mutually_exclusive=mutually_exclusive, supports_check_mode=True
     )
 
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this mudule")
     state = module.params["state"]
     destroyed = False
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
-    if VGROUPS_API_VERSION not in api_version:
-        module.fail_json(
-            msg="Purity version does not support endpoints. Please contact support"
-        )
+    array = get_array(module)
     volume = get_volume(module.params["name"], array)
-    if volume:
+    if volume and volume.subtype != "protocol_endpoint":
         module.fail_json(
-            msg="Volume {0} is an true volume. Please use the purefa_volume module".format(
+            msg="Volume {0} is a true volume. Please use the purefa_volume module".format(
                 module.params["name"]
             )
         )
-    endpoint = get_endpoint(module.params["name"], array)
-    if not endpoint:
-        destroyed = get_destroyed_endpoint(module.params["name"], array)
 
-    if state == "present" and not endpoint and not destroyed:
+    if state == "present" and not volume:
         create_endpoint(module, array)
-    elif state == "present" and endpoint and module.params["rename"]:
+    elif state == "present" and module.params["rename"]:
         rename_endpoint(module, array)
-    elif state == "present" and destroyed:
+    elif state == "present" and volume and volume.destroyed:
         recover_endpoint(module, array)
-    elif state == "absent" and endpoint:
+    elif state == "absent":
         delete_endpoint(module, array)
-    elif state == "absent" and destroyed:
+    elif state == "absent" and volume and volume.destroyed:
         eradicate_endpoint(module, array)
-    elif state == "absent" and not endpoint and not volume:
+    else:
         module.exit_json(changed=False)
 
     module.exit_json(changed=False)
