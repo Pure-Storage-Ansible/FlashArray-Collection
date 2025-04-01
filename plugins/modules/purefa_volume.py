@@ -1719,7 +1719,7 @@ def delete_volume(module, array):
                         )
                     )
                 module.exit_json(changed=changed, volume=[])
-            else:
+            elif res.status_code != 200:
                 module.fail_json(
                     msg="Delete volume {0} failed. Error: {1}".format(
                         module.params["name"], res.errors[0].message
