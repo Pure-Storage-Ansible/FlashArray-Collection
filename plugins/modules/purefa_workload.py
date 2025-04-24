@@ -31,9 +31,10 @@ options:
     required: true
   state:
     description:
-    - Define whether to create, rename or delete a fleet workload.
+    - Define whether to create or delete a fleet workload.
+    - Using the expand option will add volume(s) to the workload.
     default: present
-    choices: [ absent, present, rename ]
+    choices: [ absent, present, expand]
     type: str
   preset:
     description:
@@ -41,7 +42,7 @@ options:
     type: str
   rename:
     description:
-    - new name for workload
+    - new name for a workload
     type: str
   eradicate:
     description:
@@ -60,6 +61,15 @@ options:
       one is available
     default: false
     type: bool
+  volume_count:
+    description:
+    - Number of additional volumes to add to an existing workload
+    type: int
+  volume_configuration:
+    description:
+    - Name of the volume configuration to use for adding volumes
+      to a workload
+    type: str
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -78,6 +88,16 @@ EXAMPLES = r"""
     name: foo
     preset: bar
     recommendation: true
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Add volumes to workload foo based on volume configuration fin
+  purestorage.flasharray.purefa_workload:
+    name: foo
+    preset: bar
+    volume_configuration: fin
+    volume_count: 3
+    state: expand
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
@@ -117,15 +137,12 @@ RETURN = r"""
 
 HAS_PURESTORAGE = True
 try:
-    from pypureclient import flasharray
     from pypureclient.flasharray import (
-        FleetMemberPost,
-        FleetmemberpostMember,
-        FleetmemberpostMembers,
-        FleetPatch,
+        WorkloadConfigurationReference,
         WorkloadPatch,
         WorkloadPost,
         WorkloadPlacementRecommendation,
+        VolumePost,
     )
 except ImportError:
     HAS_PURESTORAGE = False
@@ -145,6 +162,24 @@ USER_AGENT_BASE = "Ansible"
 MIN_REQUIRED_API_VERSION = "2.40"
 
 
+def _create_volume(module, array):
+    """Create an actual volume in a workload"""
+    res = array.post_volumes(
+        volume=VolumePost(
+            workload=WorkloadConfigurationReference(
+                name=module.params["name"],
+                configuration=module.params["volume_configuration"],
+            )
+        )
+    )
+    if res.status_code != 200:
+        module.fail_json(
+            msg="Workload volume creation failed. Error: {0}".format(
+                res.errors[0].message
+            )
+        )
+
+
 def create_workload(module, array, fleet, preset_config):
     """Create fleet workload using existing preset"""
     changed = True
@@ -159,7 +194,7 @@ def create_workload(module, array, fleet, preset_config):
         # Start the workload calculation for the preset being used
         res = array.post_workloads_placement_recommendations(
             inputs=WorkloadPlacementRecommendation(),
-            preset_names=[fleet + ":" + module.params["preset"]],
+            preset_names=[module.params["preset"]],
         )
         if res.status_code != 200:
             module.fail_json(
@@ -167,7 +202,7 @@ def create_workload(module, array, fleet, preset_config):
                     res.errors[0].message
                 )
             )
-        workload_calc = list(res.items[0]).name
+        workload_calc = list(res.items)[0].name
         # Wait for the workload calulation to complete
         result = list(
             array.get_workloads_placement_recommendations(names=[workload_calc]).items
@@ -183,14 +218,33 @@ def create_workload(module, array, fleet, preset_config):
         module.params["placement"] = result.results[0].placements[0].targets[0].name
     if not module.check_mode:
         res = array.post_workloads(
-            names=[module.params["name"]], workload=WorkloadPost()
+            names=[module.params["name"]],
+            preset_names=[module.params["preset"]],
+            workload=WorkloadPost(),
         )
         if res.status_code != 200:
             module.fail_json(
-                msg="Failed to create fleet {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
+                msg="Failed to create workload {0}. Error: {1}:{2}".format(
+                    module.params["name"], res.errors[0].message, res.errors[0].context
                 )
             )
+    module.exit_json(changed=changed)
+
+
+def expand_workload(module, array, fleet, volume_configs):
+    """Add new volumes to workload"""
+    changed = False
+    for vol_config in range(0, len(volume_configs)):
+        if volume_configs[vol_config].name == module.params["volume_configuration"]:
+            for x in range(module.params["volume_count"]):
+                changed = True
+                _create_volume(module, array)
+    if changed is False:
+        module.fail_json(
+            msg="Volume Configuration {0} does not exist for preset {1}.".format(
+                module.params["volume_configuration"], module.params["preset"]
+            )
+        )
     module.exit_json(changed=changed)
 
 
@@ -263,17 +317,25 @@ def main():
         dict(
             name=dict(type="str", required=True),
             state=dict(
-                type="str", default="present", choices=["absent", "present", "rename"]
+                type="str",
+                default="present",
+                choices=["absent", "present", "expand"],
             ),
             preset=dict(type="str"),
             rename=dict(type="str"),
             eradicate=dict(type="bool", default=False),
-            plaement=dict(type="str"),
+            placement=dict(type="str"),
+            volume_count=dict(type="int"),
+            volume_configuration=dict(type="str"),
             recommendation=dict(type="bool", default=False),
         )
     )
 
-    module = AnsibleModule(argument_spec, supports_check_mode=True)
+    required_if = [["state", "expand", ["volume_count", "volume_configuration"]]]
+
+    module = AnsibleModule(
+        argument_spec, supports_check_mode=True, required_if=required_if
+    )
 
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
@@ -286,7 +348,8 @@ def main():
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
         )
     state = module.params["state"]
-
+    if module.params["volume_count"] and module.params["volume_count"] <= 0:
+        module.fail_json(msg="volume_count must be a positive integer.")
     fleet_res = array.get_fleets()
     if fleet_res.status_code != 200:
         module.fail_json(
@@ -297,15 +360,19 @@ def main():
 
     workload_destroyed = False
     workload_exists = False
-    preset_config = []
+    preset_config = {}
+    # Update preset name with fleet prefix
+    module.params["preset"] = fleet + ":" + module.params["preset"]
     res = array.get_workloads(names=[module.params["name"]])
     if res.status_code == 200:
         workload_exists = True
         workload_destroyed = list(res.items)[0].destroyed
 
-    if state == "present" and not workload_destroyed and not workload_exists:
+    if (state == "present" and not workload_destroyed and not workload_exists) or (
+        state == "expand" and not workload_destroyed
+    ):
         res = array.get_presets_workload(
-            names=[module.params["preset"]], context_names=[fleet]
+            names=[module.params["preset"]],
         )
         if res.status_code != 200:
             module.fail_json(
@@ -318,11 +385,13 @@ def main():
         state == "present"
         and workload_exists
         and module.params["rename"]
-        and not workload_deleted
+        and not workload_destroyed
     ):
         rename_workload(module, array)
     elif state == "present" and not workload_exists:
         create_workload(module, array, fleet, preset_config)
+    elif state == "expand" and workload_exists and not workload_destroyed:
+        expand_workload(module, array, fleet, preset_config.volume_configurations)
     elif state == "present" and workload_exists and workload_destroyed:
         recover_workload(module, array)
     elif state == "absent" and workload_exists and not workload_destroyed:
