@@ -96,6 +96,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 )
 
 try:
+    from pypureclient.flasharray import FixedReference
+except ImportError:
+    pypureclient = None
+try:
     from purestorage import purestorage
 except ImportError:
     purestorage = None
@@ -103,19 +107,6 @@ from datetime import datetime
 import time
 
 SEC_TO_DAY = 86400000
-ADMIN_API_VERSION = "1.14"
-S3_REQUIRED_API_VERSION = "1.16"
-LATENCY_REQUIRED_API_VERSION = "1.16"
-AC_REQUIRED_API_VERSION = "1.14"
-CAP_REQUIRED_API_VERSION = "1.6"
-SAN_REQUIRED_API_VERSION = "1.10"
-NVME_API_VERSION = "1.16"
-PREFERRED_API_VERSION = "1.15"
-P53_API_VERSION = "1.17"
-ACTIVE_DR_API = "1.19"
-V6_MINIMUM_API_VERSION = "2.2"
-FILES_API_VERSION = "2.3"
-FC_REPL_API_VERSION = "2.4"
 ENCRYPTION_STATUS_API_VERSION = "2.6"
 DIR_QUOTA_API_VERSION = "2.7"
 SHARED_CAP_API_VERSION = "2.9"
@@ -139,6 +130,7 @@ PWD_POLICY_API_VERSION = "2.34"
 RA_API_VERSION = "2.35"
 DSROLE_POLICY_API_VERSION = "2.36"
 CONTEXT_API_VERSION = "2.38"
+QUOTA_API_VERSION = "2.42"
 
 
 def _is_cbs(array):
@@ -150,89 +142,79 @@ def _is_cbs(array):
 
 def generate_default_dict(module, array):
     default_info = {}
-    defaults = array.get()
-    api_version = array._list_available_rest_versions()
-    arrayv6 = get_array(module)
+    api_version = array.get_rest_version()
     default_info["api_versions"] = api_version
-    if FILES_API_VERSION in api_version:
-        if VM_VERSION in api_version:
-            default_info["virtual_machines"] = len(
-                arrayv6.get_virtual_machines(vm_type="vvol").items
-            )
-            default_info["virtual_machine_snaps"] = len(
-                arrayv6.get_virtual_machine_snapshots(vm_type="vvol").items
-            )
-        default_info["snapshot_policies"] = len(arrayv6.get_policies_snapshot().items)
-        default_info["nfs_policies"] = len(arrayv6.get_policies_nfs().items)
-        default_info["smb_policies"] = len(arrayv6.get_policies_smb().items)
-        default_info["filesystems"] = len(arrayv6.get_file_systems().items)
-        default_info["directories"] = len(arrayv6.get_directories().items)
-        default_info["exports"] = len(arrayv6.get_directory_exports().items)
-        default_info["directory_snapshots"] = len(
-            arrayv6.get_directory_snapshots().items
+    if LooseVersion(VM_VERSION) <= LooseVersion(api_version):
+        default_info["virtual_machines"] = len(
+            array.get_virtual_machines(vm_type="vvol").items
         )
-        if DIR_QUOTA_API_VERSION in api_version:
-            default_info["quota_policies"] = len(arrayv6.get_policies_quota().items)
-        if PWD_POLICY_API_VERSION in api_version:
-            default_info["password_policies"] = len(
-                arrayv6.get_policies_password().items
+        default_info["virtual_machine_snaps"] = len(
+            array.get_virtual_machine_snapshots(vm_type="vvol").items
+        )
+    default_info["snapshot_policies"] = len(array.get_policies_snapshot().items)
+    default_info["nfs_policies"] = len(array.get_policies_nfs().items)
+    default_info["smb_policies"] = len(array.get_policies_smb().items)
+    default_info["filesystems"] = len(array.get_file_systems().items)
+    default_info["directories"] = len(array.get_directories().items)
+    default_info["exports"] = len(array.get_directory_exports().items)
+    default_info["directory_snapshots"] = len(array.get_directory_snapshots().items)
+    if LooseVersion(DIR_QUOTA_API_VERSION) <= LooseVersion(api_version):
+        default_info["quota_policies"] = len(array.get_policies_quota().items)
+    if LooseVersion(PWD_POLICY_API_VERSION) <= LooseVersion(api_version):
+        default_info["password_policies"] = len(array.get_policies_password().items)
+    if LooseVersion(ENCRYPTION_STATUS_API_VERSION) <= LooseVersion(api_version):
+        array_data = list(array.get_arrays().items)[0]
+        encryption = array_data.encryption
+        default_info["encryption_enabled"] = encryption.data_at_rest.enabled
+        if default_info["encryption_enabled"]:
+            default_info["encryption_algorithm"] = encryption.data_at_rest.algorithm
+            default_info["encryption_module_version"] = encryption.module_version
+        eradication = array_data.eradication_config
+        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(api_version):
+            default_info["service_mode"] = list(array.get_subscriptions().items)[
+                0
+            ].service
+            default_info["eradication_disabled_days_timer"] = int(
+                eradication.disabled_delay / SEC_TO_DAY
             )
-        if ENCRYPTION_STATUS_API_VERSION in api_version:
-            array_data = list(arrayv6.get_arrays().items)[0]
-            encryption = array_data.encryption
-            default_info["encryption_enabled"] = encryption.data_at_rest.enabled
-            if default_info["encryption_enabled"]:
-                default_info["encryption_algorithm"] = encryption.data_at_rest.algorithm
-                default_info["encryption_module_version"] = encryption.module_version
-            eradication = array_data.eradication_config
-            if SUBS_API_VERSION in api_version:
-                default_info["service_mode"] = list(arrayv6.get_subscriptions().items)[
-                    0
-                ].service
-                default_info["eradication_disabled_days_timer"] = int(
-                    eradication.disabled_delay / SEC_TO_DAY
+            default_info["eradication_enabled_days_timer"] = int(
+                eradication.enabled_delay / SEC_TO_DAY
+            )
+        eradication_delay = getattr(eradication, "eradication_delay", None)
+        if eradication_delay is not None:
+            default_info["eradication_days_timer"] = int(eradication_delay / SEC_TO_DAY)
+        if LooseVersion(SAFE_MODE_VERSION) <= LooseVersion(api_version):
+            if eradication.manual_eradication == "all-enabled":
+                default_info["safe_mode"] = "Disabled"
+            else:
+                default_info["safe_mode"] = "Enabled"
+        if LooseVersion(UPTIME_API_VERSION) <= LooseVersion(api_version):
+            default_info["controller_uptime"] = []
+            controllers = list(array.get_controllers().items)
+            timenow = datetime.fromtimestamp(time.time())
+            for controller in range(0, len(controllers)):
+                boottime = datetime.fromtimestamp(
+                    controllers[controller].mode_since / 1000
                 )
-                default_info["eradication_enabled_days_timer"] = int(
-                    eradication.enabled_delay / SEC_TO_DAY
+                delta = timenow - boottime
+                default_info["controller_uptime"].append(
+                    {
+                        "controller": controllers[controller].name,
+                        "uptime": str(delta),
+                    }
                 )
-            eradication_delay = getattr(eradication, "eradication_delay", None)
-            if eradication_delay is not None:
-                default_info["eradication_days_timer"] = int(
-                    eradication_delay / SEC_TO_DAY
-                )
-            if SAFE_MODE_VERSION in api_version:
-                if eradication.manual_eradication == "all-enabled":
-                    default_info["safe_mode"] = "Disabled"
-                else:
-                    default_info["safe_mode"] = "Enabled"
-            if UPTIME_API_VERSION in api_version:
-                default_info["controller_uptime"] = []
-                controllers = list(arrayv6.get_controllers().items)
-                timenow = datetime.fromtimestamp(time.time())
-                for controller in range(0, len(controllers)):
-                    boottime = datetime.fromtimestamp(
-                        controllers[controller].mode_since / 1000
-                    )
-                    delta = timenow - boottime
-                    default_info["controller_uptime"].append(
-                        {
-                            "controller": controllers[controller].name,
-                            "uptime": str(delta),
-                        }
-                    )
-    if AC_REQUIRED_API_VERSION in api_version:
-        default_info["volume_groups"] = len(array.list_vgroups())
-        default_info["connected_arrays"] = len(array.list_array_connections())
-        default_info["pods"] = len(array.list_pods())
-        default_info["connection_key"] = array.get(connection_key=True)[
-            "connection_key"
-        ]
+    default_info["volume_groups"] = len(list(array.get_volume_groups().items))
+    default_info["connected_arrays"] = len(list(array.get_array_connections().items))
+    default_info["pods"] = len(list(array.get_pods().items))
+    default_info["connection_key"] = list(
+        array.get_array_connections_connection_key().items
+    )[0].connection_key
     if (
-        TLS_CONNECTION_API_VERSION in api_version
+        LooseVersion(TLS_CONNECTION_API_VERSION) <= LooseVersion(api_version)
         and default_info["connected_arrays"] > 0
     ):
         default_info["connection_paths"] = []
-        connection_paths = list(arrayv6.get_array_connections_path().items)
+        connection_paths = list(array.get_array_connections_path().items)
         for path in range(0, len(connection_paths)):
             default_info["connection_paths"].append(
                 {
@@ -262,261 +244,300 @@ def generate_default_dict(module, array):
                     }
                 }
             )
-    hosts = array.list_hosts()
-    admins = array.list_admins()
-    snaps = array.list_volumes(snap=True, pending=True)
-    volumes = array.list_volumes(pending=True)
-    pgroups = array.list_pgroups(pending=True)
-    hgroups = array.list_hgroups()
-    default_info["array_model"] = array.get(controllers=True)[0]["model"]
-    default_info["array_name"] = defaults["array_name"]
-    default_info["purity_version"] = defaults["version"]
-    default_info["hosts"] = len(hosts)
-    default_info["snapshots"] = len(snaps)
-    default_info["volumes"] = len(volumes)
-    default_info["protection_groups"] = len(pgroups)
-    default_info["hostgroups"] = len(hgroups)
-    default_info["admins"] = len(admins)
-    default_info["remote_assist"] = list(arrayv6.get_support().items)[
-        0
-    ].remote_assist_status
-    if RA_API_VERSION in api_version:
-        ra_detail = list(arrayv6.get_support().items)[0]
+    default_info["array_model"] = list(array.get_controllers().items)[0].model
+    default_info["array_name"] = list(array.get_arrays().items)[0].name
+    default_info["purity_version"] = list(array.get_arrays().items)[0].version
+    default_info["hosts"] = hosts = len(list(array.get_hosts().items))
+    default_info["snapshots"] = len(list(array.get_volume_snapshots().items))
+    default_info["volumes"] = len(list(array.get_volumes().items))
+    default_info["protection_groups"] = len(list(array.get_protection_groups().items))
+    default_info["hostgroups"] = len(list(array.get_host_groups().items))
+    default_info["admins"] = len(list(array.get_admins().items))
+    support_info = list(array.get_support().items)[0]
+    default_info["remote_assist"] = support_info.remote_assist_status
+    if LooseVersion(RA_API_VERSION) <= LooseVersion(api_version):
         default_info["remote_assist_detail"] = {
             "remote_assist_duration": str(
-                int(ra_detail.remote_assist_duration / 3600000)
+                int(support_info.remote_assist_duration / 3600000)
             )
             + " hours",
         }
-        if ra_detail.remote_assist_expires != 0:
+        if support_info.remote_assist_expires != 0:
             default_info["remote_assist_detail"]["remote_assist_expires"] = (
                 time.strftime(
                     "%Y-%m-%d %H:%M:%S %Z",
-                    time.gmtime(ra_detail.remote_assist_expires / 1000),
+                    time.gmtime(support_info.remote_assist_expires / 1000),
                 )
             )
         else:
             default_info["remote_assist_detail"]["remote_assist_expires"] = None
-        if ra_detail.remote_assist_opened != 0:
+        if support_info.remote_assist_opened != 0:
             default_info["remote_assist_detail"]["remote_assist_opened"] = (
                 time.strftime(
                     "%Y-%m-%d %H:%M:%S %Z",
-                    time.gmtime(ra_detail.remote_assist_opened / 1000),
+                    time.gmtime(support_info.remote_assist_opened / 1000),
                 )
             )
         else:
             default_info["remote_assist_detail"]["remote_assist_opened"] = None
-    if P53_API_VERSION in api_version:
-        default_info["maintenance_window"] = array.list_maintenance_windows()
+
+    maint_info = list(array.get_maintenance_windows().items)
+    if maint_info != []:
+        default_info["maintenance_window"] = [
+            {
+                "name": maint_info[0].name,
+                "created": time.strftime(
+                    "%a, %d %b %Y %H:%M:%S %Z",
+                    time.localtime(maint_info[0].created / 1000),
+                ),
+                "expires": time.strftime(
+                    "%a, %d %b %Y %H:%M:%S %Z",
+                    time.localtime(maint_info[0].expires / 1000),
+                ),
+            }
+        ]
+    else:
+        default_info["maintenance_window"] = []
+
     return default_info
 
 
 def generate_perf_dict(array):
-    perf_info = {}
-    api_version = array._list_available_rest_versions()
-    if LATENCY_REQUIRED_API_VERSION in api_version:
-        latency_info = array.get(action="monitor", latency=True)[0]
-    perf_info = array.get(action="monitor")[0]
-    perf_info["writes_per_sec"] = perf_info["writes_per_sec"]
-    perf_info["reads_per_sec"] = perf_info["reads_per_sec"]
-
-    perf_info["input_per_sec"] = perf_info["input_per_sec"]
-    perf_info["output_per_sec"] = perf_info["output_per_sec"]
-
-    if LATENCY_REQUIRED_API_VERSION in api_version:
-        perf_info["san_usec_per_read_op"] = latency_info["san_usec_per_read_op"]
-        perf_info["san_usec_per_write_op"] = latency_info["san_usec_per_write_op"]
-        perf_info["queue_usec_per_read_op"] = latency_info["queue_usec_per_read_op"]
-        perf_info["queue_usec_per_write_op"] = latency_info["queue_usec_per_write_op"]
-        perf_info["qos_rate_limit_usec_per_read_op"] = latency_info[
-            "qos_rate_limit_usec_per_read_op"
-        ]
-        perf_info["qos_rate_limit_usec_per_write_op"] = latency_info[
-            "qos_rate_limit_usec_per_write_op"
-        ]
-        perf_info["local_queue_usec_per_op"] = perf_info["local_queue_usec_per_op"]
-    perf_info["usec_per_read_op"] = perf_info["usec_per_read_op"]
-    perf_info["usec_per_write_op"] = perf_info["usec_per_write_op"]
-    perf_info["queue_depth"] = perf_info["queue_depth"]
+    perf_data = list(array.get_arrays_performance().items)[0]
+    perf_info = {
+        "bytes_per_mirrored_write": perf_data.bytes_per_mirrored_write,
+        "bytes_per_op": perf_data.bytes_per_op,
+        "bytes_per_read": perf_data.bytes_per_read,
+        "bytes_per_write": perf_data.bytes_per_write,
+        "local_queue_usec_per_op": perf_data.bytes_per_write,
+        "mirrored_write_bytes_per_sec": perf_data.mirrored_write_bytes_per_sec,
+        "mirrored_writes_per_sec": perf_data.mirrored_writes_per_sec,
+        "others_per_sec": perf_data.others_per_sec,
+        "qos_rate_limit_usec_per_mirrored_write_op": perf_data.qos_rate_limit_usec_per_mirrored_write_op,
+        "qos_rate_limit_usec_per_read_op": perf_data.qos_rate_limit_usec_per_read_op,
+        "qos_rate_limit_usec_per_write_op": perf_data.qos_rate_limit_usec_per_write_op,
+        "queue_usec_per_mirrored_write_op": perf_data.queue_usec_per_mirrored_write_op,
+        "queue_usec_per_read_op": perf_data.queue_usec_per_read_op,
+        "queue_usec_per_write_op": perf_data.queue_usec_per_write_op,
+        "read_bytes_per_sec": perf_data.read_bytes_per_sec,
+        "reads_per_sec": perf_data.reads_per_sec,
+        "san_usec_per_mirrored_write_op": perf_data.san_usec_per_mirrored_write_op,
+        "san_usec_per_read_op": perf_data.san_usec_per_read_op,
+        "san_usec_per_write_op": perf_data.san_usec_per_write_op,
+        "service_usec_per_mirrored_write_op": perf_data.service_usec_per_mirrored_write_op,
+        "service_usec_per_read_op": perf_data.service_usec_per_read_op,
+        "service_usec_per_write_op": perf_data.service_usec_per_write_op,
+        "usec_per_mirrored_write_op": perf_data.usec_per_mirrored_write_op,
+        "usec_per_other_op": perf_data.usec_per_other_op,
+        "usec_per_read_op": perf_data.usec_per_read_op,
+        "usec_per_write_op": perf_data.usec_per_write_op,
+        "write_bytes_per_sec": perf_data.write_bytes_per_sec,
+        "writes_per_sec": perf_data.writes_per_sec,
+        # These are legacy values. Return 0 for backwards compatability
+        "input_per_sec": 0,
+        "output_per_sec": 0,
+        "queue_depth": 0,
+    }
     return perf_info
 
 
 def generate_config_dict(module, array):
     config_info = {}
-    api_version = array._list_available_rest_versions()
-    config_info["console_lock"] = array.get_console_lock_status()["console_lock"]
-    if NFS_USER_MAP_VERSION not in api_version:
-        config_info["dns"] = array.get_dns()
-    config_info["smtp"] = array.list_alert_recipients()
-    config_info["snmp"] = array.list_snmp_managers()
-    config_info["snmp_v3_engine_id"] = array.get_snmp_engine_id()["engine_id"]
-    if V6_MINIMUM_API_VERSION in api_version:
-        arrayv6 = get_array(module)
-        smtp_info = list(arrayv6.get_smtp_servers().items)[0]
-        config_info["smtp_servers"] = {
-            "name": smtp_info.name,
-            "password": getattr(smtp_info, "password", ""),
-            "user_name": getattr(smtp_info, "user_name", ""),
-            "encryption_mode": getattr(smtp_info, "encryption_mode", ""),
-            "relay_host": getattr(smtp_info, "relay_host", ""),
-            "sender_domain": getattr(smtp_info, "sender_domain", ""),
-        }
-        config_info["directory_service"] = {}
-        services = list(arrayv6.get_directory_services().items)
-        for service in range(0, len(services)):
-            service_type = services[service].name
-            config_info["directory_service"][service_type] = {
-                "base_dn": getattr(services[service], "base_dn", "None"),
-                "bind_user": getattr(services[service], "bind_user", "None"),
-                "enabled": services[service].enabled,
-                "services": services[service].services,
-                "uris": services[service].uris,
+    api_version = array.get_rest_version()
+    array_info = list(array.get_arrays().items)[0]
+    config_info["console_lock"] = ("disabled", "enabled")[
+        array_info.console_lock_enabled
+    ]
+    alert_info = list(array.get_alert_watchers().items)
+    config_info["smtp"] = []
+    for watcher in range(0, len(alert_info)):
+        config_info["smtp"].append(
+            {"name": alert_info[watcher].name, "enabled": alert_info[watcher].enabled}
+        )
+    snmp_info = list(array.get_snmp_managers().items)
+    config_info["snmp"] = []
+    for manager in range(0, len(snmp_info)):
+        config_info["snmp"].append(
+            {
+                "name": snmp_info[manager].name,
+                "host": snmp_info[manager].host,
+                "version": snmp_info[manager].version,
+                "user": getattr(snmp_info[manager].v3, "user", None),
+                "auth_protocol": getattr(snmp_info[manager].v3, "auth_protocol", None),
+                "notification": snmp_info[manager].notification,
+                "user": getattr(snmp_info[manager], "user", None),
             }
-        config_info["directory_service_roles"] = {}
-        roles = list(arrayv6.get_directory_services_roles().items)
-        for role in range(0, len(roles)):
-            role_name = roles[role].role.name
-            config_info["directory_service_roles"][role_name] = {
-                "group": getattr(roles[role], "group", None),
-                "group_base": getattr(roles[role], "group_base", None),
-                "management_access_policies": None,
+        )
+    config_info["snmp_v3_engine_id"] = list(array.get_snmp_agents().items)[0].engine_id
+    smtp_info = list(array.get_smtp_servers().items)[0]
+    config_info["smtp_servers"] = {
+        "name": smtp_info.name,
+        "password": getattr(smtp_info, "password", ""),
+        "user_name": getattr(smtp_info, "user_name", ""),
+        "encryption_mode": getattr(smtp_info, "encryption_mode", ""),
+        "relay_host": getattr(smtp_info, "relay_host", ""),
+        "sender_domain": getattr(smtp_info, "sender_domain", ""),
+    }
+    config_info["directory_service"] = {}
+    services = list(array.get_directory_services().items)
+    for service in range(0, len(services)):
+        service_type = services[service].name
+        config_info["directory_service"][service_type] = {
+            "base_dn": getattr(services[service], "base_dn", "None"),
+            "bind_user": getattr(services[service], "bind_user", "None"),
+            "enabled": services[service].enabled,
+            "services": services[service].services,
+            "uris": services[service].uris,
+        }
+    config_info["directory_service_roles"] = {}
+    roles = list(array.get_directory_services_roles().items)
+    for role in range(0, len(roles)):
+        role_name = roles[role].role.name
+        config_info["directory_service_roles"][role_name] = {
+            "group": getattr(roles[role], "group", None),
+            "group_base": getattr(roles[role], "group_base", None),
+            "management_access_policies": None,
+        }
+        if LooseVersion(DSROLE_POLICY_API_VERSION) <= LooseVersion(api_version):
+            config_info["directory_service_roles"][role_name][
+                "management_access_policies"
+            ] = getattr(roles[role].management_access_policies[0], "name", None)
+    smi_s = list(array.get_smi_s().items)[0]
+    config_info["smi-s"] = {
+        "slp_enabled": smi_s.slp_enabled,
+        "wbem_https_enabled": smi_s.wbem_https_enabled,
+    }
+    # Add additional SMI-S section to help with formatting
+    # issues caused by `-` in the dict name.
+    config_info["smi_s"] = {
+        "slp_enabled": smi_s.slp_enabled,
+        "wbem_https_enabled": smi_s.wbem_https_enabled,
+    }
+    config_info["dns"] = {}
+    dns_configs = list(array.get_dns().items)
+    for config in range(0, len(dns_configs)):
+        config_info["dns"][dns_configs[config].services[0]] = {
+            "nameservers": dns_configs[config].nameservers,
+            "domain": dns_configs[config].domain,
+        }
+        config_info["dns"][dns_configs[config].services[0]]["source"] = getattr(
+            dns_configs[config].source, "name", None
+        )
+    if LooseVersion(SAML2_VERSION) <= LooseVersion(api_version):
+        config_info["saml2sso"] = {}
+        saml2 = list(array.get_sso_saml2_idps().items)
+        if saml2:
+            config_info["saml2sso"] = {
+                "enabled": saml2[0].enabled,
+                "array_url": saml2[0].array_url,
+                "name": saml2[0].name,
+                "idp": {
+                    "url": getattr(saml2[0].idp, "url", None),
+                    "encrypt_enabled": saml2[0].idp.encrypt_assertion_enabled,
+                    "sign_enabled": saml2[0].idp.sign_request_enabled,
+                    "metadata_url": saml2[0].idp.metadata_url,
+                },
+                "sp": {
+                    "decrypt_cred": getattr(
+                        saml2[0].sp.decryption_credential, "name", None
+                    ),
+                    "sign_cred": getattr(saml2[0].sp.signing_credential, "name", None),
+                },
             }
-            if DSROLE_POLICY_API_VERSION in api_version:
-                config_info["directory_service_roles"][role_name][
-                    "management_access_policies"
-                ] = getattr(roles[role].management_access_policies[0], "name", None)
-        smi_s = list(arrayv6.get_smi_s().items)[0]
-        config_info["smi-s"] = {
-            "slp_enabled": smi_s.slp_enabled,
-            "wbem_https_enabled": smi_s.wbem_https_enabled,
-        }
-        # Add additional SMI-S section to help with formatting
-        # issues caused by `-` in the dict name.
-        config_info["smi_s"] = {
-            "slp_enabled": smi_s.slp_enabled,
-            "wbem_https_enabled": smi_s.wbem_https_enabled,
-        }
-        if NFS_USER_MAP_VERSION in api_version:
-            config_info["dns"] = {}
-            dns_configs = list(arrayv6.get_dns().items)
-            for config in range(0, len(dns_configs)):
-                config_info["dns"][dns_configs[config].services[0]] = {
-                    "nameservers": dns_configs[config].nameservers,
-                    "domain": dns_configs[config].domain,
-                }
-                config_info["dns"][dns_configs[config].services[0]]["source"] = getattr(
-                    dns_configs[config].source, "name", None
-                )
-        if SAML2_VERSION in api_version:
-            config_info["saml2sso"] = {}
-            saml2 = list(arrayv6.get_sso_saml2_idps().items)
-            if saml2:
-                config_info["saml2sso"] = {
-                    "enabled": saml2[0].enabled,
-                    "array_url": saml2[0].array_url,
-                    "name": saml2[0].name,
-                    "idp": {
-                        "url": getattr(saml2[0].idp, "url", None),
-                        "encrypt_enabled": saml2[0].idp.encrypt_assertion_enabled,
-                        "sign_enabled": saml2[0].idp.sign_request_enabled,
-                        "metadata_url": saml2[0].idp.metadata_url,
-                    },
-                    "sp": {
-                        "decrypt_cred": getattr(
-                            saml2[0].sp.decryption_credential, "name", None
-                        ),
-                        "sign_cred": getattr(
-                            saml2[0].sp.signing_credential, "name", None
-                        ),
-                    },
-                }
-        if FILES_API_VERSION in api_version:
-            config_info["active_directory"] = {}
-            try:
-                ad_accounts = list(arrayv6.get_active_directory().items)
-                for ad_account in range(0, len(ad_accounts)):
-                    ad_name = ad_accounts[ad_account].name
-                    config_info["active_directory"][ad_name] = {
-                        "computer_name": ad_accounts[ad_account].computer_name,
-                        "domain": ad_accounts[ad_account].domain,
-                        "directory_servers": getattr(
-                            ad_accounts[ad_account], "directory_servers", None
-                        ),
-                        "kerberos_servers": getattr(
-                            ad_accounts[ad_account], "kerberos_servers", None
-                        ),
-                        "service_principal_names": getattr(
-                            ad_accounts[ad_account], "service_principal_names", None
-                        ),
-                        "tls": getattr(ad_accounts[ad_account], "tls", None),
+    config_info["active_directory"] = {}
+    try:
+        ad_accounts = list(array.get_active_directory().items)
+        for ad_account in range(0, len(ad_accounts)):
+            ad_name = ad_accounts[ad_account].name
+            config_info["active_directory"][ad_name] = {
+                "computer_name": ad_accounts[ad_account].computer_name,
+                "domain": ad_accounts[ad_account].domain,
+                "directory_servers": getattr(
+                    ad_accounts[ad_account], "directory_servers", None
+                ),
+                "kerberos_servers": getattr(
+                    ad_accounts[ad_account], "kerberos_servers", None
+                ),
+                "service_principal_names": getattr(
+                    ad_accounts[ad_account], "service_principal_names", None
+                ),
+                "tls": getattr(ad_accounts[ad_account], "tls", None),
+            }
+    except Exception:
+        module.warn("FA-Files is not enabled on this array")
+    if LooseVersion(DEFAULT_PROT_API_VERSION) <= LooseVersion(api_version):
+        config_info["default_protections"] = {}
+        default_prots = list(array.get_container_default_protections().items)
+        for prot in range(0, len(default_prots)):
+            container = getattr(default_prots[prot], "name", "-")
+            config_info["default_protections"][container] = {
+                "protections": [],
+                "type": getattr(default_prots[prot], "type", "array"),
+            }
+            for container_prot in range(
+                0, len(default_prots[prot].default_protections)
+            ):
+                config_info["default_protections"][container]["protections"].append(
+                    {
+                        "type": default_prots[prot]
+                        .default_protections[container_prot]
+                        .type,
+                        "name": default_prots[prot]
+                        .default_protections[container_prot]
+                        .name,
                     }
-            except Exception:
-                module.warn("FA-Files is not enabled on this array")
-        if DEFAULT_PROT_API_VERSION in api_version:
-            config_info["default_protections"] = {}
-            default_prots = list(arrayv6.get_container_default_protections().items)
-            for prot in range(0, len(default_prots)):
-                container = getattr(default_prots[prot], "name", "-")
-                config_info["default_protections"][container] = {
-                    "protections": [],
-                    "type": getattr(default_prots[prot], "type", "array"),
-                }
-                for container_prot in range(
-                    0, len(default_prots[prot].default_protections)
-                ):
-                    config_info["default_protections"][container]["protections"].append(
-                        {
-                            "type": default_prots[prot]
-                            .default_protections[container_prot]
-                            .type,
-                            "name": default_prots[prot]
-                            .default_protections[container_prot]
-                            .name,
-                        }
-                    )
-        if SUBS_API_VERSION in api_version:
-            array_info = list(arrayv6.get_arrays().items)[0]
-            config_info["ntp_keys"] = bool(
-                getattr(array_info, "ntp_symmetric_key", None)
-            )
-            config_info["timezone"] = array_info.time_zone
-    else:
-        config_info["directory_service"] = {}
-        config_info["directory_service"]["management"] = array.get_directory_service()
-        if S3_REQUIRED_API_VERSION in api_version:
-            config_info["directory_service_roles"] = {}
-            roles = array.list_directory_service_roles()
-            for role in range(0, len(roles)):
-                role_name = roles[role]["name"]
-                config_info["directory_service_roles"][role_name] = {
-                    "group": roles[role]["group"],
-                    "group_base": roles[role]["group_base"],
-                }
-        else:
-            config_info["directory_service"].update(
-                array.get_directory_service(groups=True)
-            )
-    config_info["ntp"] = array.get(ntpserver=True)["ntpserver"]
-    config_info["syslog"] = array.get(syslogserver=True)["syslogserver"]
-    config_info["phonehome"] = array.get(phonehome=True)["phonehome"]
-    config_info["proxy"] = array.get(proxy=True)["proxy"]
-    config_info["relayhost"] = array.get(relayhost=True)["relayhost"]
-    config_info["senderdomain"] = array.get(senderdomain=True)["senderdomain"]
-    config_info["idle_timeout"] = array.get(idle_timeout=True)["idle_timeout"]
-    config_info["scsi_timeout"] = array.get(scsi_timeout=True)["scsi_timeout"]
-    if S3_REQUIRED_API_VERSION in api_version:
-        config_info["global_admin"] = array.get_global_admin_attributes()
-        if (
-            config_info["global_admin"]["lockout_duration"]
-            and config_info["global_admin"]["lockout_duration"] > 0
-        ):
-            config_info["global_admin"]["lockout_duration"] = int(
-                config_info["global_admin"]["lockout_duration"] / 1000
-            )
+                )
+    if LooseVersion(SUBS_API_VERSION) <= LooseVersion(api_version):
+        array_info = list(array.get_arrays().items)[0]
+        config_info["ntp_keys"] = bool(getattr(array_info, "ntp_symmetric_key", None))
+        config_info["timezone"] = array_info.time_zone
+    config_info["directory_service"] = {}
+    ds_info = list(array.get_directory_services().items)
+    for dss in range(0, len(ds_info)):
+        config_info["directory_service"][ds_info[dss].name] = {
+            "base_dn": ds_info[dss].base_dn,
+            "bind_user": ds_info[dss].bind_user,
+            "check_peer": ds_info[dss].check_peer,
+            "enabled": ds_info[dss].enabled,
+            "services": ds_info[dss].services,
+            "uri": ds_info[dss].uris,
+        }
+    config_info["directory_service_roles"] = {}
+    roles = list(array.get_directory_services_roles().items)
+    for role in range(0, len(roles)):
+        role_name = roles[role].name
+        config_info["directory_service_roles"][role_name] = {
+            "group": getattr(roles[role], "group", None),
+            "group_base": getattr(roles[role], "group_base", None),
+        }
+    config_info["ntp"] = array_info.ntp_servers
+    syslog_info = list(array.get_syslog_servers().items)
+    config_info["syslog"] = {}
+    for syslog in range(0, len(syslog_info)):
+        config_info["syslog"][syslog_info[syslog].name] = {
+            "uri": syslog_info[syslog].uri,
+            "services": syslog_info[syslog].services,
+        }
+    support_info = list(array.get_support().items)[0]
+    config_info["phonehome"] = ("disabled", "enabled")[support_info.phonehome_enabled]
+    config_info["proxy"] = support_info.proxy
+    config_info["relayhost"] = getattr(smtp_info, "relay_host", "")
+    config_info["senderdomain"] = getattr(smtp_info, "sender_domain", "")
+    config_info["idle_timeout"] = array_info.idle_timeout
+    config_info["scsi_timeout"] = array_info.scsi_timeout
+    admin_info = list(array.get_admins_settings().items)[0]
+    config_info["global_admin"] = {"lockout_duration": admin_info.lockout_duration}
+    if (
+        config_info["global_admin"]["lockout_duration"]
+        and config_info["global_admin"]["lockout_duration"] > 0
+    ):
+        config_info["global_admin"]["lockout_duration"] = int(
+            config_info["global_admin"]["lockout_duration"] / 1000
+        )
     return config_info
 
 
-def generate_filesystems_dict(array):
+def generate_filesystems_dict(array, performance):
     files_info = {}
     filesystems = list(array.get_file_systems().items)
     for filesystem in range(0, len(filesystems)):
@@ -534,9 +555,19 @@ def generate_filesystems_dict(array):
                 "snapshots_space": getattr(
                     directories[directory].space, "snapshots", None
                 ),
+                "thin_provisioning": getattr(
+                    directories[directory].space, "thin_provisioning", None
+                ),
                 "total_physical_space": getattr(
                     directories[directory].space, "total_physical", None
                 ),
+                "total_provisioned_space": getattr(
+                    directories[directory].space, "total_provisioned", None
+                ),
+                "total_reduction": getattr(
+                    directories[directory].space, "total_reduction", None
+                ),
+                "total_used": getattr(directories[directory].space, "total_used", None),
                 "unique_space": getattr(directories[directory].space, "unique", None),
                 "virtual_space": getattr(directories[directory].space, "virtual", None),
                 "destroyed": directories[directory].destroyed,
@@ -546,11 +577,16 @@ def generate_filesystems_dict(array):
                 ),
                 "exports": [],
                 "policies": [],
+                "limited_by": None,
+                "performance": [],
             }
-            if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
-                files_info[fs_name]["directories"][d_name]["total_used"] = directories[
-                    directory
-                ].space.total_used
+            if LooseVersion(QUOTA_API_VERSION) <= LooseVersion(
+                array.get_rest_version()
+            ):
+                if hasattr(directories[directory].limited_by, "member"):
+                    files_info[fs_name]["directories"][d_name]["limited_by"] = (
+                        directories[directory].limited_by.member.name
+                    )
             policies = list(
                 array.get_directories_policies(
                     member_names=[
@@ -586,6 +622,25 @@ def generate_filesystems_dict(array):
                         },
                     }
                 )
+            if performance:
+                perf_stats = list(
+                    array.get_directories_performance(
+                        names=[files_info[fs_name]["directories"][d_name]["full_name"]]
+                    ).items
+                )[0]
+                files_info[fs_name]["directories"][d_name]["performance"] = {
+                    "bytes_per_op": perf_stats.bytes_per_op,
+                    "bytes_per_read": perf_stats.bytes_per_read,
+                    "bytes_per_write": perf_stats.bytes_per_write,
+                    "others_per_sec": perf_stats.others_per_sec,
+                    "read_bytes_per_sec": perf_stats.read_bytes_per_sec,
+                    "reads_per_sec": perf_stats.reads_per_sec,
+                    "usec_per_other_op": perf_stats.usec_per_other_op,
+                    "usec_per_read_op": perf_stats.usec_per_read_op,
+                    "usec_per_write_op": perf_stats.usec_per_write_op,
+                    "write_bytes_per_sec": perf_stats.write_bytes_per_sec,
+                    "writes_per_sec": perf_stats.writes_per_sec,
+                }
     return files_info
 
 
@@ -784,40 +839,48 @@ def generate_clients_dict(array):
 
 def generate_admin_dict(array):
     admin_info = {}
-    api_version = array._list_available_rest_versions()
-    if ADMIN_API_VERSION in api_version:
-        admins = array.list_admins()
-        for admin in range(0, len(admins)):
-            admin_name = admins[admin]["name"]
-            admin_info[admin_name] = {
-                "type": admins[admin]["type"],
-                "role": admins[admin]["role"],
-            }
+    admins = list(array.get_admins().items)
+    for admin in range(0, len(admins)):
+        admin_name = admins[admin].name
+        admin_info[admin_name] = {
+            "type": ("remote", "local")[admins[admin].is_local],
+            "locked": admins[admin].locked,
+            "role": getattr(admins[admin].role, "name", None),
+            "management_access_policy": None,
+        }
+        if admins[admin].is_local:
+            admin_info[admin_name]["management_access_policy"] = (
+                admins[admin].management_access_policies[0].name
+            )
     return admin_info
 
 
 def generate_subnet_dict(array):
     sub_info = {}
-    subnets = array.list_subnets()
+    subnets = list(array.get_subnets().items)
     for sub in range(0, len(subnets)):
-        sub_name = subnets[sub]["name"]
+        sub_name = subnets[sub].name
         sub_info[sub_name] = {
-            "enabled": subnets[sub]["enabled"],
-            "gateway": subnets[sub]["gateway"],
-            "mtu": subnets[sub]["mtu"],
-            "vlan": subnets[sub]["vlan"],
-            "prefix": subnets[sub]["prefix"],
-            "interfaces": subnets[sub]["interfaces"],
-            "services": subnets[sub]["services"],
+            "enabled": subnets[sub].enabled,
+            "gateway": getattr(subnets[sub], "gateway", None),
+            "mtu": subnets[sub].mtu,
+            "vlan": subnets[sub].vlan,
+            "prefix": subnets[sub].prefix,
+            "interfaces": [],
+            "services": subnets[sub].services,
         }
+        if subnets[sub].interfaces:
+            for iface in range(0, len(subnets[sub].interfaces)):
+                sub_info[sub_name]["interfaces"].append(
+                    subnets[sub].interfaces[iface].name
+                )
     return sub_info
 
 
 def generate_network_dict(module, array, performance):
     net_info = {}
-    api_version = array._list_available_rest_versions()
-    arrayv6 = get_array(module)
-    ports = list(arrayv6.get_network_interfaces().items)
+    api_version = array.get_rest_version()
+    ports = list(array.get_network_interfaces().items)
     for port in range(0, len(ports)):
         int_name = ports[port].name
         if ports[port].interface_type == "eth":
@@ -852,127 +915,234 @@ def generate_network_dict(module, array, performance):
                 "performance": [],
             }
     if performance:
-        perf_stats = list(arrayv6.get_network_interfaces_performance().items)
+        perf_stats = list(array.get_network_interfaces_performance().items)
         for perf_stat in range(0, len(perf_stats)):
-            if perf_stats[perf_stat].interface_type == "fc":
-                net_info[perf_stats[perf_stat].name]["performance"] = {
-                    "received_bytes_per_sec": getattr(
-                        perf_stats[perf_stat].fc, "received_bytes_per_sec", 0
-                    ),
-                    "received_crc_errors_per_sec": getattr(
-                        perf_stats[perf_stat].fc, "received_crc_errors_per_sec", 0
-                    ),
-                    "received_frames_per_sec": getattr(
-                        perf_stats[perf_stat].fc, "received_frames_per_sec", 0
-                    ),
-                    "received_link_failures_per_sec": getattr(
-                        perf_stats[perf_stat].fc, "received_link_failures_per_sec", 0
-                    ),
-                    "received_loss_of_signal_per_sec": getattr(
-                        perf_stats[perf_stat].fc, "received_loss_of_signal_per_sec", 0
-                    ),
-                    "received_loss_of_sync_per_sec": getattr(
-                        perf_stats[perf_stat].fc, "received_loss_of_sync_per_sec", 0
-                    ),
-                    "total_errors_per_sec": getattr(
-                        perf_stats[perf_stat].fc, "total_errors_per_sec", 0
-                    ),
-                    "transmitted_bytes_per_sec": getattr(
-                        perf_stats[perf_stat].fc, "transmitted_bytes_per_sec", 0
-                    ),
-                    "transmitted_frames_per_sec": getattr(
-                        perf_stats[perf_stat].fc, "transmitted_frames_per_sec", 0
-                    ),
-                    "transmitted_invalid_words_per_sec": getattr(
-                        perf_stats[perf_stat].fc, "transmitted_invalid_words_per_sec", 0
-                    ),
+            try:
+                if perf_stats[perf_stat].interface_type == "fc":
+                    net_info[perf_stats[perf_stat].name]["performance"] = {
+                        "received_bytes_per_sec": getattr(
+                            perf_stats[perf_stat].fc, "received_bytes_per_sec", 0
+                        ),
+                        "received_crc_errors_per_sec": getattr(
+                            perf_stats[perf_stat].fc, "received_crc_errors_per_sec", 0
+                        ),
+                        "received_frames_per_sec": getattr(
+                            perf_stats[perf_stat].fc, "received_frames_per_sec", 0
+                        ),
+                        "received_link_failures_per_sec": getattr(
+                            perf_stats[perf_stat].fc,
+                            "received_link_failures_per_sec",
+                            0,
+                        ),
+                        "received_loss_of_signal_per_sec": getattr(
+                            perf_stats[perf_stat].fc,
+                            "received_loss_of_signal_per_sec",
+                            0,
+                        ),
+                        "received_loss_of_sync_per_sec": getattr(
+                            perf_stats[perf_stat].fc, "received_loss_of_sync_per_sec", 0
+                        ),
+                        "total_errors_per_sec": getattr(
+                            perf_stats[perf_stat].fc, "total_errors_per_sec", 0
+                        ),
+                        "transmitted_bytes_per_sec": getattr(
+                            perf_stats[perf_stat].fc, "transmitted_bytes_per_sec", 0
+                        ),
+                        "transmitted_frames_per_sec": getattr(
+                            perf_stats[perf_stat].fc, "transmitted_frames_per_sec", 0
+                        ),
+                        "transmitted_invalid_words_per_sec": getattr(
+                            perf_stats[perf_stat].fc,
+                            "transmitted_invalid_words_per_sec",
+                            0,
+                        ),
+                    }
+                else:
+                    net_info[perf_stats[perf_stat].name]["performance"] = {
+                        "received_bytes_per_sec": getattr(
+                            perf_stats[perf_stat].eth, "received_bytes_per_sec", 0
+                        ),
+                        "received_crc_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth, "received_crc_errors_per_sec", 0
+                        ),
+                        "received_frame_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "received_frame_errors_per_sec",
+                            0,
+                        ),
+                        "received_packets_per_sec": getattr(
+                            perf_stats[perf_stat].eth, "received_packets_per_sec", 0
+                        ),
+                        "total_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth, "total_errors_per_sec", 0
+                        ),
+                        "transmitted_bytes_per_sec": getattr(
+                            perf_stats[perf_stat].eth, "transmitted_bytes_per_sec", 0
+                        ),
+                        "transmitted_dropped_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "transmitted_dropped_errors_per_sec",
+                            0,
+                        ),
+                        "transmitted_packets_per_sec": getattr(
+                            perf_stats[perf_stat].eth, "transmitted_packets_per_sec", 0
+                        ),
+                        "rdma_received_req_cqe_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "rdma_received_req_cqe_errors_per_sec",
+                            0,
+                        ),
+                        "rdma_received_sequence_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "rdma_received_sequence_errors_per_sec",
+                            0,
+                        ),
+                        "rdma_transmitted_local_ack_timeout_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "rdma_transmitted_local_ack_timeout_errors_per_sec",
+                            0,
+                        ),
+                        "flow_control_received_congestion_packets_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_received_congestion_packets_per_sec",
+                            0,
+                        ),
+                        "flow_control_received_discarded_packets_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_received_discarded_packets_per_sec",
+                            0,
+                        ),
+                        "flow_control_received_lossless_bytes_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_received_lossless_bytes_per_sec",
+                            0,
+                        ),
+                        "flow_control_received_pause_frames_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_received_pause_frames_per_sec",
+                            0,
+                        ),
+                        "flow_control_transmitted_congestion_packets_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_transmitted_congestion_packets_per_sec",
+                            0,
+                        ),
+                        "flow_control_transmitted_discarded_packets_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_transmitted_discarded_packets_per_sec",
+                            0,
+                        ),
+                        "flow_control_transmitted_lossless_bytes_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_transmitted_lossless_bytes_per_sec",
+                            0,
+                        ),
+                        "flow_control_transmitted_pause_frames_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_transmitted_pause_frames_per_sec",
+                            0,
+                        ),
+                    }
+            except KeyError:
+                net_info[perf_stats[perf_stat].name] = {
+                    "hwaddr": None,
+                    "mtu": None,
+                    "enabled": None,
+                    "speed": None,
+                    "address": None,
+                    "slaves": None,
+                    "services": None,
+                    "gateway": None,
+                    "netmask": None,
+                    "subnet": None,
+                    "performance": {
+                        "received_bytes_per_sec": getattr(
+                            perf_stats[perf_stat].eth, "received_bytes_per_sec", 0
+                        ),
+                        "received_crc_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth, "received_crc_errors_per_sec", 0
+                        ),
+                        "received_frame_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "received_frame_errors_per_sec",
+                            0,
+                        ),
+                        "received_packets_per_sec": getattr(
+                            perf_stats[perf_stat].eth, "received_packets_per_sec", 0
+                        ),
+                        "total_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth, "total_errors_per_sec", 0
+                        ),
+                        "transmitted_bytes_per_sec": getattr(
+                            perf_stats[perf_stat].eth, "transmitted_bytes_per_sec", 0
+                        ),
+                        "transmitted_dropped_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "transmitted_dropped_errors_per_sec",
+                            0,
+                        ),
+                        "transmitted_packets_per_sec": getattr(
+                            perf_stats[perf_stat].eth, "transmitted_packets_per_sec", 0
+                        ),
+                        "rdma_received_req_cqe_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "rdma_received_req_cqe_errors_per_sec",
+                            0,
+                        ),
+                        "rdma_received_sequence_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "rdma_received_sequence_errors_per_sec",
+                            0,
+                        ),
+                        "rdma_transmitted_local_ack_timeout_errors_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "rdma_transmitted_local_ack_timeout_errors_per_sec",
+                            0,
+                        ),
+                        "flow_control_received_congestion_packets_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_received_congestion_packets_per_sec",
+                            0,
+                        ),
+                        "flow_control_received_discarded_packets_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_received_discarded_packets_per_sec",
+                            0,
+                        ),
+                        "flow_control_received_lossless_bytes_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_received_lossless_bytes_per_sec",
+                            0,
+                        ),
+                        "flow_control_received_pause_frames_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_received_pause_frames_per_sec",
+                            0,
+                        ),
+                        "flow_control_transmitted_congestion_packets_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_transmitted_congestion_packets_per_sec",
+                            0,
+                        ),
+                        "flow_control_transmitted_discarded_packets_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_transmitted_discarded_packets_per_sec",
+                            0,
+                        ),
+                        "flow_control_transmitted_lossless_bytes_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_transmitted_lossless_bytes_per_sec",
+                            0,
+                        ),
+                        "flow_control_transmitted_pause_frames_per_sec": getattr(
+                            perf_stats[perf_stat].eth,
+                            "flow_control_transmitted_pause_frames_per_sec",
+                            0,
+                        ),
+                    },
                 }
-            else:
-                net_info[perf_stats[perf_stat].name]["performance"] = {
-                    "received_bytes_per_sec": getattr(
-                        perf_stats[perf_stat].eth, "received_bytes_per_sec", 0
-                    ),
-                    "received_crc_errors_per_sec": getattr(
-                        perf_stats[perf_stat].eth, "received_crc_errors_per_sec", 0
-                    ),
-                    "received_frame_errors_per_sec": getattr(
-                        perf_stats[perf_stat].eth, "received_frame_errors_per_sec", 0
-                    ),
-                    "received_packets_per_sec": getattr(
-                        perf_stats[perf_stat].eth, "received_packets_per_sec", 0
-                    ),
-                    "total_errors_per_sec": getattr(
-                        perf_stats[perf_stat].eth, "total_errors_per_sec", 0
-                    ),
-                    "transmitted_bytes_per_sec": getattr(
-                        perf_stats[perf_stat].eth, "transmitted_bytes_per_sec", 0
-                    ),
-                    "transmitted_dropped_errors_per_sec": getattr(
-                        perf_stats[perf_stat].eth,
-                        "transmitted_dropped_errors_per_sec",
-                        0,
-                    ),
-                    "transmitted_packets_per_sec": getattr(
-                        perf_stats[perf_stat].eth, "transmitted_packets_per_sec", 0
-                    ),
-                    "rdma_received_req_cqe_errors_per_sec": getattr(
-                        perf_stats[perf_stat].eth,
-                        "rdma_received_req_cqe_errors_per_sec",
-                        0,
-                    ),
-                    "rdma_received_sequence_errors_per_sec": getattr(
-                        perf_stats[perf_stat].eth,
-                        "rdma_received_sequence_errors_per_sec",
-                        0,
-                    ),
-                    "rdma_transmitted_local_ack_timeout_errors_per_sec": getattr(
-                        perf_stats[perf_stat].eth,
-                        "rdma_transmitted_local_ack_timeout_errors_per_sec",
-                        0,
-                    ),
-                    "flow_control_received_congestion_packets_per_sec": getattr(
-                        perf_stats[perf_stat].eth,
-                        "flow_control_received_congestion_packets_per_sec",
-                        0,
-                    ),
-                    "flow_control_received_discarded_packets_per_sec": getattr(
-                        perf_stats[perf_stat].eth,
-                        "flow_control_received_discarded_packets_per_sec",
-                        0,
-                    ),
-                    "flow_control_received_lossless_bytes_per_sec": getattr(
-                        perf_stats[perf_stat].eth,
-                        "flow_control_received_lossless_bytes_per_sec",
-                        0,
-                    ),
-                    "flow_control_received_pause_frames_per_sec": getattr(
-                        perf_stats[perf_stat].eth,
-                        "flow_control_received_pause_frames_per_sec",
-                        0,
-                    ),
-                    "flow_control_transmitted_congestion_packets_per_sec": getattr(
-                        perf_stats[perf_stat].eth,
-                        "flow_control_transmitted_congestion_packets_per_sec",
-                        0,
-                    ),
-                    "flow_control_transmitted_discarded_packets_per_sec": getattr(
-                        perf_stats[perf_stat].eth,
-                        "flow_control_transmitted_discarded_packets_per_sec",
-                        0,
-                    ),
-                    "flow_control_transmitted_lossless_bytes_per_sec": getattr(
-                        perf_stats[perf_stat].eth,
-                        "flow_control_transmitted_lossless_bytes_per_sec",
-                        0,
-                    ),
-                    "flow_control_transmitted_pause_frames_per_sec": getattr(
-                        perf_stats[perf_stat].eth,
-                        "flow_control_transmitted_pause_frames_per_sec",
-                        0,
-                    ),
-                }
-    if NEIGHBOR_API_VERSION in api_version:
-        neighbors = list(arrayv6.get_network_interfaces_neighbors().items)
+    if LooseVersion(NEIGHBOR_API_VERSION) <= LooseVersion(array.get_rest_version()):
+        neighbors = list(array.get_network_interfaces_neighbors().items)
         for neighbor in range(0, len(neighbors)):
             neighbor_info = neighbors[neighbor]
             int_name = neighbor_info.local_port.name
@@ -1242,104 +1412,79 @@ def generate_network_dict(module, array, performance):
 
 def generate_capacity_dict(module, array):
     capacity_info = {}
-    api_version = array._list_available_rest_versions()
-    if V6_MINIMUM_API_VERSION in api_version:
-        new_version = bool(SHARED_CAP_API_VERSION in api_version)
-        arrayv6 = get_array(module)
-        total_capacity = list(arrayv6.get_arrays().items)[0].capacity
-        capacity = list(arrayv6.get_arrays_space().items)[0]
-        capacity_info["total_capacity"] = total_capacity
-        if new_version:
-            capacity_info["provisioned_space"] = getattr(
-                capacity.space, "total_provisioned", 0
-            )
-            capacity_info["free_space"] = total_capacity - getattr(
-                capacity.space, "total_physical", 0
-            )
-            capacity_info["data_reduction"] = getattr(
-                capacity.space, "data_reduction", 0
-            )
-            capacity_info["system_space"] = getattr(capacity.space, "system", 0)
-            capacity_info["volume_space"] = getattr(capacity.space, "unique", 0)
-            capacity_info["shared_space"] = getattr(capacity.space, "shared", 0)
-            capacity_info["snapshot_space"] = getattr(capacity.space, "snapshots", 0)
-            capacity_info["thin_provisioning"] = getattr(
-                capacity.space, "thin_provisioning", 0
-            )
-            capacity_info["total_reduction"] = getattr(
-                capacity.space, "total_reduction", 0
-            )
-            capacity_info["replication"] = getattr(capacity.space, "replication", 0)
-            capacity_info["shared_effective"] = getattr(
-                capacity.space, "shared_effective", 0
-            )
-            capacity_info["snapshots_effective"] = getattr(
-                capacity.space, "snapshots_effective", 0
-            )
-            capacity_info["unique_effective"] = getattr(
-                capacity.space, "total_effective", 0
-            )
-            capacity_info["total_effective"] = getattr(
-                capacity.space, "total_effective", 0
-            )
-            capacity_info["used_provisioned"] = getattr(
-                capacity.space, "used_provisioned", 0
-            )
-            if SUBS_API_VERSION in api_version:
-                capacity_info["total_used"] = capacity.space.total_used
-        else:
-            capacity_info["provisioned_space"] = capacity.space["total_provisioned"]
-            capacity_info["free_space"] = (
-                total_capacity - capacity.space["total_physical"]
-            )
-            capacity_info["data_reduction"] = capacity.space["data_reduction"]
-            capacity_info["system_space"] = capacity.space["system"]
-            capacity_info["volume_space"] = capacity.space["unique"]
-            capacity_info["shared_space"] = capacity.space["shared"]
-            capacity_info["snapshot_space"] = capacity.space["snapshots"]
-            capacity_info["thin_provisioning"] = capacity.space["thin_provisioning"]
-            capacity_info["total_reduction"] = capacity.space["total_reduction"]
-            capacity_info["replication"] = capacity.space["replication"]
-        if NFS_SECURITY_VERSION in api_version and _is_cbs(arrayv6):
-            cloud = list(arrayv6.get_arrays_cloud_capacity().items)[0]
-            capacity_info["cloud_capacity"] = {
-                "current_capacity": cloud.current_capacity,
-                "requested_capacity": cloud.requested_capacity,
-                "status": cloud.status,
-            }
-    elif CAP_REQUIRED_API_VERSION in api_version:
-        volumes = array.list_volumes(pending=True)
-        capacity_info["provisioned_space"] = sum(item["size"] for item in volumes)
-        capacity = array.get(space=True)
-        total_capacity = capacity[0]["capacity"]
-        used_space = capacity[0]["total"]
-        capacity_info["free_space"] = total_capacity - used_space
-        capacity_info["total_capacity"] = total_capacity
-        capacity_info["data_reduction"] = capacity[0]["data_reduction"]
-        capacity_info["system_space"] = capacity[0]["system"]
-        capacity_info["volume_space"] = capacity[0]["volumes"]
-        capacity_info["shared_space"] = capacity[0]["shared_space"]
-        capacity_info["snapshot_space"] = capacity[0]["snapshots"]
-        capacity_info["thin_provisioning"] = capacity[0]["thin_provisioning"]
-        capacity_info["total_reduction"] = capacity[0]["total_reduction"]
+    api_version = array.get_rest_version()
+    total_capacity = list(array.get_arrays().items)[0].capacity
+    capacity = list(array.get_arrays_space().items)[0]
+    capacity_info["total_capacity"] = total_capacity
+    capacity_info["parity"] = getattr(capacity, "parity", None)
+    capacity_info["capacity_installed"] = getattr(capacity, "capacity_installed", None)
+    if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(array.get_rest_version()):
+        capacity_info["provisioned_space"] = getattr(
+            capacity.space, "total_provisioned", 0
+        )
+        capacity_info["free_space"] = total_capacity - getattr(
+            capacity.space, "total_physical", 0
+        )
+        capacity_info["data_reduction"] = getattr(capacity.space, "data_reduction", 0)
+        capacity_info["system_space"] = getattr(capacity.space, "system", 0)
+        capacity_info["volume_space"] = getattr(capacity.space, "unique", 0)
+        capacity_info["shared_space"] = getattr(capacity.space, "shared", 0)
+        capacity_info["snapshot_space"] = getattr(capacity.space, "snapshots", 0)
+        capacity_info["thin_provisioning"] = getattr(
+            capacity.space, "thin_provisioning", 0
+        )
+        capacity_info["total_reduction"] = getattr(capacity.space, "total_reduction", 0)
+        capacity_info["replication"] = getattr(capacity.space, "replication", 0)
+        capacity_info["shared_effective"] = getattr(
+            capacity.space, "shared_effective", 0
+        )
+        capacity_info["snapshots_effective"] = getattr(
+            capacity.space, "snapshots_effective", 0
+        )
+        capacity_info["unique_effective"] = getattr(
+            capacity.space, "total_effective", 0
+        )
+        capacity_info["total_effective"] = getattr(capacity.space, "total_effective", 0)
+        capacity_info["used_provisioned"] = getattr(
+            capacity.space, "used_provisioned", 0
+        )
+        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+            capacity_info["total_used"] = capacity.space.total_used
+    else:
+        capacity_info["provisioned_space"] = capacity.space["total_provisioned"]
+        capacity_info["free_space"] = total_capacity - capacity.space["total_physical"]
+        capacity_info["data_reduction"] = capacity.space["data_reduction"]
+        capacity_info["system_space"] = capacity.space["system"]
+        capacity_info["volume_space"] = capacity.space["unique"]
+        capacity_info["shared_space"] = capacity.space["shared"]
+        capacity_info["snapshot_space"] = capacity.space["snapshots"]
+        capacity_info["thin_provisioning"] = capacity.space["thin_provisioning"]
+        capacity_info["total_reduction"] = capacity.space["total_reduction"]
+        capacity_info["replication"] = capacity.space["replication"]
+    if LooseVersion(NFS_SECURITY_VERSION) <= LooseVersion(
+        array.get_rest_version()
+    ) and _is_cbs(array):
+        cloud = list(array.get_arrays_cloud_capacity().items)[0]
+        capacity_info["cloud_capacity"] = {
+            "current_capacity": cloud.current_capacity,
+            "requested_capacity": cloud.requested_capacity,
+            "status": cloud.status,
+        }
     return capacity_info
 
 
 def generate_snap_dict(module, array):
     snap_info = {}
-    api_version = array._list_available_rest_versions()
-    if FC_REPL_API_VERSION in api_version:
-        arrayv6 = get_array(module)
-        snapsv6 = list(arrayv6.get_volume_snapshots(destroyed=False).items)
-    snaps = array.list_volumes(snap=True)
+    api_version = array.get_rest_version()
+    snaps = list(array.get_volume_snapshots(destroyed=False).items)
     for snap in range(0, len(snaps)):
-        snapshot = snaps[snap]["name"]
+        snapshot = snaps[snap].name
         snap_info[snapshot] = {
-            "size": snaps[snap]["size"],
-            "source": snaps[snap]["source"],
-            "created": snaps[snap]["created"],
-            "created_epoch": int(
-                time.mktime(time.strptime(snaps[snap]["created"], "%Y-%m-%dT%H:%M:%SZ"))
+            "size": snaps[snap].space.total_provisioned,
+            "source": getattr(snaps[snap].source, "name", None),
+            "created_epoch": snaps[snap].created,
+            "created": time.strftime(
+                "%Y-%m-%dT%H:%M:%S", time.localtime(snaps[snap].created / 1000)
             ),
             "tags": [],
             "is_local": True,
@@ -1347,674 +1492,544 @@ def generate_snap_dict(module, array):
         }
         if ":" in snapshot and "::" not in snapshot:
             snap_info[snapshot]["is_local"] = False
-    if FC_REPL_API_VERSION in api_version:
-        for snap in range(0, len(snapsv6)):
-            snapshot = snapsv6[snap].name
-            snap_info[snapshot]["snapshot_space"] = snapsv6[snap].space.snapshots
-            snap_info[snapshot]["used_provisioned"] = (
-                getattr(snapsv6[snap].space, "used_provisioned", None),
+        snap_info[snapshot]["snapshot_space"] = snaps[snap].space.snapshots
+        snap_info[snapshot]["used_provisioned"] = (
+            getattr(snaps[snap].space, "used_provisioned", None),
+        )
+        snap_info[snapshot]["total_physical"] = snaps[snap].space.total_physical
+        snap_info[snapshot]["total_provisioned"] = snaps[snap].space.total_provisioned
+        snap_info[snapshot]["unique_space"] = snaps[snap].space.unique
+        if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(
+            array.get_rest_version()
+        ):
+            snap_info[snapshot]["snapshots_effective"] = getattr(
+                snaps[snap].space, "snapshots_effective", None
             )
-            snap_info[snapshot]["total_physical"] = snapsv6[snap].space.total_physical
-            snap_info[snapshot]["total_provisioned"] = snapsv6[
-                snap
-            ].space.total_provisioned
-            snap_info[snapshot]["unique_space"] = snapsv6[snap].space.unique
-            if SHARED_CAP_API_VERSION in api_version:
-                snap_info[snapshot]["snapshots_effective"] = getattr(
-                    snapsv6[snap].space, "snapshots_effective", None
-                )
-            if SUBS_API_VERSION in api_version:
-                snap_info[snapshot]["total_used"] = snapsv6[snap].space.total_used
-        offloads = list(arrayv6.get_offloads().items)
-        for offload in range(0, len(offloads)):
-            offload_name = offloads[offload].name
-            check_offload = arrayv6.get_remote_volume_snapshots(on=offload_name)
-            if check_offload.status_code == 200:
-                remote_snaps = list(
-                    arrayv6.get_remote_volume_snapshots(
-                        on=offload_name, destroyed=False
+        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+            snap_info[snapshot]["total_used"] = snaps[snap].space.total_used
+    offloads = list(array.get_offloads().items)
+    for offload in range(0, len(offloads)):
+        offload_name = offloads[offload].name
+        check_offload = array.get_remote_volume_snapshots(on=offload_name)
+        if check_offload.status_code == 200:
+            remote_snaps = list(
+                array.get_remote_volume_snapshots(
+                    on=offload_name, destroyed=False
+                ).items
+            )
+            for remote_snap in range(0, len(remote_snaps)):
+                remote_snap_name = remote_snaps[remote_snap].name.split(":")[1]
+                remote_transfer = list(
+                    array.get_remote_volume_snapshots_transfer(
+                        on=offload_name, names=[remote_snaps[remote_snap].name]
                     ).items
-                )
-                for remote_snap in range(0, len(remote_snaps)):
-                    remote_snap_name = remote_snaps[remote_snap].name.split(":")[1]
-                    remote_transfer = list(
-                        arrayv6.get_remote_volume_snapshots_transfer(
-                            on=offload_name, names=[remote_snaps[remote_snap].name]
-                        ).items
-                    )[0]
-                    remote_dict = {
-                        "source": remote_snaps[remote_snap].source.name,
-                        "suffix": remote_snaps[remote_snap].suffix,
-                        "size": remote_snaps[remote_snap].provisioned,
-                        "data_transferred": remote_transfer.data_transferred,
-                        "completed": time.strftime(
-                            "%Y-%m-%d %H:%M:%S",
-                            time.gmtime(remote_transfer.completed / 1000),
-                        )
-                        + " UTC",
-                        "physical_bytes_written": remote_transfer.physical_bytes_written,
-                        "progress": remote_transfer.progress,
-                        "created": time.strftime(
-                            "%Y-%m-%d %H:%M:%S",
-                            time.gmtime(remote_snaps[remote_snap].created / 1000),
-                        )
-                        + " UTC",
-                    }
-                    try:
-                        snap_info[remote_snap_name]["remote"].append(remote_dict)
-                    except KeyError:
-                        snap_info[remote_snap_name] = {"remote": []}
-                        snap_info[remote_snap_name]["remote"].append(remote_dict)
-    if ACTIVE_DR_API in api_version:
-        snaptags = array.list_volumes(snap=True, tags=True, namespace="*")
-        for snaptag in range(0, len(snaptags)):
-            if snaptags[snaptag]["namespace"] != "vasa-integration.purestorage.com":
-                snapname = snaptags[snaptag]["name"]
-                tagdict = {
-                    "key": snaptags[snaptag]["key"],
-                    "value": snaptags[snaptag]["value"],
-                    "namespace": snaptags[snaptag]["namespace"],
+                )[0]
+                remote_dict = {
+                    "source": remote_snaps[remote_snap].source.name,
+                    "suffix": remote_snaps[remote_snap].suffix,
+                    "size": remote_snaps[remote_snap].provisioned,
+                    "data_transferred": remote_transfer.data_transferred,
+                    "completed": time.strftime(
+                        "%Y-%m-%d %H:%M:%S",
+                        time.gmtime(remote_transfer.completed / 1000),
+                    )
+                    + " UTC",
+                    "physical_bytes_written": remote_transfer.physical_bytes_written,
+                    "progress": remote_transfer.progress,
+                    "created": time.strftime(
+                        "%Y-%m-%d %H:%M:%S",
+                        time.gmtime(remote_snaps[remote_snap].created / 1000),
+                    )
+                    + " UTC",
                 }
-                snap_info[snapname]["tags"].append(tagdict)
+                try:
+                    snap_info[remote_snap_name]["remote"].append(remote_dict)
+                except KeyError:
+                    snap_info[remote_snap_name] = {"remote": []}
+                    snap_info[remote_snap_name]["remote"].append(remote_dict)
     return snap_info
 
 
 def generate_del_snap_dict(module, array):
     snap_info = {}
-    api_version = array._list_available_rest_versions()
-    if FC_REPL_API_VERSION in api_version:
-        arrayv6 = get_array(module)
-        snapsv6 = list(arrayv6.get_volume_snapshots(destroyed=True).items)
-    snaps = array.list_volumes(snap=True, pending_only=True)
+    api_version = array.get_rest_version()
+    snaps = list(array.get_volume_snapshots(destroyed=True).items)
     for snap in range(0, len(snaps)):
-        snapshot = snaps[snap]["name"]
+        snapshot = snaps[snap].name
         snap_info[snapshot] = {
-            "size": snaps[snap]["size"],
-            "source": snaps[snap]["source"],
-            "created": snaps[snap]["created"],
-            "time_remaining": snaps[snap]["time_remaining"],
+            "size": snaps[snap].space.total_provisioned,
+            "source": getattr(snaps[snap].source, "name", None),
+            "created_epoch": snaps[snap].created,
+            "created": time.strftime(
+                "%Y-%m-%dT%H:%M:%S", time.localtime(snaps[snap].created / 1000)
+            ),
             "tags": [],
+            "is_local": True,
             "remote": [],
+            "time_remaining": getattr(snaps[snap], "time_remaining", None),
         }
-    if FC_REPL_API_VERSION in api_version:
-        for snap in range(0, len(snapsv6)):
-            snapshot = snapsv6[snap].name
-            snap_info[snapshot]["snapshot_space"] = snapsv6[snap].space.snapshots
-            snap_info[snapshot]["used_provisioned"] = (
-                getattr(snapsv6[snap].space, "used_provisioned", None),
-            )
-            snap_info[snapshot]["total_physical"] = snapsv6[snap].space.total_physical
-            snap_info[snapshot]["total_provisioned"] = snapsv6[
-                snap
-            ].space.total_provisioned
-            snap_info[snapshot]["unique_space"] = snapsv6[snap].space.unique
-            if SUBS_API_VERSION in api_version:
-                snap_info[snapshot]["total_used"] = snapsv6[snap].space.total_used
-        offloads = list(arrayv6.get_offloads().items)
-        for offload in range(0, len(offloads)):
-            offload_name = offloads[offload].name
-            check_offload = arrayv6.get_remote_volume_snapshots(on=offload_name)
-            if check_offload.status_code == 200:
-                remote_snaps = list(
-                    arrayv6.get_remote_volume_snapshots(
-                        on=offload_name, destroyed=True
-                    ).items
-                )
-                for remote_snap in range(0, len(remote_snaps)):
-                    remote_snap_name = remote_snaps[remote_snap].name.split(":")[1]
-                    remote_transfer = list(
-                        arrayv6.get_remote_volume_snapshots_transfer(
-                            on=offload_name, names=[remote_snaps[remote_snap].name]
-                        ).items
-                    )[0]
-                    remote_dict = {
-                        "source": remote_snaps[remote_snap].source.name,
-                        "suffix": remote_snaps[remote_snap].suffix,
-                        "size": remote_snaps[remote_snap].provisioned,
-                        "data_transferred": remote_transfer.data_transferred,
-                        "completed": time.strftime(
-                            "%Y-%m-%d %H:%M:%S",
-                            time.gmtime(remote_transfer.completed / 1000),
-                        )
-                        + " UTC",
-                        "physical_bytes_written": remote_transfer.physical_bytes_written,
-                        "progress": remote_transfer.progress,
-                        "created": time.strftime(
-                            "%Y-%m-%d %H:%M:%S",
-                            time.gmtime(remote_snaps[remote_snap].created / 1000),
-                        )
-                        + " UTC",
-                    }
-                    try:
-                        snap_info[remote_snap_name]["remote"].append(remote_dict)
-                    except KeyError:
-                        snap_info[remote_snap_name] = {"remote": []}
-                        snap_info[remote_snap_name]["remote"].append(remote_dict)
-    if ACTIVE_DR_API in api_version:
-        snaptags = array.list_volumes(
-            snap=True, tags=True, pending_only=True, namespace="*"
+        snap_info[snapshot]["snapshot_space"] = snaps[snap].space.snapshots
+        snap_info[snapshot]["used_provisioned"] = (
+            getattr(snaps[snap].space, "used_provisioned", None),
         )
-        for snaptag in range(0, len(snaptags)):
-            if snaptags[snaptag]["namespace"] != "vasa-integration.purestorage.com":
-                snapname = snaptags[snaptag]["name"]
-                tagdict = {
-                    "key": snaptags[snaptag]["key"],
-                    "value": snaptags[snaptag]["value"],
-                    "namespace": snaptags[snaptag]["namespace"],
+        snap_info[snapshot]["total_physical"] = snaps[snap].space.total_physical
+        snap_info[snapshot]["total_provisioned"] = snaps[snap].space.total_provisioned
+        snap_info[snapshot]["unique_space"] = snaps[snap].space.unique
+        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+            snap_info[snapshot]["total_used"] = snaps[snap].space.total_used
+    offloads = list(array.get_offloads().items)
+    for offload in range(0, len(offloads)):
+        offload_name = offloads[offload].name
+        check_offload = array.get_remote_volume_snapshots(on=offload_name)
+        if check_offload.status_code == 200:
+            remote_snaps = list(
+                array.get_remote_volume_snapshots(on=offload_name, destroyed=True).items
+            )
+            for remote_snap in range(0, len(remote_snaps)):
+                remote_snap_name = remote_snaps[remote_snap].name.split(":")[1]
+                remote_transfer = list(
+                    array.get_remote_volume_snapshots_transfer(
+                        on=offload_name, names=[remote_snaps[remote_snap].name]
+                    ).items
+                )[0]
+                remote_dict = {
+                    "source": remote_snaps[remote_snap].source.name,
+                    "suffix": remote_snaps[remote_snap].suffix,
+                    "size": remote_snaps[remote_snap].provisioned,
+                    "data_transferred": remote_transfer.data_transferred,
+                    "completed": time.strftime(
+                        "%Y-%m-%d %H:%M:%S",
+                        time.gmtime(remote_transfer.completed / 1000),
+                    )
+                    + " UTC",
+                    "physical_bytes_written": remote_transfer.physical_bytes_written,
+                    "progress": remote_transfer.progress,
+                    "created": time.strftime(
+                        "%Y-%m-%d %H:%M:%S",
+                        time.gmtime(remote_snaps[remote_snap].created / 1000),
+                    )
+                    + " UTC",
                 }
-                snap_info[snapname]["tags"].append(tagdict)
+                try:
+                    snap_info[remote_snap_name]["remote"].append(remote_dict)
+                except KeyError:
+                    snap_info[remote_snap_name] = {"remote": []}
+                    snap_info[remote_snap_name]["remote"].append(remote_dict)
     return snap_info
 
 
 def generate_del_vol_dict(module, array):
     volume_info = {}
-    api_version = array._list_available_rest_versions()
-    vols = array.list_volumes(pending_only=True)
+    api_version = array.get_rest_version()
+    vols = list(array.get_volumes(destroyed=True).items)
     for vol in range(0, len(vols)):
-        volume = vols[vol]["name"]
+        volume = vols[vol].name
         volume_info[volume] = {
-            "size": vols[vol]["size"],
-            "source": vols[vol]["source"],
-            "created": vols[vol]["created"],
-            "serial": vols[vol]["serial"],
-            "page83_naa": PURE_OUI + vols[vol]["serial"],
+            "protocol_endpoint": bool(vols[vol].subtype == "protocol_endpoint"),
+            "protocol_endpoint_version": getattr(
+                vols[vol].protocol_endpoint, "container_version", None
+            ),
+            "size": vols[vol].provisioned,
+            "source": getattr(vols[vol].source, "name", None),
+            "created_epoch": vols[vol].created,
+            "created": time.strftime(
+                "%Y-%m-%dT%H:%M:%S", time.localtime(vols[vol].created / 1000)
+            ),
+            "serial": vols[vol].serial,
+            "page83_naa": PURE_OUI + vols[vol].serial,
             "nvme_nguid": "eui.00"
-            + vols[vol]["serial"][0:14].lower()
+            + vols[vol].serial[0:14].lower()
             + "24a937"
-            + vols[vol]["serial"][-10:].lower(),
-            "time_remaining": vols[vol]["time_remaining"],
+            + vols[vol].serial[-10:].lower(),
+            "time_remaining": vols[vol].time_remaining,
             "tags": [],
-        }
-    if V6_MINIMUM_API_VERSION in api_version:
-        arrayv6 = get_array(module)
-        vols_space = list(arrayv6.get_volumes_space(destroyed=True).items)
-        for vol in range(0, len(vols_space)):
-            name = vols_space[vol].name
-            volume_info[name]["snapshots_space"] = vols_space[vol].space.snapshots
+            "promotion_status": vols[vol].promotion_status,
+            "requested_promotion_state": vols[vol].requested_promotion_state,
+            "bandwidth": getattr(vols[vol].qos, "bandwidth_limit", None),
+            "iops_limit": getattr(vols[vol].qos, "iops_limit", None),
+            "snapshots_space": vols[vol].space.snapshots,
             # Provide system as this matches the old naming convention
-            volume_info[name]["system"] = vols_space[vol].space.unique
-            volume_info[name]["unique_space"] = vols_space[vol].space.unique
-            volume_info[name]["virtual_space"] = vols_space[vol].space.virtual
-            volume_info[name]["total_physical_space"] = vols_space[
+            "system": vols[vol].space.unique,
+            "unique_space": vols[vol].space.unique,
+            "virtual_space": vols[vol].space.virtual,
+            "total_physical_space": vols[vol].space.total_physical,
+            "data_reduction": vols[vol].space.data_reduction,
+            "total_reduction": vols[vol].space.total_reduction,
+            "total_provisioned": vols[vol].space.total_provisioned,
+            "thin_provisioning": vols[vol].space.thin_provisioning,
+            "host_encryption_key_status": vols[vol].host_encryption_key_status,
+            "subtype": vols[vol].subtype,
+        }
+        if LooseVersion(SAFE_MODE_VERSION) <= LooseVersion(array.get_rest_version()):
+            volume_info[volume]["subtype"] = vols[vol].subtype
+            volume_info[volume]["priority"] = vols[vol].priority
+            volume_info[volume]["priority_adjustment"] = vols[
                 vol
-            ].space.total_physical
-            volume_info[name]["data_reduction"] = vols_space[vol].space.data_reduction
-            volume_info[name]["total_reduction"] = vols_space[vol].space.total_reduction
-            volume_info[name]["total_provisioned"] = vols_space[
-                vol
-            ].space.total_provisioned
-            volume_info[name]["thin_provisioning"] = vols_space[
-                vol
-            ].space.thin_provisioning
-            if SHARED_CAP_API_VERSION in api_version:
-                volume_info[name]["snapshots_effective"] = getattr(
-                    vols_space[vol].space, "snapshots_effective", None
-                )
-                volume_info[name]["unique_effective"] = getattr(
-                    vols_space[vol].space, "unique_effective", None
-                )
-                volume_info[name]["used_provisioned"] = (
-                    getattr(vols_space[vol].space, "used_provisioned", None),
-                )
-            if SUBS_API_VERSION in api_version:
-                volume_info[name]["total_used"] = vols_space[vol].space.total_used
-    if ACTIVE_DR_API in api_version:
-        voltags = array.list_volumes(tags=True, pending_only=True)
-        for voltag in range(0, len(voltags)):
-            if voltags[voltag]["namespace"] != "vasa-integration.purestorage.com":
-                volume = voltags[voltag]["name"]
-                tagdict = {
-                    "key": voltags[voltag]["key"],
-                    "value": voltags[voltag]["value"],
-                    "copyable": voltags[voltag]["copyable"],
-                    "namespace": voltags[voltag]["namespace"],
-                }
-                volume_info[volume]["tags"].append(tagdict)
-    if V6_MINIMUM_API_VERSION in api_version:
-        volumes = list(arrayv6.get_volumes(destroyed=True).items)
-        for vol in range(0, len(volumes)):
-            name = volumes[vol].name
-            volume_info[name]["promotion_status"] = volumes[vol].promotion_status
-            volume_info[name]["requested_promotion_state"] = volumes[
-                vol
-            ].requested_promotion_state
-            if SAFE_MODE_VERSION in api_version:
-                volume_info[name]["subtype"] = volumes[vol].subtype
-                volume_info[name]["priority"] = volumes[vol].priority
-                volume_info[name]["priority_adjustment"] = volumes[
-                    vol
-                ].priority_adjustment.priority_adjustment_operator + str(
-                    volumes[vol].priority_adjustment.priority_adjustment_value
-                )
+            ].priority_adjustment.priority_adjustment_operator + str(
+                vols[vol].priority_adjustment.priority_adjustment_value
+            )
+        if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(
+            array.get_rest_version()
+        ):
+            volume_info[volume]["snapshots_effective"] = getattr(
+                vols[vol].space, "snapshots_effective", None
+            )
+            volume_info[volume]["unique_effective"] = getattr(
+                vols[vol].space, "unique_effective", None
+            )
+            volume_info[volume]["used_provisioned"] = (
+                getattr(vols[vol].space, "used_provisioned", None),
+            )
+        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+            volume_info[volume]["total_used"] = vols[vol].space.total_used
     return volume_info
 
 
 def generate_vol_dict(module, array, performance):
     volume_info = {}
-    vols_space = array.list_volumes(space=True)
-    vols = array.list_volumes()
+    api_version = array.get_rest_version()
+    vols = list(array.get_volumes(destroyed=False).items)
     for vol in range(0, len(vols)):
-        volume = vols[vol]["name"]
+        volume = vols[vol].name
         volume_info[volume] = {
-            "protocol_endpoint": False,
-            "source": vols[vol]["source"],
-            "size": vols[vol]["size"],
-            "serial": vols[vol]["serial"],
-            "page83_naa": PURE_OUI + vols[vol]["serial"],
+            "protocol_endpoint": bool(vols[vol].subtype == "protocol-endpoint"),
+            "protocol_endpoint_version": getattr(
+                vols[vol].protocol_endpoint, "container_version", None
+            ),
+            "size": vols[vol].provisioned,
+            "source": getattr(vols[vol].source, "name", None),
+            "created_epoch": vols[vol].created,
+            "created": time.strftime(
+                "%Y-%m-%dT%H:%M:%S", time.localtime(vols[vol].created / 1000)
+            ),
+            "serial": vols[vol].serial,
+            "page83_naa": PURE_OUI + vols[vol].serial,
             "nvme_nguid": "eui.00"
-            + vols[vol]["serial"][0:14].lower()
+            + vols[vol].serial[0:14].lower()
             + "24a937"
-            + vols[vol]["serial"][-10:].lower(),
+            + vols[vol].serial[-10:].lower(),
             "tags": [],
+            "promotion_status": vols[vol].promotion_status,
+            "requested_promotion_state": vols[vol].requested_promotion_state,
             "hosts": [],
-            "bandwidth": "",
-            "iops_limit": "",
-            "data_reduction": vols_space[vol]["data_reduction"],
-            "thin_provisioning": vols_space[vol]["thin_provisioning"],
-            "total_reduction": vols_space[vol]["total_reduction"],
-            "performance": [],
-        }
-    api_version = array._list_available_rest_versions()
-    if V6_MINIMUM_API_VERSION in api_version:
-        arrayv6 = get_array(module)
-        vols_space = list(arrayv6.get_volumes_space(destroyed=False).items)
-        for vol in range(0, len(vols_space)):
-            name = vols_space[vol].name
-            volume_info[name]["snapshots_space"] = vols_space[vol].space.snapshots
+            "host_groups": [],
+            "bandwidth": getattr(vols[vol].qos, "bandwidth_limit", None),
+            "iops_limit": getattr(vols[vol].qos, "iops_limit", None),
+            "snapshots_space": vols[vol].space.snapshots,
             # Provide system as this matches the old naming convention
-            volume_info[name]["system"] = vols_space[vol].space.unique
-            volume_info[name]["unique_space"] = vols_space[vol].space.unique
-            volume_info[name]["virtual_space"] = vols_space[vol].space.virtual
-            volume_info[name]["total_physical_space"] = vols_space[
-                vol
-            ].space.total_physical
-            if SHARED_CAP_API_VERSION in api_version:
-                volume_info[name]["snapshots_effective"] = getattr(
-                    vols_space[vol].space, "snapshots_effective", None
-                )
-                volume_info[name]["unique_effective"] = getattr(
-                    vols_space[vol].space, "unique_effective", None
-                )
-                volume_info[name]["total_effective"] = getattr(
-                    vols_space[vol].space, "total_effective", None
-                )
-                volume_info[name]["used_provisioned"] = (
-                    getattr(vols_space[vol].space, "used_provisioned", None),
-                )
-            if SUBS_API_VERSION in api_version:
-                volume_info[name]["total_used"] = vols_space[vol].space.total_used
-    if AC_REQUIRED_API_VERSION in api_version:
-        qvols = array.list_volumes(qos=True)
-        for qvol in range(0, len(qvols)):
-            volume = qvols[qvol]["name"]
-            qos = qvols[qvol]["bandwidth_limit"]
-            volume_info[volume]["bandwidth"] = qos
-            if P53_API_VERSION in api_version:
-                iops = qvols[qvol]["iops_limit"]
-                volume_info[volume]["iops_limit"] = iops
-        vvols = array.list_volumes(protocol_endpoint=True)
-        for vvol in range(0, len(vvols)):
-            volume = vvols[vvol]["name"]
-            volume_info[volume] = {
-                "protocol_endpoint": True,
-                "host_encryption_key_status": None,
-                "source": vvols[vvol]["source"],
-                "serial": vvols[vvol]["serial"],
-                "nvme_nguid": "eui.00"
-                + vvols[vvol]["serial"][0:14].lower()
-                + "24a937"
-                + vvols[vvol]["serial"][-10:].lower(),
-                "page83_naa": PURE_OUI + vvols[vvol]["serial"],
-                "tags": [],
-                "hosts": [],
-            }
-        if P53_API_VERSION in array._list_available_rest_versions():
-            e2ees = array.list_volumes(host_encryption_key=True)
-            for e2ee in range(0, len(e2ees)):
-                volume = e2ees[e2ee]["name"]
-                volume_info[volume]["host_encryption_key_status"] = e2ees[e2ee][
-                    "host_encryption_key_status"
-                ]
-    if V6_MINIMUM_API_VERSION in api_version:
-        volumes = list(arrayv6.get_volumes(destroyed=False).items)
-        for vol in range(0, len(volumes)):
-            name = volumes[vol].name
-            volume_info[name]["promotion_status"] = volumes[vol].promotion_status
-            volume_info[name]["requested_promotion_state"] = volumes[
-                vol
-            ].requested_promotion_state
-            volume_info[name]["subtype"] = volumes[vol].subtype
-            if SAFE_MODE_VERSION in api_version:
-                volume_info[name]["priority"] = volumes[vol].priority
-                volume_info[name]["priority_adjustment"] = volumes[
-                    vol
-                ].priority_adjustment.priority_adjustment_operator + str(
-                    volumes[vol].priority_adjustment.priority_adjustment_value
-                )
-        if performance:
-            vols_performance = list(
-                arrayv6.get_volumes_performance(destroyed=False).items
+            "system": vols[vol].space.unique,
+            "unique_space": vols[vol].space.unique,
+            "virtual_space": vols[vol].space.virtual,
+            "total_physical_space": vols[vol].space.total_physical,
+            "data_reduction": vols[vol].space.data_reduction,
+            "total_reduction": vols[vol].space.total_reduction,
+            "total_provisioned": vols[vol].space.total_provisioned,
+            "thin_provisioning": vols[vol].space.thin_provisioning,
+            "performance": [],
+            "host_encryption_key_status": vols[vol].host_encryption_key_status,
+            "subtype": vols[vol].subtype,
+        }
+        if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(
+            array.get_rest_version()
+        ):
+            volume_info[volume]["snapshots_effective"] = getattr(
+                vols[vol].space, "snapshots_effective", None
             )
-            for performance in range(0, len(vols_performance)):
-                volume_info[vols_performance[performance].name]["performance"] = {
-                    "bytes_per_mirrored_write": vols_performance[
-                        performance
-                    ].bytes_per_mirrored_write,
-                    "bytes_per_op": vols_performance[performance].bytes_per_op,
-                    "bytes_per_read": vols_performance[performance].bytes_per_read,
-                    "bytes_per_write": vols_performance[performance].bytes_per_write,
-                    "mirrored_write_bytes_per_sec": vols_performance[
-                        performance
-                    ].mirrored_write_bytes_per_sec,
-                    "mirrored_writes_per_sec": vols_performance[
-                        performance
-                    ].mirrored_writes_per_sec,
-                    "qos_rate_limit_usec_per_mirrored_write_op": vols_performance[
-                        performance
-                    ].qos_rate_limit_usec_per_mirrored_write_op,
-                    "qos_rate_limit_usec_per_read_op": vols_performance[
-                        performance
-                    ].qos_rate_limit_usec_per_mirrored_write_op,
-                    "qos_rate_limit_usec_per_write_op": vols_performance[
-                        performance
-                    ].qos_rate_limit_usec_per_read_op,
-                    "queue_usec_per_mirrored_write_op": vols_performance[
-                        performance
-                    ].queue_usec_per_mirrored_write_op,
-                    "queue_usec_per_read_op": vols_performance[
-                        performance
-                    ].queue_usec_per_read_op,
-                    "queue_usec_per_write_op": vols_performance[
-                        performance
-                    ].queue_usec_per_write_op,
-                    "read_bytes_per_sec": vols_performance[
-                        performance
-                    ].read_bytes_per_sec,
-                    "reads_per_sec": vols_performance[performance].reads_per_sec,
-                    "san_usec_per_mirrored_write_op": vols_performance[
-                        performance
-                    ].san_usec_per_mirrored_write_op,
-                    "san_usec_per_read_op": vols_performance[
-                        performance
-                    ].san_usec_per_read_op,
-                    "san_usec_per_write_op": vols_performance[
-                        performance
-                    ].san_usec_per_write_op,
-                    "service_usec_per_mirrored_write_op": vols_performance[
-                        performance
-                    ].service_usec_per_mirrored_write_op,
-                    "service_usec_per_read_op": vols_performance[
-                        performance
-                    ].service_usec_per_read_op,
-                    "service_usec_per_write_op": vols_performance[
-                        performance
-                    ].service_usec_per_write_op,
-                    "usec_per_mirrored_write_op": vols_performance[
-                        performance
-                    ].usec_per_mirrored_write_op,
-                    "usec_per_read_op": vols_performance[performance].usec_per_read_op,
-                    "usec_per_write_op": vols_performance[
-                        performance
-                    ].usec_per_write_op,
-                    "write_bytes_per_sec": vols_performance[
-                        performance
-                    ].write_bytes_per_sec,
-                    "writes_per_sec": vols_performance[performance].writes_per_sec,
-                }
-    cvols = array.list_volumes(connect=True)
-    for cvol in range(0, len(cvols)):
-        volume = cvols[cvol]["name"]
-        voldict = {"host": cvols[cvol]["host"], "lun": cvols[cvol]["lun"]}
-        volume_info[volume]["hosts"].append(voldict)
-    if ACTIVE_DR_API in api_version:
-        voltags = array.list_volumes(tags=True)
-        for voltag in range(0, len(voltags)):
-            if voltags[voltag]["namespace"] != "vasa-integration.purestorage.com":
-                volume = voltags[voltag]["name"]
-                tagdict = {
-                    "key": voltags[voltag]["key"],
-                    "value": voltags[voltag]["value"],
-                    "copyable": voltags[voltag]["copyable"],
-                    "namespace": voltags[voltag]["namespace"],
-                }
-                volume_info[volume]["tags"].append(tagdict)
+            volume_info[volume]["unique_effective"] = getattr(
+                vols[vol].space, "unique_effective", None
+            )
+            volume_info[volume]["total_effective"] = getattr(
+                vols[vol].space, "total_effective", None
+            )
+            volume_info[volume]["used_provisioned"] = (
+                getattr(vols[vol].space, "used_provisioned", None),
+            )
+        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+            volume_info[volume]["total_used"] = vols[vol].space.total_used
+        if LooseVersion(SAFE_MODE_VERSION) <= LooseVersion(array.get_rest_version()):
+            volume_info[volume]["priority"] = vols[vol].priority
+            volume_info[volume]["priority_adjustment"] = vols[
+                vol
+            ].priority_adjustment.priority_adjustment_operator + str(
+                vols[vol].priority_adjustment.priority_adjustment_value
+            )
+        connections = list(
+            array.get_connections(volumes=[FixedReference(name=vols[vol].name)]).items
+        )
+        voldict = {}
+        for connection in range(0, len(connections)):
+            voldict = {
+                "host": getattr(connections[connection].host, "name", None),
+                "lun": getattr(connections[connection], "lun", None),
+            }
+            if voldict["host"]:
+                volume_info[volume]["hosts"].append(voldict)
+        voldict = {}
+        for connection in range(0, len(connections)):
+            voldict = {
+                "host_group": getattr(connections[connection].host_group, "name", None),
+                "lun": getattr(connections[connection], "lun", None),
+            }
+            if voldict["host_group"]:
+                volume_info[volume]["host_groups"].append(voldict)
+        volume_info[volume]["host_groups"] = [
+            dict(t)
+            for t in set(tuple(d.items()) for d in volume_info[volume]["host_groups"])
+        ]
+    if performance:
+        vols_performance = list(array.get_volumes_performance(destroyed=False).items)
+        for performance in range(0, len(vols_performance)):
+            volume_info[vols_performance[performance].name]["performance"] = {
+                "bytes_per_mirrored_write": vols_performance[
+                    performance
+                ].bytes_per_mirrored_write,
+                "bytes_per_op": vols_performance[performance].bytes_per_op,
+                "bytes_per_read": vols_performance[performance].bytes_per_read,
+                "bytes_per_write": vols_performance[performance].bytes_per_write,
+                "mirrored_write_bytes_per_sec": vols_performance[
+                    performance
+                ].mirrored_write_bytes_per_sec,
+                "mirrored_writes_per_sec": vols_performance[
+                    performance
+                ].mirrored_writes_per_sec,
+                "qos_rate_limit_usec_per_mirrored_write_op": vols_performance[
+                    performance
+                ].qos_rate_limit_usec_per_mirrored_write_op,
+                "qos_rate_limit_usec_per_read_op": vols_performance[
+                    performance
+                ].qos_rate_limit_usec_per_mirrored_write_op,
+                "qos_rate_limit_usec_per_write_op": vols_performance[
+                    performance
+                ].qos_rate_limit_usec_per_read_op,
+                "queue_usec_per_mirrored_write_op": vols_performance[
+                    performance
+                ].queue_usec_per_mirrored_write_op,
+                "queue_usec_per_read_op": vols_performance[
+                    performance
+                ].queue_usec_per_read_op,
+                "queue_usec_per_write_op": vols_performance[
+                    performance
+                ].queue_usec_per_write_op,
+                "read_bytes_per_sec": vols_performance[performance].read_bytes_per_sec,
+                "reads_per_sec": vols_performance[performance].reads_per_sec,
+                "san_usec_per_mirrored_write_op": vols_performance[
+                    performance
+                ].san_usec_per_mirrored_write_op,
+                "san_usec_per_read_op": vols_performance[
+                    performance
+                ].san_usec_per_read_op,
+                "san_usec_per_write_op": vols_performance[
+                    performance
+                ].san_usec_per_write_op,
+                "service_usec_per_mirrored_write_op": vols_performance[
+                    performance
+                ].service_usec_per_mirrored_write_op,
+                "service_usec_per_read_op": vols_performance[
+                    performance
+                ].service_usec_per_read_op,
+                "service_usec_per_write_op": vols_performance[
+                    performance
+                ].service_usec_per_write_op,
+                "usec_per_mirrored_write_op": vols_performance[
+                    performance
+                ].usec_per_mirrored_write_op,
+                "usec_per_read_op": vols_performance[performance].usec_per_read_op,
+                "usec_per_write_op": vols_performance[performance].usec_per_write_op,
+                "write_bytes_per_sec": vols_performance[
+                    performance
+                ].write_bytes_per_sec,
+                "writes_per_sec": vols_performance[performance].writes_per_sec,
+            }
     return volume_info
 
 
 def generate_host_dict(module, array, performance):
-    api_version = array._list_available_rest_versions()
     host_info = {}
-    arrayv6 = get_array(module)
-    if FC_REPL_API_VERSION in api_version:
-        hostsv6 = list(arrayv6.get_hosts().items)
-    hosts = array.list_hosts()
+    hosts = list(array.get_hosts().items)
+    hosts_balance = list(array.get_hosts_performance_balance().items)
+    if performance:
+        hosts_performance = list(array.get_hosts_performance().items)
     for host in range(0, len(hosts)):
-        hostname = hosts[host]["name"]
-        tports = []
-        all_tports = []
-        host_all_info = None
-        try:
-            host_all_info = array.get_host(hostname, all=True)
-        except purestorage.PureHTTPError as err:
-            if err.code == 400:
-                continue
-        if host_all_info:
-            for tport in range(0, len(host_all_info)):
-                for itport in range(0, len(host_all_info[tport]["target_port"])):
-                    tports.append(host_all_info[tport]["target_port"][itport])
-            all_tports = list(dict.fromkeys(tports))
+        hostname = hosts[host].name
         host_info[hostname] = {
-            "hgroup": hosts[host]["hgroup"],
-            "iqn": hosts[host]["iqn"],
-            "wwn": hosts[host]["wwn"],
-            "personality": array.get_host(hostname, personality=True)["personality"],
-            "target_port": all_tports,
+            "hgroup": getattr(hosts[host].host_group, "name", None),
+            "nqn": hosts[host].nqns,
+            "iqn": hosts[host].iqns,
+            "wwn": hosts[host].wwns,
+            "personality": getattr(hosts[host], "personality", None),
+            "host_user": getattr(hosts[host].chap, "host_user", None),
+            "target_user": getattr(hosts[host].chap, "target_user", None),
+            "target_port": [],
             "volumes": [],
             "performance": [],
             "performance_balance": [],
+            "preferred_array": [],
+            "destroyed": hosts[host].destroyed,
+            "time_remaining": getattr(hosts[host], "time_remaining", None),
+            "vlan": hosts[host].vlan,
         }
-        if FC_REPL_API_VERSION in api_version:
-            host_connections = list(
-                arrayv6.get_connections(host_names=[hostname]).items
+        host_connections = list(array.get_connections(host_names=[hostname]).items)
+        for connection in range(0, len(host_connections)):
+            connection_dict = {
+                "hostgroup": getattr(
+                    host_connections[connection].host_group, "name", None
+                ),
+                "volume": host_connections[connection].volume.name,
+                "lun": getattr(host_connections[connection], "lun", None),
+                "nsid": getattr(host_connections[connection], "nsid", None),
+            }
+            host_info[hostname]["volumes"].append(connection_dict)
+        for pref_array in range(0, len(hosts[host].preferred_arrays)):
+            host_info[hostname]["preferred_array"].append(
+                hosts[host].preferred_arrays[pref_array].name
             )
-            for connection in range(0, len(host_connections)):
-                connection_dict = {
-                    "hostgroup": getattr(
-                        host_connections[connection].host_group, "name", ""
-                    ),
-                    "volume": host_connections[connection].volume.name,
-                    "lun": getattr(host_connections[connection], "lun", ""),
-                    "nsid": getattr(host_connections[connection], "nsid", ""),
+
+        if hosts[host].is_local:
+            host_info[hosts[host].name]["port_connectivity"] = hosts[
+                host
+            ].port_connectivity.details
+            host_perf_balance = []
+            for balance in range(0, len(hosts_balance)):
+                if hosts[host]["name"] == hosts_balance[balance].name:
+                    host_balance = {
+                        "fraction_relative_to_max": getattr(
+                            hosts_balance[balance],
+                            "fraction_relative_to_max",
+                            None,
+                        ),
+                        "op_count": getattr(hosts_balance[balance], "op_count", 0),
+                        "target": getattr(hosts_balance[balance].target, "name", None),
+                        "failed": bool(
+                            getattr(hosts_balance[balance].target, "failover", 0)
+                        ),
+                    }
+                    if host_balance["target"]:
+                        host_perf_balance.append(host_balance)
+                    host_info[hostname]["target_port"].append(
+                        getattr(hosts_balance[balance].target, "name", None)
+                    )
+            host_info[hosts[host]["name"]]["performance_balance"].append(
+                host_perf_balance
+            )
+    if performance:
+        for perf in range(0, len(hosts_performance)):
+            if ":" not in hosts_performance[perf].name:
+                host_info[hosts_performance[perf].name]["performance"] = {
+                    "bytes_per_mirrored_write": hosts_performance[
+                        perf
+                    ].bytes_per_mirrored_write,
+                    "bytes_per_op": hosts_performance[perf].bytes_per_op,
+                    "bytes_per_read": hosts_performance[perf].bytes_per_read,
+                    "bytes_per_write": hosts_performance[perf].bytes_per_write,
+                    "mirrored_write_bytes_per_sec": hosts_performance[
+                        perf
+                    ].mirrored_write_bytes_per_sec,
+                    "mirrored_writes_per_sec": hosts_performance[
+                        perf
+                    ].mirrored_writes_per_sec,
+                    "qos_rate_limit_usec_per_mirrored_write_op": hosts_performance[
+                        perf
+                    ].qos_rate_limit_usec_per_mirrored_write_op,
+                    "qos_rate_limit_usec_per_read_op": hosts_performance[
+                        perf
+                    ].qos_rate_limit_usec_per_mirrored_write_op,
+                    "qos_rate_limit_usec_per_write_op": hosts_performance[
+                        perf
+                    ].qos_rate_limit_usec_per_read_op,
+                    "queue_usec_per_mirrored_write_op": hosts_performance[
+                        perf
+                    ].queue_usec_per_mirrored_write_op,
+                    "queue_usec_per_read_op": hosts_performance[
+                        perf
+                    ].queue_usec_per_read_op,
+                    "queue_usec_per_write_op": hosts_performance[
+                        perf
+                    ].queue_usec_per_write_op,
+                    "read_bytes_per_sec": hosts_performance[perf].read_bytes_per_sec,
+                    "reads_per_sec": hosts_performance[perf].reads_per_sec,
+                    "san_usec_per_mirrored_write_op": hosts_performance[
+                        perf
+                    ].san_usec_per_mirrored_write_op,
+                    "san_usec_per_read_op": hosts_performance[
+                        perf
+                    ].san_usec_per_read_op,
+                    "san_usec_per_write_op": hosts_performance[
+                        perf
+                    ].san_usec_per_write_op,
+                    "service_usec_per_mirrored_write_op": hosts_performance[
+                        perf
+                    ].service_usec_per_mirrored_write_op,
+                    "service_usec_per_read_op": hosts_performance[
+                        perf
+                    ].service_usec_per_read_op,
+                    "service_usec_per_write_op": hosts_performance[
+                        perf
+                    ].service_usec_per_write_op,
+                    "usec_per_mirrored_write_op": hosts_performance[
+                        perf
+                    ].usec_per_mirrored_write_op,
+                    "usec_per_read_op": hosts_performance[perf].usec_per_read_op,
+                    "usec_per_write_op": hosts_performance[perf].usec_per_write_op,
+                    "write_bytes_per_sec": hosts_performance[perf].write_bytes_per_sec,
+                    "writes_per_sec": hosts_performance[perf].writes_per_sec,
                 }
-                host_info[hostname]["volumes"].append(connection_dict)
-        else:
-            host_connections = array.list_host_connections(hostname)
-            for connection in range(0, len(host_connections)):
-                connection_dict = {
-                    "hostgroup": host_connections[connection]["hgroup"],
-                    "volume": host_connections[connection]["vol"],
-                    "lun": host_connections[connection]["lun"],
-                }
-                host_info[hostname]["volumes"].append(connection_dict)
-        if host_info[hostname]["iqn"]:
-            chap_data = array.get_host(hostname, chap=True)
-            host_info[hostname]["target_user"] = chap_data["target_user"]
-            host_info[hostname]["host_user"] = chap_data["host_user"]
-        if NVME_API_VERSION in api_version:
-            host_info[hostname]["nqn"] = hosts[host]["nqn"]
-    if PREFERRED_API_VERSION in api_version:
-        hosts = array.list_hosts(preferred_array=True)
-        for host in range(0, len(hosts)):
-            hostname = hosts[host]["name"]
-            host_info[hostname]["preferred_array"] = hosts[host]["preferred_array"]
-    if FC_REPL_API_VERSION in api_version:
-        hosts_balance = list(arrayv6.get_hosts_performance_balance().items)
-        hosts_performance = list(arrayv6.get_hosts_performance().items)
-        for host in range(0, len(hostsv6)):
-            if hostsv6[host].is_local:
-                host_info[hostsv6[host].name]["port_connectivity"] = hostsv6[
-                    host
-                ].port_connectivity.details
-                host_perf_balance = []
-                for balance in range(0, len(hosts_balance)):
-                    if hosts[host]["name"] == hosts_balance[balance].name:
-                        host_balance = {
-                            "fraction_relative_to_max": getattr(
-                                hosts_balance[balance],
-                                "fraction_relative_to_max",
-                                None,
-                            ),
-                            "op_count": getattr(hosts_balance[balance], "op_count", 0),
-                            "target": getattr(
-                                hosts_balance[balance].target, "name", None
-                            ),
-                            "failed": bool(
-                                getattr(hosts_balance[balance].target, "failover", 0)
-                            ),
-                        }
-                        if host_balance["target"]:
-                            host_perf_balance.append(host_balance)
-                host_info[hosts[host]["name"]]["performance_balance"].append(
-                    host_perf_balance
-                )
-                if performance:
-                    for perf in range(0, len(hosts_performance)):
-                        if ":" not in hosts_performance[perf].name:
-                            host_info[hosts_performance[perf].name]["performance"] = {
-                                "bytes_per_mirrored_write": hosts_performance[
-                                    perf
-                                ].bytes_per_mirrored_write,
-                                "bytes_per_op": hosts_performance[perf].bytes_per_op,
-                                "bytes_per_read": hosts_performance[
-                                    perf
-                                ].bytes_per_read,
-                                "bytes_per_write": hosts_performance[
-                                    perf
-                                ].bytes_per_write,
-                                "mirrored_write_bytes_per_sec": hosts_performance[
-                                    perf
-                                ].mirrored_write_bytes_per_sec,
-                                "mirrored_writes_per_sec": hosts_performance[
-                                    perf
-                                ].mirrored_writes_per_sec,
-                                "qos_rate_limit_usec_per_mirrored_write_op": hosts_performance[
-                                    perf
-                                ].qos_rate_limit_usec_per_mirrored_write_op,
-                                "qos_rate_limit_usec_per_read_op": hosts_performance[
-                                    perf
-                                ].qos_rate_limit_usec_per_mirrored_write_op,
-                                "qos_rate_limit_usec_per_write_op": hosts_performance[
-                                    perf
-                                ].qos_rate_limit_usec_per_read_op,
-                                "queue_usec_per_mirrored_write_op": hosts_performance[
-                                    perf
-                                ].queue_usec_per_mirrored_write_op,
-                                "queue_usec_per_read_op": hosts_performance[
-                                    perf
-                                ].queue_usec_per_read_op,
-                                "queue_usec_per_write_op": hosts_performance[
-                                    perf
-                                ].queue_usec_per_write_op,
-                                "read_bytes_per_sec": hosts_performance[
-                                    perf
-                                ].read_bytes_per_sec,
-                                "reads_per_sec": hosts_performance[perf].reads_per_sec,
-                                "san_usec_per_mirrored_write_op": hosts_performance[
-                                    perf
-                                ].san_usec_per_mirrored_write_op,
-                                "san_usec_per_read_op": hosts_performance[
-                                    perf
-                                ].san_usec_per_read_op,
-                                "san_usec_per_write_op": hosts_performance[
-                                    perf
-                                ].san_usec_per_write_op,
-                                "service_usec_per_mirrored_write_op": hosts_performance[
-                                    perf
-                                ].service_usec_per_mirrored_write_op,
-                                "service_usec_per_read_op": hosts_performance[
-                                    perf
-                                ].service_usec_per_read_op,
-                                "service_usec_per_write_op": hosts_performance[
-                                    perf
-                                ].service_usec_per_write_op,
-                                "usec_per_mirrored_write_op": hosts_performance[
-                                    perf
-                                ].usec_per_mirrored_write_op,
-                                "usec_per_read_op": hosts_performance[
-                                    perf
-                                ].usec_per_read_op,
-                                "usec_per_write_op": hosts_performance[
-                                    perf
-                                ].usec_per_write_op,
-                                "write_bytes_per_sec": hosts_performance[
-                                    perf
-                                ].write_bytes_per_sec,
-                                "writes_per_sec": hosts_performance[
-                                    perf
-                                ].writes_per_sec,
-                            }
-    if VLAN_VERSION in api_version:
-        hosts = list(arrayv6.get_hosts().items)
-        for host in range(0, len(hosts)):
-            if DSROLE_POLICY_API_VERSION in api_version:
-                host_info[hostname]["destroyed"] = hosts[host].destroyed
-                if hosts[host].destroyed:
-                    host_info[hostname]["time_remaining"] = hosts[host].time_remaining
-            if hosts[host].is_local:
-                hostname = hosts[host].name
-                host_info[hostname]["vlan"] = getattr(hosts[host], "vlan", None)
     return host_info
 
 
 def generate_del_pgroups_dict(module, array):
     pgroups_info = {}
-    api_version = array._list_available_rest_versions()
-    pgroups = array.list_pgroups(pending_only=True)
-    if SHARED_CAP_API_VERSION in api_version:
-        array_v6 = get_array(module)
+    deleted_enabled = False
+    api_version = array.get_rest_version()
+    pgroups = list(array.get_protection_groups(filter="destroyed='True'").items)
+    pgroup_targets = list(
+        array.get_protection_groups_targets(filter="destroyed='True'").items
+    )
+    pgroup_volumes = list(
+        array.get_protection_groups_volumes(filter="destroyed='True'").items
+    )
+    pgroup_hosts = list(
+        array.get_protection_groups_hosts(filter="destroyed='True'").items
+    )
+    pgroup_hgs = list(
+        array.get_protection_groups_host_groups(filter="destroyed='True'").items
+    )
+    pgroup_transfer = list(
+        array.get_protection_group_snapshot_transfer(filter="destroyed='True'").items
+    )
+    if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(array.get_rest_version()):
         deleted_enabled = True
-    else:
-        deleted_enabled = False
     for pgroup in range(0, len(pgroups)):
-        protgroup = pgroups[pgroup]["name"]
+        protgroup = pgroups[pgroup].name
+
         pgroups_info[protgroup] = {
-            "hgroups": pgroups[pgroup]["hgroups"],
-            "hosts": pgroups[pgroup]["hosts"],
-            "source": pgroups[pgroup]["source"],
-            "targets": pgroups[pgroup]["targets"],
-            "volumes": pgroups[pgroup]["volumes"],
-            "time_remaining": pgroups[pgroup]["time_remaining"],
+            "hgroups": [],
+            "hosts": [],
+            "source": getattr(pgroups[pgroup].source, "name", None),
+            "targets": [],
+            "volumes": [],
+            "time_remaining": pgroups[pgroup].time_remaining,
+            "snap_frequency": pgroups[pgroup].snaphot_schedule.frequency,
+            "replicate_frequency": pgroups[pgroup].replication_schedule.frequency,
+            "snap_enabled": pgroups[pgroup].snapshot_schedule.enabled,
+            "replicate_enabled": pgroups[pgroup].replication_schedule.enabled,
+            "snap_at": pgroups[pgroup].snapshot_schedule.at,
+            "replicate_at": pgroups[pgroup].replication_schedule.at,
+            "replicate_blackout": {
+                "start": getattr(
+                    pgroups[pgroup].replication_schedule.blackout, "start", None
+                ),
+                "end": getattr(
+                    pgroups[pgroup].replication_schedule.blackout, "end", None
+                ),
+            },
+            "per_day": pgroups[pgroup].source_retention.per_day,
+            "target_per_day": pgroups[pgroup].target_retention.per_day,
+            "target_days": pgroups[pgroup].target_retention.days,
+            "days": pgroups[pgroup].source_retention.days,
+            "all_for": pgroups[pgroup].source_retention.all_for_sec,
+            "target_all_for": pgroups[pgroup].target_retention.all_for_sec,
+            "snaps": {},
         }
-        try:
-            prot_sched = array.get_pgroup(protgroup, schedule=True, pending=True)
-            prot_reten = array.get_pgroup(protgroup, retention=True, pending=True)
-            snap_transfers = array.get_pgroup(
-                protgroup, snap=True, transfer=True, pending=True
-            )
-        except purestorage.PureHTTPError as err:
-            if err.code == 400:
-                continue
-        if prot_sched["snap_enabled"] or prot_sched["replicate_enabled"]:
-            pgroups_info[protgroup]["snap_frequency"] = prot_sched["snap_frequency"]
-            pgroups_info[protgroup]["replicate_frequency"] = prot_sched[
-                "replicate_frequency"
-            ]
-            pgroups_info[protgroup]["snap_enabled"] = prot_sched["snap_enabled"]
-            pgroups_info[protgroup]["replicate_enabled"] = prot_sched[
-                "replicate_enabled"
-            ]
-            pgroups_info[protgroup]["snap_at"] = prot_sched["snap_at"]
-            pgroups_info[protgroup]["replicate_at"] = prot_sched["replicate_at"]
-            pgroups_info[protgroup]["replicate_blackout"] = prot_sched[
-                "replicate_blackout"
-            ]
-            pgroups_info[protgroup]["per_day"] = prot_reten["per_day"]
-            pgroups_info[protgroup]["target_per_day"] = prot_reten["target_per_day"]
-            pgroups_info[protgroup]["target_days"] = prot_reten["target_days"]
-            pgroups_info[protgroup]["days"] = prot_reten["days"]
-            pgroups_info[protgroup]["all_for"] = prot_reten["all_for"]
-            pgroups_info[protgroup]["target_all_for"] = prot_reten["target_all_for"]
-        pgroups_info[protgroup]["snaps"] = {}
         for snap_transfer in range(0, len(snap_transfers)):
             snap = snap_transfers[snap_transfer]["name"]
             pgroups_info[protgroup]["snaps"][snap] = {
@@ -3451,9 +3466,8 @@ def main():
     )
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
-
+    array = get_array(module)
+    api_version = array.get_rest_version()
     subset = [test.lower() for test in module.params["gather_subset"]]
     valid_subsets = (
         "all",
@@ -3549,57 +3563,49 @@ def main():
         info["arrays"] = generate_conn_array_dict(module, array)
     if "certs" in subset or "all" in subset:
         info["certs"] = generate_certs_dict(array)
-    if FILES_API_VERSION in api_version:
-        array_v6 = get_array(module)
-        if "kmip" in subset or "all" in subset:
-            info["kmip"] = generate_kmip_dict(array_v6)
-        if "offload" in subset or "all" in subset:
-            info["google_offload"] = generate_google_offload_dict(array_v6)
-        if "filesystems" in subset or "all" in subset:
-            info["filesystems"] = generate_filesystems_dict(array_v6)
-        if "policies" in subset or "all" in subset:
-            if NFS_USER_MAP_VERSION in api_version:
-                user_map = True
-            else:
-                user_map = False
-            if DIR_QUOTA_API_VERSION in api_version:
-                quota = True
-            else:
-                quota = False
-            if AUTODIR_API_VERSION in api_version:
-                autodir = True
-            else:
-                autodir = False
-            info["policies"] = generate_policies_dict(
-                array_v6, quota, autodir, user_map
-            )
-        if "clients" in subset or "all" in subset:
-            info["clients"] = generate_clients_dict(array_v6)
-        if "dir_snaps" in subset or "all" in subset:
-            info["dir_snaps"] = generate_dir_snaps_dict(array_v6)
-        if "snapshots" in subset or "all" in subset:
-            info["pg_snapshots"] = generate_pgsnaps_dict(array_v6)
-        if "alerts" in subset or "all" in subset:
-            info["alerts"] = generate_alerts_dict(array_v6)
-        if SUBS_API_VERSION in api_version and (
-            "subscriptions" in subset or "all" in subset
-        ):
-            info["subscriptions"] = generate_subs_dict(array_v6)
-        if VM_VERSION in api_version and (
-            "virtual_machines" in subset or "all" in subset
-        ):
-            info["virtual_machines"] = generate_vm_dict(array_v6)
-            info["virtual_machines_snaps"] = generate_vmsnap_dict(array_v6)
-        if DSROLE_POLICY_API_VERSION in api_version:
-            if "realms" in subset or "all" in subset:
-                info["realms"] = generate_realms_dict(array_v6, performance)
-        if CONTEXT_API_VERSION in api_version:
-            if "fleet" in subset or "all" in subset:
-                info["fleet"] = generate_fleet_dict(array_v6)
-            if "presets" in subset or "all" in subset:
-                info["presets"] = generate_preset_dict(array_v6)
-            if "workloads" in subset or "all" in subset:
-                info["workloads"] = generate_workload_dict(array_v6)
+    if "kmip" in subset or "all" in subset:
+        info["kmip"] = generate_kmip_dict(array)
+    if "offload" in subset or "all" in subset:
+        info["google_offload"] = generate_google_offload_dict(array)
+    if "filesystems" in subset or "all" in subset:
+        info["filesystems"] = generate_filesystems_dict(array, performance)
+    if "policies" in subset or "all" in subset:
+        if LooseVersion(NFS_USER_MAP_VERSION) <= LooseVersion(api_version):
+            user_map = True
+        else:
+            user_map = False
+        if LooseVersion(DIR_QUOTA_API_VERSION) <= LooseVersion(api_version):
+            quota = True
+        else:
+            quota = False
+        if LooseVersion(AUTODIR_API_VERSION) <= LooseVersion(api_version):
+            autodir = True
+        else:
+            autodir = False
+        info["policies"] = generate_policies_dict(array, quota, autodir, user_map)
+    if "clients" in subset or "all" in subset:
+        info["clients"] = generate_clients_dict(array)
+    if "dir_snaps" in subset or "all" in subset:
+        info["dir_snaps"] = generate_dir_snaps_dict(array)
+    if "snapshots" in subset or "all" in subset:
+        info["pg_snapshots"] = generate_pgsnaps_dict(array)
+    if "alerts" in subset or "all" in subset:
+        info["alerts"] = generate_alerts_dict(array)
+    if LooseVersion(SUBS_API_VERSION) <= LooseVersion(api_version) and (
+        "subscriptions" in subset or "all" in subset
+    ):
+        info["subscriptions"] = generate_subs_dict(array)
+    if LooseVersion(VM_VERSION) <= LooseVersion(api_version) and (
+        "virtual_machines" in subset or "all" in subset
+    ):
+        info["virtual_machines"] = generate_vm_dict(array)
+        info["virtual_machines_snaps"] = generate_vmsnap_dict(array)
+    if LooseVersion(DSROLE_POLICY_API_VERSION) <= LooseVersion(api_version):
+        if "realms" in subset or "all" in subset:
+            info["realms"] = generate_realms_dict(array, performance)
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if "fleet" in subset or "all" in subset:
+            info["fleet"] = generate_fleet_dict(array)
     module.exit_json(changed=False, purefa_info=info)
 
 
