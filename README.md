@@ -165,6 +165,7 @@ All modules are idempotent with the exception of modules that change or set pass
 - purefa_vnc - manage VNC for installed applications on the FlashArray
 - purefa_volume - manage volumes on the FlashArray
 - purefa_volume_tags - manage volume tags on the FlashArray
+- purefa_workload - manage Fusion workloads in a Fleet
 
 ## License Information
 
