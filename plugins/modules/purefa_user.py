@@ -160,6 +160,7 @@ EXPOSE_API_VERSION = "2.32"
 def get_user(module, array):
     """Return Local User Account or None"""
     user = None
+    api_version = array.get_rest_version()
     if LooseVersion(EXPOSE_API_VERSION) <= LooseVersion(api_version):
         res = array.get_admins(
             names=[module.params["name"]],
