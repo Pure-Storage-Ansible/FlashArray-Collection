@@ -233,18 +233,22 @@ def get_undo_pod(module, array):
     """Return Undo Pod or None"""
     api_version = array.get_rest_version()
     if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        return bool(
-            array.get_pods(
-                names=[module.params["name"] + ".undo-demote.*"],
-                context_names=[module.params["context"]],
-            ).status_code
-            == 200
-        )
+        try:
+            return list(
+                array.get_pods(
+                    names=[module.params["name"] + ".undo-demote.*"],
+                    context_names=[module.params["context"]],
+            ).items
+        except Exception:
+            return None
     else:
-        return bool(
-            array.get_pods(names=[module.params["name"] + ".undo-demote.*"]).status_code
-            == 200
-        )
+        try:
+            return list(
+                array.get_pods(
+                    names=[module.params["name"] + ".undo-demote.*"],
+            ).items
+        except Exception:
+            return None
 
 
 def get_target(module, array):
@@ -628,7 +632,7 @@ def update_pod(module, array):
                         )
                     elif module.params["undo"]:
                         undo_pod = get_undo_pod(module, array)
-                        if len(undo_pod) == 1:
+                        if undo_pod and len(undo_pod) == 1:
                             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
                                 api_version
                             ):
