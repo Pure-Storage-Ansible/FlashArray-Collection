@@ -238,7 +238,8 @@ def get_undo_pod(module, array):
                 array.get_pods(
                     names=[module.params["name"] + ".undo-demote.*"],
                     context_names=[module.params["context"]],
-            ).items
+                ).items
+            )
         except Exception:
             return None
     else:
@@ -246,7 +247,8 @@ def get_undo_pod(module, array):
             return list(
                 array.get_pods(
                     names=[module.params["name"] + ".undo-demote.*"],
-            ).items
+                ).items
+            )
         except Exception:
             return None
 
