@@ -736,12 +736,12 @@ def update_pod(module, array):
                                 pod=PodPatch(requested_promotion_state="demoted"),
                                 quiesce=True,
                             )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to demote pod {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to demote pod {0}. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
+                            )
                         )
-                    )
     if module.params["quota"] and LooseVersion(POD_QUOTA_VERSION) <= LooseVersion(
         api_version
     ):
