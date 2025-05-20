@@ -482,10 +482,12 @@ def get_volume(module, array):
     api_version = array.get_rest_version()
     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
         res = array.get_volumes(
-            names=[module.params["name"]], context_names=[module.params["context"]]
+            names=[module.params["name"]],
+            destroyed=False,
+            context_names=[module.params["context"]],
         )
     else:
-        res = array.get_volumes(names=[module.params["name"]])
+        res = array.get_volumes(names=[module.params["name"]], destroyed=False)
     if res.status_code == 200:
         return list(res.items)[0]
     return None
@@ -510,14 +512,14 @@ def get_destroyed_volume(module, array):
     api_version = array.get_rest_version()
     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
         res = array.get_volumes(
-            names=[module.params["name"]], context_names=[module.params["context"]]
+            names=[module.params["name"]],
+            destroyed=True,
+            context_names=[module.params["context"]],
         )
     else:
-        res = array.get_volumes(names=[module.params["name"]])
+        res = array.get_volumes(names=[module.params["name"]], destroyed=True)
     if res.status_code == 200:
-        volume = list(res.items)[0]
-        if volume.destroyed:
-            return volume
+        return list(res.items)[0]
     return None
 
 
@@ -1718,7 +1720,10 @@ def delete_volume(module, array):
                             module.params["name"], res.errors[0].message
                         )
                     )
-                module.exit_json(changed=changed, volume=[])
+                module.exit_json(
+                    changed=changed,
+                    volume=_volfact(module, array, module.params["name"]),
+                )
             elif res.status_code != 200:
                 module.fail_json(
                     msg="Delete volume {0} failed. Error: {1}".format(
@@ -1734,9 +1739,10 @@ def eradicate_volume(module, array):
     """Eradicate Deleted Volume"""
     api_version = array.get_rest_version()
     changed = False
-    volfact = []
+    volfact = _volfact(module, array, module.params["name"])
     if module.params["eradicate"]:
         changed = True
+        volfact = []
         if not module.check_mode:
             if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                 res = array.delete_volumes(
@@ -1747,7 +1753,7 @@ def eradicate_volume(module, array):
                 res = array.delete_volumes(names=[module.params["name"]])
             if res.status_code != 200:
                 module.fail_json(
-                    msg="Eradication of volume {0} failed. Erro: {1}".format(
+                    msg="Eradication of volume {0} failed. Error: {1}".format(
                         module.params["name"], res.errors[0].message
                     )
                 )
