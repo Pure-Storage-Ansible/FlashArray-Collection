@@ -4,6 +4,15 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.34.1
+=======
+
+Bugfixes
+--------
+
+- purefa_vg - Fixed idempotency issue when clearing volume group QoS settings
+- purefa_vg - Fixed issue with creating non-QoS volume groups
+
 v1.34.0
 =======
 
