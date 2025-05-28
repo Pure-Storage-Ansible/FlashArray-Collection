@@ -112,7 +112,6 @@ options:
       authenticity of the configured servers
     - A valid signed certicate in PEM format (Base64 encoded)
     - Includes the "-----BEGIN CERTIFICATE-----" and "-----END CERTIFICATE-----" lines
-    - Does not exceed 3000 characters in length
     version_added: 1.24.0
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
