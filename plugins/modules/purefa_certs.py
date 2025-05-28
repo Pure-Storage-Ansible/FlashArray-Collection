@@ -100,7 +100,6 @@ options:
     - Required for I(import)
     - A valid signed certicate in PEM format (Base64 encoded)
     - Includes the "-----BEGIN CERTIFICATE-----" and "-----END CERTIFICATE-----" lines
-    - Does not exceed 3000 characters in length
   intermeadiate_cert:
     type: str
     description:
