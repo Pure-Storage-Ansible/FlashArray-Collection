@@ -103,10 +103,17 @@ try:
 except ImportError:
     HAS_NETADDR = False
 
+try:
+    from pypureclient.flasharray import SubnetPatch, SubnetPost
+
+    HAS_PURESTORAGE = True
+except ImportError:
+    HAS_PURESTORAGE = False
+
 import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
 
@@ -114,23 +121,22 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 def _get_subnet(module, array):
     """Return subnet or None"""
     subnet = {}
-    try:
-        subnet = array.get_subnet(module.params["name"])
-    except Exception:
-        return None
-    return subnet
+    res = array.get_subnets(names=[module.params["name"]])
+    if res.status_code == 200:
+        return list(res.items)[0]
+    return None
 
 
 def update_subnet(module, array, subnet):
     """Modify subnet settings"""
     changed = False
     current_state = {
-        "mtu": subnet["mtu"],
-        "vlan": subnet["vlan"],
-        "prefix": subnet["prefix"],
-        "gateway": subnet["gateway"],
+        "mtu": subnet.mtu,
+        "vlan": subnet.vlan,
+        "prefix": subnet.prefix,
+        "gateway": subnet.gateway,
     }
-    address = str(subnet["prefix"].split("/", 1)[0])
+    address = str(subnet.prefix.split("/", 1)[0])
     if not current_state["vlan"]:
         current_state["vlan"] = 0
     if not current_state["gateway"]:
@@ -142,7 +148,7 @@ def update_subnet(module, array, subnet):
             module.fail_json(msg="Prefix address is not valid IPv4 or IPv6")
 
     if not module.params["prefix"]:
-        prefix = subnet["prefix"]
+        prefix = subnet.prefix
     else:
         if module.params["gateway"] and not (
             module.params["gateway"] in ["0.0.0.0", "::"]
@@ -153,13 +159,13 @@ def update_subnet(module, array, subnet):
                 module.fail_json(msg="Gateway and subnet are not compatible.")
             elif (
                 not module.params["gateway"]
-                and subnet["gateway"]
-                and subnet["gateway"] not in IPNetwork(module.params["prefix"])
+                and subnet.gateway
+                and subnet.gateway not in IPNetwork(module.params["prefix"])
             ):
                 module.fail_json(msg="Gateway and subnet are not compatible.")
         prefix = module.params["prefix"]
     if not module.params["vlan"]:
-        vlan = subnet["vlan"]
+        vlan = subnet.vlan
         if not vlan:
             vlan = 0
     else:
@@ -170,7 +176,7 @@ def update_subnet(module, array, subnet):
         else:
             vlan = module.params["vlan"]
     if not module.params["mtu"]:
-        mtu = subnet["mtu"]
+        mtu = subnet.mtu
     else:
         if not 568 <= module.params["mtu"] <= 9000:
             module.fail_json(
@@ -191,40 +197,35 @@ def update_subnet(module, array, subnet):
     if new_state != current_state:
         changed = True
         if not module.check_mode:
-            try:
-                array.set_subnet(
-                    subnet["name"],
+            res = array.patch_subnets(
+                names=[subnet.name],
+                subnet=SubnetPatch(
                     prefix=new_state["prefix"],
                     mtu=new_state["mtu"],
                     vlan=new_state["vlan"],
                     gateway=new_state["gateway"],
-                )
-            except Exception:
+                ),
+            )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Failed to change settings for subnet {0}.".format(
-                        subnet["name"]
+                    msg="Failed to change settings for subnet {0}. Error: {1}".format(
+                        subnet.name, res.errors[0].message
                     )
                 )
-    if subnet["enabled"] != module.params["enabled"]:
-        if module.params["enabled"]:
-            changed = True
-            if not module.check_mode:
-                try:
-                    array.enable_subnet(subnet["name"])
-                except Exception:
-                    module.fail_json(
-                        msg="Failed to enable subnet {0}.".format(subnet["name"])
+    if subnet.enabled != module.params["enabled"]:
+        changed = True
+        if not module.check_mode:
+            res = array.patch_subnets(
+                names=[subnet.name],
+                subnet=SubnetPatch(enabled=module.params["enabled"]),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to enable/disable subnet {0}. Error: {1}".format(
+                        subnet.name, res.errors[0].message
                     )
-        else:
-            changed = True
-            if not module.check_mode:
-                try:
-                    array.disable_subnet(subnet["name"])
-                except Exception:
-                    module.fail_json(
-                        msg="Failed to disable subnet {0}.".format(subnet["name"])
-                    )
-    module.exit_json(changed=changed)
+                )
+                module.exit_json(changed=changed)
 
 
 def create_subnet(module, array):
@@ -265,34 +266,22 @@ def create_subnet(module, array):
     else:
         gateway = ""
     if not module.check_mode:
-        try:
-            array.create_subnet(
-                module.params["name"],
+        res = array.post_subnets(
+            names=[module.params["name"]],
+            subnet=SubnetPost(
                 prefix=prefix,
                 mtu=mtu,
                 vlan=vlan,
                 gateway=gateway,
-            )
-        except Exception:
+                enabled=module.params["enabled"],
+            ),
+        )
+        if res.status_code != 200:
             module.fail_json(
-                msg="Failed to create subnet {0}.".format(module.params["name"])
+                msg="Failed to create subnet {0}.Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
             )
-    if module.params["enabled"]:
-        if not module.check_mode:
-            try:
-                array.enable_subnet(module.params["name"])
-            except Exception:
-                module.fail_json(
-                    msg="Failed to enable subnet {0}.".format(module.params["name"])
-                )
-    else:
-        if not module.check_mode:
-            try:
-                array.disable_subnet(module.params["name"])
-            except Exception:
-                module.fail_json(
-                    msg="Failed to disable subnet {0}.".format(module.params["name"])
-                )
     module.exit_json(changed=changed)
 
 
@@ -300,11 +289,12 @@ def delete_subnet(module, array):
     """Delete subnet"""
     changed = True
     if not module.check_mode:
-        try:
-            array.delete_subnet(module.params["name"])
-        except Exception:
+        res = array.delete_subnets(names=[module.params["name"]])
+        if res.status_code != 200:
             module.fail_json(
-                msg="Failed to delete subnet {0}".format(module.params["name"])
+                msg="Failed to delete subnet {0}. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
             )
     module.exit_json(changed=changed)
 
@@ -325,6 +315,8 @@ def main():
 
     module = AnsibleModule(argument_spec, supports_check_mode=True)
 
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client module is required")
     if not HAS_NETADDR:
         module.fail_json(msg="netaddr module is required")
     pattern = re.compile(r"[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
@@ -334,7 +326,7 @@ def main():
             "with a letter or number. The name must include at least one letter or '-'."
         )
     state = module.params["state"]
-    array = get_system(module)
+    array = get_array(module)
     subnet = _get_subnet(module, array)
     if module.params["prefix"]:
         module.params["prefix"] = module.params["prefix"].strip("[]")
