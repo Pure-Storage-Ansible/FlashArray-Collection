@@ -166,6 +166,29 @@ options:
     type: str
     default: ""
     version_added: '1.33.0'
+  move:
+    description:
+    - Move a host in and out of a local member realm(s) or local array
+    - Provide the name of realm(s) to move to
+    - To move to the local array, specify C(local)
+    - Host cannot have connected volume(s) for move operation
+    type: list
+    elements: str
+    version_added: '1.35.0'
+  modify_resource_access:
+    description:
+    - Describes how to modify a resource accesses of a resource when
+      that resource is moved.
+    - The none value indicates that no resource access should be modified.
+    - The create value is used when a resource is moving out of a realm into
+      the array and it needs to create a resource access of the moved
+      resource to the realm from which it is moving.
+    - The delete value is used when a resource that is moving from an array
+      into a realm already has a resource access into that realm.
+    type: str
+    choices: ["none", "create", "delete"]
+    default: none
+    version_added: '1.35.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -175,6 +198,12 @@ EXAMPLES = r"""
   purestorage.flasharray.purefa_host:
     name: foo
     personality: aix
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Create host bar in existing realm foo
+  purestorage.flasharray.purefa_host:
+    name: foo::bar
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
@@ -296,6 +325,27 @@ EXAMPLES = r"""
     target_password: clear
     host_user: user
     host_password: clear
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Move host foo from the array to realm bar
+  purestorage.flasharray.purefa_host:
+    name: foo
+    move: bar
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Move host foo from realm bar back to array
+  purestorage.flasharray.purefa_host:
+    name: bar::foo
+    move: local
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Rename host foo in realm test to bar
+  purestorage.flasharray.purefa_host:
+    name: test::foo
+    rename: test::bar
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
@@ -1475,6 +1525,104 @@ def delete_host(module, array):
     module.exit_json(changed=changed)
 
 
+def move_host(module, array):
+    """Move host between realms and the local array"""
+    if module.params["context"] != "":
+        module.fail_json(msg="context is not yet supported for host move function")
+    api_version = array.get_rest_version()
+    local_array = list(array.get_arrays().items)[0].name
+    current_realm = ""
+    if len(module.params["move"]) > 1 and len(module.params["move"]) != module.params[
+        "move"
+    ].count("local"):
+        module.fail_json(msg="Cannot mix local with another realm in move target list")
+    if "local" in module.params["move"] and "::" not in module.params["name"]:
+        module.fail_json(msg="host must be provided with current realm name")
+    if "::" in module.params["name"]:
+        current_realm = module.params["name"].split("::")[0]
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        current_connections = list(
+            array.get_hosts(
+                names=[module.params["name"]], context_names=[module.params["context"]]
+            ).items
+        )[0].connection_count
+    else:
+        current_connections = list(
+            array.get_hosts(names=[module.params["name"]]).items
+        )[0].connection_count
+    if current_connections > 0:
+        module.fail_json(msg="Hosts cannot be moved with existing volume connections.")
+    changed = True
+    if not module.check_mode:
+        if "local" in module.params["move"]:
+            # if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            #    res = array.patch_hosts(
+            #        names=[module.params["name"]],
+            #        from_member_names=[module.params["name"].split("::")[0]],
+            #        to_member_names=[local_array],
+            #        modify_resource_access=module.params["modify_resource_access"],
+            #        host=HostPatch(),
+            #        context_names=[module.params["context"]],
+            #    )
+            # else:
+            res = array.patch_hosts(
+                names=[module.params["name"]],
+                from_member_names=[module.params["name"].split("::")[0]],
+                to_member_names=[local_array],
+                modify_resource_access=module.params["modify_resource_access"],
+                host=HostPatch(),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to move host {0} to local array. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
+        else:
+            realm_exists = False
+            # if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            #    res = array.get_realms(
+            #        names=module.params["move"],
+            #        context_names=[module.params["context"]],
+            #    )
+            # else:
+            res = array.get_realms(names=module.params["move"])
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Move target(s) error: {0}".format(res.errors[0].message)
+                )
+            if "::" not in module.params["name"]:
+                source_realm = local_array
+            else:
+                source_realm = module.params["name"].split("::")[0]
+            # if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            #    res = array.patch_hosts(
+            #        names=[module.params["name"]],
+            #        from_member_names=[source_realm],
+            #        to_member_names=module.params["move"],
+            #        modify_resource_access=module.params["modify_resource_access"],
+            #        host=HostPatch(),
+            #        context_names=[module.params["context"]],
+            #    )
+            # else:
+            res = array.patch_hosts(
+                names=[module.params["name"]],
+                from_member_names=[source_realm],
+                to_member_names=module.params["move"],
+                modify_resource_access=module.params["modify_resource_access"],
+                host=HostPatch(),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to move host {0} to realm {1}. Error: {2}".format(
+                        module.params["name"],
+                        module.params["move"],
+                        res.errors[0].message,
+                    )
+                )
+    module.exit_json(changed=changed)
+
+
 def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
@@ -1519,6 +1667,10 @@ def main():
             preferred_array=dict(type="list", elements="str"),
             vlan=dict(type="str"),
             context=dict(type="str", default=""),
+            move=dict(type="list", elements="str"),
+            modify_resource_access=dict(
+                type="str", default="none", choices=["none", "create", "delete"]
+            ),
         )
     )
 
@@ -1546,13 +1698,19 @@ def main():
     api_version = array.get_rest_version()
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
     if module.params["rename"]:
-        if not pattern.match(module.params["rename"]):
+        rename = module.params["rename"]
+        if "::" in module.params["rename"]:
+            rename = module.params["rename"].split("::")[1]
+        if not pattern.match(rename):
             module.fail_json(
                 msg="Rename value {0} does not conform to naming convention".format(
                     module.params["rename"]
                 )
             )
-    if not pattern.match(module.params["name"]):
+    host_name = module.params["name"]
+    if "::" in module.params["name"]:
+        host_name = module.params["name"].split("::")[1]
+    if not pattern.match(host_name):
         module.fail_json(
             msg="Host name {0} does not conform to naming convention".format(
                 module.params["name"]
@@ -1587,7 +1745,9 @@ def main():
             module.fail_json(msg="'digits' must be in the range of 1 to 10")
         if module.params["start"] < 0:
             module.fail_json(msg="'start' must be a positive number")
-        if not pattern.match(module.params["name"]):
+        if "::" in module.params["name"]:
+            host_name = module.params["name"].split("::")[1]
+        if not pattern.match(host_name):
             module.fail_json(
                 msg="Host name pattern {0} does not conform to naming convention".format(
                     module.params["name"]
@@ -1682,12 +1842,19 @@ def main():
                         )
                     )
 
-        if host is None and state == "present" and not module.params["rename"]:
+        if (
+            host is None
+            and state == "present"
+            and not module.params["rename"]
+            and not module.params["move"]
+        ):
             make_host(module, array)
         elif host is None and state == "present" and module.params["rename"]:
             module.exit_json(changed=False)
-        elif host and state == "present":
+        elif host and state == "present" and not module.params["move"]:
             update_host(module, array)
+        elif host and state == "present" and module.params["move"]:
+            move_host(module, array)
         elif host and state == "absent" and module.params["volume"] is not None:
             update_host(module, array)
         elif host and state == "absent" and not module.params["volume"]:
