@@ -17,3 +17,4 @@ dependencies: {}
 repository: https://github.com/Pure-Storage-Ansible/FlashArray-Collection
 documentation: https://github.com/Pure-Storage-Ansible/FlashArray-Collection
 issues: https://github.com/Pure-Storage-Ansible/FlashArray-Collection/issues
+requires_ansible: ">=2.15.0"
