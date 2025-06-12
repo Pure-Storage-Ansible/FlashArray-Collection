@@ -407,7 +407,7 @@ def _create_nguid(serial):
 def get_pod(module, array):
     """Get ActiveCluster Pod"""
     api_version = array.get_rest_version()
-    pod_name = module.params["pgroup"].split("::")[0]
+    pod_name = "::".join(module.params["pgroup"].split("::")[:-1])
     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
         res = array.get_pods(names=[pod_name], context_names=[module.params["context"]])
     else:
@@ -554,7 +554,7 @@ def check_pod(module, array):
     """Check is the requested pod to create volume in exists"""
     pod_exists = False
     api_version = array.get_rest_version()
-    pod_name = module.params["name"].split("::")[0]
+    pod_name = "::".join(module.params["name"].split("::")[:-1])
     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
         res = array.get_pods(names=[pod_name], context_names=[module.params["context"]])
     else:
@@ -582,7 +582,7 @@ def create_volume(module, array):
                     module.params["name"]
                 )
             )
-        pod_name = module.params["name"].split("::")[0]
+        pod_name = "::".join(module.params["name"].split("::")[:-1])
         if (
             list(array.get_pods(names=[pod_name]).items)[0].promotion_status
             == "demoted"
@@ -743,10 +743,10 @@ def create_multi_volume(module, array, single=False):
         if not check_pod(module, array):
             module.fail_json(
                 msg="Multi-volume create failed. Pod {0} does not exist".format(
-                    module.params["name"].split(":")[0]
+                    "::".join(module.params["name"].split("::")[:-1])
                 )
             )
-        pod_name = module.params["name"].split("::")[0]
+        pod_name = "::".join(module.params["name"].split("::")[:-1])
         if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
             if (
                 list(
@@ -817,19 +817,19 @@ def create_multi_volume(module, array, single=False):
                 )
             else:
                 if "::" in module.params["name"]:
-                    pod_name = module.params["name"].split("::")[0]
+                    pod_name = "::".join(module.params["name"].split("::")[:-1])
                     for pgs in range(0, len(module.params["add_to_pgs"])):
                         if "::" not in module.params["add_to_pgs"][pgs]:
                             module.fail_json(msg="Specified PG is not a pod PG")
-                        elif (
-                            pg_exists(module.params["add_to_pgs"][pgs], array)
-                            and module.params["name"].split("::")[0]
-                            != module.params["add_to_pgs"][pgs].split("::")[0]
+                        elif pg_exists(
+                            module.params["add_to_pgs"][pgs], array
+                        ) and pod_name != "::".join(
+                            module.params["add_to_pgs"][pgs].split("::")[:-1]
                         ):
                             module.fail_json(
                                 msg="Protection Group {0} is not associated with pod {1}".format(
                                     module.params["add_to_pgs"][pgs],
-                                    module.params["name"].split("::")[0],
+                                    pod_name,
                                 )
                             )
                         elif not pg_exists(module.params["add_to_pgs"][pgs], array):
@@ -1388,7 +1388,7 @@ def rename_volume(module, array):
     target_exists = False
     api_version = array.get_rest_version()
     if "::" in module.params["name"]:
-        pod_name = module.params["name"].split("::")[0]
+        pod_name = "::".join(module.params["name"].split("::")[:-1])
         target_name = pod_name + "::" + module.params["rename"]
     elif "/" in module.params["name"]:
         vgroup_name = module.params["name"].split("/")[0]
@@ -1442,8 +1442,8 @@ def move_volume(module, array):
     vgroup_name = ""
     volume_name = module.params["name"]
     if "::" in module.params["name"]:
-        volume_name = module.params["name"].split("::")[1]
-        pod_name = module.params["name"].split("::")[0]
+        volume_name = module.params["name"].rsplit("::", 1)[1]
+        pod_name = "::".join(module.params["name"].split("::")[:-1])
     if "/" in module.params["name"]:
         volume_name = module.params["name"].split("/")[1]
         vgroup_name = module.params["name"].split("/")[0]
