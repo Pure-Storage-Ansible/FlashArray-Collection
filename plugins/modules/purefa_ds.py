@@ -203,7 +203,7 @@ def delete_ds(module, array):
             management=management,
         )
     else:
-        directory_service = DirectoryServicePatch(
+        directory_service = DirectoryService(
             uris=[""],
             base_dn="",
             bind_user="",
