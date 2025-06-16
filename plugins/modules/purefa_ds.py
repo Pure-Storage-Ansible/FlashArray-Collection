@@ -193,7 +193,7 @@ def delete_ds(module, array):
         management = DirectoryServiceManagement(
             user_login_attribute="", user_object_class=""
         )
-        directory_service = DirectoryServicePatch(
+        directory_service = DirectoryService(
             uris=[""],
             base_dn="",
             bind_user="",
