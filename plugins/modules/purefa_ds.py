@@ -297,45 +297,45 @@ def update_ds(module, array):
             user_login_attribute=user_login, user_object_class=user_object
         )
         if password_required:
-            directory_service = DirectoryService(
+            directory_service = DirectoryServicePatch(
                 uris=uris,
                 base_dn=base_dn,
                 bind_user=bind_user,
                 bind_password=bind_password,
                 enabled=module.params["enable"],
-                services=module.params["dstype"],
+                services=[module.params["dstype"]],
                 management=management,
                 check_peer=module.params["check_peer"],
                 ca_certificate=cert,
             )
         else:
-            directory_service = DirectoryService(
+            directory_service = DirectoryServicePatch(
                 uris=uris,
                 base_dn=base_dn,
                 bind_user=bind_user,
                 enabled=module.params["enable"],
-                services=module.params["dstype"],
+                services=[module.params["dstype"]],
                 management=management,
                 check_peer=module.params["check_peer"],
                 ca_certificate=cert,
             )
     else:
         if password_required:
-            directory_service = DirectoryService(
+            directory_service = DirectoryServicePatch(
                 uris=uris,
                 base_dn=base_dn,
                 bind_user=bind_user,
                 bind_password=bind_password,
                 enabled=module.params["enable"],
-                services=module.params["dstype"],
+                services=[module.params["dstype"]],
             )
         else:
-            directory_service = DirectoryService(
+            directory_service = DirectoryServicePatch(
                 uris=uris,
                 base_dn=base_dn,
                 bind_user=bind_user,
                 enabled=module.params["enable"],
-                services=module.params["dstype"],
+                services=[module.params["dstype"]],
             )
     if ds_change:
         changed = True
