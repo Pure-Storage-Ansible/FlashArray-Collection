@@ -333,7 +333,7 @@ def update_ds(module, array):
                 services=[module.params["dstype"]],
             )
         else:
-            directory_service = DirectoryServicePatch(
+            directory_service = DirectoryService(
                 uris=uris,
                 base_dn=base_dn,
                 bind_user=bind_user,
