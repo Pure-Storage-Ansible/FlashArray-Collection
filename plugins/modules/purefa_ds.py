@@ -172,7 +172,11 @@ RETURN = r"""
 
 HAS_PURESTORAGE = True
 try:
-    from pypureclient.flasharray import DirectoryService, DirectoryServiceManagement
+    from pypureclient.flasharray import (
+        DirectoryService,
+        DirectoryServicePatch,
+        DirectoryServiceManagement
+    )
 except ImportError:
     HAS_PURESTORAGE = False
 
