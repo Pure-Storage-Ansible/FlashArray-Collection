@@ -175,7 +175,7 @@ try:
     from pypureclient.flasharray import (
         DirectoryService,
         DirectoryServicePatch,
-        DirectoryServiceManagement
+        DirectoryServiceManagement,
     )
 except ImportError:
     HAS_PURESTORAGE = False
