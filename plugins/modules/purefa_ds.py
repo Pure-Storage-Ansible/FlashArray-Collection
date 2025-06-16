@@ -173,7 +173,6 @@ RETURN = r"""
 HAS_PURESTORAGE = True
 try:
     from pypureclient.flasharray import (
-        DirectoryService,
         DirectoryServicePatch,
         DirectoryServiceManagement,
     )
@@ -194,23 +193,23 @@ def delete_ds(module, array):
         management = DirectoryServiceManagement(
             user_login_attribute="", user_object_class=""
         )
-        directory_service = DirectoryService(
+        directory_service = DirectoryServicePatch(
             uris=[""],
             base_dn="",
             bind_user="",
             bind_password="",
             enabled=False,
-            services=module.params["dstype"],
+            services=[module.params["dstype"]],
             management=management,
         )
     else:
-        directory_service = DirectoryService(
+        directory_service = DirectoryServicePatch(
             uris=[""],
             base_dn="",
             bind_user="",
             bind_password="",
             enabled=False,
-            services=module.params["dstype"],
+            services=[module.params["dstype"]],
         )
     if not module.check_mode:
         res = array.patch_directory_services(
