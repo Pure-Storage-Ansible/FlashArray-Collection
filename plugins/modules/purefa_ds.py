@@ -300,7 +300,7 @@ def update_ds(module, array):
             user_login_attribute=user_login, user_object_class=user_object
         )
         if password_required:
-            directory_service = DirectoryServicePatch(
+            directory_service = DirectoryService(
                 uris=uris,
                 base_dn=base_dn,
                 bind_user=bind_user,
