@@ -172,7 +172,10 @@ RETURN = r"""
 
 HAS_PURESTORAGE = True
 try:
-    from pypureclient.flasharray import DirectoryService, DirectoryServiceManagement
+    from pypureclient.flasharray import (
+        DirectoryService,
+        DirectoryServiceManagement,
+    )
 except ImportError:
     HAS_PURESTORAGE = False
 
@@ -196,7 +199,7 @@ def delete_ds(module, array):
             bind_user="",
             bind_password="",
             enabled=False,
-            services=module.params["dstype"],
+            services=[module.params["dstype"]],
             management=management,
         )
     else:
@@ -206,7 +209,7 @@ def delete_ds(module, array):
             bind_user="",
             bind_password="",
             enabled=False,
-            services=module.params["dstype"],
+            services=[module.params["dstype"]],
         )
     if not module.check_mode:
         res = array.patch_directory_services(
@@ -303,7 +306,7 @@ def update_ds(module, array):
                 bind_user=bind_user,
                 bind_password=bind_password,
                 enabled=module.params["enable"],
-                services=module.params["dstype"],
+                services=[module.params["dstype"]],
                 management=management,
                 check_peer=module.params["check_peer"],
                 ca_certificate=cert,
@@ -314,7 +317,7 @@ def update_ds(module, array):
                 base_dn=base_dn,
                 bind_user=bind_user,
                 enabled=module.params["enable"],
-                services=module.params["dstype"],
+                services=[module.params["dstype"]],
                 management=management,
                 check_peer=module.params["check_peer"],
                 ca_certificate=cert,
@@ -327,7 +330,7 @@ def update_ds(module, array):
                 bind_user=bind_user,
                 bind_password=bind_password,
                 enabled=module.params["enable"],
-                services=module.params["dstype"],
+                services=[module.params["dstype"]],
             )
         else:
             directory_service = DirectoryService(
@@ -335,7 +338,7 @@ def update_ds(module, array):
                 base_dn=base_dn,
                 bind_user=bind_user,
                 enabled=module.params["enable"],
-                services=module.params["dstype"],
+                services=[module.params["dstype"]],
             )
     if ds_change:
         changed = True

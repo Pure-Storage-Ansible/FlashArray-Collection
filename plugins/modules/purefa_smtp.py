@@ -210,7 +210,7 @@ def create_smtp(module, array):
                         sender_domain=new_server["sender_domain"],
                         user_name=module.params["user"],
                         password=module.params["password"],
-                        relay_host=new_server["sender_domain"],
+                        relay_host=new_server["relay_host"],
                         encryption_mode=new_server["encryption_mode"],
                         sender_username=new_server["sender_username"],
                         subject_prefix=new_server["subject_prefix"],
@@ -221,7 +221,7 @@ def create_smtp(module, array):
                 res = array.patch_smtp_servers(
                     smtp=SmtpServer(
                         sender_domain=new_server["sender_domain"],
-                        relay_host=new_server["sender_domain"],
+                        relay_host=new_server["relay_host"],
                         encryption_mode=new_server["encryption_mode"],
                         sender_username=new_server["sender_username"],
                         subject_prefix=new_server["subject_prefix"],
