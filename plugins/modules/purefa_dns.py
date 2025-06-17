@@ -259,7 +259,7 @@ def create_multi_dns(module, array):
                         domain=module.params["domain"],
                         nameservers=module.params["nameservers"],
                         source=flasharray.ReferenceNoId(
-                            module.params["source"].lower()
+                            name=module.params["source"].lower()
                         ),
                     ),
                 )
