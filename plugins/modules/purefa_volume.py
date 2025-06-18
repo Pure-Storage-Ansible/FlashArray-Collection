@@ -1076,15 +1076,15 @@ def copy_from_volume(module, array):
         if not module.check_mode:
             if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                 res = array.post_volumes(
-                    names=[module.params["name"]],
-                    volume=VolumePost(source=Reference(name=module.params["target"])),
+                    names=[module.params["target"]],
+                    volume=VolumePost(source=Reference(name=module.params["name"])),
                     context_names=[module.params["context"]],
                     overwrite=module.params["overwrite"],
                 )
             else:
                 res = array.post_volumes(
-                    names=[module.params["name"]],
-                    volume=VolumePost(source=Reference(name=module.params["target"])),
+                    names=[module.params["target"]],
+                    volume=VolumePost(source=Reference(name=module.params["name"])),
                     overwrite=module.params["overwrite"],
                 )
             if res.status_code != 200:
