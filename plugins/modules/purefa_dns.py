@@ -208,7 +208,7 @@ def update_multi_dns(module, array):
             dns=flasharray.Dns(
                 domain=new_dns.domain,
                 nameservers=new_dns.nameservers,
-                source=flasharray.ReferenceNoId(module.params["source"]),
+                source=flasharray.ReferenceNoId(name=module.params["source"]),
             ),
         )
         if res.status_code != 200:
@@ -259,7 +259,7 @@ def create_multi_dns(module, array):
                         domain=module.params["domain"],
                         nameservers=module.params["nameservers"],
                         source=flasharray.ReferenceNoId(
-                            module.params["source"].lower()
+                            name=module.params["source"].lower()
                         ),
                     ),
                 )
