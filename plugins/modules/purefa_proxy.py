@@ -110,7 +110,7 @@ def create_proxy(module, array):
             + ":"
             + str(module.params["port"])
         )
-        if new_proxy != current_proxy["proxy"]:
+        if new_proxy != current_proxy:
             changed = True
             if not module.check_mode:
                 res = array.patch_support(support=SupportPatch(proxy=new_proxy))
