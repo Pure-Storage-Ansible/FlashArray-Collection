@@ -950,6 +950,16 @@ releases:
     - 754_vol_delete.yaml
     - 758_realm_vol.yaml
     release_date: '2025-06-18'
+  1.35.1:
+    changes:
+      bugfixes:
+      - purefa_ds - Fixed issue with updaing a LDAP configuration fails with a list
+        error.
+      - purefa_proxy - Fixed issue with incorrect string comparison
+    fragments:
+    - 760_ds_list_error.yaml
+    - 770_proxy_dict.yaml
+    release_date: '2025-06-20'
   1.4.0:
     changes:
       bugfixes:

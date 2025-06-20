@@ -4,6 +4,15 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.35.1
+=======
+
+Bugfixes
+--------
+
+- purefa_ds - Fixed issue with updaing a LDAP configuration fails with a list error.
+- purefa_proxy - Fixed issue with incorrect string comparison
+
 v1.35.0
 =======
 
