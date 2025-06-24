@@ -67,32 +67,42 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
+    get_array,
     purefa_argument_spec,
 )
+
+HAS_PURESTORAGE = True
+try:
+    from pypureclient.flasharray import SupportPatch
+except ImportError:
+    HAS_PURESTORAGE = False
 
 
 def delete_proxy(module, array):
     """Delete proxy settings"""
     changed = False
-    current_proxy = array.get(proxy=True)["proxy"]
+    current_proxy = list(array.get_support().items)[0].proxy
     if current_proxy != "":
         changed = True
         if not module.check_mode:
-            try:
-                array.set(proxy="")
-            except Exception:
-                module.fail_json(msg="Delete proxy settigs failed")
+            res = array.patch_support(support=SupportPatch(proxy=""))
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Delete proxy settigs failed. Error: {0}".format(
+                        res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
 def create_proxy(module, array):
     """Set proxy settings"""
     changed = False
-    current_proxy = array.get(proxy=True)
-    if current_proxy is not None:
+    current_proxy = list(array.get_support().items)[0].proxy
+    if current_proxy != "":
         new_proxy = (
             module.params["protocol"]
             + "://"
@@ -100,13 +110,16 @@ def create_proxy(module, array):
             + ":"
             + str(module.params["port"])
         )
-        if new_proxy != current_proxy["proxy"]:
+        if new_proxy != current_proxy:
             changed = True
             if not module.check_mode:
-                try:
-                    array.set(proxy=new_proxy)
-                except Exception:
-                    module.fail_json(msg="Set phone home proxy failed.")
+                res = array.patch_support(support=SupportPatch(proxy=new_proxy))
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Set phone home proxy failed. Error: {0}".format(
+                            res.errors[0].message
+                        )
+                    )
 
     module.exit_json(changed=changed)
 
@@ -127,9 +140,11 @@ def main():
     module = AnsibleModule(
         argument_spec, required_together=required_together, supports_check_mode=True
     )
+    if not HAS_PURESTORAGE:
+        module.fail_json(msg="py-pure-client sdk is required for this module")
 
     state = module.params["state"]
-    array = get_system(module)
+    array = get_array(module)
 
     if state == "absent":
         delete_proxy(module, array)

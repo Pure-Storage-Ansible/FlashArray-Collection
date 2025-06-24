@@ -106,6 +106,7 @@ except ImportError:
 HAS_PURESTORAGE = True
 try:
     from pypureclient import flasharray
+    from pypureclient import flashblade
     from pypureclient.flasharray import (
         FleetMemberPost,
         FleetmemberpostMember,
@@ -129,6 +130,7 @@ VERSION = 1.5
 USER_AGENT_BASE = "Ansible"
 MIN_REQUIRED_API_VERSION = "2.38"
 DELETE_FLEET_API_VERSION = "2.39"
+FB_FLEET_API_VERSION = "2.42"
 
 
 def create_fleet(module, array):
@@ -172,6 +174,7 @@ def add_fleet_members(module, array):
     """Add new member to the fleet"""
     changed = False
     existing = False
+    api_version = array.get_rest_version()
     if not module.params["member_url"] and not module.params["member_api"]:
         module.fail_json(msg="missing required arguments: member_api, member_url")
     try:
@@ -194,11 +197,25 @@ def add_fleet_members(module, array):
             "version": VERSION,
             "platform": platform.platform(),
         }
-    remote_system = flasharray.Client(
-        target=module.params["member_url"],
-        api_token=module.params["member_api"],
-        user_agent=user_agent,
-    )
+    # FlashBlade API tokens start with "T-" so use that to differentiate
+    # fleet member platform type
+    if "T-" in module.params["member_api"]:
+        if LooseVersion(FB_FLEET_API_VERSION) > LooseVersion(api_version):
+            module.fail_json(
+                msg="FlashArray must be a minimum of Purity//FA 6.8.5 to"
+                " add FlashBlades to a fleet"
+            )
+        remote_system = flashblade.Client(
+            target=module.params["member_url"],
+            api_token=module.params["member_api"],
+            user_agent=user_agent,
+        )
+    else:
+        remote_system = flasharray.Client(
+            target=module.params["member_url"],
+            api_token=module.params["member_api"],
+            user_agent=user_agent,
+        )
     local_name = list(remote_system.get_arrays().items)[0].name
     members = list(array.get_fleets_members().items)
     for member in range(0, len(members)):
@@ -248,11 +265,20 @@ def delete_fleet_members(module, array):
             "version": VERSION,
             "platform": platform.platform(),
         }
-    remote_system = flasharray.Client(
-        target=module.params["member_url"],
-        api_token=module.params["member_api"],
-        user_agent=user_agent,
-    )
+    # FlashBlade API tokens start with "T-" so use that to differentiate
+    # fleet member platform type
+    if "T-" in module.params["member_api"]:
+        remote_system = flashblade.Client(
+            target=module.params["member_url"],
+            api_token=module.params["member_api"],
+            user_agent=user_agent,
+        )
+    else:
+        remote_system = flasharray.Client(
+            target=module.params["member_url"],
+            api_token=module.params["member_api"],
+            user_agent=user_agent,
+        )
     local_name = list(remote_system.get_arrays().items)[0].name
     members = list(array.get_fleets_members().items)
     for member in range(0, len(members)):

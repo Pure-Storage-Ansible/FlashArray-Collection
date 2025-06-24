@@ -1,2 +1,0 @@
-bugfixes:
- - purefa_volume - Fixed incorrect error message when deleting volume with no eradication

@@ -135,7 +135,6 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
-
 HAS_PURESTORAGE = True
 try:
     from pypureclient.flasharray import AdminPost, AdminPatch, AdminRole
@@ -151,12 +150,24 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
     convert_time_to_millisecs,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
+
+EXPOSE_API_VERSION = "2.32"
 
 
 def get_user(module, array):
     """Return Local User Account or None"""
     user = None
-    res = array.get_admins(names=[module.params["name"]], expose_public_key=True)
+    api_version = array.get_rest_version()
+    if LooseVersion(EXPOSE_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_admins(
+            names=[module.params["name"]],
+            expose_public_key=True,
+        )
+    else:
+        res = array.get_admins(names=[module.params["name"]])
     if res.status_code != 200:
         return None
     else:

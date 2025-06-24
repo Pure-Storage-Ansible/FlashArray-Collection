@@ -233,18 +233,24 @@ def get_undo_pod(module, array):
     """Return Undo Pod or None"""
     api_version = array.get_rest_version()
     if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        return bool(
-            array.get_pods(
-                names=[module.params["name"] + ".undo-demote.*"],
-                context_names=[module.params["context"]],
-            ).status_code
-            == 200
-        )
+        try:
+            return list(
+                array.get_pods(
+                    names=[module.params["name"] + ".undo-demote.*"],
+                    context_names=[module.params["context"]],
+                ).items
+            )
+        except Exception:
+            return None
     else:
-        return bool(
-            array.get_pods(names=[module.params["name"] + ".undo-demote.*"]).status_code
-            == 200
-        )
+        try:
+            return list(
+                array.get_pods(
+                    names=[module.params["name"] + ".undo-demote.*"],
+                ).items
+            )
+        except Exception:
+            return None
 
 
 def get_target(module, array):
@@ -628,36 +634,44 @@ def update_pod(module, array):
                         )
                     elif module.params["undo"]:
                         undo_pod = get_undo_pod(module, array)
-                        if len(undo_pod) == 1:
-                            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
-                                api_version
-                            ):
-                                res = array.patch_pods(
-                                    names=[module.params["name"]],
-                                    context_names=[module.params["context"]],
-                                    promote_from=undo_pod[0].name,
-                                )
+                        if undo_pod:
+                            if len(undo_pod) == 1:
+                                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
+                                    api_version
+                                ):
+                                    res = array.patch_pods(
+                                        names=[module.params["name"]],
+                                        context_names=[module.params["context"]],
+                                        promote_from=undo_pod[0].name,
+                                    )
+                                else:
+                                    res = array.patch_pods(
+                                        names=[module.params["name"]],
+                                        promote_from=undo_pod[0].name,
+                                    )
                             else:
-                                res = array.patch_pods(
-                                    names=[module.params["name"]],
-                                    promote_from=undo_pod[0].name,
+                                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
+                                    api_version
+                                ):
+                                    res = array.patch_pods(
+                                        names=[module.params["name"]],
+                                        context_names=[module.params["context"]],
+                                        promote_from=undo_pod[-1].name,
+                                    )
+                                else:
+                                    res = array.patch_pods(
+                                        names=[module.params["name"]],
+                                        promote_from=undo_pod[-1].name,
+                                    )
+                                module.warn(
+                                    "undo-demote pod(s) remaining for {0}. Consider eradicating.".format(
+                                        module.params["name"]
+                                    )
                                 )
                         else:
-                            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
-                                api_version
-                            ):
-                                res = array.patch_pods(
-                                    names=[module.params["name"]],
-                                    context_names=[module.params["context"]],
-                                    promote_from=undo_pod[-1].name,
-                                )
-                            else:
-                                res = array.patch_pods(
-                                    names=[module.params["name"]],
-                                    promote_from=undo_pod[-1].name,
-                                )
+                            changed = False
                             module.warn(
-                                "undo-demote pod(s) remaining for {0}. Consider eradicating.".format(
+                                "undo-demote pod(s) missing for {0}. Check use of `undo` parameter.".format(
                                     module.params["name"]
                                 )
                             )
@@ -730,12 +744,12 @@ def update_pod(module, array):
                                 pod=PodPatch(requested_promotion_state="demoted"),
                                 quiesce=True,
                             )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to demote pod {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to demote pod {0}. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
+                            )
                         )
-                    )
     if module.params["quota"] and LooseVersion(POD_QUOTA_VERSION) <= LooseVersion(
         api_version
     ):

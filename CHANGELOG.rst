@@ -4,6 +4,35 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.35.1
+=======
+
+Bugfixes
+--------
+
+- purefa_ds - Fixed issue with updaing a LDAP configuration fails with a list error.
+- purefa_proxy - Fixed issue with incorrect string comparison
+
+v1.35.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_endpoint - Converted to REST v2
+- purefa_fleet - Allows FlashBlades to be added to Fusion fleets if FlashArray is Purity//FA 6.8.5 or higher
+- purefa_host - Hosts can be created in realms and renamed within the same realm
+- purefa_host - Move function added to allow movement of host to/from realms
+- purefa_inventory - Added support for capacity down licensing
+- purefa_policy - Added support change a specific quota rule by name
+- purefa_subnet - Converted to use REST 2
+- purefa_volume - Added support for creating volumes in Realms
+
+Bugfixes
+--------
+
+- purefa_volume - Fixed issue for error on volume delete w/o eradicate
+
 v1.34.1
 =======
 

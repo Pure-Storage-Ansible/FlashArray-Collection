@@ -132,8 +132,12 @@ def generate_new_hardware_dict(array):
         drive_name = drives[drive].name
         hw_info["drives"][drive_name] = {
             "capacity": drives[drive].capacity,
+            "capacity_installed": getattr(
+                drives[drive], "capacity_installed", drives[drive].capacity
+            ),
             "status": drives[drive].status,
             "protocol": getattr(drives[drive], "protocol", None),
+            "details": getattr(drives[drive], "details", None),
             "type": drives[drive].type,
         }
     api_version = array.get_rest_version()
