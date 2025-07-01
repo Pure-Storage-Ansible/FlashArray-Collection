@@ -211,6 +211,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 
 PRIORITY_API_VERSION = "2.11"
 CONTEXT_API_VERSION = "2.38"
+MIN_BWS = 1048576
+MIN_IOPS = 100
+MAX_BWS = 549755813888
+MAX_IOPS = 100000000
 
 
 def rename_exists(module, array):
@@ -305,7 +309,7 @@ def make_vgroup(module, array):
     api_version = array.get_rest_version()
     changed = True
     if module.params["bw_qos"] and not module.params["iops_qos"]:
-        if int(human_to_bytes(module.params["bw_qos"])) in range(1048576, 549755813888):
+        if int(human_to_bytes(module.params["bw_qos"])) in range(MIN_BWS, MAX_BWS):
             changed = True
             if not module.check_mode:
                 if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
@@ -344,7 +348,7 @@ def make_vgroup(module, array):
                 )
             )
     elif module.params["iops_qos"] and not module.params["bw_qos"]:
-        if int(human_to_real(module.params["iops_qos"])) in range(100, 100000000):
+        if int(human_to_real(module.params["iops_qos"])) in range(MIN_IOPS, MAX_IOPS):
             changed = True
             if not module.check_mode:
                 if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
@@ -379,8 +383,8 @@ def make_vgroup(module, array):
     elif module.params["iops_qos"] and module.params["bw_qos"]:
         bw_qos_size = int(human_to_bytes(module.params["bw_qos"]))
         if int(human_to_real(module.params["iops_qos"])) in range(
-            100, 100000000
-        ) and bw_qos_size in range(1048576, 549755813888):
+            MIN_IOPS, MAX_IOPS
+        ) and bw_qos_size in range(MIN_BWS, MAX_BWS):
             changed = True
             if not module.check_mode:
                 if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
@@ -484,13 +488,13 @@ def make_multi_vgroups(module, array):
         )
     if module.params["bw_qos"]:
         bw_qos = int(human_to_bytes(module.params["bw_qos"]))
-        if bw_qos in range(1048576, 549755813888):
+        if bw_qos in range(MIN_BWS, MAX_BWS):
             bw_qos_size = bw_qos
         else:
             module.fail_json(msg="Bandwidth QoS value out of range.")
     if module.params["iops_qos"]:
         iops_qos = int(human_to_real(module.params["iops_qos"]))
-        if iops_qos in range(100, 100000000):
+        if iops_qos in range(MIN_IOPS, MAX_IOPS):
             iops_qos_size = iops_qos
         else:
             module.fail_json(msg="IOPs QoS value out of range.")
@@ -600,15 +604,12 @@ def update_vgroup(module, array):
                 )
     vg_qos = vg_all.qos
     if not hasattr(vg_qos, "bandwidth_limit"):
-        vg_qos.bandwidth_limit = 549755813888
+        vg_qos.bandwidth_limit = MAX_BWS
     if not hasattr(vg_qos, "iops_limit"):
-        vg_qos.iops_limit = 100000000
+        vg_qos.iops_limit = MAX_IOPS
     if module.params["bw_qos"]:
         if int(human_to_bytes(module.params["bw_qos"])) != vg_qos.bandwidth_limit:
-            if (
-                module.params["bw_qos"] == "0"
-                and vg_qos.bandwidth_limit != 549755813888
-            ):
+            if module.params["bw_qos"] == "0" and vg_qos.bandwidth_limit != MAX_BWS:
                 changed = True
                 if not module.check_mode:
                     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
@@ -616,14 +617,14 @@ def update_vgroup(module, array):
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
                             volume_group=VolumeGroupPatch(
-                                qos=Qos(bandwidth_limit=vg_qos.bandwidth_limit)
+                                qos=Qos(bandwidth_limit=MAX_BWS)
                             ),
                         )
                     else:
                         res = array.patch_volume_groups(
                             names=[module.params["name"]],
                             volume_group=VolumeGroupPatch(
-                                qos=Qos(bandwidth_limit=vg_qos.bandwidth_limit)
+                                qos=Qos(bandwidth_limit=MAX_BWS)
                             ),
                         )
                     if res.status_code != 200:
@@ -633,7 +634,7 @@ def update_vgroup(module, array):
                             )
                         )
             elif int(human_to_bytes(module.params["bw_qos"])) in range(
-                1048576, 549755813888
+                MIN_BWS, MAX_BWS
             ):
                 changed = True
                 if not module.check_mode:
@@ -642,14 +643,22 @@ def update_vgroup(module, array):
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
                             volume_group=VolumeGroupPatch(
-                                qos=Qos(bandwidth_limit=vg_qos.bandwidth_limit)
+                                qos=Qos(
+                                    bandwidth_limit=int(
+                                        human_to_bytes(module.params["bw_qos"])
+                                    )
+                                )
                             ),
                         )
                     else:
                         res = array.patch_volume_groups(
                             names=[module.params["name"]],
                             volume_group=VolumeGroupPatch(
-                                qos=Qos(bandwidth_limit=vg_qos.bandwidth_limit)
+                                qos=Qos(
+                                    bandwidth_limit=int(
+                                        human_to_bytes(module.params["bw_qos"])
+                                    )
+                                )
                             ),
                         )
                     if res.status_code != 200:
@@ -666,23 +675,19 @@ def update_vgroup(module, array):
                 )
     if module.params["iops_qos"]:
         if human_to_real(module.params["iops_qos"]) != vg_qos.iops_limit:
-            if module.params["iops_qos"] == "0" and vg_qos.iops_limit != 100000000:
+            if module.params["iops_qos"] == "0" and vg_qos.iops_limit != MAX_IOPS:
                 changed = True
                 if not module.check_mode:
                     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                         res = array.patch_volume_groups(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
-                            volume_group=VolumeGroupPatch(
-                                qos=Qos(iops_limit=vg_qos.iops_limit)
-                            ),
+                            volume_group=VolumeGroupPatch(qos=Qos(iops_limit=MAX_IOPS)),
                         )
                     else:
                         res = array.patch_volume_groups(
                             names=[module.params["name"]],
-                            volume_group=VolumeGroupPatch(
-                                qos=Qos(iops_limit=vg_qos.iops_limit)
-                            ),
+                            volume_group=VolumeGroupPatch(qos=Qos(iops_limit=MAX_IOPS)),
                         )
                     if res.status_code != 200:
                         module.fail_json(
@@ -690,7 +695,9 @@ def update_vgroup(module, array):
                                 module.params["name"], res.errors[0].message
                             )
                         )
-            elif int(human_to_real(module.params["iops_qos"])) in range(100, 100000000):
+            elif int(human_to_real(module.params["iops_qos"])) in range(
+                MIN_IOPS, MAX_IOPS
+            ):
                 changed = True
                 if not module.check_mode:
                     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
@@ -698,14 +705,22 @@ def update_vgroup(module, array):
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
                             volume_group=VolumeGroupPatch(
-                                qos=Qos(iops_limit=vg_qos.iops_limit)
+                                qos=Qos(
+                                    iops_limit=int(
+                                        human_to_real(module.params["iops_qos"])
+                                    )
+                                )
                             ),
                         )
                     else:
                         res = array.patch_volume_groups(
                             names=[module.params["name"]],
                             volume_group=VolumeGroupPatch(
-                                qos=Qos(iops_limit=vg_qos.iops_limit)
+                                qos=Qos(
+                                    iops_limit=int(
+                                        human_to_real(module.params["iops_qos"])
+                                    )
+                                )
                             ),
                         )
                     if res.status_code != 200:
