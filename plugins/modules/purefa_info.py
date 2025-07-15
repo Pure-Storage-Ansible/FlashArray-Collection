@@ -3333,6 +3333,22 @@ def generate_preset_dict(array):
 
 def generate_workload_dict(array):
     workload_info = {}
+    workloads = list(array.get_workloads().items)
+    if workloads:
+        for workload in range(0, len(workloads)):
+            workload_info[workloads[workload].name] = {
+                "description": getattr(workloads[workload], "description", None),
+                "context": workloads[workload].context.name,
+                "destroyed": workloads[workload].destroyed,
+                "preset": workloads[workload].preset.name,
+                "status": workloads[workload].status,
+                "status_details": workloads[workload].status_details,
+                "created": time.strftime(
+                    "%Y-%m-%d %H:%M:%S",
+                    time.gmtime(workloads[workload].created / 1000),
+                ),
+                "time_remaining": getattr(workloads[workload], "time_remaining", None),
+            }
     return workload_info
 
 
