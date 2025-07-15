@@ -342,9 +342,14 @@ plugins:
       name: purefa_volume_tags
       namespace: ''
       version_added: 1.0.0
+    purefa_workload:
+      description: Manage Fusion Fleet Workloads
+      name: purefa_workload
+      namespace: ''
+      version_added: 1.33.0
   netconf: {}
   shell: {}
   strategy: {}
   test: {}
   vars: {}
-version: 1.35.1
+version: 1.36.0

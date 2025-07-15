@@ -4,6 +4,19 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.36.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_user - No longer tries to expose API tokens as these are not required in the module
+
+Bugfixes
+--------
+
+- purefa_vg - Fixed issue where VG QoS updates were being ignored
+
 v1.35.1
 =======
 
