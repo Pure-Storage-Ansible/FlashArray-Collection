@@ -5,4 +5,8 @@ plugin_routing:
     purefa_sso:
       deprecation:
         removal_version: "2.0.0"
-        warning_text: purefa_sso will be removed in a future release of this collection, Use purestorage.flasharray.purefa_admin instead.
+        warning_text: purefa_sso will be removed in a future release of this collection. Use purestorage.flasharray.purefa_admin instead.
+    purefa_volume_tags:
+      deprecation:
+        removal_version: "2.0.0"
+        warning_text: purefa_volume_tags will be removed in a future release of this collection due to deprecation of REST v1.x. No replacement for this module is currently available.
