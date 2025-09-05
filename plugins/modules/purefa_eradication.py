@@ -158,18 +158,10 @@ def main():
             module.params["enabled_delay"] != current_enabled
             or module.params["disabled_delay"] != current_disabled
         ):
-            if module.params["enabled_delay"] != current_enabled:
-                target_enabled = module.params["enabled_delay"]
-            else:
-                target_enabled = current_enabled
-            if module.params["disabled_delay"] != current_disabled:
-                target_disabled = module.params["disabled_delay"]
-            else:
-                target_disabled = current_disabled
             changed = True
             if not module.check_mode:
-                new_disabled = SEC_PER_DAY * target_disabled
-                new_enabled = SEC_PER_DAY * target_enabled
+                new_disabled = SEC_PER_DAY * module.params["disabled_delay"]
+                new_enabled = SEC_PER_DAY * module.params["enabled_delay"]
                 eradication_config = EradicationConfig(
                     enabled_delay=new_enabled, disabled_delay=new_disabled
                 )
