@@ -68,6 +68,13 @@ options:
       - To remove existing key use an empty string
     type: str
     version_added: "1.34.0"
+  ad_user:
+    description:
+      - Whether the user is in the AD system
+      - Not required for local users
+    type: bool
+    default: false
+    version_added: "1.37.0"
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -118,6 +125,16 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
+- name: Create an API token (TTL of 2 days) and assign a public key to an AD user
+  purestorage.flasharray.purefa_user:
+    name: ansible-ad
+    ad_user: true
+    public_key: "{{lookup('file', 'id_rsa.pub') }}"
+    api: true
+    timeout: 2d
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
 - name: Change API token and token timeout for existing user
   purestorage.flasharray.purefa_user:
     name: ansible
@@ -163,13 +180,11 @@ def get_user(module, array):
         return list(res.items)[0]
 
 
-def create_user(module, array):
+def create_local_user(module, array, user):
     """Create or Update Local User Account"""
     changed = key_changed = api_changed = role_changed = passwd_changed = False
-    user = get_user(module, array)
     role = module.params["role"]
-    ttl = convert_time_to_millisecs(module.params["timeout"])
-    api_token = None
+    api_token = "No API token created"
     if not user:
         changed = True
         if not module.check_mode:
@@ -199,7 +214,7 @@ def create_user(module, array):
                     )
                 api_token = list(res.items)[0].api_token.token
             if module.params["public_key"]:
-                res = array.patch_admin(
+                res = array.patch_admins(
                     names=[module.params["name"]],
                     admin=AdminPatch(public_key=module.params["public_key"]),
                 )
@@ -253,10 +268,8 @@ def create_user(module, array):
                     )
                 )
             api_token = list(res.items)[0].api_token.token
-        if (
-            module.params["role"]
-            and module.params["role"] != getattr(user.role, "name", None)
-            and user.is_local
+        if module.params["role"] and module.params["role"] != getattr(
+            user.role, "name", None
         ):
             if module.params["name"] != "pureuser":
                 role_changed = True
@@ -291,19 +304,96 @@ def create_user(module, array):
     module.exit_json(changed=changed, user_info=api_token)
 
 
-def delete_user(module, array):
-    """Delete Local User Account"""
-    changed = False
-    if get_user(module, array):
-        changed = True
-        if not module.check_mode:
-            res = array.delete_admins(names=[module.params["name"]])
+def update_ad_user(module, array, user):
+    """Update AD user API token and/or SSH key"""
+    api_token = "No API token created"
+    api_changed = ssh_changed = False
+    if module.params["api"]:
+        if user:
+            api_changed = True
+            ttl = convert_time_to_millisecs(module.params["timeout"])
+            res = array.delete_admins_api_tokens(names=[module.params["name"]])
             if res.status_code != 200:
                 module.fail_json(
-                    msg="User Account {0} deletion failed. Error: {1}".format(
+                    msg="Failed to delete original API token. Error: {0}".format(
+                        res.errors[0].message
+                    )
+                )
+            res = array.post_admins_api_tokens(
+                names=[module.params["name"]], timeout=ttl
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to recreate API token. Error: {0}".format(
+                        res.errors[0].message
+                    )
+                )
+            api_token = list(res.items)[0].api_token.token
+        else:
+            api_changed = True
+            ttl = convert_time_to_millisecs(module.params["timeout"])
+            res = array.post_admins_api_tokens(
+                names=[module.params["name"]], timeout=ttl
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to create API token. Error: {0}".format(
+                        res.errors[0].message
+                    )
+                )
+            api_token = list(res.items)[0].api_token.token
+    if module.params["public_key"]:
+        ssh_changed = True
+        res = array.patch_admins(
+            names=[module.params["name"]],
+            admin=AdminPatch(public_key=module.params["public_key"]),
+        )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Failed to add SSH key. Error: {0}".format(res.errors[0].message)
+            )
+    changed = bool(api_changed or ssh_changed)
+    module.exit_json(changed=changed, user_info=api_token)
+
+
+def delete_local_user(module, array):
+    """Delete Local User Account"""
+    changed = True
+    if not module.check_mode:
+        res = array.delete_admins(names=[module.params["name"]])
+        if res.status_code != 200:
+            module.fail_json(
+                msg="User Account {0} deletion failed. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
+            )
+    module.exit_json(changed=changed)
+
+
+def delete_ad_user(module, array, user):
+    """Delete AD User Account references"""
+    changed = False
+    if not module.check_mode:
+        if user:
+            changed = True
+            res = array.delete_admins_api_tokens(names=[module.params["name"]])
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="AD Account {0} API token deletion failed. Error: {1}".format(
                         module.params["name"], res.errors[0].message
                     )
                 )
+            if hasattr(user, "public_key"):
+                res = array.patch_admins(
+                    names=[module.params["name"]],
+                    admin=AdminPatch(public_key=""),
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="AD Account {0} public key deletion failed. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
     module.exit_json(changed=changed)
 
 
@@ -323,6 +413,7 @@ def main():
             api=dict(type="bool", default=False),
             timeout=dict(type="str", default="0"),
             public_key=dict(type="str", no_log=True),
+            ad_user=dict(type="bool", default=False),
         )
     )
 
@@ -339,11 +430,16 @@ def main():
             msg="name must contain a minimum of 1 and a maximum of 32 characters "
             "(alphanumeric or `-`). All letters must be lowercase."
         )
-
-    if state == "absent":
-        delete_user(module, array)
-    elif state == "present":
-        create_user(module, array)
+    user = get_user(module, array)
+    local_user = getattr(user, "is_local", False)
+    if state == "present" and not local_user and module.params["ad_user"]:
+        update_ad_user(module, array, user)
+    if state == "absent" and local_user:
+        delete_local_user(module, array)
+    if state == "absent" and not local_user:
+        delete_ad_user(module, array, user)
+    elif state == "present" and not module.params["ad_user"]:
+        create_local_user(module, array, user)
     else:
         module.exit_json(changed=False)
 

@@ -678,8 +678,8 @@ def update_pgroup(module, array):
                         snapshot_schedule=SnapshotSchedule(
                             enabled=module.params["enabled"]
                         ),
-                        context_names=[module.params["context"]],
                     ),
+                    context_names=[module.params["context"]],
                 )
             else:
                 res = array.patch_protection_groups(
