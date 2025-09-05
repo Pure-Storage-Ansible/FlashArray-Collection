@@ -618,16 +618,12 @@ def update_pgroup(module, array):
                         res = array.post_protection_groups_targets(
                             group_names=[module.params["name"]],
                             context_names=[module.params["context"]],
-                            member_names=[
-                                FixedReference(name=module.params["target"][target])
-                            ],
+                            member_names=[module.params["target"][target]],
                         )
                     else:
                         res = array.post_protection_groups_targets(
                             group_names=[module.params["name"]],
-                            member_names=[
-                                FixedReference(name=module.params["target"][target])
-                            ],
+                            member_names=[module.params["target"][target]],
                         )
                     if res.status_code != 200:
                         module.fail_json(
