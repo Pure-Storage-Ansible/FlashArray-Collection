@@ -82,7 +82,7 @@ def set_eula(module, array):
         current_eula = list(array.get_arrays_eula().items)[0]
     except Exception:
         module.fail_json(msg="Failed to get current EULA")
-    if not current_eula.signature.accepted:
+    if not hasattr(current_eula, "signature.accepted"):
         changed = True
         if not module.check_mode:
             res = array.patch_arrays_eula(

@@ -49,6 +49,14 @@ options:
     - If it is a hex-encoded string, it cannot be longer than 64 characters.
     - Setting this parameter is not idempotent.
     version_added: "1.22.0"
+  context:
+    description:
+    - Name of fleet member on which to perform the ntp operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.37.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -92,10 +100,21 @@ except ImportError:
 
 
 KEY_API_VERSION = "2.26"
+CONTEXT_API_VERSION = "2.38"
 
 
 def _is_cbs(array, is_cbs=False):
     """Is the selected array a Cloud Block Store"""
+    api_version = array.get_rest_version()
+    #
+    # Until get_controller has context_names we can check against a target system
+    # CBS can't be support for Fusion
+    #
+    # if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    #    model = list(
+    #        array.get_controllers(context_names=[module.params["context"]]).items
+    #    )[0].model
+    # else:
     model = list(array.get_controllers().items)[0].model
     is_cbs = bool("CBS" in model)
     return is_cbs
@@ -111,7 +130,15 @@ def remove(duplicate):
 
 def test_ntp(module, array):
     """Test NTP configuration"""
+    api_version = array.get_rest_version()
     test_response = []
+    #
+    # Until get_arrays_ntp_test has context_names we can check against a target system
+    # test_ntp is not supported with context
+    #
+    # if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    #     response = list(array.get_arrays_ntp_test(context_names=[module.params["context"]]).items)
+    # else:
     response = list(array.get_arrays_ntp_test().items)
     for component in range(0, len(response)):
         if response[component].enabled:
@@ -140,11 +167,22 @@ def test_ntp(module, array):
 
 def delete_ntp(module, array):
     """Delete NTP Servers"""
-    if list(array.get_arrays().items)[0].ntp_servers != []:
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        array_list = array.get_arrays(context_names=[module.params["context"]])
+    else:
+        array_list = array.get_arrays()
+    if list(array_list.items)[0].ntp_servers != []:
         changed = True
         if not module.check_mode:
             try:
-                array.patch_arrays(array=Arrays(ntp_servers=[]))
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    array.patch_arrays(
+                        array=Arrays(ntp_servers=[]),
+                        context_names=[module.params["context"]],
+                    )
+                else:
+                    array.patch_arrays(array=Arrays(ntp_servers=[]))
             except Exception:
                 module.fail_json(msg="Deletion of NTP servers failed")
     else:
@@ -154,14 +192,21 @@ def delete_ntp(module, array):
 
 def create_ntp(module, array):
     """Set NTP Servers"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
         if not module.params["ntp_servers"]:
             module.params["ntp_servers"] = ["0.pool.ntp.org"]
         try:
-            array.patch_arrays(
-                array=Arrays(ntp_servers=module.params["ntp_servers"][0:4])
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                array.patch_arrays(
+                    array=Arrays(ntp_servers=module.params["ntp_servers"][0:4]),
+                    context_names=[module.params["context"]],
+                )
+            else:
+                array.patch_arrays(
+                    array=Arrays(ntp_servers=module.params["ntp_servers"][0:4])
+                )
         except Exception:
             module.fail_json(msg="Update of NTP servers failed")
     module.exit_json(changed=changed)
@@ -169,8 +214,13 @@ def create_ntp(module, array):
 
 def update_ntp_key(module, array):
     """Update NTP Symmetric Key"""
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        array_list = array.get_arrays(context_names=[module.params["context"]])
+    else:
+        array_list = array.get_arrays()
     if module.params["ntp_key"] == "" and not getattr(
-        list(array.get_arrays().items)[0], "ntp_symmetric_key", None
+        list(array_list.items)[0], "ntp_symmetric_key", None
     ):
         changed = False
     else:
@@ -186,9 +236,15 @@ def update_ntp_key(module, array):
             if not all(ord(c) < 128 for c in module.params["ntp_key"]):
                 module.fail_json(msg="NTP key is non-ASCII")
         changed = True
-        res = array.patch_arrays(
-            array=Arrays(ntp_symmetric_key=module.params["ntp_key"])
-        )
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.patch_arrays(
+                array=Arrays(ntp_symmetric_key=module.params["ntp_key"]),
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.patch_arrays(
+                array=Arrays(ntp_symmetric_key=module.params["ntp_key"])
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to update NTP Symmetric Key. Error: {0}".format(
@@ -214,6 +270,7 @@ def main():
             state=dict(
                 type="str", default="present", choices=["absent", "present", "test"]
             ),
+            context=dict(type="str", default=""),
         )
     )
 
@@ -230,10 +287,17 @@ def main():
     if module.params["state"] == "absent":
         delete_ntp(module, array)
     elif module.params["state"] == "test":
+        # Fail if context is set as not supported
+        if not module.params["context"]:
+            module.fail_json(msg="NTP testing is not supported with context")
         test_ntp(module, array)
     elif module.params["ntp_servers"]:
         module.params["ntp_servers"] = remove(module.params["ntp_servers"])
-        if sorted(list(array.get_arrays().items)[0].ntp_servers) != sorted(
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            array_list = array.get_arrays(context_names=[module.params["context"]])
+        else:
+            array_list = array.get_arrays()
+        if sorted(list(array_list.items)[0].ntp_servers) != sorted(
             module.params["ntp_servers"][0:4]
         ):
             create_ntp(module, array)
