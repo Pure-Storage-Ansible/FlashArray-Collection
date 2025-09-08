@@ -294,7 +294,7 @@ def main():
         add_syslog(module, array)
     elif module.params["state"] == "present" and exists:
         update_syslog(module, array)
-    elif module.params["state"] == "present" and exists:
+    elif module.params["state"] == "test" and exists:
         test_syslog(module, array)
 
     module.exit_json(changed=False)
