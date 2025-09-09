@@ -137,10 +137,10 @@ def generate_default_dict(module, array):
     default_info["api_versions"] = api_version
     if LooseVersion(VM_VERSION) <= LooseVersion(api_version):
         default_info["virtual_machines"] = len(
-            array.get_virtual_machines(vm_type="vvol").items
+            getattr(array.get_virtual_machines(vm_type="vvol"), "items", [])
         )
         default_info["virtual_machine_snaps"] = len(
-            array.get_virtual_machine_snapshots(vm_type="vvol").items
+            getattr(array.get_virtual_machine_snapshots(vm_type="vvol"), "items", [])
         )
     default_info["snapshot_policies"] = len(array.get_policies_snapshot().items)
     default_info["nfs_policies"] = len(array.get_policies_nfs().items)
@@ -295,7 +295,7 @@ def generate_default_dict(module, array):
             if len(res.items) > 0:
                 default_info["fleet"] = getattr(list(res.items)[0], "name", None)
     else:
-        default_info: ["fleet"] = "Fusion not supported"
+        default_info["fleet"] = "Fusion not supported"
     return default_info
 
 
@@ -2230,7 +2230,7 @@ def generate_rl_dict(module, array):
     rl_info = {}
     rlinks = list(array.get_pod_replica_links().items)
     for rlink in range(0, len(rlinks)):
-        link_name = rlinks[rlink]["local_pod_name"]
+        link_name = rlinks[rlink]["local_pod"]["name"]
         if rlinks[rlink]["recovery_point"]:
             since_epoch = rlinks[rlink]["recovery_point"] / 1000
             recovery_datatime = time.strftime(
@@ -2244,8 +2244,8 @@ def generate_rl_dict(module, array):
             "status": rlinks[rlink]["status"],
             "direction": rlinks[rlink]["direction"],
             "lag": lag,
-            "remote_pod_name": rlinks[rlink]["remote_pod_name"],
-            "remote_names": rlinks[rlink]["remote_names"],
+            "remote_pod_name": rlinks[rlink]["remote_pod"]["name"],
+            "remote_names": rlinks[rlink]["remotes"][0]["name"],
             "recovery_point": recovery_datatime,
         }
     return rl_info
@@ -2267,7 +2267,7 @@ def generate_del_pods_dict(module, array):
             "link_target_count": pods[pod].link_target_count,
             "promotion_status": pods[pod].promotion_status,
             "requested_promotion_state": pods[pod].requested_promotion_state,
-            "failover_preference": pods[pod].failover_preferences,
+            "failover_preference": [],
             "snapshots": getattr(pods[pod].space, "snapshots", None),
             "shared": getattr(pods[pod].space, "shared", None),
             "data_reduction": getattr(pods[pod].space, "data_reduction", None),
@@ -2282,6 +2282,13 @@ def generate_del_pods_dict(module, array):
             "quota_limit": getattr(pods[pod], "quota_limit", None),
             "total_used": pods[pod].space.total_used,
         }
+        for preferences in range(0, len(pods[pod].failover_preferences)):
+            pods_info[name]["failover_preference"].append(
+                {
+                    "array_id": pods[pod].arrays[preferences].id,
+                    "name": pods[pod].arrays[preferences].name,
+                }
+            )
         for pod_array in range(0, len(pods[pod].arrays)):
             frozen_datetime = None
             if hasattr(pods[pod].arrays[pod_array], "frozen_at"):
@@ -2316,7 +2323,7 @@ def generate_pods_dict(module, array, performance):
             "link_target_count": pods[pod].link_target_count,
             "promotion_status": pods[pod].promotion_status,
             "requested_promotion_state": pods[pod].requested_promotion_state,
-            "failover_preference": pods[pod].failover_preferences,
+            "failover_preference": [],
             "snapshots": getattr(pods[pod].space, "snapshots", None),
             "shared": getattr(pods[pod].space, "shared", None),
             "data_reduction": getattr(pods[pod].space, "data_reduction", None),
@@ -2331,6 +2338,13 @@ def generate_pods_dict(module, array, performance):
             "quota_limit": getattr(pods[pod], "quota_limit", None),
             "total_used": pods[pod].space.total_used,
         }
+        for preferences in range(0, len(pods[pod].failover_preferences)):
+            pods_info[name]["failover_preference"].append(
+                {
+                    "array_id": pods[pod].arrays[preferences].id,
+                    "name": pods[pod].arrays[preferences].name,
+                }
+            )
         for pod_array in range(0, len(pods[pod].arrays)):
             frozen_datetime = None
             if hasattr(pods[pod].arrays[pod_array], "frozen_at"):
@@ -2956,7 +2970,10 @@ def generate_hgroups_dict(module, array, performance):
                 }
     hg_vols = list(array.get_connections().items)
     for hg_vol in hg_vols:
-        if getattr(hg_vol.host_group, "name", None):
+        if (
+            getattr(hg_vol.host_group, "name", None)
+            and ":" not in hg_vol.host_group.name
+        ):
             hgroups_info[hg_vol.host_group.name]["vols"].append(
                 [
                     hg_vol.volume.name,
