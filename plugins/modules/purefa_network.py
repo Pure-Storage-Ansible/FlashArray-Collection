@@ -403,9 +403,7 @@ def update_interface(module, array):
     if module.params["address"]:
         if new_state["address"]:
             if valid_ipv4(address):
-                new_state: ["netmask"] = str(
-                    IPNetwork(module.params["address"]).netmask
-                )
+                new_state["netmask"] = str(IPNetwork(module.params["address"]).netmask)
             else:
                 new_state["netmask"] = str(module.params["address"].split("/", 1)[1])
         if new_state["netmask"] in ["0.0.0.0", "0"]:
