@@ -971,6 +971,44 @@ releases:
     - 773_vg_qos.yaml
     - 774_user_update.yaml
     release_date: '2025-07-15'
+  1.37.0:
+    changes:
+      bugfixes:
+      - purefa_connect - Ensured that encrypted connections use encrypted connection
+        keys
+      - purefa_eradication - Fixed idempotency issue
+      - purefa_eula - Fix AttributeError when first sogning EULA
+      - purefa_pg - Changing target for PG no longer requires a ``FixedReference``
+      deprecated_features:
+      - purefa_volume_tags - Deprecated due to removal of REST 1.x support. Will be
+        removed in Collection 2.0.0
+      minor_changes:
+      - purefa_connect - Allow asynchronous FC-based replication
+      - purefa_default_protection - Added Fusion support.
+      - purefa_info - Added new subsets ``workloads`` and ``presets``
+      - purefa_info - Converted to use REST 2
+      - purefa_network - Converted to REST v2
+      - purefa_ntp - Added Fusion support.
+      - purefa_pod - Added support for SafeMode protection group configuration
+      - purefa_syslog - Added Fusion support.
+      - purefa_user - All AD users to have SSH keys and/or API tokens assigned, even
+        if they have never accessed the FlashArray before. AD users must have ``ad_user``
+        set as ``true``.
+    fragments:
+    - 743_network_v2.yaml
+    - 776_workload_info.yaml
+    - 777_info_rest2.yaml
+    - 779_deprecate_vol_tags.yaml
+    - 782_encrypt_connect.yaml
+    - 788_eula_fix.yaml
+    - 789_pg_target_change.yaml
+    - 790_ad_user.yaml
+    - 791_safemode_pod.yaml
+    - 792_fusion_ntp.yaml
+    - 793_fusion_syslog.yaml
+    - 794_fusion_pg_default_protection.yaml
+    - 795_erad.yaml
+    release_date: '2025-09-11'
   1.4.0:
     changes:
       bugfixes:
