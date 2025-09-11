@@ -2446,7 +2446,7 @@ def generate_conn_array_dict(module, array):
             "type": carrays[carray].type,
             "mgmt_ip": getattr(carrays[carray], "management_address", "-"),
             "repl_ip": getattr(carrays[carray], "replication_addresses", "-"),
-            "transport": carrays[carray].replication_transport,
+            "transport": getattr(carrays[carray], "replication_transport", "Unknown"),
         }
 
         if bool(carrays[carray].throttle.to_dict()):
