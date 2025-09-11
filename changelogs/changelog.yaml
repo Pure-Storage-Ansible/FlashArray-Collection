@@ -1009,6 +1009,13 @@ releases:
     - 794_fusion_pg_default_protection.yaml
     - 795_erad.yaml
     release_date: '2025-09-11'
+  1.37.1:
+    changes:
+      bugfixes:
+      - purefa_network - Resolve typo that causes network updates to not apply correctly
+    fragments:
+    - 800_network_fix.yaml
+    release_date: '2025-09-11'
   1.4.0:
     changes:
       bugfixes:
