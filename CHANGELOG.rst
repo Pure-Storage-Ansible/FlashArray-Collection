@@ -4,6 +4,14 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.37.1
+=======
+
+Bugfixes
+--------
+
+- purefa_network - Resolve typo that causes network updates to not apply correctly
+
 v1.37.0
 =======
 
