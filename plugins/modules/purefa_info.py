@@ -2447,34 +2447,23 @@ def generate_conn_array_dict(module, array):
             "mgmt_ip": getattr(carrays[carray], "management_address", "-"),
             "repl_ip": getattr(carrays[carray], "replication_addresses", "-"),
             "transport": getattr(carrays[carray], "replication_transport", "Unknown"),
+            "throttling": {},
         }
-
-        if bool(carrays[carray].throttle.to_dict()):
-            conn_array_info[arrayname]["throttled"] = True
-            conn_array_info[arrayname]["throttling"] = {}
-            try:
-                if bool(carrays[carray].throttle.window):
+        if hasattr(carrays[carray], "throttle"):
+            if bool(carrays[carray].throttle.to_dict()):
+                conn_array_info[arrayname]["throttled"] = True
+                if hasattr(carrays[carray].throttle, "window"):
                     conn_array_info[arrayname]["throttling"]["window"] = carrays[
                         carray
                     ].throttle.window.to_dict()
-            except AttributeError:
-                pass
-            try:
-                if bool(carrays[carray].throttle.default_limit):
+                if hasattr(carrays[carray].throttle, "default_limit"):
                     conn_array_info[arrayname]["throttling"]["default_limit"] = carrays[
                         carray
                     ].throttle.default_limit
-            except AttributeError:
-                pass
-            try:
-                if bool(carrays[carray].throttle.window_limit):
+                if hasattr(carrays[carray].throttle, "window_limit"):
                     conn_array_info[arrayname]["throttling"]["window_limit"] = carrays[
                         carray
                     ].throttle.window_limit
-            except AttributeError:
-                pass
-        else:
-            conn_array_info[arrayname]["throttled"] = False
     return conn_array_info
 
 
