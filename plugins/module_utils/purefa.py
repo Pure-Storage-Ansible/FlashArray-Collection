@@ -44,12 +44,6 @@ try:
 except ImportError:
     HAS_DISTRO = False
 
-HAS_PURESTORAGE = True
-try:
-    from purestorage import purestorage
-except ImportError:
-    HAS_PURESTORAGE = False
-
 HAS_PYPURECLIENT = True
 try:
     from pypureclient import flasharray
@@ -61,54 +55,6 @@ import platform
 
 VERSION = 1.5
 USER_AGENT_BASE = "Ansible"
-
-
-def get_system(module):
-    """Return System Object or Fail"""
-    if HAS_URLLIB3 and module.params["disable_warnings"]:
-        urllib3.disable_warnings()
-    if HAS_DISTRO:
-        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
-            "base": USER_AGENT_BASE,
-            "class": __name__,
-            "version": VERSION,
-            "platform": distro.name(pretty=True),
-        }
-    else:
-        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
-            "base": USER_AGENT_BASE,
-            "class": __name__,
-            "version": VERSION,
-            "platform": platform.platform(),
-        }
-    array_name = module.params["fa_url"]
-    api = module.params["api_token"]
-    if HAS_PURESTORAGE:
-        if array_name and api:
-            system = purestorage.FlashArray(
-                array_name, api_token=api, user_agent=user_agent, verify_https=False
-            )
-        elif environ.get("PUREFA_URL") and environ.get("PUREFA_API"):
-            system = purestorage.FlashArray(
-                environ.get("PUREFA_URL"),
-                api_token=(environ.get("PUREFA_API")),
-                user_agent=user_agent,
-                verify_https=False,
-            )
-        else:
-            module.fail_json(
-                msg="You must set PUREFA_URL and PUREFA_API environment variables "
-                "or the fa_url and api_token module arguments"
-            )
-        try:
-            system.get()
-        except Exception:
-            module.fail_json(
-                msg="Pure Storage FlashArray authentication failed. Check your credentials"
-            )
-    else:
-        module.fail_json(msg="purestorage SDK is not installed.")
-    return system
 
 
 def get_array(module):
