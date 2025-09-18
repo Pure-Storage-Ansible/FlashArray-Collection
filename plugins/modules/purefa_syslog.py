@@ -56,6 +56,14 @@ options:
       The name must be locally unique and cannot be changed.
     type: str
     required: true
+  context:
+    description:
+    - Name of fleet member on which to perform the syslog operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.37.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -105,12 +113,25 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
+
+CONTEXT_API_VERSION = "2.38"
 
 
 def test_syslog(module, array):
     """Test syslog configuration"""
+    api_version = array.get_rest_version()
     test_response = []
-    response = list(array.get_syslog_servers_test().items)
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        response = list(
+            array.get_syslog_servers_test(
+                context_names=[module.params["context"]]
+            ).items
+        )
+    else:
+        response = list(array.get_syslog_servers_test().items)
     for component in range(0, len(response)):
         if response[component].enabled:
             enabled = "true"
@@ -138,9 +159,16 @@ def test_syslog(module, array):
 
 def delete_syslog(module, array):
     """Delete Syslog Server"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        res = array.delete_syslog_servers(names=[module.params["name"]])
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.delete_syslog_servers(
+                names=[module.params["name"]],
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.delete_syslog_servers(names=[module.params["name"]])
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to remove syslog server {0}. Error: {1}".format(
@@ -152,6 +180,7 @@ def delete_syslog(module, array):
 
 def add_syslog(module, array):
     """Add Syslog Server"""
+    api_version = array.get_rest_version()
     changed = True
     noport_address = module.params["protocol"] + "://" + module.params["address"]
 
@@ -160,10 +189,21 @@ def add_syslog(module, array):
     else:
         full_address = noport_address
     if not module.check_mode:
-        res = array.post_syslog_servers(
-            names=[module.params["name"]],
-            syslog_server=SyslogServer(name=module.params["name"], uri=full_address),
-        )
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.post_syslog_servers(
+                names=[module.params["name"]],
+                syslog_server=SyslogServer(
+                    name=module.params["name"], uri=full_address
+                ),
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.post_syslog_servers(
+                names=[module.params["name"]],
+                syslog_server=SyslogServer(
+                    name=module.params["name"], uri=full_address
+                ),
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Adding syslog server {0} failed. Error: {1}".format(
@@ -175,10 +215,16 @@ def add_syslog(module, array):
 
 def update_syslog(module, array):
     """Update Syslog Server"""
+    api_version = array.get_rest_version()
     changed = False
-    syslog_config = list(array.get_syslog_servers(names=[module.params["name"]]).items)[
-        0
-    ]
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        syslog_server_list = array.get_syslog_servers(
+            names=[module.params["name"]],
+            context_names=[module.params["context"]],
+        )
+    else:
+        syslog_server_list = array.get_syslog_servers(names=[module.params["name"]])
+    syslog_config = list(syslog_server_list.items)[0]
     noport_address = module.params["protocol"] + "://" + module.params["address"]
 
     if module.params["port"]:
@@ -187,10 +233,17 @@ def update_syslog(module, array):
         full_address = noport_address
     if full_address != syslog_config.uri:
         changed = True
-        res = array.patch_syslog_servers(
-            names=[module.params["name"]],
-            syslog_server=SyslogServer(uri=full_address),
-        )
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.patch_syslog_servers(
+                names=[module.params["name"]],
+                syslog_server=SyslogServer(uri=full_address),
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.patch_syslog_servers(
+                names=[module.params["name"]],
+                syslog_server=SyslogServer(uri=full_address),
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Updating syslog server {0} failed. Error: {1}".format(
@@ -211,6 +264,7 @@ def main():
             state=dict(
                 type="str", default="present", choices=["absent", "present", "test"]
             ),
+            context=dict(type="str", default=""),
         )
     )
 
@@ -221,7 +275,14 @@ def main():
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
-    res = array.get_syslog_servers(names=[module.params["name"]])
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_syslog_servers(
+            names=[module.params["name"]],
+            context_names=[module.params["context"]],
+        )
+    else:
+        res = array.get_syslog_servers(names=[module.params["name"]])
     if res.status_code == 200:
         exists = True
     else:
@@ -233,7 +294,7 @@ def main():
         add_syslog(module, array)
     elif module.params["state"] == "present" and exists:
         update_syslog(module, array)
-    elif module.params["state"] == "present" and exists:
+    elif module.params["state"] == "test" and exists:
         test_syslog(module, array)
 
     module.exit_json(changed=False)

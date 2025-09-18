@@ -18,6 +18,10 @@ DOCUMENTATION = r"""
 ---
 module: purefa_volume_tags
 version_added: '1.0.0'
+deprecated:
+    removed_in: '2.0.0'
+    why: Deprecation of REST v1.x removes the functionality to manage volume tags using this methodology
+    alternative: No alternative is currently available.
 short_description:  Manage volume tags on Pure Storage FlashArrays
 description:
 - Manage volume tags for volumes on Pure Storage FlashArray.

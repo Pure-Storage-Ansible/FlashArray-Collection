@@ -171,81 +171,36 @@ except ImportError:
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
     get_array,
     purefa_argument_spec,
 )
 
-FC_ENABLE_API = "2.4"
 
-
-def _is_cbs(array, is_cbs=False):
-    """Is the selected array a Cloud Block Store"""
-    model = array.get(controllers=True)[0]["model"]
-    is_cbs = bool("CBS" in model)
-    return is_cbs
-
-
-def _get_fc_interface(module, array):
-    """Return FC Interface or None"""
-    interface = {}
-    interface_list = array.get_network_interfaces(names=[module.params["name"]])
-    if interface_list.status_code == 200:
-        interface = list(interface_list.items)[0]
-        return interface
-    return None
-
-
-def _get_interface(module, array):
-    """Return Network Interface or None"""
-    interface = {}
-    if module.params["name"][0] == "v":
-        try:
-            interface = array.get_network_interface(module.params["name"])
-        except Exception:
-            return None
-    else:
-        try:
-            interfaces = array.list_network_interfaces()
-        except Exception:
-            return None
-        for ints in range(0, len(interfaces)):
-            if interfaces[ints]["name"] == module.params["name"]:
-                interface = interfaces[ints]
-                break
-    return interface
-
-
-def update_fc_interface(module, array, interface, api_version):
+def update_fc_interface(module, array, interface):
     """Modify FC Interface settings"""
     changed = False
-    if FC_ENABLE_API in api_version:
-        if not interface.enabled and module.params["state"] == "present":
-            changed = True
-            if not module.check_mode:
-                network = NetworkInterfacePatch(enabled=True, override_npiv_check=True)
-                res = array.patch_network_interfaces(
-                    names=[module.params["name"]], network=network
+    if not interface.enabled and module.params["state"] == "present":
+        changed = True
+        if not module.check_mode:
+            network = NetworkInterfacePatch(enabled=True, override_npiv_check=True)
+            res = array.patch_network_interfaces(
+                names=[module.params["name"]], network=network
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to enable interface {0}.".format(module.params["name"])
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to enable interface {0}.".format(
-                            module.params["name"]
-                        )
-                    )
-        if interface.enabled and module.params["state"] == "absent":
-            changed = True
-            if not module.check_mode:
-                network = NetworkInterfacePatch(enabled=False, override_npiv_check=True)
-                res = array.patch_network_interfaces(
-                    names=[module.params["name"]], network=network
+    if interface.enabled and module.params["state"] == "absent":
+        changed = True
+        if not module.check_mode:
+            network = NetworkInterfacePatch(enabled=False, override_npiv_check=True)
+            res = array.patch_network_interfaces(
+                names=[module.params["name"]], network=network
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to disable interface {0}.".format(module.params["name"])
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to disable interface {0}.".format(
-                            module.params["name"]
-                        )
-                    )
     if module.params["servicelist"] and sorted(module.params["servicelist"]) != sorted(
         interface.services
     ):
@@ -330,51 +285,96 @@ def _create_subinterfaces(module, array):
     return subinterfaces_v1, subinterfaces_v2
 
 
-def update_interface(module, array, interface):
+def update_interface(module, array):
     """Modify Interface settings"""
     changed = False
+    interface = list(array.get_network_interfaces(names=[module.params["name"]]).items)[
+        0
+    ]
+    # Modify FC Interface settings
+    if module.params["name"].split(".")[1][0].lower() == "f":
+        if not interface.enabled and module.params["state"] == "present":
+            changed = True
+            if not module.check_mode:
+                network = NetworkInterfacePatch(enabled=True, override_npiv_check=True)
+                res = array.patch_network_interfaces(
+                    names=[module.params["name"]], network=network
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to enable interface {0}.".format(
+                            module.params["name"]
+                        )
+                    )
+        if interface.enabled and module.params["state"] == "absent":
+            changed = True
+            if not module.check_mode:
+                network = NetworkInterfacePatch(enabled=False, override_npiv_check=True)
+                res = array.patch_network_interfaces(
+                    names=[module.params["name"]], network=network
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to disable interface {0}.".format(
+                            module.params["name"]
+                        )
+                    )
+        if module.params["servicelist"] and sorted(
+            module.params["servicelist"]
+        ) != sorted(interface.services):
+            changed = True
+            if not module.check_mode:
+                network = NetworkInterfacePatch(services=module.params["servicelist"])
+                res = array.patch_network_interfaces(
+                    names=[module.params["name"]], network=network
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to update interface service list {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+        module.exit_json(changed=changed)
+    # Modify ETH Interface settings
     current_state = {
-        "enabled": interface["enabled"],
-        "mtu": interface["mtu"],
-        "gateway": interface["gateway"],
-        "address": interface["address"],
-        "netmask": interface["netmask"],
+        "enabled": interface.enabled,
+        "mtu": interface.eth.mtu,
+        "gateway": getattr(interface, "gateway", None),
+        "address": getattr(interface, "address", None),
+        "netmask": getattr(interface, "netmask", None),
         "services": sorted(interface["services"]),
-        "slaves": sorted(interface["slaves"]),
+        "subinterfaces": sorted(interface.eth.subinterfaces),
     }
-    array6 = get_array(module)
-    subinterfaces = current_state["slaves"]
+    new_state = current_state
     if module.params["subinterfaces"]:
-        new_subinterfaces = _check_subinterfaces(module, array6)
-        if new_subinterfaces != subinterfaces:
-            subinterfaces = new_subinterfaces
-        else:
-            subinterfaces = current_state["slaves"]
+        new_subinterfaces = _check_subinterfaces(module, array)
+        if new_subinterfaces != current_state["subinterfaces"]:
+            new_state["subinterfaces"] = new_subinterfaces
     if module.params["subordinates"]:
-        subordinates = _check_subinterfaces(module, array6)
+        subordinates = _check_subinterfaces(module, array)
         if sorted(subordinates) != sorted(module.params["subordinates"]):
-            subinterfaces = module.params["subordinates"]
-        else:
-            subinterfaces = subordinates
+            new_state["subinterfaces"] = module.params["subordinates"]
     if module.params["enabled"] != current_state["enabled"]:
-        enabled = module.params["enabled"]
-    else:
-        enabled = current_state["enabled"]
+        new_state["enabled"] = module.params["enabled"]
     if not current_state["gateway"]:
-        if interface["address"] and valid_ipv4(interface["address"]):
+        if getattr(interface.eth, "address", None) and valid_ipv4(
+            getattr(interface.eth, "address", None)
+        ):
             current_state["gateway"] = None
-        elif interface["address"] and valid_ipv6(interface["address"]):
+        elif getattr(interface.eth, "address", None) and valid_ipv6(
+            getattr(interface.eth, "address", None)
+        ):
             current_state["gateway"] = None
         else:
             current_state["gateway"] = None
-    if not module.params["servicelist"]:
-        services = sorted(interface["services"])
-    else:
-        services = sorted(module.params["servicelist"])
-    if not module.params["address"]:
-        address = interface["address"]
-        netmask = interface["netmask"]
-    else:
+    if module.params["servicelist"] and sorted(
+        module.params["servicelist"] != current_state["services"]
+    ):
+        new_state["services"] = sorted(module.params["servicelist"])
+    if (
+        module.params["address"]
+        and module.params["address"] != current_state["address"]
+    ):
         netmask = current_state["netmask"]
         if module.params["gateway"] and module.params["gateway"] not in [
             "0.0.0.0",
@@ -387,13 +387,11 @@ def update_interface(module, array, interface):
             IPNetwork(module.params["address"]),
         ]:
             module.fail_json(msg="Gateway and subnet are not compatible.")
-        address = str(module.params["address"].split("/", 1)[0])
+        new_state["address"] = str(module.params["address"].split("/", 1)[0])
         if address in ["0.0.0.0", "::"]:
             address = None
             netmask = None
-    if not module.params["mtu"]:
-        mtu = current_state["mtu"]
-    else:
+    if module.params["mtu"] and module.params["mtu"] != current_state["mtu"]:
         if not 1280 <= module.params["mtu"] <= 9216:
             module.fail_json(
                 msg="MTU {0} is out of range (1280 to 9216)".format(
@@ -403,37 +401,24 @@ def update_interface(module, array, interface):
         else:
             mtu = module.params["mtu"]
     if module.params["address"]:
-        if address:
+        if new_state["address"]:
             if valid_ipv4(address):
-                netmask = str(IPNetwork(module.params["address"]).netmask)
+                new_state["netmask"] = str(IPNetwork(module.params["address"]).netmask)
             else:
-                netmask = str(module.params["address"].split("/", 1)[1])
-        if netmask in ["0.0.0.0", "0"]:
-            netmask = None
-    else:
-        netmask = interface["netmask"]
-    if not module.params["gateway"]:
-        gateway = interface["gateway"]
-    elif module.params["gateway"] in ["0.0.0.0", "::"]:
-        gateway = None
-    elif valid_ipv4(address):
-        cidr = str(IPAddress(netmask).netmask_bits())
-        full_addr = address + "/" + cidr
+                new_state["netmask"] = str(module.params["address"].split("/", 1)[1])
+        if new_state["netmask"] in ["0.0.0.0", "0"]:
+            new_state["netmask"] = None
+    if module.params["gateway"] and module.params["gateway"] in ["0.0.0.0", "::"]:
+        new_state["gateway"] = None
+    elif valid_ipv4(new_state["address"]):
+        cidr = str(IPAddress(new_state["netmask"]).netmask_bits())
+        full_addr = new_state["address"] + "/" + cidr
         if module.params["gateway"] not in IPNetwork(full_addr):
             module.fail_json(msg="Gateway and subnet are not compatible.")
-        gateway = module.params["gateway"]
+        new_state["gateway"] = module.params["gateway"]
     else:
-        gateway = module.params["gateway"]
+        new_state["gateway"] = module.params["gateway"]
 
-    new_state = {
-        "enabled": enabled,
-        "address": address,
-        "mtu": mtu,
-        "gateway": gateway,
-        "netmask": netmask,
-        "services": sorted(services),
-        "slaves": sorted(subinterfaces),
-    }
     if new_state["address"]:
         if (
             current_state["address"]
@@ -454,25 +439,16 @@ def update_interface(module, array, interface):
             module.params["servicelist"]
             and sorted(module.params["servicelist"]) != interface["services"]
         ):
-            api_version = array._list_available_rest_versions()
-            if FC_ENABLE_API in api_version:
-                if HAS_PYPURECLIENT:
-                    if not module.check_mode:
-                        network = NetworkInterfacePatch(
-                            services=module.params["servicelist"]
+            if not module.check_mode:
+                network = NetworkInterfacePatch(services=module.params["servicelist"])
+                res = array.patch_network_interfaces(
+                    names=[module.params["name"]], network=network
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to update interface service list {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
-                        res = array6.patch_network_interfaces(
-                            names=[module.params["name"]], network=network
-                        )
-                        if res.status_code != 200:
-                            module.fail_json(
-                                msg="Failed to update interface service list {0}. Error: {1}".format(
-                                    module.params["name"], res.errors[0].message
-                                )
-                            )
-                else:
-                    module.warn_json(
-                        "Servicelist not updated as pypureclient module is required"
                     )
         if (
             "management" in interface["services"] or "app" in interface["services"]
@@ -481,61 +457,94 @@ def update_interface(module, array, interface):
                 msg="Removing IP address from a management or app port is not supported"
             )
         if not module.check_mode:
-            try:
-                array.set_network_interface(
-                    interface["name"], enabled=new_state["enabled"]
-                )
-                if new_state["gateway"] is not None:
-                    array.set_network_interface(
-                        interface["name"],
-                        address=new_state["address"],
-                        mtu=new_state["mtu"],
-                        netmask=new_state["netmask"],
-                        gateway=new_state["gateway"],
-                    )
-                    if (
-                        current_state["slaves"] != new_state["slaves"]
-                        and new_state["slaves"] != []
-                    ):
-                        array.set_network_interface(
-                            interface["name"],
-                            subinterfacelist=new_state["slaves"],
-                        )
-                else:
-                    try:
-                        if valid_ipv4(new_state["address"]):
-                            empty_gateway = "0.0.0.0"
-                        else:
-                            empty_gateway = "::"
-                    except Exception:
-                        empty_gateway = "::"
-                    array.set_network_interface(
-                        interface["name"],
-                        address=new_state["address"],
-                        mtu=new_state["mtu"],
-                        netmask=new_state["netmask"],
-                        gateway=empty_gateway,
-                    )
-                    if (
-                        current_state["slaves"] != new_state["slaves"]
-                        and new_state["slaves"] != []
-                    ):
-                        res = array6.delete_network_interfaces(
-                            names=[module.params["name"]]
-                        )
-                        if res.status_code != 200:
-                            module.fail_json(
-                                msg="Failed to delete network interface {0}. Error: {1}".format(
-                                    module.params["name"], res.errors[0].message
-                                )
-                            )
-                        create_interface(module, array6)
-            except Exception:
+            res = array.patch_network_interfaces(
+                names=[interface.name],
+                network=NetworkInterfacePatch(enabled=new_state["enabled"]),
+            )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Failed to change settings for interface {0}.".format(
-                        interface["name"]
+                    msg="Failed to enable or disable interface {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
                     )
                 )
+            if new_state["gateway"] is not None:
+                res = array.patch_network_interfaces(
+                    names=[interface.name],
+                    network=NetworkInterfacePatch(
+                        eth=NetworkinterfacepatchEth(
+                            address=new_state["address"],
+                            mtu=new_state["mtu"],
+                            netmask=new_state["netmask"],
+                            gateway=new_state["gateway"],
+                        )
+                    ),
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to update IP settings for {0}. Error: {1}".format(
+                            interface.name, res.errors[0].message
+                        )
+                    )
+                if (
+                    current_state["subinterfaces"] != new_state["subinterfaces"]
+                    and new_state["subinterfaces"] != []
+                ):
+                    new_subs = []
+                    for sub in range(0, len(new_state["subinterfaces"])):
+                        new_subs.append(ReferenceNoId(new_state["subinterfaces"][sub]))
+                    res = array.patch_network_interfaces(
+                        names=[interface.name],
+                        network=NetworkInterfacePatch(
+                            eth=NetworkinterfacepatchEth(
+                                subinterfacelist=new_subs,
+                            )
+                        ),
+                    )
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to update subinterfaces for {0}. Error: {1}".format(
+                                interface.name, res.errors[0].message
+                            )
+                        )
+            else:
+                try:
+                    if valid_ipv4(new_state["address"]):
+                        empty_gateway = "0.0.0.0"
+                    else:
+                        empty_gateway = "::"
+                except Exception:
+                    empty_gateway = "::"
+                res = array.patch_network_interfaces(
+                    names=[interface.name],
+                    network=NetworkInterfacePatch(
+                        eth=NetworkinterfacepatchEth(
+                            address=new_state["address"],
+                            mtu=new_state["mtu"],
+                            netmask=new_state["netmask"],
+                            gateway=empty_gateway,
+                        )
+                    ),
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to update IP settings for {0}. Error: {1}".format(
+                            interface.name, res.errors[0].message
+                        )
+                    )
+                if (
+                    current_state["subinterfaces"] != new_state["subinterfaces"]
+                    and new_state["subinterfaces"] != []
+                ):
+                    res = array.delete_network_interfacess(
+                        names=[module.params["name"]]
+                    )
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to delete network interface {0}. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
+                            )
+                        )
+                    create_interface(module, array)
     module.exit_json(changed=changed)
 
 
@@ -742,35 +751,29 @@ def main():
     if not HAS_NETADDR:
         module.fail_json(msg="netaddr module is required")
 
-    array = get_system(module)
+    if not HAS_PYPURECLIENT:
+        module.fail_json(msg="pypureclient module is required")
+    array = get_array(module)
     if module.params["address"]:
         module.params["address"] = module.params["address"].strip("[]")
         if "/" not in module.params["address"]:
             module.fail_json(msg="address must include valid netmask bits")
     if module.params["gateway"]:
         module.params["gateway"] = module.params["gateway"].strip("[]")
-    api_version = array._list_available_rest_versions()
-    if not _is_cbs(array):
+    if bool("CBS" in list(array.get_controllers().items)[0].model):
         if module.params["servicelist"] and "system" in module.params["servicelist"]:
             module.fail_json(
                 msg="Only Cloud Block Store supports the 'system' service type"
             )
     if "." in module.params["name"]:
-        if module.params["name"].split(".")[1][0].lower() == "f":
-            if not HAS_PYPURECLIENT:
-                module.fail_json(msg="pypureclient module is required")
-            array = get_array(module)
-            interface = _get_fc_interface(module, array)
-            if not interface:
-                module.fail_json(msg="Invalid network interface specified.")
-            else:
-                update_fc_interface(module, array, interface, api_version)
+        interface = bool(
+            array.get_network_interfaces(names=[module.params["name"]]).status_code
+            == 200
+        )
+        if not interface:
+            module.fail_json(msg="Invalid network interface specified.")
         else:
-            interface = _get_interface(module, array)
-            if not interface:
-                module.fail_json(msg="Invalid network interface specified.")
-            else:
-                update_interface(module, array, interface)
+            update_interface(module, array)
     else:
         if (module.params["interface"] == "vif" and module.params["subordinates"]) or (
             module.params["interface"] == "lacp" and module.params["subinterfaces"]
@@ -778,21 +781,23 @@ def main():
             module.fail_json(
                 msg="interface type not compatable with provided subinterfaces | subordinates"
             )
-        interface = _get_interface(module, array)
-        array6 = get_array(module)
+        interface = bool(
+            array.get_network_interfaces(names=[module.params["name"]]).status_code
+            == 200
+        )
         if not creating_new_if:
             if not interface:
                 module.fail_json(msg="Invalid network interface specified.")
             elif module.params["state"] == "present":
-                update_interface(module, array, interface)
+                update_interface(module, array)
             else:
-                delete_interface(module, array6)
+                delete_interface(module, array)
         elif not interface and module.params["state"] == "present":
-            create_interface(module, array6)
+            create_interface(module, array)
         elif interface and module.params["state"] == "absent":
-            delete_interface(module, array6)
+            delete_interface(module, array)
         elif module.params["state"] == "present":
-            update_interface(module, array, interface)
+            update_interface(module, array)
         else:
             module.exit_json(changed=False)
 

@@ -4,6 +4,43 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.37.1
+=======
+
+Bugfixes
+--------
+
+- purefa_network - Resolve typo that causes network updates to not apply correctly
+
+v1.37.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_connect - Allow asynchronous FC-based replication
+- purefa_default_protection - Added Fusion support.
+- purefa_info - Added new subsets ``workloads`` and ``presets``
+- purefa_info - Converted to use REST 2
+- purefa_network - Converted to REST v2
+- purefa_ntp - Added Fusion support.
+- purefa_pod - Added support for SafeMode protection group configuration
+- purefa_syslog - Added Fusion support.
+- purefa_user - All AD users to have SSH keys and/or API tokens assigned, even if they have never accessed the FlashArray before. AD users must have ``ad_user`` set as ``true``.
+
+Deprecated Features
+-------------------
+
+- purefa_volume_tags - Deprecated due to removal of REST 1.x support. Will be removed in Collection 2.0.0
+
+Bugfixes
+--------
+
+- purefa_connect - Ensured that encrypted connections use encrypted connection keys
+- purefa_eradication - Fixed idempotency issue
+- purefa_eula - Fix AttributeError when first sogning EULA
+- purefa_pg - Changing target for PG no longer requires a ``FixedReference``
+
 v1.36.0
 =======
 

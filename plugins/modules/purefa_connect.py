@@ -186,17 +186,11 @@ def create_connection(module, array):
             user_agent=user_agent,
         )
         connection_key = list(
-            remote_system.get_array_connections_connection_key().items
+            remote_system.get_array_connections_connection_key(
+                encrypted=module.params["encrypted"]
+            ).items
         )[0].connection_key
         remote_array = list(remote_system.get_arrays().items)[0].name
-        # TODO: Refactor when FC async is supported
-        if (
-            module.params["transport"].lower() == "fc"
-            and module.params["connection"].lower() == "async"
-        ):
-            module.fail_json(
-                msg="Asynchronous replication not supported using FC transport"
-            )
         if LooseVersion(ENCRYPT_VERSION) >= LooseVersion(api_version):
             if module.params["encrypted"]:
                 encrypted = "encrypted"
