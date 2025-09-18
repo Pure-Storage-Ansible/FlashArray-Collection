@@ -442,7 +442,6 @@ except ImportError:
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
-    get_system,
     get_array,
     purefa_argument_spec,
 )
@@ -2136,24 +2135,30 @@ def main():
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
-    array = get_system(module)
-    api_version = array._list_available_rest_versions()
-    if MIN_REQUIRED_API_VERSION not in api_version:
+    array = get_array(module)
+    api_version = array.get_rest_version()
+    if LooseVersion(MIN_REQUIRED_API_VERSION) < LooseVersion(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
         )
-    if module.params["policy"] == "quota" and MIN_QUOTA_API_VERSION not in api_version:
+    if module.params["policy"] == "quota" and LooseVersion(
+        MIN_QUOTA_API_VERSION
+    ) <= LooseVersion(api_version):
         module.fail_json(
             msg="FlashArray REST version not supportedi for directory quotas. "
             "Minimum version required: {0}".format(MIN_QUOTA_API_VERSION)
         )
-    if module.params["policy"] == "autodir" and AUTODIR_VERSION not in api_version:
+    if module.params["policy"] == "autodir" and LooseVersion(
+        AUTODIR_VERSION
+    ) <= LooseVersion(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported for autodir policies. "
             "Minimum version required: {0}".format(AUTODIR_VERSION)
         )
-    if module.params["policy"] == "password" and PASSWORD_VERSION not in api_version:
+    if module.params["policy"] == "password" and LooseVersion(
+        PASSWORD_VERSION
+    ) <= LooseVersion(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported for password policies. "
             "Minimum version required: {0}".format(PASSWORD_VERSION)
@@ -2164,7 +2169,6 @@ def main():
         and not 1 <= module.params["lockout"] <= 7776000
     ):
         module.fail_json(msg="Lockout must be between 1 and 7776000 seconds")
-    array = get_array(module)
     state = module.params["state"]
     if module.params["quota_notifications"]:
         module.params["quota_notifications"].sort(reverse=True)
