@@ -1033,17 +1033,22 @@ def _update_preferred_array(module, array, answer=False):
         ].preferred_arrays
     if preferred_array == [] and module.params["preferred_array"] != ["delete"]:
         answer = True
+        preferred_array_list = []
+        for preferred_array in range(0, len(module.params["preferred_array"])):
+            preferred_array_list.append(
+                Reference(name=module.params["preferred_array"][preferred_array])
+            )
         if not module.check_mode:
             if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                 res = array.patch_hosts(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
-                    host=HostPatch(preferred_arrays=module.params["preferred_array"]),
+                    host=HostPatch(preferred_arrays=preferred_array_list),
                 )
             else:
                 res = array.patch_hosts(
                     names=[module.params["name"]],
-                    host=HostPatch(preferred_arrays=module.params["preferred_array"]),
+                    host=HostPatch(preferred_arrays=preferred_array_list),
                 )
             if res.status_code != 200:
                 module.fail_json(
