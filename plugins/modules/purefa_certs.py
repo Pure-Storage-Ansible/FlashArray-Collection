@@ -336,7 +336,6 @@ def import_cert(module, array, reimport=False):
         certificate=module.params["certificate"],
         intermediate_certificate=module.params["intermeadiate_cert"],
         key=module.params["key"],
-        key_size=module.params["key_size"],
         passphrase=module.params["passphrase"],
         status="imported",
     )

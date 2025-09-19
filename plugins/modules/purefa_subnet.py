@@ -132,13 +132,11 @@ def update_subnet(module, array, subnet):
     changed = False
     current_state = {
         "mtu": subnet.mtu,
-        "vlan": subnet.vlan,
+        "vlan": getattr(subnet, "vlan", 0),
         "prefix": subnet.prefix,
-        "gateway": subnet.gateway,
+        "gateway": getattr(subnet, "gateway", None),
     }
     address = str(subnet.prefix.split("/", 1)[0])
-    if not current_state["vlan"]:
-        current_state["vlan"] = 0
     if not current_state["gateway"]:
         if valid_ipv4(address):
             current_state["gateway"] = "0.0.0.0"
