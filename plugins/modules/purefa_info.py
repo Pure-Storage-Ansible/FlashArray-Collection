@@ -131,7 +131,7 @@ def _is_cbs(array):
     return is_cbs
 
 
-def generate_default_dict(module, array):
+def generate_default_dict(array):
     default_info = {}
     api_version = array.get_rest_version()
     default_info["api_versions"] = api_version
@@ -238,7 +238,7 @@ def generate_default_dict(module, array):
     default_info["array_model"] = list(array.get_controllers().items)[0].model
     default_info["array_name"] = list(array.get_arrays().items)[0].name
     default_info["purity_version"] = list(array.get_arrays().items)[0].version
-    default_info["hosts"] = hosts = len(list(array.get_hosts().items))
+    default_info["hosts"] = len(list(array.get_hosts().items))
     default_info["snapshots"] = len(list(array.get_volume_snapshots().items))
     default_info["volumes"] = len(list(array.get_volumes().items))
     default_info["protection_groups"] = len(list(array.get_protection_groups().items))
@@ -273,7 +273,7 @@ def generate_default_dict(module, array):
             default_info["remote_assist_detail"]["remote_assist_opened"] = None
 
     maint_info = list(array.get_maintenance_windows().items)
-    if maint_info != []:
+    if maint_info:
         default_info["maintenance_window"] = [
             {
                 "name": maint_info[0].name,
@@ -450,19 +450,23 @@ def generate_config_dict(module, array):
                 "enabled": saml2[0].enabled,
                 "array_url": saml2[0].array_url,
                 "name": saml2[0].name,
-                "idp": {
+                "idp": {},
+                "sp": {},
+            }
+            if hasattr(saml2[0], "idp"):
+                config_info["saml2sso"]["idp"] = {
                     "url": getattr(saml2[0].idp, "url", None),
                     "encrypt_enabled": saml2[0].idp.encrypt_assertion_enabled,
                     "sign_enabled": saml2[0].idp.sign_request_enabled,
                     "metadata_url": saml2[0].idp.metadata_url,
-                },
-                "sp": {
+                }
+            if hasattr(saml2[0], "sp"):
+                config_info["saml2sso"]["sp"] = {
                     "decrypt_cred": getattr(
                         saml2[0].sp.decryption_credential, "name", None
                     ),
                     "sign_cred": getattr(saml2[0].sp.signing_credential, "name", None),
-                },
-            }
+                }
     config_info["active_directory"] = {}
     try:
         ad_accounts = list(array.get_active_directory().items)
@@ -906,9 +910,8 @@ def generate_subnet_dict(array):
     return sub_info
 
 
-def generate_network_dict(module, array, performance):
+def generate_network_dict(array, performance):
     net_info = {}
-    api_version = array.get_rest_version()
     ports = list(array.get_network_interfaces().items)
     for port in range(0, len(ports)):
         int_name = ports[port].name
@@ -1439,9 +1442,8 @@ def generate_network_dict(module, array, performance):
     return net_info
 
 
-def generate_capacity_dict(module, array):
+def generate_capacity_dict(array):
     capacity_info = {}
-    api_version = array.get_rest_version()
     total_capacity = list(array.get_arrays().items)[0].capacity
     capacity = list(array.get_arrays_space().items)[0]
     capacity_info["total_capacity"] = total_capacity
@@ -1502,9 +1504,8 @@ def generate_capacity_dict(module, array):
     return capacity_info
 
 
-def generate_snap_dict(module, array):
+def generate_snap_dict(array):
     snap_info = {}
-    api_version = array.get_rest_version()
     snaps = list(array.get_volume_snapshots(destroyed=False).items)
     for snap in range(0, len(snaps)):
         snapshot = snaps[snap].name
@@ -1579,9 +1580,8 @@ def generate_snap_dict(module, array):
     return snap_info
 
 
-def generate_del_snap_dict(module, array):
+def generate_del_snap_dict(array):
     snap_info = {}
-    api_version = array.get_rest_version()
     snaps = list(array.get_volume_snapshots(destroyed=True).items)
     for snap in range(0, len(snaps)):
         snapshot = snaps[snap].name
@@ -1647,9 +1647,8 @@ def generate_del_snap_dict(module, array):
     return snap_info
 
 
-def generate_del_vol_dict(module, array):
+def generate_del_vol_dict(array):
     volume_info = {}
-    api_version = array.get_rest_version()
     vols = list(array.get_volumes(destroyed=True).items)
     for vol in range(0, len(vols)):
         volume = vols[vol].name
@@ -1714,9 +1713,8 @@ def generate_del_vol_dict(module, array):
     return volume_info
 
 
-def generate_vol_dict(module, array, performance):
+def generate_vol_dict(array, performance):
     volume_info = {}
-    api_version = array.get_rest_version()
     vols = list(array.get_volumes(destroyed=False).items)
     for vol in range(0, len(vols)):
         volume = vols[vol].name
@@ -1805,72 +1803,64 @@ def generate_vol_dict(module, array, performance):
         ]
     if performance:
         vols_performance = list(array.get_volumes_performance(destroyed=False).items)
-        for performance in range(0, len(vols_performance)):
-            volume_info[vols_performance[performance].name]["performance"] = {
+        for perf in range(0, len(vols_performance)):
+            volume_info[vols_performance[perf].name]["performance"] = {
                 "bytes_per_mirrored_write": vols_performance[
-                    performance
+                    perf
                 ].bytes_per_mirrored_write,
-                "bytes_per_op": vols_performance[performance].bytes_per_op,
-                "bytes_per_read": vols_performance[performance].bytes_per_read,
-                "bytes_per_write": vols_performance[performance].bytes_per_write,
+                "bytes_per_op": vols_performance[perf].bytes_per_op,
+                "bytes_per_read": vols_performance[perf].bytes_per_read,
+                "bytes_per_write": vols_performance[perf].bytes_per_write,
                 "mirrored_write_bytes_per_sec": vols_performance[
-                    performance
+                    perf
                 ].mirrored_write_bytes_per_sec,
                 "mirrored_writes_per_sec": vols_performance[
-                    performance
+                    perf
                 ].mirrored_writes_per_sec,
                 "qos_rate_limit_usec_per_mirrored_write_op": vols_performance[
-                    performance
+                    perf
                 ].qos_rate_limit_usec_per_mirrored_write_op,
                 "qos_rate_limit_usec_per_read_op": vols_performance[
-                    performance
+                    perf
                 ].qos_rate_limit_usec_per_mirrored_write_op,
                 "qos_rate_limit_usec_per_write_op": vols_performance[
-                    performance
+                    perf
                 ].qos_rate_limit_usec_per_read_op,
                 "queue_usec_per_mirrored_write_op": vols_performance[
-                    performance
+                    perf
                 ].queue_usec_per_mirrored_write_op,
-                "queue_usec_per_read_op": vols_performance[
-                    performance
-                ].queue_usec_per_read_op,
+                "queue_usec_per_read_op": vols_performance[perf].queue_usec_per_read_op,
                 "queue_usec_per_write_op": vols_performance[
-                    performance
+                    perf
                 ].queue_usec_per_write_op,
-                "read_bytes_per_sec": vols_performance[performance].read_bytes_per_sec,
-                "reads_per_sec": vols_performance[performance].reads_per_sec,
+                "read_bytes_per_sec": vols_performance[perf].read_bytes_per_sec,
+                "reads_per_sec": vols_performance[perf].reads_per_sec,
                 "san_usec_per_mirrored_write_op": vols_performance[
-                    performance
+                    perf
                 ].san_usec_per_mirrored_write_op,
-                "san_usec_per_read_op": vols_performance[
-                    performance
-                ].san_usec_per_read_op,
-                "san_usec_per_write_op": vols_performance[
-                    performance
-                ].san_usec_per_write_op,
+                "san_usec_per_read_op": vols_performance[perf].san_usec_per_read_op,
+                "san_usec_per_write_op": vols_performance[perf].san_usec_per_write_op,
                 "service_usec_per_mirrored_write_op": vols_performance[
-                    performance
+                    perf
                 ].service_usec_per_mirrored_write_op,
                 "service_usec_per_read_op": vols_performance[
-                    performance
+                    perf
                 ].service_usec_per_read_op,
                 "service_usec_per_write_op": vols_performance[
-                    performance
+                    perf
                 ].service_usec_per_write_op,
                 "usec_per_mirrored_write_op": vols_performance[
-                    performance
+                    perf
                 ].usec_per_mirrored_write_op,
-                "usec_per_read_op": vols_performance[performance].usec_per_read_op,
-                "usec_per_write_op": vols_performance[performance].usec_per_write_op,
-                "write_bytes_per_sec": vols_performance[
-                    performance
-                ].write_bytes_per_sec,
-                "writes_per_sec": vols_performance[performance].writes_per_sec,
+                "usec_per_read_op": vols_performance[perf].usec_per_read_op,
+                "usec_per_write_op": vols_performance[perf].usec_per_write_op,
+                "write_bytes_per_sec": vols_performance[perf].write_bytes_per_sec,
+                "writes_per_sec": vols_performance[perf].writes_per_sec,
             }
     return volume_info
 
 
-def generate_host_dict(module, array, performance):
+def generate_host_dict(array, performance):
     host_info = {}
     hosts = list(array.get_hosts().items)
     hosts_balance = list(array.get_hosts_performance_balance().items)
@@ -2003,15 +1993,10 @@ def generate_host_dict(module, array, performance):
     return host_info
 
 
-def generate_del_pgroups_dict(module, array):
+def generate_del_pgroups_dict(array):
     pgroups_info = {}
-    deleted_enabled = False
     api_version = array.get_rest_version()
     pgroups = list(array.get_protection_groups(destroyed=True).items)
-    pgroup_targets = list(array.get_protection_groups_targets().items)
-    pgroup_volumes = list(array.get_protection_groups_volumes().items)
-    pgroup_hosts = list(array.get_protection_groups_hosts().items)
-    pgroup_hgs = list(array.get_protection_groups_host_groups().items)
     for pgroup in range(0, len(pgroups)):
         protgroup = pgroups[pgroup].name
 
@@ -2090,6 +2075,30 @@ def generate_del_pgroups_dict(module, array):
                     ),
                     "destroyed": pgroup_transfers[pgroup_transfer].destroyed,
                 }
+        pgroup_volumes = list(
+            array.get_protection_groups_volumes(group_names=[protgroup]).items
+        )
+        for pg_vol in range(0, len(pgroup_volumes)):
+            pgroups_info[protgroup]["volumes"].append(
+                pgroup_volumes[pg_vol].member.name
+            )
+        pgroup_hosts = list(
+            array.get_protection_groups_hosts(group_names=[protgroup]).items
+        )
+        for pg_host in range(0, len(pgroup_hosts)):
+            pgroups_info[protgroup]["hosts"].append(pgroup_hosts[pg_host].member.name)
+        pgroup_hgs = list(
+            array.get_protection_groups_host_groups(group_names=[protgroup]).items
+        )
+        for pg_hg in range(0, len(pgroup_hgs)):
+            pgroups_info[protgroup]["hgroups"].append(pgroup_hgs[pg_hg].member.name)
+        pgroup_targets = list(
+            array.get_protection_groups_targets(group_names=[protgroup]).items
+        )
+        for pg_target in range(0, len(pgroup_targets)):
+            pgroups_info[protgroup]["targets"].append(
+                pgroup_targets[pg_target].member.name
+            )
         if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(api_version):
             pgroups_info[protgroup]["deleted_volumes"] = []
             volumes = list(
@@ -2116,14 +2125,10 @@ def generate_del_pgroups_dict(module, array):
     return pgroups_info
 
 
-def generate_pgroups_dict(module, array):
+def generate_pgroups_dict(array):
     pgroups_info = {}
     api_version = array.get_rest_version()
     pgroups = list(array.get_protection_groups(destroyed=False).items)
-    pgroup_targets = list(array.get_protection_groups_targets().items)
-    pgroup_volumes = list(array.get_protection_groups_volumes().items)
-    pgroup_hosts = list(array.get_protection_groups_hosts().items)
-    pgroup_hgs = list(array.get_protection_groups_host_groups().items)
     for pgroup in range(0, len(pgroups)):
         protgroup = pgroups[pgroup]["name"]
         pgroups_info[protgroup] = {
@@ -2200,6 +2205,30 @@ def generate_pgroups_dict(module, array):
                     ),
                     "destroyed": pgroup_transfers[pgroup_transfer].destroyed,
                 }
+        pgroup_volumes = list(
+            array.get_protection_groups_volumes(group_names=[protgroup]).items
+        )
+        for pg_vol in range(0, len(pgroup_volumes)):
+            pgroups_info[protgroup]["volumes"].append(
+                pgroup_volumes[pg_vol].member.name
+            )
+        pgroup_hosts = list(
+            array.get_protection_groups_hosts(group_names=[protgroup]).items
+        )
+        for pg_host in range(0, len(pgroup_hosts)):
+            pgroups_info[protgroup]["hosts"].append(pgroup_hosts[pg_host].member.name)
+        pgroup_hgs = list(
+            array.get_protection_groups_host_groups(group_names=[protgroup]).items
+        )
+        for pg_hg in range(0, len(pgroup_hgs)):
+            pgroups_info[protgroup]["hgroups"].append(pgroup_hgs[pg_hg].member.name)
+        pgroup_targets = list(
+            array.get_protection_groups_targets(group_names=[protgroup]).items
+        )
+        for pg_target in range(0, len(pgroup_targets)):
+            pgroups_info[protgroup]["targets"].append(
+                pgroup_targets[pg_target].member.name
+            )
         if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(api_version):
             pgroups_info[protgroup]["deleted_volumes"] = []
             volumes = list(
@@ -2226,7 +2255,7 @@ def generate_pgroups_dict(module, array):
     return pgroups_info
 
 
-def generate_rl_dict(module, array):
+def generate_rl_dict(array):
     rl_info = {}
     rlinks = list(array.get_pod_replica_links().items)
     for rlink in range(0, len(rlinks)):
@@ -2251,15 +2280,13 @@ def generate_rl_dict(module, array):
     return rl_info
 
 
-def generate_del_pods_dict(module, array):
+def generate_del_pods_dict(array):
     pods_info = {}
-    api_version = array.get_rest_version()
     pods = list(array.get_pods(destroyed=True).items)
     for pod in range(0, len(pods)):
         name = pods[pod].name
         pods_info[name] = {
-            # "source": pods[pod].source,
-            "arrays": {},
+            "arrays": [],
             "mediator": pods[pod].mediator,
             "mediator_version": getattr(pods[pod], "mediator_version", None),
             "time_remaining": pods[pod].time_remaining,
@@ -2309,9 +2336,8 @@ def generate_del_pods_dict(module, array):
     return pods_info
 
 
-def generate_pods_dict(module, array, performance):
+def generate_pods_dict(array, performance):
     pods_info = {}
-    api_version = array.get_rest_version()
     pods = list(array.get_pods(destroyed=False).items)
     for pod in range(0, len(pods)):
         name = pods[pod].name
@@ -2368,73 +2394,65 @@ def generate_pods_dict(module, array, performance):
             )
     if performance:
         pods_performance = list(array.get_pods_performance().items)
-        for performance in range(0, len(pods_performance)):
-            pods_info[pods_performance[performance].name]["performance"] = {
+        for perf in range(0, len(pods_performance)):
+            pods_info[pods_performance[perf].name]["performance"] = {
                 "bytes_per_mirrored_write": pods_performance[
-                    performance
+                    perf
                 ].bytes_per_mirrored_write,
-                "bytes_per_op": pods_performance[performance].bytes_per_op,
-                "bytes_per_read": pods_performance[performance].bytes_per_read,
-                "bytes_per_write": pods_performance[performance].bytes_per_write,
+                "bytes_per_op": pods_performance[perf].bytes_per_op,
+                "bytes_per_read": pods_performance[perf].bytes_per_read,
+                "bytes_per_write": pods_performance[perf].bytes_per_write,
                 "mirrored_write_bytes_per_sec": pods_performance[
-                    performance
+                    perf
                 ].mirrored_write_bytes_per_sec,
                 "mirrored_writes_per_sec": pods_performance[
-                    performance
+                    perf
                 ].mirrored_writes_per_sec,
-                "others_per_sec": pods_performance[performance].others_per_sec,
+                "others_per_sec": pods_performance[perf].others_per_sec,
                 "qos_rate_limit_usec_per_mirrored_write_op": pods_performance[
-                    performance
+                    perf
                 ].qos_rate_limit_usec_per_mirrored_write_op,
                 "qos_rate_limit_usec_per_read_op": pods_performance[
-                    performance
+                    perf
                 ].qos_rate_limit_usec_per_mirrored_write_op,
                 "qos_rate_limit_usec_per_write_op": pods_performance[
-                    performance
+                    perf
                 ].qos_rate_limit_usec_per_read_op,
                 "queue_usec_per_mirrored_write_op": pods_performance[
-                    performance
+                    perf
                 ].queue_usec_per_mirrored_write_op,
-                "queue_usec_per_read_op": pods_performance[
-                    performance
-                ].queue_usec_per_read_op,
+                "queue_usec_per_read_op": pods_performance[perf].queue_usec_per_read_op,
                 "queue_usec_per_write_op": pods_performance[
-                    performance
+                    perf
                 ].queue_usec_per_write_op,
-                "read_bytes_per_sec": pods_performance[performance].read_bytes_per_sec,
-                "reads_per_sec": pods_performance[performance].reads_per_sec,
+                "read_bytes_per_sec": pods_performance[perf].read_bytes_per_sec,
+                "reads_per_sec": pods_performance[perf].reads_per_sec,
                 "san_usec_per_mirrored_write_op": pods_performance[
-                    performance
+                    perf
                 ].san_usec_per_mirrored_write_op,
-                "san_usec_per_read_op": pods_performance[
-                    performance
-                ].san_usec_per_read_op,
-                "san_usec_per_write_op": pods_performance[
-                    performance
-                ].san_usec_per_write_op,
+                "san_usec_per_read_op": pods_performance[perf].san_usec_per_read_op,
+                "san_usec_per_write_op": pods_performance[perf].san_usec_per_write_op,
                 "service_usec_per_mirrored_write_op": pods_performance[
-                    performance
+                    perf
                 ].service_usec_per_mirrored_write_op,
                 "service_usec_per_read_op": pods_performance[
-                    performance
+                    perf
                 ].service_usec_per_read_op,
                 "service_usec_per_write_op": pods_performance[
-                    performance
+                    perf
                 ].service_usec_per_write_op,
                 "usec_per_mirrored_write_op": pods_performance[
-                    performance
+                    perf
                 ].usec_per_mirrored_write_op,
-                "usec_per_read_op": pods_performance[performance].usec_per_read_op,
-                "usec_per_write_op": pods_performance[performance].usec_per_write_op,
-                "write_bytes_per_sec": pods_performance[
-                    performance
-                ].write_bytes_per_sec,
-                "writes_per_sec": pods_performance[performance].writes_per_sec,
+                "usec_per_read_op": pods_performance[perf].usec_per_read_op,
+                "usec_per_write_op": pods_performance[perf].usec_per_write_op,
+                "write_bytes_per_sec": pods_performance[perf].write_bytes_per_sec,
+                "writes_per_sec": pods_performance[perf].writes_per_sec,
             }
     return pods_info
 
 
-def generate_conn_array_dict(module, array):
+def generate_conn_array_dict(array):
     conn_array_info = {}
     carrays = list(array.get_array_connections().items)
     for carray in range(0, len(carrays)):
@@ -2488,7 +2506,7 @@ def generate_apps_dict(array):
     return apps_info
 
 
-def generate_vgroups_dict(module, array, performance):
+def generate_vgroups_dict(array, performance):
     vgroups_info = {}
     vgroups = list(array.get_volume_groups(destroyed=False).items)
     for vgroup in range(0, len(vgroups)):
@@ -2521,65 +2539,59 @@ def generate_vgroups_dict(module, array, performance):
             )
     if performance:
         vgs_performance = list(array.get_volume_groups_performance().items)
-        for performance in range(0, len(vgs_performance)):
-            vgroups_info[vgs_performance[performance].name]["performance"] = {
+        for perf in range(0, len(vgs_performance)):
+            vgroups_info[vgs_performance[perf].name]["performance"] = {
                 "bytes_per_mirrored_write": vgs_performance[
-                    performance
+                    perf
                 ].bytes_per_mirrored_write,
-                "bytes_per_op": vgs_performance[performance].bytes_per_op,
-                "bytes_per_read": vgs_performance[performance].bytes_per_read,
-                "bytes_per_write": vgs_performance[performance].bytes_per_write,
+                "bytes_per_op": vgs_performance[perf].bytes_per_op,
+                "bytes_per_read": vgs_performance[perf].bytes_per_read,
+                "bytes_per_write": vgs_performance[perf].bytes_per_write,
                 "mirrored_write_bytes_per_sec": vgs_performance[
-                    performance
+                    perf
                 ].mirrored_write_bytes_per_sec,
                 "mirrored_writes_per_sec": vgs_performance[
-                    performance
+                    perf
                 ].mirrored_writes_per_sec,
                 "qos_rate_limit_usec_per_mirrored_write_op": vgs_performance[
-                    performance
+                    perf
                 ].qos_rate_limit_usec_per_mirrored_write_op,
                 "qos_rate_limit_usec_per_read_op": vgs_performance[
-                    performance
+                    perf
                 ].qos_rate_limit_usec_per_mirrored_write_op,
                 "qos_rate_limit_usec_per_write_op": vgs_performance[
-                    performance
+                    perf
                 ].qos_rate_limit_usec_per_read_op,
                 "queue_usec_per_mirrored_write_op": vgs_performance[
-                    performance
+                    perf
                 ].queue_usec_per_mirrored_write_op,
-                "queue_usec_per_read_op": vgs_performance[
-                    performance
-                ].queue_usec_per_read_op,
+                "queue_usec_per_read_op": vgs_performance[perf].queue_usec_per_read_op,
                 "queue_usec_per_write_op": vgs_performance[
-                    performance
+                    perf
                 ].queue_usec_per_write_op,
-                "read_bytes_per_sec": vgs_performance[performance].read_bytes_per_sec,
-                "reads_per_sec": vgs_performance[performance].reads_per_sec,
+                "read_bytes_per_sec": vgs_performance[perf].read_bytes_per_sec,
+                "reads_per_sec": vgs_performance[perf].reads_per_sec,
                 "san_usec_per_mirrored_write_op": vgs_performance[
-                    performance
+                    perf
                 ].san_usec_per_mirrored_write_op,
-                "san_usec_per_read_op": vgs_performance[
-                    performance
-                ].san_usec_per_read_op,
-                "san_usec_per_write_op": vgs_performance[
-                    performance
-                ].san_usec_per_write_op,
+                "san_usec_per_read_op": vgs_performance[perf].san_usec_per_read_op,
+                "san_usec_per_write_op": vgs_performance[perf].san_usec_per_write_op,
                 "service_usec_per_mirrored_write_op": vgs_performance[
-                    performance
+                    perf
                 ].service_usec_per_mirrored_write_op,
                 "service_usec_per_read_op": vgs_performance[
-                    performance
+                    perf
                 ].service_usec_per_read_op,
                 "service_usec_per_write_op": vgs_performance[
-                    performance
+                    perf
                 ].service_usec_per_write_op,
                 "usec_per_mirrored_write_op": vgs_performance[
-                    performance
+                    perf
                 ].usec_per_mirrored_write_op,
-                "usec_per_read_op": vgs_performance[performance].usec_per_read_op,
-                "usec_per_write_op": vgs_performance[performance].usec_per_write_op,
-                "write_bytes_per_sec": vgs_performance[performance].write_bytes_per_sec,
-                "writes_per_sec": vgs_performance[performance].writes_per_sec,
+                "usec_per_read_op": vgs_performance[perf].usec_per_read_op,
+                "usec_per_write_op": vgs_performance[perf].usec_per_write_op,
+                "write_bytes_per_sec": vgs_performance[perf].write_bytes_per_sec,
+                "writes_per_sec": vgs_performance[perf].writes_per_sec,
             }
     vg_volumes = list(array.get_volume_groups_volumes().items)
     for vg_vol in range(0, len(vg_volumes)):
@@ -2588,7 +2600,7 @@ def generate_vgroups_dict(module, array, performance):
     return vgroups_info
 
 
-def generate_del_vgroups_dict(module, array):
+def generate_del_vgroups_dict(array):
     vgroups_info = {}
     vgroups = list(array.get_volume_groups(destroyed=True).items)
     for vgroup in range(0, len(vgroups)):
@@ -2677,7 +2689,7 @@ def generate_kmip_dict(array):
     return kmip_info
 
 
-def generate_nfs_offload_dict(module, array):
+def generate_nfs_offload_dict(array):
     offload_info = {}
     offloads_res = array.get_offloads(protocol="nfs")
     if offloads_res.status_code == 200:
@@ -2719,7 +2731,7 @@ def generate_nfs_offload_dict(module, array):
     return offload_info
 
 
-def generate_s3_offload_dict(module, array):
+def generate_s3_offload_dict(array):
     offload_info = {}
     offloads_res = array.get_offloads(protocol="s3")
     if offloads_res.status_code == 200:
@@ -2763,7 +2775,7 @@ def generate_s3_offload_dict(module, array):
     return offload_info
 
 
-def generate_azure_offload_dict(module, array):
+def generate_azure_offload_dict(array):
     offload_info = {}
     offloads_res = array.get_offloads(protocol="azure")
     if offloads_res.status_code == 200:
@@ -2855,7 +2867,7 @@ def generate_google_offload_dict(array):
     return offload_info
 
 
-def generate_hgroups_dict(module, array, performance):
+def generate_hgroups_dict(array, performance):
     hgroups_info = {}
     hgroups = list(array.get_host_groups().items)
     for hgroup in range(0, len(hgroups)):
@@ -2892,70 +2904,64 @@ def generate_hgroups_dict(module, array, performance):
             }
     if performance:
         hgs_performance = list(array.get_host_groups_performance().items)
-        for performance in range(0, len(hgs_performance)):
-            if ":" not in hgs_performance[performance].name:
-                hgroups_info[hgs_performance[performance].name]["performance"] = {
+        for perf in range(0, len(hgs_performance)):
+            if ":" not in hgs_performance[perf].name:
+                hgroups_info[hgs_performance[perf].name]["performance"] = {
                     "bytes_per_mirrored_write": hgs_performance[
-                        performance
+                        perf
                     ].bytes_per_mirrored_write,
-                    "bytes_per_op": hgs_performance[performance].bytes_per_op,
-                    "bytes_per_read": hgs_performance[performance].bytes_per_read,
-                    "bytes_per_write": hgs_performance[performance].bytes_per_write,
+                    "bytes_per_op": hgs_performance[perf].bytes_per_op,
+                    "bytes_per_read": hgs_performance[perf].bytes_per_read,
+                    "bytes_per_write": hgs_performance[perf].bytes_per_write,
                     "mirrored_write_bytes_per_sec": hgs_performance[
-                        performance
+                        perf
                     ].mirrored_write_bytes_per_sec,
                     "mirrored_writes_per_sec": hgs_performance[
-                        performance
+                        perf
                     ].mirrored_writes_per_sec,
                     "qos_rate_limit_usec_per_mirrored_write_op": hgs_performance[
-                        performance
+                        perf
                     ].qos_rate_limit_usec_per_mirrored_write_op,
                     "qos_rate_limit_usec_per_read_op": hgs_performance[
-                        performance
+                        perf
                     ].qos_rate_limit_usec_per_mirrored_write_op,
                     "qos_rate_limit_usec_per_write_op": hgs_performance[
-                        performance
+                        perf
                     ].qos_rate_limit_usec_per_read_op,
                     "queue_usec_per_mirrored_write_op": hgs_performance[
-                        performance
+                        perf
                     ].queue_usec_per_mirrored_write_op,
                     "queue_usec_per_read_op": hgs_performance[
-                        performance
+                        perf
                     ].queue_usec_per_read_op,
                     "queue_usec_per_write_op": hgs_performance[
-                        performance
+                        perf
                     ].queue_usec_per_write_op,
-                    "read_bytes_per_sec": hgs_performance[
-                        performance
-                    ].read_bytes_per_sec,
-                    "reads_per_sec": hgs_performance[performance].reads_per_sec,
+                    "read_bytes_per_sec": hgs_performance[perf].read_bytes_per_sec,
+                    "reads_per_sec": hgs_performance[perf].reads_per_sec,
                     "san_usec_per_mirrored_write_op": hgs_performance[
-                        performance
+                        perf
                     ].san_usec_per_mirrored_write_op,
-                    "san_usec_per_read_op": hgs_performance[
-                        performance
-                    ].san_usec_per_read_op,
+                    "san_usec_per_read_op": hgs_performance[perf].san_usec_per_read_op,
                     "san_usec_per_write_op": hgs_performance[
-                        performance
+                        perf
                     ].san_usec_per_write_op,
                     "service_usec_per_mirrored_write_op": hgs_performance[
-                        performance
+                        perf
                     ].service_usec_per_mirrored_write_op,
                     "service_usec_per_read_op": hgs_performance[
-                        performance
+                        perf
                     ].service_usec_per_read_op,
                     "service_usec_per_write_op": hgs_performance[
-                        performance
+                        perf
                     ].service_usec_per_write_op,
                     "usec_per_mirrored_write_op": hgs_performance[
-                        performance
+                        perf
                     ].usec_per_mirrored_write_op,
-                    "usec_per_read_op": hgs_performance[performance].usec_per_read_op,
-                    "usec_per_write_op": hgs_performance[performance].usec_per_write_op,
-                    "write_bytes_per_sec": hgs_performance[
-                        performance
-                    ].write_bytes_per_sec,
-                    "writes_per_sec": hgs_performance[performance].writes_per_sec,
+                    "usec_per_read_op": hgs_performance[perf].usec_per_read_op,
+                    "usec_per_write_op": hgs_performance[perf].usec_per_write_op,
+                    "write_bytes_per_sec": hgs_performance[perf].write_bytes_per_sec,
+                    "writes_per_sec": hgs_performance[perf].writes_per_sec,
                 }
     hg_vols = list(array.get_connections().items)
     for hg_vol in hg_vols:
@@ -3247,57 +3253,49 @@ def generate_realms_dict(array, performance):
             realms_info[name]["time_remaining"] = realms[realm].time_remaining
     if performance:
         r_perfs = list(array.get_realms_performance().items)
-        for performance in range(0, len(r_perfs)):
-            realms_info[r_perfs[performance].name]["performance"] = {
-                "bytes_per_mirrored_write": r_perfs[
-                    performance
-                ].bytes_per_mirrored_write,
-                "bytes_per_op": r_perfs[performance].bytes_per_op,
-                "bytes_per_read": r_perfs[performance].bytes_per_read,
-                "bytes_per_write": r_perfs[performance].bytes_per_write,
+        for perf in range(0, len(r_perfs)):
+            realms_info[r_perfs[perf].name]["performance"] = {
+                "bytes_per_mirrored_write": r_perfs[perf].bytes_per_mirrored_write,
+                "bytes_per_op": r_perfs[perf].bytes_per_op,
+                "bytes_per_read": r_perfs[perf].bytes_per_read,
+                "bytes_per_write": r_perfs[perf].bytes_per_write,
                 "mirrored_write_bytes_per_sec": r_perfs[
-                    performance
+                    perf
                 ].mirrored_write_bytes_per_sec,
-                "mirrored_writes_per_sec": r_perfs[performance].mirrored_writes_per_sec,
-                "others_per_sec": r_perfs[performance].others_per_sec,
+                "mirrored_writes_per_sec": r_perfs[perf].mirrored_writes_per_sec,
+                "others_per_sec": r_perfs[perf].others_per_sec,
                 "qos_rate_limit_usec_per_mirrored_write_op": r_perfs[
-                    performance
+                    perf
                 ].qos_rate_limit_usec_per_mirrored_write_op,
                 "qos_rate_limit_usec_per_read_op": r_perfs[
-                    performance
+                    perf
                 ].qos_rate_limit_usec_per_mirrored_write_op,
                 "qos_rate_limit_usec_per_write_op": r_perfs[
-                    performance
+                    perf
                 ].qos_rate_limit_usec_per_read_op,
                 "queue_usec_per_mirrored_write_op": r_perfs[
-                    performance
+                    perf
                 ].queue_usec_per_mirrored_write_op,
-                "queue_usec_per_read_op": r_perfs[performance].queue_usec_per_read_op,
-                "queue_usec_per_write_op": r_perfs[performance].queue_usec_per_write_op,
-                "read_bytes_per_sec": r_perfs[performance].read_bytes_per_sec,
-                "reads_per_sec": r_perfs[performance].reads_per_sec,
+                "queue_usec_per_read_op": r_perfs[perf].queue_usec_per_read_op,
+                "queue_usec_per_write_op": r_perfs[perf].queue_usec_per_write_op,
+                "read_bytes_per_sec": r_perfs[perf].read_bytes_per_sec,
+                "reads_per_sec": r_perfs[perf].reads_per_sec,
                 "san_usec_per_mirrored_write_op": r_perfs[
-                    performance
+                    perf
                 ].san_usec_per_mirrored_write_op,
-                "san_usec_per_read_op": r_perfs[performance].san_usec_per_read_op,
-                "san_usec_per_write_op": r_perfs[performance].san_usec_per_write_op,
+                "san_usec_per_read_op": r_perfs[perf].san_usec_per_read_op,
+                "san_usec_per_write_op": r_perfs[perf].san_usec_per_write_op,
                 "service_usec_per_mirrored_write_op": r_perfs[
-                    performance
+                    perf
                 ].service_usec_per_mirrored_write_op,
-                "service_usec_per_read_op": r_perfs[
-                    performance
-                ].service_usec_per_read_op,
-                "service_usec_per_write_op": r_perfs[
-                    performance
-                ].service_usec_per_write_op,
-                "usec_per_mirrored_write_op": r_perfs[
-                    performance
-                ].usec_per_mirrored_write_op,
-                "usec_per_other_op": r_perfs[performance].usec_per_other_op,
-                "usec_per_read_op": r_perfs[performance].usec_per_read_op,
-                "usec_per_write_op": r_perfs[performance].usec_per_write_op,
-                "write_bytes_per_sec": r_perfs[performance].write_bytes_per_sec,
-                "writes_per_sec": r_perfs[performance].writes_per_sec,
+                "service_usec_per_read_op": r_perfs[perf].service_usec_per_read_op,
+                "service_usec_per_write_op": r_perfs[perf].service_usec_per_write_op,
+                "usec_per_mirrored_write_op": r_perfs[perf].usec_per_mirrored_write_op,
+                "usec_per_other_op": r_perfs[perf].usec_per_other_op,
+                "usec_per_read_op": r_perfs[perf].usec_per_read_op,
+                "usec_per_write_op": r_perfs[perf].usec_per_write_op,
+                "write_bytes_per_sec": r_perfs[perf].write_bytes_per_sec,
+                "writes_per_sec": r_perfs[perf].writes_per_sec,
             }
     return realms_info
 
@@ -3357,53 +3355,53 @@ def main():
     info = {}
     performance = False
     if "minimum" in subset or "all" in subset or "apps" in subset:
-        info["default"] = generate_default_dict(module, array)
+        info["default"] = generate_default_dict(array)
     if "performance" in subset or "all" in subset:
         performance = True
         info["performance"] = generate_perf_dict(array)
     if "config" in subset or "all" in subset:
         info["config"] = generate_config_dict(module, array)
     if "capacity" in subset or "all" in subset:
-        info["capacity"] = generate_capacity_dict(module, array)
+        info["capacity"] = generate_capacity_dict(array)
     if "network" in subset or "all" in subset:
-        info["network"] = generate_network_dict(module, array, performance)
+        info["network"] = generate_network_dict(array, performance)
     if "subnet" in subset or "all" in subset:
         info["subnet"] = generate_subnet_dict(array)
     if "interfaces" in subset or "all" in subset:
         info["interfaces"] = generate_interfaces_dict(array)
     if "hosts" in subset or "all" in subset:
-        info["hosts"] = generate_host_dict(module, array, performance)
+        info["hosts"] = generate_host_dict(array, performance)
     if "volumes" in subset or "all" in subset:
-        info["volumes"] = generate_vol_dict(module, array, performance)
-        info["deleted_volumes"] = generate_del_vol_dict(module, array)
+        info["volumes"] = generate_vol_dict(array, performance)
+        info["deleted_volumes"] = generate_del_vol_dict(array)
     if "snapshots" in subset or "all" in subset:
-        info["snapshots"] = generate_snap_dict(module, array)
-        info["deleted_snapshots"] = generate_del_snap_dict(module, array)
+        info["snapshots"] = generate_snap_dict(array)
+        info["deleted_snapshots"] = generate_del_snap_dict(array)
     if "hgroups" in subset or "all" in subset:
-        info["hgroups"] = generate_hgroups_dict(module, array, performance)
+        info["hgroups"] = generate_hgroups_dict(array, performance)
     if "pgroups" in subset or "all" in subset:
-        info["pgroups"] = generate_pgroups_dict(module, array)
-        info["deleted_pgroups"] = generate_del_pgroups_dict(module, array)
+        info["pgroups"] = generate_pgroups_dict(array)
+        info["deleted_pgroups"] = generate_del_pgroups_dict(array)
     if "pods" in subset or "all" in subset or "replication" in subset:
-        info["replica_links"] = generate_rl_dict(module, array)
-        info["pods"] = generate_pods_dict(module, array, performance)
-        info["deleted_pods"] = generate_del_pods_dict(module, array)
+        info["replica_links"] = generate_rl_dict(array)
+        info["pods"] = generate_pods_dict(array, performance)
+        info["deleted_pods"] = generate_del_pods_dict(array)
     if "admins" in subset or "all" in subset:
         info["admins"] = generate_admin_dict(array)
     if "vgroups" in subset or "all" in subset:
-        info["vgroups"] = generate_vgroups_dict(module, array, performance)
-        info["deleted_vgroups"] = generate_del_vgroups_dict(module, array)
+        info["vgroups"] = generate_vgroups_dict(array, performance)
+        info["deleted_vgroups"] = generate_del_vgroups_dict(array)
     if "offload" in subset or "all" in subset:
-        info["azure_offload"] = generate_azure_offload_dict(module, array)
-        info["nfs_offload"] = generate_nfs_offload_dict(module, array)
-        info["s3_offload"] = generate_s3_offload_dict(module, array)
+        info["azure_offload"] = generate_azure_offload_dict(array)
+        info["nfs_offload"] = generate_nfs_offload_dict(array)
+        info["s3_offload"] = generate_s3_offload_dict(array)
     if "apps" in subset or "all" in subset:
         if "CBS" not in info["default"]["array_model"]:
             info["apps"] = generate_apps_dict(array)
         else:
             info["apps"] = {}
     if "arrays" in subset or "all" in subset:
-        info["arrays"] = generate_conn_array_dict(module, array)
+        info["arrays"] = generate_conn_array_dict(array)
     if "certs" in subset or "all" in subset:
         info["certs"] = generate_certs_dict(array)
     if "kmip" in subset or "all" in subset:
@@ -3413,18 +3411,9 @@ def main():
     if "filesystems" in subset or "all" in subset:
         info["filesystems"] = generate_filesystems_dict(array, performance)
     if "policies" in subset or "all" in subset:
-        if LooseVersion(NFS_USER_MAP_VERSION) <= LooseVersion(api_version):
-            user_map = True
-        else:
-            user_map = False
-        if LooseVersion(DIR_QUOTA_API_VERSION) <= LooseVersion(api_version):
-            quota = True
-        else:
-            quota = False
-        if LooseVersion(AUTODIR_API_VERSION) <= LooseVersion(api_version):
-            autodir = True
-        else:
-            autodir = False
+        user_map = bool(LooseVersion(NFS_USER_MAP_VERSION) <= LooseVersion(api_version))
+        quota = bool(LooseVersion(DIR_QUOTA_API_VERSION) <= LooseVersion(api_version))
+        autodir = bool(LooseVersion(AUTODIR_API_VERSION) <= LooseVersion(api_version))
         info["policies"] = generate_policies_dict(array, quota, autodir, user_map)
     if "clients" in subset or "all" in subset:
         info["clients"] = generate_clients_dict(array)
