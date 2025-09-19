@@ -4,6 +4,30 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.38.0
+=======
+
+Minor Changes
+-------------
+
+- plugins/module_utils/purefa.py - Removed ``get_system`` function as REST v1 no longer supported by Collection
+- purefa_dsrole_old - Upgraded to REST v2
+- purefa_policy - Upgraded to REST v2
+- purefa_volume_tags - Add `tag` parameter to specify tag to be deleted by key name
+- purefa_volume_tags - Upgraded to REST v2 and added Fusion support
+
+Bugfixes
+--------
+
+- purefa_certs - Resolved error with incorrect use of ``key_size`` for imported certificates
+- purefa_host - Fixed Pydantic error when updating preferred_arrays
+- purefa_info - Ensured that volumes, hosts, host_groups and transfers are correctly listed for protection groups
+- purefa_info - Fixed AttributeError in config section related to SSO SAML2
+- purefa_info - Fixed issue with replication connection throttle reporting
+- purefa_info - Fixed issue with undo-demote pods not reporting correctly
+- purefa_info - Resolved AttributeError in volume subset
+- purefa_subnet - Fixed failure when trying to update a subnet with no gateway defined
+
 v1.37.1
 =======
 
