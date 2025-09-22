@@ -57,6 +57,14 @@ options:
     type: bool
     default: false
     version_added: '1.30.0'
+  context:
+    description:
+    - Name of fleet member on which to perform the operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.39.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -113,6 +121,7 @@ import socket
 
 
 ENCRYPT_VERSION = "2.33"
+CONTEXT_VERSION = "2.38"
 
 
 def _lookup(address):
@@ -123,7 +132,11 @@ def _lookup(address):
 
 
 def _check_connected(module, array):
-    res = array.get_array_connections()
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        res = array.get_array_connections(context_names=[module.params["context"]])
+    else:
+        res = array.get_array_connections()
     if res.status_code != 200:
         return None
     else:
@@ -143,13 +156,24 @@ def _check_connected(module, array):
 def break_connection(module, array, target_array):
     """Break connection between arrays"""
     changed = True
-    source_array = list(array.get_arrays().items)[0].name
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        source_array = list(
+            array.get_arrays(context_names=[module.params["context"]]).items
+        )[0].name
+    else:
+        source_array = list(array.get_arrays().items)[0].name
     if getattr(target_array, "management_address", None) is None:
         module.fail_json(
             msg="disconnect can only happen from the array that formed the connection"
         )
     if not module.check_mode:
-        res = array.delete_array_connections(names=[target_array.name])
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.delete_array_connections(
+                names=[target_array.name], context_names=[module.params["context"]]
+            )
+        else:
+            res = array.delete_array_connections(names=[target_array.name])
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to disconnect {0} from {1}.Error: {2}".format(
@@ -190,7 +214,12 @@ def create_connection(module, array):
                 encrypted=module.params["encrypted"]
             ).items
         )[0].connection_key
-        remote_array = list(remote_system.get_arrays().items)[0].name
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            remote_array = list(
+                remote_system.get_arrays(context_names=[module.params["context"]]).items
+            )[0].name
+        else:
+            remote_array = list(remote_system.get_arrays().items)[0].name
         if LooseVersion(ENCRYPT_VERSION) >= LooseVersion(api_version):
             if module.params["encrypted"]:
                 encrypted = "encrypted"
@@ -211,7 +240,13 @@ def create_connection(module, array):
                 connection_key=connection_key,
             )
         if not module.check_mode:
-            res = array.post_array_connections(array_connection=array_connection)
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.post_array_connections(
+                    array_connection=array_connection,
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.post_array_connections(array_connection=array_connection)
             if res.status_code != 200:
                 module.fail_json(
                     msg="Array Connection failed. Error: {0}".format(
@@ -237,6 +272,7 @@ def main():
             target_url=dict(type="str", required=True),
             target_api=dict(type="str"),
             encrypted=dict(type="bool", default=False),
+            context=dict(type="str", default=""),
         )
     )
 
