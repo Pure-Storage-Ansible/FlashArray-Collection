@@ -49,6 +49,14 @@ options:
     description:
     - Value to rename the specified directory to
     type: str
+  context:
+    description:
+    - Name of fleet member on which to perform the operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.39.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -97,16 +105,23 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
     LooseVersion,
 )
 
-MIN_REQUIRED_API_VERSION = "2.2"
+CONTEXT_VERSION = "2.38"
 
 
 def delete_dir(module, array):
     """Delete a file system directory"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        res = array.delete_directories(
-            names=[module.params["filesystem"] + ":" + module.params["name"]]
-        )
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.delete_directories(
+                names=[module.params["filesystem"] + ":" + module.params["name"]],
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.delete_directories(
+                names=[module.params["filesystem"] + ":" + module.params["name"]]
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to delete file system {0}. {1}".format(
@@ -118,20 +133,34 @@ def delete_dir(module, array):
 
 def rename_dir(module, array):
     """Rename a file system directory"""
+    api_version = array.get_rest_version()
     changed = False
-    target = array.get_directories(
-        names=[module.params["filesystem"] + ":" + module.params["rename"]]
-    )
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        target = array.get_directories(
+            names=[module.params["filesystem"] + ":" + module.params["rename"]],
+            context_names=[module.params["context"]],
+        )
+    else:
+        target = array.get_directories(
+            names=[module.params["filesystem"] + ":" + module.params["rename"]]
+        )
     if target.status_code != 200:
         if not module.check_mode:
             changed = True
             directory = flasharray.DirectoryPatch(
                 name=module.params["filesystem"] + ":" + module.params["rename"]
             )
-            res = array.patch_directories(
-                names=[module.params["filesystem"] + ":" + module.params["name"]],
-                directory=directory,
-            )
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.patch_directories(
+                    names=[module.params["filesystem"] + ":" + module.params["name"]],
+                    directory=directory,
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_directories(
+                    names=[module.params["filesystem"] + ":" + module.params["name"]],
+                    directory=directory,
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to delete file system {0}".format(module.params["name"])
@@ -145,12 +174,21 @@ def rename_dir(module, array):
 
 def create_dir(module, array):
     """Create a file system directory"""
+    api_version = array.get_rest_version()
     changed = False
     if not module.params["path"]:
         module.params["path"] = module.params["name"]
-    all_fs = list(
-        array.get_directories(file_system_names=[module.params["filesystem"]]).items
-    )
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        all_fs = list(
+            array.get_directories(
+                file_system_names=[module.params["filesystem"]],
+                context_names=[module.params["context"]],
+            ).items
+        )
+    else:
+        all_fs = list(
+            array.get_directories(file_system_names=[module.params["filesystem"]]).items
+        )
     for check in range(0, len(all_fs)):
         if module.params["path"] == all_fs[check].path[1:]:
             module.fail_json(
@@ -163,9 +201,16 @@ def create_dir(module, array):
         directory = flasharray.DirectoryPost(
             directory_name=module.params["name"], path=module.params["path"]
         )
-        res = array.post_directories(
-            file_system_names=[module.params["filesystem"]], directory=directory
-        )
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.post_directories(
+                file_system_names=[module.params["filesystem"]],
+                directory=directory,
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.post_directories(
+                file_system_names=[module.params["filesystem"]], directory=directory
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to create file system {0}. {1}".format(
@@ -184,6 +229,7 @@ def main():
             name=dict(type="str", required=True),
             rename=dict(type="str"),
             path=dict(type="str"),
+            context=dict(type="str", default=""),
         )
     )
 
@@ -194,11 +240,6 @@ def main():
 
     array = get_array(module)
     api_version = array.get_rest_version()
-    if LooseVersion(MIN_REQUIRED_API_VERSION) > LooseVersion(api_version):
-        module.fail_json(
-            msg="FlashArray REST version not supported. "
-            "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
-        )
     state = module.params["state"]
 
     try:
