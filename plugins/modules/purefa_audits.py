@@ -37,6 +37,14 @@ options:
       from the server however from Purity//FA 6.5.3 this value will calculated
       automatically from the FlashArray
     type: str
+  context:
+    description:
+    - Name of fleet member on which to perform the operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.39.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -78,6 +86,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.common impo
 )
 
 TZ_VERSION = "2.26"
+CONTEXT_VERSION = "2.38"
 
 
 def _get_filter_string(module, timezone):
@@ -102,6 +111,7 @@ def main():
         dict(
             start=dict(type="str"),
             timezone=dict(type="str"),
+            context=dict(type="str", default=""),
         )
     )
 
@@ -115,7 +125,12 @@ def main():
     if not module.params["timezone"] and LooseVersion(TZ_VERSION) <= LooseVersion(
         api_version
     ):
-        timezone = list(array.get_arrays().items)[0].time_zone
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            timezone = list(
+                array.get_arrays(context_names=[module.params["context"]]).items
+            )[0].time_zone
+        else:
+            timezone = list(array.get_arrays().items)[0].time_zone
     elif not module.params["timezone"]:
         timezone = get_local_tz(module)
     elif module.params["timezone"] not in pytz.all_timezones_set:
@@ -127,10 +142,20 @@ def main():
     tzoffset = datetime.datetime.now(pytz.timezone(timezone)).strftime("%z")
     filter_string = _get_filter_string(module, tzoffset)
     audit_log = {}
-    if filter_string:
-        res = array.get_audits(filter=filter_string)
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if filter_string:
+            res = array.get_audits(
+                context_names=[module.params["context"]], filter=filter_string
+            )
+        else:
+            res = array.get_audits(context_names=[module.params["context"]])
     else:
-        res = array.get_audits()
+        if filter_string:
+            res = array.get_audits(
+                context_names=[module.params["context"]], filter=filter_string
+            )
+        else:
+            res = array.get_audits(context_names=[module.params["context"]])
     if res.status_code == 200:
         audits = list(res.items)
     else:
