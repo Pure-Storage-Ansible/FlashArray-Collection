@@ -83,6 +83,14 @@ options:
     - Value of 0 will set no retention period.
     - If not specified on create will default to 0 (no retention period)
     type: int
+  context:
+    description:
+    - Name of fleet member on which to perform the operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.39.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -182,10 +190,12 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 
 MIN_REQUIRED_API_VERSION = "2.2"
 MIN_RENAME_API_VERSION = "2.10"
+CONTEXT_VERSION = "2.42"
 
 
 def eradicate_snap(module, array):
     """Eradicate a filesystem snapshot"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
         snapname = (
@@ -197,7 +207,12 @@ def eradicate_snap(module, array):
             + "."
             + module.params["suffix"]
         )
-        res = array.delete_directory_snapshots(names=[snapname])
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.delete_directory_snapshots(
+                names=[snapname], context_names=[module.params["context"]]
+            )
+        else:
+            res = array.delete_directory_snapshots(names=[snapname])
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to eradicate filesystem snapshot {0}. Error: {1}".format(
@@ -209,6 +224,7 @@ def eradicate_snap(module, array):
 
 def delete_snap(module, array):
     """Delete a filesystem snapshot"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
         snapname = (
@@ -221,9 +237,16 @@ def delete_snap(module, array):
             + module.params["suffix"]
         )
         directory_snapshot = DirectorySnapshotPatch(destroyed=True)
-        res = array.patch_directory_snapshots(
-            names=[snapname], directory_snapshot=directory_snapshot
-        )
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.patch_directory_snapshots(
+                names=[snapname],
+                directory_snapshot=directory_snapshot,
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.patch_directory_snapshots(
+                names=[snapname], directory_snapshot=directory_snapshot
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to delete filesystem snapshot {0}. Error: {1}".format(
@@ -237,6 +260,7 @@ def delete_snap(module, array):
 
 def update_snap(module, array, snap_detail):
     """Update a filesystem snapshot retention time"""
+    api_version = array.get_rest_version()
     changed = False
     snapname = (
         module.params["filesystem"]
@@ -270,9 +294,16 @@ def update_snap(module, array, snap_detail):
         )
         changed = True
         if not module.check_mode:
-            res = array.patch_directory_snapshots(
-                names=[snapname], directory_snapshot=directory_snapshot
-            )
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.patch_directory_snapshots(
+                    names=[snapname],
+                    directory_snapshot=directory_snapshot,
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_directory_snapshots(
+                    names=[snapname], directory_snapshot=directory_snapshot
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to rename snapshot {0}. Error: {1}".format(
@@ -291,9 +322,16 @@ def update_snap(module, array, snap_detail):
         changed = True
         if not module.check_mode:
             directory_snapshot = DirectorySnapshotPatch(destroyed=False)
-            res = array.patch_directory_snapshots(
-                names=[snapname], directory_snapshot=directory_snapshot
-            )
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.patch_directory_snapshots(
+                    names=[snapname],
+                    directory_snapshot=directory_snapshot,
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_directory_snapshots(
+                    names=[snapname], directory_snapshot=directory_snapshot
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to recover snapshot {0}. Error: {1}".format(
@@ -302,9 +340,16 @@ def update_snap(module, array, snap_detail):
                 )
             if keep_for != 0:  # Set a new keep-for after recovery if requested
                 directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
-                res = array.patch_directory_snapshots(
-                    names=[snapname], directory_snapshot=directory_snapshot
-                )
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_directory_snapshots(
+                        names=[snapname],
+                        directory_snapshot=directory_snapshot,
+                        context_names=[module.params["context"]],
+                    )
+                else:
+                    res = array.patch_directory_snapshots(
+                        names=[snapname], directory_snapshot=directory_snapshot
+                    )
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Failed to retention time for snapshot {0}. Error: {1}".format(
@@ -315,9 +360,16 @@ def update_snap(module, array, snap_detail):
         directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
         changed = True
         if not module.check_mode:
-            res = array.patch_directory_snapshots(
-                names=[snapname], directory_snapshot=directory_snapshot
-            )
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.patch_directory_snapshots(
+                    names=[snapname],
+                    directory_snapshot=directory_snapshot,
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_directory_snapshots(
+                    names=[snapname], directory_snapshot=directory_snapshot
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to retention time for snapshot {0}. Error: {1}".format(
@@ -328,9 +380,16 @@ def update_snap(module, array, snap_detail):
         directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
         changed = True
         if not module.check_mode:
-            res = array.patch_directory_snapshots(
-                names=[new_snapname], directory_snapshot=directory_snapshot
-            )
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.patch_directory_snapshots(
+                    names=[new_snapname],
+                    directory_snapshot=directory_snapshot,
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_directory_snapshots(
+                    names=[new_snapname], directory_snapshot=directory_snapshot
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to retention time for renamed snapshot {0}. Error: {1}".format(
@@ -342,6 +401,7 @@ def update_snap(module, array, snap_detail):
 
 def create_snap(module, array):
     """Create a filesystem snapshot"""
+    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
         if not module.params["keep_for"] or module.params["keep_for"] == 0:
@@ -361,9 +421,16 @@ def create_snap(module, array):
             directory_snapshot = DirectorySnapshotPost(
                 client_name=module.params["client"], keep_for=keep_for
             )
-        res = array.post_directory_snapshots(
-            source_names=[directory], directory_snapshot=directory_snapshot
-        )
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.post_directory_snapshots(
+                source_names=[directory],
+                directory_snapshot=directory_snapshot,
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.post_directory_snapshots(
+                source_names=[directory], directory_snapshot=directory_snapshot
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to create client {0} snapshot for {1}. Error: {2}".format(
@@ -387,6 +454,7 @@ def main():
             new_client=dict(type="str"),
             new_suffix=dict(type="str"),
             keep_for=dict(type="int"),
+            context=dict(type="str", default=""),
         )
     )
 
@@ -447,12 +515,17 @@ def main():
         )
     state = module.params["state"]
     snapshot_root = module.params["filesystem"] + ":" + module.params["name"]
-    if bool(
-        array.get_directories(
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        res = array.get_directories(
+            filter='name="' + snapshot_root + '"',
+            total_item_count=True,
+            context_names=[module.params["context"]],
+        )
+    else:
+        res = array.get_directories(
             filter='name="' + snapshot_root + '"', total_item_count=True
-        ).total_item_count
-        == 0
-    ):
+        )
+    if bool(res.total_item_count == 0):
         module.fail_json(msg="Directory {0} does not exist.".format(snapshot_root))
     snap_exists = False
     if module.params["suffix"]:
