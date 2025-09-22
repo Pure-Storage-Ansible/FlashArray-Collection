@@ -37,6 +37,14 @@ options:
     - Banner text, or MOTD, to use
     type: str
     default: "Welcome to the machine..."
+  context:
+    description:
+    - Name of fleet member on which to perform the operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.39.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -64,6 +72,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
 
 HAS_PURESTORAGE = True
 try:
@@ -71,14 +82,23 @@ try:
 except ImportError:
     HAS_PURESTORAGE = False
 
+CONTEXT_VERSION = "2.38"
+
 
 def set_banner(module, array):
     """Set MOTD banner text"""
     changed = True
+    api_version = array.get_rest_version()
     if not module.params["banner"]:
         module.fail_json(msg="Invalid MOTD banner given")
     if not module.check_mode:
-        res = array.patch_arrays(array=Arrays(banner=module.params["banner"]))
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.patch_arrays(
+                array=Arrays(banner=module.params["banner"]),
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.patch_arrays(array=Arrays(banner=module.params["banner"]))
         if res.status_code != 200:
             module.fail_json(msg="Failed to set MOTD banner text")
 
@@ -88,8 +108,14 @@ def set_banner(module, array):
 def delete_banner(module, array):
     """Delete MOTD banner text"""
     changed = True
+    api_version = array.get_rest_version()
     if not module.check_mode:
-        res = array.patch_arrays(array=Arrays(banner=""))
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.patch_arrays(
+                array=Arrays(banner=""), context_names=[module.params["context"]]
+            )
+        else:
+            res = array.patch_arrays(array=Arrays(banner=""))
         if res.status_code != 200:
             module.fail_json(msg="Failed to delete current MOTD banner text")
     module.exit_json(changed=changed)
@@ -101,6 +127,7 @@ def main():
         dict(
             banner=dict(type="str", default="Welcome to the machine..."),
             state=dict(type="str", default="present", choices=["present", "absent"]),
+            context=dict(type="str", default=""),
         )
     )
 
@@ -115,7 +142,13 @@ def main():
 
     state = module.params["state"]
     array = get_array(module)
-    current_banner = list(array.get_arrays().items)[0].banner
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        current_banner = list(
+            array.get_arrays(context_names=[module.params["context"]]).items
+        )[0].banner
+    else:
+        current_banner = list(array.get_arrays().items)[0].banner
     # set banner if empty value or value differs
     if state == "present" and (
         not current_banner or current_banner != module.params["banner"]

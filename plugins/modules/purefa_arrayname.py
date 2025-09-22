@@ -36,6 +36,14 @@ options:
     - Name of the array. Must conform to correct naming schema.
     type: str
     required: true
+  context:
+    description:
+    - Name of fleet member on which to perform the operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.39.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -65,13 +73,25 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
+
+CONTEXT_VERSION = "2.38"
 
 
 def update_name(module, array):
     """Change aray name"""
     changed = True
+    api_version = array.get_rest_version()
     if not module.check_mode:
-        res = array.patch_arrays(array=Arrays(name=module.params["name"]))
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.patch_arrays(
+                array=Arrays(name=module.params["name"]),
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.patch_arrays(array=Arrays(name=module.params["name"]))
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to change array name to {0}. Error: {1}".format(
@@ -88,6 +108,7 @@ def main():
         dict(
             name=dict(type="str", required=True),
             state=dict(type="str", default="present", choices=["present"]),
+            context=dict(type="str", default=""),
         )
     )
 
@@ -97,6 +118,7 @@ def main():
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
     array = get_array(module)
+    api_version = array.get_rest_version()
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,54}[a-zA-Z0-9])?$")
     if not pattern.match(module.params["name"]):
         module.fail_json(
@@ -104,7 +126,13 @@ def main():
                 module.params["name"]
             )
         )
-    if module.params["name"] != list(array.get_arrays().items)[0].name:
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        current_name = list(
+            array.get_arrays(context_names=[module.params["context"]]).items
+        )[0].name
+    else:
+        current_name = list(array.get_arrays().items)[0].name
+    if module.params["name"] != current_name:
         update_name(module, array)
 
     module.exit_json(changed=False)

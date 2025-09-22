@@ -31,6 +31,14 @@ options:
     type: str
     default: disable
     choices: [ enable, disable ]
+  context:
+    description:
+    - Name of fleet member on which to perform the operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.39.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -62,12 +70,23 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
+
+CONTEXT_VERSION = "2.38"
 
 
 def update_console(module, array):
     """Update Console Lockout setting"""
     changed = False
-    current_state = list(array.get_arrays().items)[0].console_lock_enabled
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        current_state = list(
+            array.get_arrays(context_names=[module.params["context"]]).items
+        )[0].console_lock_enabled
+    else:
+        current_state = list(array.get_arrays().items)[0].console_lock_enabled
     if module.params["state"] == "enable":
         new_state = True
     else:
@@ -75,7 +94,13 @@ def update_console(module, array):
     if current_state != new_state:
         changed = True
         if not module.check_mode:
-            res = array.patch_arrays(array=Arrays(console_lock_enabled=new_state))
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.patch_arrays(
+                    array=Arrays(console_lock_enabled=new_state),
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_arrays(array=Arrays(console_lock_enabled=new_state))
             if res.status_code != 200:
                 module.fail_json(
                     msg="Enabling Console Lock failed. Error: {0}".format(
@@ -90,6 +115,7 @@ def main():
     argument_spec.update(
         dict(
             state=dict(type="str", default="disable", choices=["enable", "disable"]),
+            context=dict(type="str", default=""),
         )
     )
 
