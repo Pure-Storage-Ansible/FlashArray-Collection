@@ -29,7 +29,8 @@ options:
     description:
     - Set the eradication timer for the FlashArray
     - Allowed values are integers from 1 to 30. Default is 1
-    default: 1
+    - This parameter is not allowed to be specified with I(disabled_delay)
+      or I(enabled_delay)
     type: int
   disabled_delay:
     description:
@@ -94,14 +95,16 @@ def main():
     argument_spec = purefa_argument_spec()
     argument_spec.update(
         dict(
-            timer=dict(type="int", default=1),
+            timer=dict(type="int"),
             disabled_delay=dict(type="int", default=1),
             enabled_delay=dict(type="int", default=1),
         )
     )
-
-    module = AnsibleModule(argument_spec, supports_check_mode=True)
-    if not 30 >= module.params["timer"] >= 1:
+    mutually_exclusive = [["timer", "disabled_delay"], ["timer", "enabled_delay"]]
+    module = AnsibleModule(
+        argument_spec, supports_check_mode=True, mutually_exclusive=mutually_exclusive
+    )
+    if module.params["timer"] and not 30 >= module.params["timer"] >= 1:
         module.fail_json(msg="Eradication Timer must be between 1 and 30 days.")
     if not 30 >= module.params["disabled_delay"] >= 1:
         module.fail_json(msg="disabled_delay must be between 1 and 30 days.")
@@ -109,30 +112,27 @@ def main():
         module.fail_json(msg="enabled_delay must be between 1 and 30 days.")
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
-
     array = get_array(module)
     api_version = array.get_rest_version()
     changed = False
     current_disabled = None
     current_enabled = None
+    current_eradication_config = list(array.get_arrays().items)[0].eradication_config
     if LooseVersion(ERADICATION_API_VERSION) <= LooseVersion(api_version):
         base_eradication_timer = getattr(
-            list(array.get_arrays().items)[0].eradication_config,
-            "eradication_delay",
-            None,
+            current_eradication_config, "eradication_delay", None
         )
         if base_eradication_timer:
             current_eradication_timer = int(base_eradication_timer / SEC_PER_DAY)
+            if not module.params["timer"]:
+                module.params["timer"] = current_eradication_timer
         if LooseVersion(DELAY_API_VERSION) <= LooseVersion(api_version):
             current_disabled = int(
-                list(array.get_arrays().items)[0].eradication_config.disabled_delay
-                / SEC_PER_DAY
+                current_eradication_config.disabled_delay / SEC_PER_DAY
             )
             current_enabled = int(
-                list(array.get_arrays().items)[0].eradication_config.enabled_delay
-                / SEC_PER_DAY
+                current_eradication_config.enabled_delay / SEC_PER_DAY
             )
-
         if (
             base_eradication_timer
             and module.params["timer"] != current_eradication_timer
