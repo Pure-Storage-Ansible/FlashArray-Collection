@@ -1719,7 +1719,7 @@ def generate_vol_dict(array, performance):
     for vol in range(0, len(vols)):
         volume = vols[vol].name
         volume_info[volume] = {
-            "protocol_endpoint": bool(vols[vol].subtype == "protocol-endpoint"),
+            "protocol_endpoint": bool(vols[vol].subtype == "protocol_endpoint"),
             "protocol_endpoint_version": getattr(
                 getattr(vols[vol], "protocol_endpoint", None), "container_version", None
             ),

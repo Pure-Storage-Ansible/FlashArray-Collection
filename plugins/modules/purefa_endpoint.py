@@ -61,6 +61,14 @@ options:
     type: str
     default: ""
     version_added: '1.39.0'
+  container_version:
+    description:
+    - Defines vCenter and EXSi host compatibility of the protocol endpoint
+      and its associated container.
+    type: int
+    choices: [1, 2, 3]
+    default: 1
+    version_added: '1.39.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -206,7 +214,7 @@ def create_endpoint(module, array):
                 volume=VolumePost(
                     subtype="protocol_endpoint",
                     protocol_endpoint=ProtocolEndpoint(
-                        container_version=module.params["container_version"]
+                        container_version=str(module.params["container_version"])
                     ),
                 ),
                 context_names=[module.params["context"]],
@@ -217,7 +225,7 @@ def create_endpoint(module, array):
                 volume=VolumePost(
                     subtype="protocol_endpoint",
                     protocol_endpoint=ProtocolEndpoint(
-                        container_version=module.params["container_version"]
+                        container_version=str(module.params["container_version"])
                     ),
                 ),
             )
@@ -409,6 +417,7 @@ def main():
             eradicate=dict(type="bool", default=False),
             state=dict(type="str", default="present", choices=["absent", "present"]),
             context=dict(type="str", default=""),
+            container_version=dict(type="int", choices=[1, 2, 3], default=1),
         )
     )
 
