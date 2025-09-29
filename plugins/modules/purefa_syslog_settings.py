@@ -137,7 +137,7 @@ def main():
     else:
         current = list(array.get_syslog_servers_settings().items)[0]
     try:
-        if current.ca_certificate:
+        if hasattr(current, "ca_certificate"):
             pass
     except AttributeError:
         current.ca_certificate = None
@@ -154,10 +154,13 @@ def main():
     new_cert = ""  # Initialize for pylint
     if module.params["ca_certificate"]:
         if module.params["ca_certificate"].upper() == "DELETE":
-            if current.ca_certificate:
+            if hasattr(current, "ca_certificate"):
                 cert_change = changed = True
                 new_cert = ""
-        elif current.ca_certificate != module.params["ca_certificate"]:
+        elif (
+            hasattr(current, "ca_certificate")
+            and current.ca_certificate != module.params["ca_certificate"]
+        ):
             cert_change = changed = True
             new_cert = module.params["ca_certificate"]
     if changed and not module.check_mode:
