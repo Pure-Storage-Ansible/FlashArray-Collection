@@ -614,8 +614,8 @@ def generate_filesystems_dict(array, performance):
                 array.get_rest_version()
             ):
                 if hasattr(directories[directory].limited_by, "member"):
-                    files_info[fs_name]["directories"][d_name]["limited_by"] = (
-                        directories[directory].limited_by.member.name
+                    files_info[fs_name]["directories"][d_name]["limited_by"] = getattr(
+                        directories[directory].limited_by.member, "name", None
                     )
             policies = list(
                 array.get_directories_policies(
