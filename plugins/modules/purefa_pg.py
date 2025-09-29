@@ -97,7 +97,7 @@ options:
     version_added: '1.13.0'
   context:
     description:
-    - Name of fleet member on which to perform the volume operation.
+    - Name of fleet member on which to perform the operation.
     - This requires the array receiving the request is a member of a fleet
       and the context name to be a member of the same fleet.
     type: str
@@ -226,7 +226,6 @@ try:
         ProtectionGroup,
         ReplicationSchedule,
         SnapshotSchedule,
-        FixedReference,
     )
 except ImportError:
     HAS_PURESTORAGE = False
@@ -392,28 +391,23 @@ def make_pgroup(module, array):
                             module.params["name"], res.errors[0].message
                         )
                     )
-                for target in range(0, len(module.params["target"][0:4])):
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        res = array.post_protection_groups_targets(
-                            group_names=[module.params["name"]],
-                            members=[
-                                FixedReference(name=module.params["target"][target])
-                            ],
-                            context_names=[module.params["context"]],
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_protection_groups_targets(
+                        group_names=[module.params["name"]],
+                        member_names=module.params["target"][0:4],
+                        context_names=[module.params["context"]],
+                    )
+                else:
+                    res = array.post_protection_groups_targets(
+                        group_names=[module.params["name"]],
+                        member_names=module.params["target"][0:4],
+                    )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to add targets to protection group {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
                         )
-                    else:
-                        res = array.post_protection_groups_targets(
-                            group_names=[module.params["name"]],
-                            members=[
-                                FixedReference(name=module.params["target"][target])
-                            ],
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to add targets to protection group {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    )
         else:
             module.fail_json(
                 msg="Check all selected targets are connected to the source array."
