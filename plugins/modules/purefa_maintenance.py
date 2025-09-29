@@ -35,7 +35,7 @@ options:
     default: 3600
     description:
     - Maintenance window period, specified in seconds.
-    - Range allowed is 1 minute (60 seconds) to 24 hours (86400 seconds)
+    - Range allowed is 1 hour (3600 seconds) to 48 hours (172800 seconds)
     - Default setting is 1 hour (3600 seconds)
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
@@ -67,7 +67,7 @@ RETURN = r"""
 
 HAS_PURESTORAGE = True
 try:
-    from pypureclient import flasharray
+    from pypureclient.flasharray import MaintenanceWindowPost
 except ImportError:
     HAS_PURESTORAGE = False
 
@@ -93,9 +93,11 @@ def delete_window(module, array):
 def set_window(module, array):
     """Set Maintenace Window"""
     changed = True
-    if not 60 <= module.params["timeout"] <= 86400:
-        module.fail_json(msg="Maintenance Window Timeout is out of range (60 to 86400)")
-    window = flasharray.MaintenanceWindowPost(timeout=module.params["timeout"] * 1000)
+    if not 3600 <= module.params["timeout"] <= 172800:
+        module.fail_json(
+            msg="Maintenance Window Timeout is out of range (3600 to 172800)"
+        )
+    window = MaintenanceWindowPost(timeout=module.params["timeout"] * 1000)
     if not module.check_mode:
         state = array.post_maintenance_windows(
             names=["environment"], maintenance_window=window
