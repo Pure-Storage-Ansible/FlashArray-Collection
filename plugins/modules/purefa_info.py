@@ -2898,8 +2898,8 @@ def generate_hgroups_dict(array, performance):
                 "used_provisioned": getattr(
                     hgroups[hgroup].space, "used_provisioned", None
                 ),
-                "total_used": hgroups[hgroup].space.total_used,
-                "destroyed": hgroups[hgroup].destroyed,
+                "total_used": getattr(hgroups[hgroup].space, "total_used", None),
+                "destroyed": getattr(hgroups[hgroup], "destroyed", False),
                 "time_remaining": getattr(hgroups[hgroup], "time_remaining", None),
             }
     if performance:
