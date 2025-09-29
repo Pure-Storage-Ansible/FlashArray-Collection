@@ -50,6 +50,14 @@ options:
     default: 1
     type: int
     version_added: "1.22.0"
+  context:
+    description:
+    - Name of fleet member on which to perform the operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.39.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -89,6 +97,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 SEC_PER_DAY = 86400000
 ERADICATION_API_VERSION = "2.6"
 DELAY_API_VERSION = "2.26"
+CONTEXT_VERSION = "2.38"
 
 
 def main():
@@ -98,6 +107,7 @@ def main():
             timer=dict(type="int"),
             disabled_delay=dict(type="int", default=1),
             enabled_delay=dict(type="int", default=1),
+            context=dict(type="str", default=""),
         )
     )
     mutually_exclusive = [["timer", "disabled_delay"], ["timer", "enabled_delay"]]
@@ -117,7 +127,14 @@ def main():
     changed = False
     current_disabled = None
     current_enabled = None
-    current_eradication_config = list(array.get_arrays().items)[0].eradication_config
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        current_eradication_config = list(
+            array.get_arrays(context_names=[module.params["context"]]).items
+        )[0].eradication_config
+    else:
+        current_eradication_config = list(array.get_arrays().items)[
+            0
+        ].eradication_config
     if LooseVersion(ERADICATION_API_VERSION) <= LooseVersion(api_version):
         base_eradication_timer = getattr(
             current_eradication_config, "eradication_delay", None
@@ -145,9 +162,15 @@ def main():
             if not module.check_mode:
                 new_timer = SEC_PER_DAY * target_timer
                 eradication_config = EradicationConfig(eradication_delay=new_timer)
-                res = array.patch_arrays(
-                    array=Arrays(eradication_config=eradication_config)
-                )
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_arrays(
+                        context_names=[module.params["context"]],
+                        array=Arrays(eradication_config=eradication_config),
+                    )
+                else:
+                    res = array.patch_arrays(
+                        array=Arrays(eradication_config=eradication_config)
+                    )
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Failed to change Eradication Timer. Error: {0}".format(
@@ -165,9 +188,15 @@ def main():
                 eradication_config = EradicationConfig(
                     enabled_delay=new_enabled, disabled_delay=new_disabled
                 )
-                res = array.patch_arrays(
-                    array=Arrays(eradication_config=eradication_config)
-                )
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_arrays(
+                        context_names=[module.params["context"]],
+                        array=Arrays(eradication_config=eradication_config),
+                    )
+                else:
+                    res = array.patch_arrays(
+                        array=Arrays(eradication_config=eradication_config)
+                    )
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Failed to change Eradication Timers. Error: {0}".format(
