@@ -329,7 +329,7 @@ try:
         VolumePatch,
         PriorityAdjustment,
         Reference,
-        FixedReference,
+        ReferenceType,
     )
 except ImportError:
     HAS_PURESTORAGE = False
@@ -708,7 +708,7 @@ def create_volume(module, array):
         if not module.check_mode:
             res = array.patch_volumes(
                 names=[module.params["name"]],
-                add_to_protection_groups=FixedReference(name=module.params["pgroup"]),
+                add_to_protection_groups=ReferenceType(name=module.params["pgroup"]),
             )
             if res.status_code != 200:
                 module.warn_json(
@@ -804,7 +804,7 @@ def create_multi_volume(module, array, single=False):
             add_to_pgs = []
             for add_pg in range(0, len(module.params["add_to_pgs"])):
                 add_to_pgs.append(
-                    FixedReference(name=module.params["add_to_pgs"][add_pg])
+                    ReferenceType(name=module.params["add_to_pgs"][add_pg])
                 )
             if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
                 api_version
@@ -1002,7 +1002,7 @@ def copy_from_volume(module, array):
                     add_to_pgs = []
                     for add_pg in range(0, len(module.params["add_to_pgs"])):
                         add_to_pgs.append(
-                            FixedReference(name=module.params["add_to_pgs"][add_pg])
+                            ReferenceType(name=module.params["add_to_pgs"][add_pg])
                         )
                     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                         res = array.post_volumes(
@@ -1342,13 +1342,13 @@ def update_volume(module, array):
             current_pgs = list(
                 array.get_protection_groups_volumes(
                     context_names=[module.params["context"]],
-                    members=[FixedReference(name=module.params["name"])],
+                    member_names=[module.params["name"]],
                 ).items
             )
         else:
             current_pgs = list(
                 array.get_protection_groups_volumes(
-                    members=[FixedReference(name=module.params["name"])]
+                    member_names=[module.params["name"]]
                 ).items
             )
         for current_pg in range(0, len(current_pgs)):
@@ -1661,13 +1661,13 @@ def delete_volume(module, array):
             current_pgs = list(
                 array.get_protection_groups_volumes(
                     context_names=[module.params["context"]],
-                    members=[FixedReference(name=module.params["name"])],
+                    member_names=[module.params["name"]],
                 ).items
             )
         else:
             current_pgs = list(
                 array.get_protection_groups_volumes(
-                    members=[FixedReference(name=module.params["name"])]
+                    member_names=[module.params["name"]]
                 ).items
             )
         for current_pg in range(0, len(current_pgs)):
@@ -1722,7 +1722,6 @@ def delete_volume(module, array):
                     )
                 module.exit_json(
                     changed=changed,
-                    volume=_volfact(module, array, module.params["name"]),
                 )
             elif res.status_code != 200:
                 module.fail_json(
@@ -1829,8 +1828,8 @@ def main():
     )
 
     size = module.params["size"]
-    bw_qos = module.params["bw_qos"]
-    iops_qos = module.params["iops_qos"]
+    bw_qos_size = False
+    iops_qos_size = False
     state = module.params["state"]
     destroyed = False
     array = get_array(module)
@@ -1848,14 +1847,14 @@ def main():
 
     if module.params["bw_qos"]:
         bw_qos = int(human_to_bytes(module.params["bw_qos"]))
-        if bw_qos in range(1048576, 549755813888):
-            bw_qos_size = bw_qos
+        if bw_qos in range(1048576, 549755813888) or bw_qos == 0:
+            bw_qos_size = True
         else:
             module.fail_json(msg="Bandwidth QoS value out of range.")
     if module.params["iops_qos"]:
         iops_qos = int(human_to_real(module.params["iops_qos"]))
-        if iops_qos in range(100, 100000000):
-            iops_qos_size = iops_qos
+        if iops_qos in range(100, 100000000) or iops_qos == 0:
+            iops_qos_size = True
         else:
             module.fail_json(msg="IOPs QoS value out of range.")
 
@@ -1937,8 +1936,8 @@ def main():
             and volume
             and (
                 size
-                or bw_qos
-                or iops_qos
+                or bw_qos_size
+                or iops_qos_size
                 or module.params["promotion_state"]
                 or module.params["add_to_pgs"]
             )

@@ -2969,12 +2969,11 @@ def generate_hgroups_dict(array, performance):
             getattr(hg_vol.host_group, "name", None)
             and ":" not in hg_vol.host_group.name
         ):
-            hgroups_info[hg_vol.host_group.name]["vols"].append(
-                [
-                    hg_vol.volume.name,
-                    hg_vol.lun,
-                ]
-            )
+            name = hg_vol.host_group.name
+            vol_entry = [hg_vol.volume.name, hg_vol.lun]
+            vols_list = hgroups_info[name]["vols"]
+            if vol_entry not in vols_list:
+                vols_list.append(vol_entry)
     hg_hosts = list(array.get_host_groups_hosts().items)
     for hg_host in range(0, len(hg_hosts)):
         if hg_hosts[hg_host].group.name in hgroups_info:
