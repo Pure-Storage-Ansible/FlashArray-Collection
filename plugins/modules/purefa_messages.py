@@ -47,6 +47,14 @@ options:
     - Allowed time period are hour(h), day(d), week(w) and year(y)
     type: str
     default: 1w
+  context:
+    description:
+    - Name of fleet member on which to perform the operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.39.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -82,6 +90,7 @@ HOUR = 3600000
 DAY = HOUR * 24
 WEEK = DAY * 7
 YEAR = WEEK * 52
+CONTEXT_VERSION = "2.38"
 
 
 def _create_time_window(window):
@@ -109,6 +118,7 @@ def main():
                 default="info",
                 choices=["critical", "warning", "info"],
             ),
+            context=dict(type="str", default=""),
         )
     )
 
@@ -133,10 +143,15 @@ def main():
     severity = " and severity='" + module.params["severity"] + "'"
     state = " and state='" + module.params["state"] + "'"
     filter_string = "notified>" + since_time + state + flagged + severity
-    try:
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        res = array.get_alerts(
+            filter=filter_string, context_names=[module.params["context"]]
+        )
+    else:
         res = array.get_alerts(filter=filter_string)
+    if res.status_code == 200:
         alerts = list(res.items)
-    except Exception:
+    else:
         module.fail_json(
             msg="Failed to get alert messages. Error: {0}".format(res.errors[0].message)
         )
