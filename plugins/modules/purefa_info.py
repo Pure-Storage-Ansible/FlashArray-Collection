@@ -461,15 +461,24 @@ def generate_config_dict(module, array):
                     "metadata_url": saml2[0].idp.metadata_url,
                 }
             if hasattr(saml2[0], "sp"):
+                if hasattr(saml2[0].sp, "decryption_credential"):
+                    decrypt = getattr(saml2[0].sp.decryption_credential, "name", None)
+                else:
+                    decrypt = None
+                if hasattr(saml2[0].sp, "signing_credential"):
+                    sign = getattr(saml2[0].sp.signing_credential, "name", None)
+                else:
+                    sign = None
                 config_info["saml2sso"]["sp"] = {
-                    "decrypt_cred": getattr(
-                        saml2[0].sp.decryption_credential, "name", None
-                    ),
-                    "sign_cred": getattr(saml2[0].sp.signing_credential, "name", None),
+                    "decrypt_cred": decrypt,
+                    "sign_cred": sign,
                 }
     config_info["active_directory"] = {}
-    try:
-        ad_accounts = list(array.get_active_directory().items)
+    res = array.get_active_directory()
+    if res.status_code != 200:
+        module.warn("FA-Files is not enabled on this array")
+    else:
+        ad_accounts = list(res.items)
         for ad_account in range(0, len(ad_accounts)):
             ad_name = ad_accounts[ad_account].name
             config_info["active_directory"][ad_name] = {
@@ -486,8 +495,6 @@ def generate_config_dict(module, array):
                 ),
                 "tls": getattr(ad_accounts[ad_account], "tls", None),
             }
-    except Exception:
-        module.warn("FA-Files is not enabled on this array")
     if LooseVersion(DEFAULT_PROT_API_VERSION) <= LooseVersion(api_version):
         config_info["default_protections"] = {}
         default_prots = list(array.get_container_default_protections().items)
@@ -727,10 +734,10 @@ def generate_dir_snaps_dict(array):
         }
         if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
             dir_snaps_info[s_name]["total_used"] = snapshots[snapshot].space.total_used
-        try:
-            dir_snaps_info[s_name]["policy"] = snapshots[snapshot].policy.name
-        except Exception:
-            dir_snaps_info[s_name]["policy"] = ""
+        if hasattr(snapshots[snapshot], "policy"):
+            dir_snaps_info[s_name]["policy"] = getattr(
+                snapshots[snapshot].policy, "name", None
+            )
         if dir_snaps_info[s_name]["destroyed"] or hasattr(
             snapshots[snapshot], "time_remaining"
         ):
@@ -2113,15 +2120,15 @@ def generate_del_pgroups_dict(array):
             else:
                 pgroups_info[protgroup]["deleted_volumes"] = None
         if LooseVersion(PER_PG_VERSION) <= LooseVersion(api_version):
-            try:
-                pgroups_info[protgroup]["retention_lock"] = list(
-                    array.get_protection_groups(names=[protgroup]).items
-                )[0].retention_lock
-                pgroups_info[protgroup]["manual_eradication"] = list(
-                    array.get_protection_groups(names=[protgroup]).items
-                )[0].eradication_config.manual_eradication
-            except Exception:
-                pass
+            res = array.get_protection_groups(names=[protgroup])
+            if res.status_code == 200:
+                pg_info = list(res.items)[0]
+                pgroups_info[protgroup]["retention_lock"] = getattr(
+                    pg_info, "retention_lock", None
+                )
+                pgroups_info[protgroup]["manual_eradication"] = getattr(
+                    pg_info.eradication_config, "manual_eradication", None
+                )
     return pgroups_info
 
 
@@ -2243,15 +2250,15 @@ def generate_pgroups_dict(array):
             else:
                 pgroups_info[protgroup]["deleted_volumes"] = None
         if LooseVersion(PER_PG_VERSION) <= LooseVersion(api_version):
-            try:
-                pgroups_info[protgroup]["retention_lock"] = list(
-                    array.get_protection_groups(names=[protgroup]).items
-                )[0].retention_lock
-                pgroups_info[protgroup]["manual_eradication"] = list(
-                    array.get_protection_groups(names=[protgroup]).items
-                )[0].eradication_config.manual_eradication
-            except Exception:
-                pass
+            res = array.get_protection_groups(names=[protgroup])
+            if res.status_code == 200:
+                pg_info = list(res.items)[0]
+                pgroups_info[protgroup]["retention_lock"] = getattr(
+                    pg_info, "retention_lock", None
+                )
+                pgroups_info[protgroup]["manual_eradication"] = getattr(
+                    pg_info.eradication_config, "manual_eradication", None
+                )
     return pgroups_info
 
 
