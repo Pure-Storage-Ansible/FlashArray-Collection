@@ -430,7 +430,6 @@ def main():
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this mudule")
     state = module.params["state"]
-    destroyed = False
     array = get_array(module)
     volume = get_volume(module, module.params["name"], array)
     if volume and volume.subtype != "protocol_endpoint":

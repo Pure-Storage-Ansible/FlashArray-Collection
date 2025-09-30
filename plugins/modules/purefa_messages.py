@@ -104,6 +104,7 @@ def _create_time_window(window):
         return WEEK * multiple
     if period == "y":
         return YEAR * multiple
+    return None
 
 
 def main():

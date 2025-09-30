@@ -375,7 +375,7 @@ def update_interface(module, array):
         module.params["address"]
         and module.params["address"] != current_state["address"]
     ):
-        netmask = current_state["netmask"]
+        new_state["netmask"] = current_state["netmask"]
         if module.params["gateway"] and module.params["gateway"] not in [
             "0.0.0.0",
             "::",
@@ -388,9 +388,9 @@ def update_interface(module, array):
         ]:
             module.fail_json(msg="Gateway and subnet are not compatible.")
         new_state["address"] = str(module.params["address"].split("/", 1)[0])
-        if address in ["0.0.0.0", "::"]:
-            address = None
-            netmask = None
+        if new_state["address"] in ["0.0.0.0", "::"]:
+            new_state["address"] = None
+            new_state["netmask"] = None
     if module.params["mtu"] and module.params["mtu"] != current_state["mtu"]:
         if not 1280 <= module.params["mtu"] <= 9216:
             module.fail_json(
@@ -399,10 +399,10 @@ def update_interface(module, array):
                 )
             )
         else:
-            mtu = module.params["mtu"]
+            new_state["mtu"] = module.params["mtu"]
     if module.params["address"]:
         if new_state["address"]:
-            if valid_ipv4(address):
+            if valid_ipv4(new_state["address"]):
                 new_state["netmask"] = str(IPNetwork(module.params["address"]).netmask)
             else:
                 new_state["netmask"] = str(module.params["address"].split("/", 1)[1])
@@ -452,7 +452,7 @@ def update_interface(module, array):
                     )
         if (
             "management" in interface["services"] or "app" in interface["services"]
-        ) and address in ["0.0.0.0/0", "::/0"]:
+        ) and new_state["address"] in ["0.0.0.0/0", "::/0"]:
             module.fail_json(
                 msg="Removing IP address from a management or app port is not supported"
             )

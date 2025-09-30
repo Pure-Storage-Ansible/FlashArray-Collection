@@ -118,7 +118,6 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 def delete_smtp(module, array):
     """Delete SMTP settings"""
     changed = True
-    api_version = array.get_rest_version()
     if not module.check_mode:
         res = array.patch_smtp_servers(
             smtp=SmtpServer(
@@ -143,7 +142,6 @@ def delete_smtp(module, array):
 
 def create_smtp(module, array):
     """Set SMTP settings"""
-    api_version = array.get_rest_version()
     changed = False
     # Currently only 1 SMTP server is configurable
     current_smtp = list(array.get_smtp_servers().items)[0]

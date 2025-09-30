@@ -130,7 +130,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 MIN_REQUIRED_API_VERSION = "2.1"
 
 
-def update_agent(module, array, agent):
+def update_agent(module, array):
     """Update SNMP Agent"""
     changed = False
     if module.params["version"] == "v2c":
@@ -246,7 +246,6 @@ def main():
         )
     array = get_array(module)
 
-    agent = list(array.get_snmp_agents().items)
     if module.params["version"] == "v3":
         if not module.params["user"]:
             module.fail_json(msg="version is v3 but the following is missing: user")
@@ -259,7 +258,7 @@ def main():
             and 8 > len(module.params["privacy_passphrase"]) > 63
         ):
             module.fail_json(msg="privacy_password must be between 8 and 63 characters")
-    update_agent(module, array, agent)
+    update_agent(module, array)
     module.exit_json(changed=False)
 
 

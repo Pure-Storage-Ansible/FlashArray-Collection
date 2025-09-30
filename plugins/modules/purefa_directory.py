@@ -239,14 +239,21 @@ def main():
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
     array = get_array(module)
-    api_version = array.get_rest_version()
     state = module.params["state"]
+    api_version = array.get_rest_version()
 
-    try:
-        filesystem = list(
-            array.get_file_systems(names=[module.params["filesystem"]]).items
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        res = list(
+            array.get_file_systems(
+                names=[module.params["filesystem"]],
+                context_names=[module.params["context"]],
+            ).items
         )[0]
-    except Exception:
+    else:
+        res = list(array.get_file_systems(names=[module.params["filesystem"]]).items)[0]
+    if res.status_code == 200:
+        filesystem = list(res.items)[0]
+    else:
         module.fail_json(
             msg="Selected file system {0} does not exist".format(
                 module.params["filesystem"]

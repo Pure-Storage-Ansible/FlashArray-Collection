@@ -447,10 +447,15 @@ def get_pgroup(module, array):
     return None
 
 
-def pg_exists(pg, array):
+def pg_exists(module, pgs, array):
     """Get Protection Group"""
-    res = array.get_protection_groups(names=[pg])
     api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_protection_groups(
+            names=[pgs], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_protection_groups(names=[pgs])
     return bool(res.status_code == 200)
 
 
@@ -552,7 +557,6 @@ def check_vgroup(module, array):
 
 def check_pod(module, array):
     """Check is the requested pod to create volume in exists"""
-    pod_exists = False
     api_version = array.get_rest_version()
     pod_name = "::".join(module.params["name"].split("::")[:-1])
     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
@@ -565,7 +569,6 @@ def check_pod(module, array):
 def create_volume(module, array):
     """Create Volume"""
     changed = False
-    context = False
     api_version = array.get_rest_version()
     if module.params["add_to_pgs"]:
         module.fail_json(msg="For Purity//FA 6.3.4 or lower, use pgroup parameter")
@@ -583,10 +586,15 @@ def create_volume(module, array):
                 )
             )
         pod_name = "::".join(module.params["name"].split("::")[:-1])
-        if (
-            list(array.get_pods(names=[pod_name]).items)[0].promotion_status
-            == "demoted"
-        ):
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = list(
+                array.get_pods(
+                    names=[pod_name], context_names=[module.params["context"]]
+                ).items
+            )[0]
+        else:
+            res = list(array.get_pods(names=[pod_name]).items)[0]
+        if res.promotion_status == "demoted":
             module.fail_json(msg="Volume cannot be created in a demoted pod")
     if not module.params["size"]:
         module.fail_json(msg="Size for a new volume must be specified")
@@ -594,15 +602,31 @@ def create_volume(module, array):
         if module.params["bw_qos"] and not module.params["iops_qos"]:
             changed = True
             if not module.check_mode:
-                res = array.post_volumes(
-                    names=[module.params["name"]],
-                    volume=VolumePost(
-                        provisioned=int(human_to_bytes(module.params["size"])),
-                        qos=Qos(
-                            bandwidth_limit=int(human_to_bytes(module.params["bw_qos"]))
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_volumes(
+                        names=[module.params["name"]],
+                        volume=VolumePost(
+                            provisioned=int(human_to_bytes(module.params["size"])),
+                            qos=Qos(
+                                bandwidth_limit=int(
+                                    human_to_bytes(module.params["bw_qos"])
+                                )
+                            ),
                         ),
-                    ),
-                )
+                        context_names=[module.params["context"]],
+                    )
+                else:
+                    res = array.post_volumes(
+                        names=[module.params["name"]],
+                        volume=VolumePost(
+                            provisioned=int(human_to_bytes(module.params["size"])),
+                            qos=Qos(
+                                bandwidth_limit=int(
+                                    human_to_bytes(module.params["bw_qos"])
+                                )
+                            ),
+                        ),
+                    )
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Volume {0} creation failed. Error: {1}".format(
@@ -613,13 +637,23 @@ def create_volume(module, array):
         elif module.params["iops_qos"] and not module.params["bw_qos"]:
             changed = True
             if not module.check_mode:
-                res = array.post_volumes(
-                    names=[module.params["name"]],
-                    volume=VolumePost(
-                        provisioned=int(human_to_bytes(module.params["size"])),
-                        qos=Qos(iops_limit=int(module.params["iops_qos"])),
-                    ),
-                )
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_volumes(
+                        names=[module.params["name"]],
+                        volume=VolumePost(
+                            provisioned=int(human_to_bytes(module.params["size"])),
+                            qos=Qos(iops_limit=int(module.params["iops_qos"])),
+                        ),
+                        context_names=[module.params["context"]],
+                    )
+                else:
+                    res = array.post_volumes(
+                        names=[module.params["name"]],
+                        volume=VolumePost(
+                            provisioned=int(human_to_bytes(module.params["size"])),
+                            qos=Qos(iops_limit=int(module.params["iops_qos"])),
+                        ),
+                    )
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Volume {0} creation failed. Error: {1}".format(
@@ -630,18 +664,37 @@ def create_volume(module, array):
         else:
             changed = True
             if not module.check_mode:
-                res = array.post_volumes(
-                    names=[module.params["name"]],
-                    volume=VolumePost(
-                        provisioned=int(human_to_bytes(module.params["size"])),
-                        qos=Qos(
-                            iops_limit=int(human_to_real(module.params["iops_qos"])),
-                            bandwidth_limit=int(
-                                human_to_bytes(module.params["bw_qos"])
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_volumes(
+                        names=[module.params["name"]],
+                        volume=VolumePost(
+                            provisioned=int(human_to_bytes(module.params["size"])),
+                            qos=Qos(
+                                iops_limit=int(
+                                    human_to_real(module.params["iops_qos"])
+                                ),
+                                bandwidth_limit=int(
+                                    human_to_bytes(module.params["bw_qos"])
+                                ),
                             ),
                         ),
-                    ),
-                )
+                        context_names=[module.params["context"]],
+                    )
+                else:
+                    res = array.post_volumes(
+                        names=[module.params["name"]],
+                        volume=VolumePost(
+                            provisioned=int(human_to_bytes(module.params["size"])),
+                            qos=Qos(
+                                iops_limit=int(
+                                    human_to_real(module.params["iops_qos"])
+                                ),
+                                bandwidth_limit=int(
+                                    human_to_bytes(module.params["bw_qos"])
+                                ),
+                            ),
+                        ),
+                    )
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Volume {0} creation failed. Error: {1}".format(
@@ -652,12 +705,21 @@ def create_volume(module, array):
     else:
         changed = True
         if not module.check_mode:
-            res = array.post_volumes(
-                names=[module.params["name"]],
-                volume=VolumePost(
-                    provisioned=int(human_to_bytes(module.params["size"]))
-                ),
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.post_volumes(
+                    names=[module.params["name"]],
+                    volume=VolumePost(
+                        provisioned=int(human_to_bytes(module.params["size"]))
+                    ),
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.post_volumes(
+                    names=[module.params["name"]],
+                    volume=VolumePost(
+                        provisioned=int(human_to_bytes(module.params["size"]))
+                    ),
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Volume {0} creation failed. Error: {1}".format(
@@ -669,14 +731,32 @@ def create_volume(module, array):
         volume = VolumePatch(requested_promotion_state=module.params["promotion_state"])
         changed = True
         if not module.check_mode:
-            res = array.patch_volumes(names=[module.params["name"]], volume=volume)
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_volumes(
+                    names=[module.params["name"]],
+                    volume=volume,
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_volumes(names=[module.params["name"]], volume=volume)
             if res.status_code != 200:
                 message = res.errors[0].message
-                array.patch_volumes(
-                    names=[module.params["name"]],
-                    volume=VolumePatch(destroyed=True),
-                )
-                array.delete_volumes(names=[module.params["name"]])
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    array.patch_volumes(
+                        names=[module.params["name"]],
+                        volume=VolumePatch(destroyed=True),
+                        context_names=[module.params["context"]],
+                    )
+                    array.delete_volumes(
+                        names=[module.params["name"]],
+                        context_names=[module.params["context"]],
+                    )
+                else:
+                    array.patch_volumes(
+                        names=[module.params["name"]],
+                        volume=VolumePatch(destroyed=True),
+                    )
+                    array.delete_volumes(names=[module.params["name"]])
                 module.fail_json(
                     msg="Failed to set Promotion State for volume {0}. Error: {1}".format(
                         module.params["name"],
@@ -690,14 +770,32 @@ def create_volume(module, array):
                 priority_adjustment_value=module.params["priority_value"],
             )
         )
-        res = array.patch_volumes(names=[module.params["name"]], volume=volume)
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.patch_volumes(
+                names=[module.params["name"]],
+                volume=volume,
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.patch_volumes(names=[module.params["name"]], volume=volume)
         if res.status_code != 200:
             message = res.errors[0].message
-            array.patch_volumes(
-                names=[module.params["name"]],
-                volume=VolumePatch(destroyed=True),
-            )
-            array.delete_volumes(names=[module.params["name"]])
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                array.patch_volumes(
+                    names=[module.params["name"]],
+                    volume=VolumePatch(destroyed=True),
+                    context_names=[module.params["context"]],
+                )
+                array.delete_volumes(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                )
+            else:
+                array.patch_volumes(
+                    names=[module.params["name"]],
+                    volume=VolumePatch(destroyed=True),
+                )
+                array.delete_volumes(names=[module.params["name"]])
             module.fail_json(
                 msg="Failed to set DMM Priority Adjustment on volume {0}. Error: {1}".format(
                     module.params["name"], message
@@ -706,10 +804,21 @@ def create_volume(module, array):
     if module.params["pgroup"]:
         changed = True
         if not module.check_mode:
-            res = array.patch_volumes(
-                names=[module.params["name"]],
-                add_to_protection_groups=ReferenceType(name=module.params["pgroup"]),
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_volumes(
+                    names=[module.params["name"]],
+                    add_to_protection_groups=ReferenceType(
+                        name=module.params["pgroup"]
+                    ),
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_volumes(
+                    names=[module.params["name"]],
+                    add_to_protection_groups=ReferenceType(
+                        name=module.params["pgroup"]
+                    ),
+                )
             if res.status_code != 200:
                 module.warn_json(
                     "Failed to add {0} to protection group {1}. Error: {2}".format(
@@ -822,7 +931,7 @@ def create_multi_volume(module, array, single=False):
                         if "::" not in module.params["add_to_pgs"][pgs]:
                             module.fail_json(msg="Specified PG is not a pod PG")
                         elif pg_exists(
-                            module.params["add_to_pgs"][pgs], array
+                            module, module.params["add_to_pgs"][pgs], array
                         ) and pod_name != "::".join(
                             module.params["add_to_pgs"][pgs].split("::")[:-1]
                         ):
@@ -832,7 +941,9 @@ def create_multi_volume(module, array, single=False):
                                     pod_name,
                                 )
                             )
-                        elif not pg_exists(module.params["add_to_pgs"][pgs], array):
+                        elif not pg_exists(
+                            module, module.params["add_to_pgs"][pgs], array
+                        ):
                             module.fail_json(
                                 msg="Protection Group {0} does not exist".format(
                                     module.params["add_to_pgs"][pgs]
@@ -1448,7 +1559,6 @@ def move_volume(module, array):
         volume_name = module.params["name"].split("/")[1]
         vgroup_name = module.params["name"].split("/")[0]
     if module.params["move"] == "local":
-        target_location = ""
         if "::" not in module.params["name"]:
             if "/" not in module.params["name"]:
                 module.fail_json(

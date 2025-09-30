@@ -144,7 +144,12 @@ def main():
         module.fail_json(msg="py-pure-client sdk is required for this module")
     array = get_array(module)
     api_version = array.get_rest_version()
-    current_timeout = list(array.get_arrays().items)[0].idle_timeout
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        current_timeout = list(
+            array.get_arrays(context_names=[module.params["context"]]).items
+        )[0].idle_timeout
+    else:
+        current_timeout = list(array.get_arrays().items)[0].idle_timeout
     if state == "present" and current_timeout != module.params["timeout"]:
         set_timeout(module, array)
     elif state == "absent" and current_timeout != 0:

@@ -136,12 +136,17 @@ def delete_fs(module, array):
                 )
             )
         if module.params["eradicate"]:
-            try:
-                array.delete_file_systems(names=[module.params["name"]])
-            except Exception:
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.delete_file_systems(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.delete_file_systems(names=[module.params["name"]])
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Eradication of file system {0} failed".format(
-                        module.params["name"]
+                    msg="Eradication of file system {0} failed. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
                     )
                 )
     module.exit_json(changed=changed)
@@ -404,14 +409,16 @@ def main():
             msg="Filesystem Replication is only supported in Purity//FA 6.3.0 or higher"
         )
     state = module.params["state"]
-
-    try:
-        filesystem = list(array.get_file_systems(names=[module.params["name"]]).items)[
-            0
-        ]
+    esists = False
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        res = array.get_file_systems(
+            names=[module.params["name"]], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_file_systems(names=[module.params["name"]])
+    if res.status_code == 200:
+        filesystem = list(res.items)[0]
         exists = True
-    except Exception:
-        exists = False
 
     if state == "present" and not exists and not module.params["move"]:
         create_fs(module, array)

@@ -209,8 +209,7 @@ def get_target(module, array):
         res = array.get_offloads(names=[module.params["name"]])
     if res.status_code == 200:
         return list(res.items)[0]
-    else:
-        return None
+    return None
 
 
 def create_offload(module, array):

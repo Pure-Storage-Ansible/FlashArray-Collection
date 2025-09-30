@@ -78,10 +78,13 @@ EULA_V2 = "2.30"
 def set_eula(module, array):
     """Sign EULA"""
     changed = False
-    try:
-        current_eula = list(array.get_arrays_eula().items)[0]
-    except Exception:
-        module.fail_json(msg="Failed to get current EULA")
+    res = array.get_arrays_eula()
+    if res.status_code == 200:
+        current_eula = list(res.items)[0]
+    else:
+        module.fail_json(
+            msg="Failed to get current EULA. Error: {0}".format(res.errors[0].message)
+        )
     if not hasattr(current_eula, "signature.accepted"):
         changed = True
         if not module.check_mode:

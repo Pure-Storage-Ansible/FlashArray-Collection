@@ -122,8 +122,7 @@ def get_local_pod(module, array):
         res = array.get_pods(names=[module.params["name"]])
     if res.status_code != 200:
         return None
-    else:
-        return list(res.items)[0]
+    return list(res.items)[0]
 
 
 def get_local_rl(module, array):
@@ -141,8 +140,7 @@ def get_local_rl(module, array):
         )
     if res.total_item_count == 0:
         return None
-    else:
-        return list(res.items)[0]
+    return list(res.items)[0]
 
 
 def update_rl(module, array, local_rl):

@@ -105,7 +105,7 @@ CONTEXT_API_VERSION = "2.38"
 
 def _is_cbs(array, is_cbs=False):
     """Is the selected array a Cloud Block Store"""
-    api_version = array.get_rest_version()
+    # api_version = array.get_rest_version()
     #
     # Until get_controller has context_names we can check against a target system
     # CBS can't be support for Fusion
@@ -130,7 +130,7 @@ def remove(duplicate):
 
 def test_ntp(module, array):
     """Test NTP configuration"""
-    api_version = array.get_rest_version()
+    # api_version = array.get_rest_version()
     test_response = []
     #
     # Until get_arrays_ntp_test has context_names we can check against a target system
@@ -168,6 +168,7 @@ def test_ntp(module, array):
 def delete_ntp(module, array):
     """Delete NTP Servers"""
     api_version = array.get_rest_version()
+    changed = False
     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
         array_list = array.get_arrays(context_names=[module.params["context"]])
     else:
@@ -175,18 +176,19 @@ def delete_ntp(module, array):
     if list(array_list.items)[0].ntp_servers != []:
         changed = True
         if not module.check_mode:
-            try:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    array.patch_arrays(
-                        array=Arrays(ntp_servers=[]),
-                        context_names=[module.params["context"]],
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_arrays(
+                    array=Arrays(ntp_servers=[]),
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_arrays(array=Arrays(ntp_servers=[]))
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Deletion of NTP servers failed. Error: {0}".format(
+                        res.errors[0].message
                     )
-                else:
-                    array.patch_arrays(array=Arrays(ntp_servers=[]))
-            except Exception:
-                module.fail_json(msg="Deletion of NTP servers failed")
-    else:
-        changed = False
+                )
     module.exit_json(changed=changed)
 
 
@@ -197,18 +199,21 @@ def create_ntp(module, array):
     if not module.check_mode:
         if not module.params["ntp_servers"]:
             module.params["ntp_servers"] = ["0.pool.ntp.org"]
-        try:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                array.patch_arrays(
-                    array=Arrays(ntp_servers=module.params["ntp_servers"][0:4]),
-                    context_names=[module.params["context"]],
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.patch_arrays(
+                array=Arrays(ntp_servers=module.params["ntp_servers"][0:4]),
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.patch_arrays(
+                array=Arrays(ntp_servers=module.params["ntp_servers"][0:4])
+            )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Update of NTP servers failed. Error: {0}".format(
+                    res.errors[0].message
                 )
-            else:
-                array.patch_arrays(
-                    array=Arrays(ntp_servers=module.params["ntp_servers"][0:4])
-                )
-        except Exception:
-            module.fail_json(msg="Update of NTP servers failed")
+            )
     module.exit_json(changed=changed)
 
 
