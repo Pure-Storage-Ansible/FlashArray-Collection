@@ -78,10 +78,7 @@ MIN_REQUIRED_API_VERSION = "2.2"
 def update_smis(module, array):
     """Update SMI-S features"""
     changed = smis_changed = False
-    try:
-        current = list(array.get_smi_s().items)[0]
-    except Exception:
-        module.fail_json(msg="Failed to get current SMI-S settings.")
+    current = list(array.get_smi_s().items)[0]
     slp_enabled = current.slp_enabled
     wbem_enabled = current.wbem_https_enabled
     if slp_enabled != module.params["slp"]:
@@ -96,10 +93,13 @@ def update_smis(module, array):
         )
         changed = True
         if not module.check_mode:
-            try:
-                array.patch_smi_s(smi_s=smi_s)
-            except Exception:
-                module.fail_json(msg="Failed to change SMI-S settings.")
+            res = array.patch_smi_s(smi_s=smi_s)
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to change SMI-S settings. Error: {0}".format(
+                        res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 

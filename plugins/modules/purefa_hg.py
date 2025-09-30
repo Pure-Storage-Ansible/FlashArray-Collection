@@ -178,10 +178,9 @@ def rename_exists(module, array):
             ).status_code
             == 200
         )
-    else:
-        return bool(
-            array.get_host_groups(names=[module.params["rename"]]).status_code == 200
-        )
+    return bool(
+        array.get_host_groups(names=[module.params["rename"]]).status_code == 200
+    )
 
 
 def get_hostgroup_hosts(module, array):

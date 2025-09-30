@@ -120,7 +120,6 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 
 def _get_subnet(module, array):
     """Return subnet or None"""
-    subnet = {}
     res = array.get_subnets(names=[module.params["name"]])
     if res.status_code == 200:
         return list(res.items)[0]

@@ -374,7 +374,7 @@ def make_pgroup(module, array):
             )
 
         connected_arrays = connected_arrays + connected_targets
-        if connected_arrays == []:
+        if not connected_arrays:
             module.fail_json(msg="No connected targets on source array.")
         if set(module.params["target"][0:4]).issubset(connected_arrays):
             if not module.check_mode:
@@ -579,7 +579,7 @@ def update_pgroup(module, array):
         connected_arrays = get_arrays(module, array)
         connected_targets = get_targets(module, array)
         connected_arrays = connected_arrays + connected_targets
-        if connected_arrays == []:
+        if not connected_arrays:
             module.fail_json(msg="No targets connected to source array.")
         if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
             current_connects = list(

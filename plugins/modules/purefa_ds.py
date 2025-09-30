@@ -461,7 +461,6 @@ def main():
         module.fail_json(msg="py-pure-client sdk is required to for this module")
 
     state = module.params["state"]
-    ds_exists = False
     dirserv = []
     dirservlist = list(array.get_directory_services().items)
     for dirs in range(0, len(dirservlist)):

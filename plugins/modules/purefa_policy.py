@@ -440,7 +440,6 @@ try:
         PolicyrulequotapostRules,
         PolicyMemberPost,
         PolicymemberpostMembers,
-        PolicyRuleNfsClientPost,
         PolicyPassword,
         ReferenceWithType,
         Reference,
@@ -1484,26 +1483,24 @@ def update_policy(module, array, api_version, all_squash):
             current_policy = list(
                 array.get_policies_nfs(names=[module.params["name"]]).items
             )[0]
-        try:
-            current_enabled = current_policy.enabled
-            if LooseVersion(USER_MAP_VERSION) <= LooseVersion(api_version):
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    current_user_map = list(
-                        array.get_policies_nfs(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                        ).items
-                    )[0].user_mapping_enabled
-                else:
-                    current_user_map = list(
-                        array.get_policies_nfs(names=[module.params["name"]]).items
-                    )[0].user_mapping_enabled
-        except Exception:
+        current_enabled = current_policy.enabled
+        res = {}
+        if LooseVersion(USER_MAP_VERSION) <= LooseVersion(api_version):
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.get_policies_nfs(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.get_policies_nfs(names=[module.params["name"]])
+        if res.status_code != 200:
             module.fail_json(
                 msg="Incorrect policy type specified for existing policy {0}".format(
                     module.params["name"]
                 )
             )
+        else:
+            current_user_map = list(res.items)[0].user_mapping_enabled
         if module.params["nfs_version"] and sorted(
             module.params["nfs_version"]
         ) != sorted(getattr(current_policy, "nfs_version", [])):
@@ -1720,21 +1717,18 @@ def update_policy(module, array, api_version, all_squash):
                             )
                         )
     elif module.params["policy"] == "smb":
-        try:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                current = list(
-                    array.get_policies_smb(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )[0]
-            else:
-                current = list(
-                    array.get_policies_smb(names=[module.params["name"]]).items
-                )[0]
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.get_policies_smb(
+                names=[module.params["name"]],
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.get_policies_smb(names=[module.params["name"]])
+        if res.status_code == 200:
+            current = list(res.items)[0]
             current_enabled = current.enabled
             current_access_based_enumeration = current.access_based_enumeration_enabled
-        except Exception:
+        else:
             module.fail_json(
                 msg="Incorrect policy type specified for existing policy {0}".format(
                     module.params["name"]
@@ -1867,19 +1861,16 @@ def update_policy(module, array, api_version, all_squash):
         suffix_enabled = bool(
             LooseVersion(api_version) >= LooseVersion(MIN_SUFFIX_API_VERSION)
         )
-        try:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                current_enabled = list(
-                    array.get_policies_snapshot(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )[0].enabled
-            else:
-                current_enabled = list(
-                    array.get_policies_snapshot(names=[module.params["name"]]).items
-                )[0].enabled
-        except Exception:
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.get_policies_snapshot(
+                names=[module.params["name"]],
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.get_policies_snapshot(names=[module.params["name"]])
+        if res.status_code == 200:
+            current_enabled = list(res.items)[0].enabled
+        else:
             module.fail_json(
                 msg="Incorrect policy type specified for existing policy {0}".format(
                     module.params["name"]
@@ -2118,19 +2109,16 @@ def update_policy(module, array, api_version, all_squash):
                             )
                         )
     elif module.params["policy"] == "autodir":
-        try:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                current_enabled = list(
-                    array.get_policies_autodir(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )[0].enabled
-            else:
-                current_enabled = list(
-                    array.get_policies_autodir(names=[module.params["name"]]).items
-                )[0].enabled
-        except Exception:
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.get_policies_autodir(
+                names=[module.params["name"]],
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.get_policies_autodir(names=[module.params["name"]])
+        if res.status_code == 200:
+            current_enabled = list(res.items)[0].enabled
+        else:
             module.fail_json(
                 msg="Incorrect policy type specified for existing policy {0}".format(
                     module.params["name"]
@@ -2210,19 +2198,16 @@ def update_policy(module, array, api_version, all_squash):
                                 )
                             )
     elif module.params["policy"] == "password":
-        try:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                current_enabled = list(
-                    array.get_policies_password(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )[0].enabled
-            else:
-                current_enabled = list(
-                    array.get_policies_password(names=[module.params["name"]]).items
-                )[0].enabled
-        except Exception:
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.get_policies_password(
+                names=[module.params["name"]],
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.get_policies_password(names=[module.params["name"]])
+        if res.status_code == 200:
+            current_enabled = list(res.items)[0].enabled
+        else:
             module.fail_json(
                 msg="Incorrect policy type specified for existing policy {0}".format(
                     module.params["name"]

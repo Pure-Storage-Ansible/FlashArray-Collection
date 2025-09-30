@@ -87,10 +87,7 @@ def update_console(module, array):
         )[0].console_lock_enabled
     else:
         current_state = list(array.get_arrays().items)[0].console_lock_enabled
-    if module.params["state"] == "enable":
-        new_state = True
-    else:
-        new_state = False
+    new_state = bool(module.params["state"] == "enable")
     if current_state != new_state:
         changed = True
         if not module.check_mode:

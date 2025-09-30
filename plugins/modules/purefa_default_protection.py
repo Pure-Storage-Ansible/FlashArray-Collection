@@ -121,31 +121,31 @@ CONTEXT_API_VERSION = "2.38"
 def _get_pod(module, array):
     """Return Pod or None"""
     api_version = array.get_rest_version()
-    try:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            return array.get_pods(
-                names=[module.params["pod"]],
-                context_names=[module.params["context"]],
-            )
-        else:
-            return array.get_pods(names=[module.params["pod"]])
-    except Exception:
-        return None
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_pods(
+            names=[module.params["pod"]],
+            context_names=[module.params["context"]],
+        )
+    else:
+        res = array.get_pods(names=[module.params["pod"]])
+    if res.status_code == 200:
+        return list(res.items)[0]
+    return None
 
 
 def _get_pg(module, array, pod):
     """Return Protection Group or None"""
     api_version = array.get_rest_version()
-    try:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            return array.get_protection_groups(
-                names=[pod],
-                context_names=[module.params["context"]],
-            )
-        else:
-            return array.get_protection_groups(names=[pod])
-    except Exception:
-        return None
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_protection_groups(
+            names=[pod],
+            context_names=[module.params["context"]],
+        )
+    else:
+        res = array.get_protection_groups(names=[pod])
+    if res.staus_code == 200:
+        return list(res.items)[0]
+    return None
 
 
 def create_default(module, array):

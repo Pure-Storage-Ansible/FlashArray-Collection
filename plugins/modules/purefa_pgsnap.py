@@ -258,11 +258,9 @@ def get_pgroup(module, array):
             ).status_code
             == 200
         )
-    else:
-        return bool(
-            array.get_protection_groups(names=[module.params["name"]]).status_code
-            == 200
-        )
+    return bool(
+        array.get_protection_groups(names=[module.params["name"]]).status_code == 200
+    )
 
 
 def get_pgroupvolume(module, array):
@@ -325,7 +323,6 @@ def get_pgroupvolume(module, array):
                         group_names=[module.params["name"]]
                     ).items
                 )
-            hgroups = []
             # First check if there are any volumes in the host groups
             for hgentry in range(0, len(hgroup_dict)):
                 if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
@@ -415,16 +412,13 @@ def get_rpgsnapshot(module, array):
         + module.params["restore"]
     )
     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        if (
-            array.get_volume_snapshots(
-                names=[snapname], context_names=[module.params["context"]]
-            ).status_code
-            == 200
-        ):
-            return snapname
+        res = array.get_volume_snapshots(
+            names=[snapname], context_names=[module.params["context"]]
+        )
     else:
-        if array.get_volume_snapshots(names=[snapname]).status_code == 200:
-            return snapname
+        res = array.get_volume_snapshots(names=[snapname])
+    if res.status_code == 200:
+        return snapname
     return None
 
 

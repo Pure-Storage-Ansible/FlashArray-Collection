@@ -262,35 +262,27 @@ def get_pod(module, array):
             ).status_code
             == 200
         )
-    else:
-        return bool(
-            array.get_pods(names=[module.params["name"]], destroyed=False).status_code
-            == 200
-        )
+    return bool(
+        array.get_pods(names=[module.params["name"]], destroyed=False).status_code
+        == 200
+    )
 
 
 def get_undo_pod(module, array):
     """Return Undo Pod or None"""
     api_version = array.get_rest_version()
     if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        try:
-            return list(
-                array.get_pods(
-                    names=[module.params["name"] + ".undo-demote.*"],
-                    context_names=[module.params["context"]],
-                ).items
-            )
-        except Exception:
-            return None
+        res = array.get_pods(
+            names=[module.params["name"] + ".undo-demote.*"],
+            context_names=[module.params["context"]],
+        )
     else:
-        try:
-            return list(
-                array.get_pods(
-                    names=[module.params["name"] + ".undo-demote.*"],
-                ).items
-            )
-        except Exception:
-            return None
+        res = array.get_pods(
+            names=[module.params["name"] + ".undo-demote.*"],
+        )
+    if res.status_code == 200:
+        return list(res.items)
+    return None
 
 
 def get_target(module, array):
@@ -304,11 +296,10 @@ def get_target(module, array):
             ).status_code
             == 200
         )
-    else:
-        return bool(
-            array.get_pods(names=[module.params["target"]], destroyed=False).status_code
-            == 200
-        )
+    return bool(
+        array.get_pods(names=[module.params["target"]], destroyed=False).status_code
+        == 200
+    )
 
 
 def get_destroyed_pod(module, array):
@@ -323,11 +314,9 @@ def get_destroyed_pod(module, array):
             ).status_code
             == 200
         )
-    else:
-        return bool(
-            array.get_pods(names=[module.params["name"]], destroyed=True).status_code
-            == 200
-        )
+    return bool(
+        array.get_pods(names=[module.params["name"]], destroyed=True).status_code == 200
+    )
 
 
 def get_destroyed_target(module, array):
@@ -342,11 +331,10 @@ def get_destroyed_target(module, array):
             ).status_code
             == 200
         )
-    else:
-        return bool(
-            array.get_pods(names=[module.params["target"]], destroyed=True).status_code
-            == 200
-        )
+    return bool(
+        array.get_pods(names=[module.params["target"]], destroyed=True).status_code
+        == 200
+    )
 
 
 def check_arrays(module, array):
@@ -520,20 +508,26 @@ def create_pod(module, array):
                 )
         if LooseVersion(DEFAULT_API_VERSION) <= LooseVersion(api_version):
             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                safemode_pg = list(
-                    array.get_container_default_protections(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )[0].default_protections
+                res = array.get_container_default_protections(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                )
             else:
-                safemode_pg = list(
-                    array.get_container_default_protections(
-                        names=[module.params["name"]],
-                    ).items
-                )[0].default_protections
-            pgname = safemode_pg[0].name
-            if safemode_pg and not module.params["with_default_protection"]:
+                res = array.get_container_default_protections(
+                    names=[module.params["name"]]
+                )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to get container default protection for pod {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
+            safemode_pg = list(res.items)[0].default_protections
+            if safemode_pg:
+                pgname = safemode_pg[0].name
+            else:
+                pgname = None
+            if pgname and not module.params["with_default_protection"]:
                 if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                     res = array.patch_container_default_protections(
                         names=[module.params["name"]],
@@ -1340,7 +1334,6 @@ def main():
     state = module.params["state"]
     array = get_array(module)
 
-    api_version = array.get_rest_version()
     pod = get_pod(module, array)
     destroyed = ""
     if not pod:

@@ -283,10 +283,7 @@ def main():
         )
     else:
         res = array.get_syslog_servers(names=[module.params["name"]])
-    if res.status_code == 200:
-        exists = True
-    else:
-        exists = False
+    exists = bool(res.status_code == 200)
 
     if module.params["state"] == "absent" and exists:
         delete_syslog(module, array)

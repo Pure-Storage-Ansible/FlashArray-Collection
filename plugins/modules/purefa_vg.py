@@ -841,7 +841,6 @@ def main():
         )
     state = module.params["state"]
     array = get_array(module)
-    api_version = array.get_rest_version()
     vgroup = get_vgroup(module, array)
     xvgroup = get_pending_vgroup(module, array)
 

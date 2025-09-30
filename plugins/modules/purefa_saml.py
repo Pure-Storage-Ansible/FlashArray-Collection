@@ -164,11 +164,12 @@ def delete_saml(module, array):
     """Delete SSO SAML2 IdP"""
     changed = True
     if not module.check_mode:
-        try:
-            array.delete_sso_saml2_idps(names=[module.params["name"]])
-        except Exception:
+        res = array.delete_sso_saml2_idps(names=[module.params["name"]])
+        if res.status_code != 200:
             module.fail_json(
-                msg="Failed to delete SAML2 IdP {0}".format(module.params["name"])
+                msg="Failed to delete SAML2 IdP {0}. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
             )
     module.exit_json(changed=changed)
 
@@ -352,11 +353,9 @@ def main():
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
         )
     state = module.params["state"]
-
-    try:
-        list(array.get_sso_saml2_idps(names=[module.params["name"]]).items)[0]
-        exists = True
-    except AttributeError:
+    exists = True
+    res = array.get_sso_saml2_idps(names=[module.params["name"]])
+    if res.status_code != 200:
         exists = False
     if not exists and state == "present":
         create_saml(module, array)

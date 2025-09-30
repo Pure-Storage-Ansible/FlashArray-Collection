@@ -319,10 +319,7 @@ def get_deleted_snapshot(module, array):
                 )
             else:
                 res = array.get_volume_snapshots(names=[snapname], destroyed=True)
-        if res.status_code == 200:
-            return True
-        else:
-            return False
+        return bool(res.status_code == 200)
     else:
         if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
             return bool(
@@ -333,11 +330,10 @@ def get_deleted_snapshot(module, array):
                 ).status_code
                 == 200
             )
-        else:
-            return bool(
-                array.get_volume_snapshots(names=[snapname], destroyed=True).status_code
-                == 200
-            )
+        return bool(
+            array.get_volume_snapshots(names=[snapname], destroyed=True).status_code
+            == 200
+        )
 
 
 def get_snapshot(module, array):
@@ -353,11 +349,9 @@ def get_snapshot(module, array):
             ).status_code
             == 200
         )
-    else:
-        return bool(
-            array.get_volume_snapshots(names=[snapname], destroyed=False).status_code
-            == 200
-        )
+    return bool(
+        array.get_volume_snapshots(names=[snapname], destroyed=False).status_code == 200
+    )
 
 
 def create_snapshot(module, array):
@@ -461,6 +455,12 @@ def create_from_snapshot(module, array):
                 res = array.post_volumes(
                     volume=VolumePost(source=Reference(name=source)),
                     names=[module.params["target"]],
+                )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to create volume {0} from snapshot {1}. Error: {2}".format(
+                        module.params["target"], source, res.errors[9].message
+                    )
                 )
     elif tgt is not None and module.params["overwrite"]:
         changed = True

@@ -364,22 +364,18 @@ def main():
             "For older Purity versions please use the ``purefa_dsrole_old`` module"
         )
     role_configured = False
-    try:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            role = list(
-                array.get_directory_services_roles(
-                    roles=[FixedReference(name=module.params["name"])],
-                    context_names=[module.params["context"]],
-                ).items
-            )[0]
-        else:
-            role = list(
-                array.get_directory_services_roles(
-                    roles=[FixedReference(name=module.params["name"])]
-                ).items
-            )[0]
-    except Exception:
-        role = {}
+    role = {}
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        res = array.get_directory_services_roles(
+            roles=[FixedReference(name=module.params["name"])],
+            context_names=[module.params["context"]],
+        )
+    else:
+        res = array.get_directory_services_roles(
+            roles=[FixedReference(name=module.params["name"])]
+        )
+    if res.status_code == 200:
+        role = list(res.items)[0]
     if getattr(role, "group", None) is not None:
         role_configured = True
 
