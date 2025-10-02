@@ -17,8 +17,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
     - some modules require higher versions of Purity
 - Some modules require specific Purity versions
 - distro
-- purestorage
-- py-pure-client >= 1.57.0
+- py-pure-client >= 1.75.0
 - python >= 3.9
 - netaddr >= 1.2.0
 - requests

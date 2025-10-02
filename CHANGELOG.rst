@@ -4,6 +4,39 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.39.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_arrayname - Added Fusion support
+- purefa_audits - Added Fusion support
+- purefa_banner - Added Fusion support
+- purefa_connect - Added Fusion support
+- purefa_console - Added Fusion support
+- purefa_directory - Added Fusion support
+- purefa_dirsnap - Added Fusion support
+- purefa_ds - Added Fusion support
+- purefa_dsrole - Added Fusion support
+- purefa_endpoint - Added Fusion support
+- purefa_eradication - Added Fusion support
+- purefa_export - Added Fusion support
+- purefa_fs - Added Fusion support
+- purefa_maintenance - Timeout window updated
+- purefa_messages - Added Fusion support
+- purefa_offload - Added Fusion support
+- purefa_policy - Added Fusion support
+- purefa_syslog_settings - Added Fusion support
+- purefa_timeout - Added Fusion support
+
+Bugfixes
+--------
+
+- purefa_eradication - Idempotency fix
+- purefa_info - Fixed AttributeError for hgroups subset
+- purefa_pg - Fixed AttributeError adding target to PG
+
 v1.38.0
 =======
 
