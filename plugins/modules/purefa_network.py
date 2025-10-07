@@ -345,7 +345,7 @@ def update_interface(module, array):
         "services": sorted(interface["services"]),
         "subinterfaces": sorted(interface.eth.subinterfaces),
     }
-    new_state = current_state
+    new_state = current_state.copy()
     if module.params["subinterfaces"]:
         new_subinterfaces = _check_subinterfaces(module, array)
         if new_subinterfaces != current_state["subinterfaces"]:
@@ -367,8 +367,9 @@ def update_interface(module, array):
             current_state["gateway"] = None
         else:
             current_state["gateway"] = None
-    if module.params["servicelist"] and sorted(
-        module.params["servicelist"] != current_state["services"]
+    if (
+        module.params["servicelist"]
+        and sorted(module.params["servicelist"]) != current_state["services"]
     ):
         new_state["services"] = sorted(module.params["servicelist"])
     if (
@@ -410,7 +411,7 @@ def update_interface(module, array):
             new_state["netmask"] = None
     if module.params["gateway"] and module.params["gateway"] in ["0.0.0.0", "::"]:
         new_state["gateway"] = None
-    elif valid_ipv4(new_state["address"]):
+    elif new_state["address"] and valid_ipv4(new_state["address"]):
         cidr = str(IPAddress(new_state["netmask"]).netmask_bits())
         full_addr = new_state["address"] + "/" + cidr
         if module.params["gateway"] not in IPNetwork(full_addr):
