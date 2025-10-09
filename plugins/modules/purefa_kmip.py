@@ -249,7 +249,6 @@ def main():
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
     array = get_array(module)
-    api_version = array.get_rest_version()
 
     state = module.params["state"]
     exists = bool(array.get_kmip(names=[module.params["name"]]).status_code == 200)

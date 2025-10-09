@@ -122,11 +122,12 @@ MIN_REQUIRED_API_VERSION = "2.1"
 def delete_client(module, array):
     changed = True
     if not module.check_mode:
-        try:
-            array.delete_api_clients(names=[module.params["name"]])
-        except Exception:
+        res = array.delete_api_clients(names=[module.params["name"]])
+        if res.status_code != 200:
             module.fail_json(
-                msg="Failed to delete API Client {0}".format(module.params["name"])
+                msg="Failed to delete API Client {0}. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
             )
     module.exit_json(changed=changed)
 
@@ -137,16 +138,15 @@ def update_client(module, array, client):
     if client.enabled != module.params["enabled"]:
         changed = True
         if not module.check_mode:
-            try:
-                array.patch_api_clients(
-                    names=[module.params["name"]],
-                    api_clients=flasharray.ApiClientPatch(
-                        enabled=module.params["enabled"]
-                    ),
-                )
-            except Exception:
+            res = array.patch_api_clients(
+                names=[module.params["name"]],
+                api_clients=flasharray.ApiClientPatch(enabled=module.params["enabled"]),
+            )
+            if res.status_code != 200:
                 module.fail_json(
-                    msg="Failed to update API Client {0}".format(module.params["name"])
+                    msg="Failed to update API Client {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
                 )
     module.exit_json(changed=changed)
 
@@ -160,42 +160,32 @@ def create_client(module, array):
         token_ttl = module.params["token_ttl"] * 1000
     if not module.params["issuer"]:
         module.params["issuer"] = module.params["name"]
-    try:
-        client = flasharray.ApiClientPost(
-            max_role=module.params["role"],
-            issuer=module.params["issuer"],
-            access_token_ttl_in_ms=token_ttl,
-            public_key=module.params["public_key"],
-        )
-        if not module.check_mode:
-            res = array.post_api_clients(
-                names=[module.params["name"]], api_clients=client
+    client = flasharray.ApiClientPost(
+        max_role=module.params["role"],
+        issuer=module.params["issuer"],
+        access_token_ttl_in_ms=token_ttl,
+        public_key=module.params["public_key"],
+    )
+    if not module.check_mode:
+        res = array.post_api_clients(names=[module.params["name"]], api_clients=client)
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Failed to create API CLient {0}. Error message: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
+            )
+        if module.params["enabled"]:
+            res = array.patch_api_clients(
+                names=[module.params["name"]],
+                api_clients=flasharray.ApiClientPatch(enabled=module.params["enabled"]),
             )
             if res.status_code != 200:
+                array.delete_api_clients(names=[module.params["name"]])
                 module.fail_json(
-                    msg="Failed to create API CLient {0}. Error message: {1}".format(
+                    msg="Failed to create API Client {0}. Error: {1}".format(
                         module.params["name"], res.errors[0].message
                     )
                 )
-            if module.params["enabled"]:
-                try:
-                    array.patch_api_clients(
-                        names=[module.params["name"]],
-                        api_clients=flasharray.ApiClientPatch(
-                            enabled=module.params["enabled"]
-                        ),
-                    )
-                except Exception:
-                    array.delete_api_clients(names=[module.params["name"]])
-                    module.fail_json(
-                        msg="Failed to create API Client {0}".format(
-                            module.params["name"]
-                        )
-                    )
-    except Exception:
-        module.fail_json(
-            msg="Failed to create API Client {0}".format(module.params["name"])
-        )
     module.exit_json(changed=changed)
 
 

@@ -971,6 +971,130 @@ releases:
     - 773_vg_qos.yaml
     - 774_user_update.yaml
     release_date: '2025-07-15'
+  1.37.0:
+    changes:
+      bugfixes:
+      - purefa_connect - Ensured that encrypted connections use encrypted connection
+        keys
+      - purefa_eradication - Fixed idempotency issue
+      - purefa_eula - Fix AttributeError when first sogning EULA
+      - purefa_pg - Changing target for PG no longer requires a ``FixedReference``
+      deprecated_features:
+      - purefa_volume_tags - Deprecated due to removal of REST 1.x support. Will be
+        removed in Collection 2.0.0
+      minor_changes:
+      - purefa_connect - Allow asynchronous FC-based replication
+      - purefa_default_protection - Added Fusion support.
+      - purefa_info - Added new subsets ``workloads`` and ``presets``
+      - purefa_info - Converted to use REST 2
+      - purefa_network - Converted to REST v2
+      - purefa_ntp - Added Fusion support.
+      - purefa_pod - Added support for SafeMode protection group configuration
+      - purefa_syslog - Added Fusion support.
+      - purefa_user - All AD users to have SSH keys and/or API tokens assigned, even
+        if they have never accessed the FlashArray before. AD users must have ``ad_user``
+        set as ``true``.
+    fragments:
+    - 743_network_v2.yaml
+    - 776_workload_info.yaml
+    - 777_info_rest2.yaml
+    - 779_deprecate_vol_tags.yaml
+    - 782_encrypt_connect.yaml
+    - 788_eula_fix.yaml
+    - 789_pg_target_change.yaml
+    - 790_ad_user.yaml
+    - 791_safemode_pod.yaml
+    - 792_fusion_ntp.yaml
+    - 793_fusion_syslog.yaml
+    - 794_fusion_pg_default_protection.yaml
+    - 795_erad.yaml
+    release_date: '2025-09-11'
+  1.37.1:
+    changes:
+      bugfixes:
+      - purefa_network - Resolve typo that causes network updates to not apply correctly
+    fragments:
+    - 800_network_fix.yaml
+    release_date: '2025-09-11'
+  1.38.0:
+    changes:
+      bugfixes:
+      - purefa_certs - Resolved error with incorrect use of ``key_size`` for imported
+        certificates
+      - purefa_host - Fixed Pydantic error when updating preferred_arrays
+      - purefa_info - Ensured that volumes, hosts, host_groups and transfers are correctly
+        listed for protection groups
+      - purefa_info - Fixed AttributeError in config section related to SSO SAML2
+      - purefa_info - Fixed issue with replication connection throttle reporting
+      - purefa_info - Fixed issue with undo-demote pods not reporting correctly
+      - purefa_info - Resolved AttributeError in volume subset
+      - purefa_subnet - Fixed failure when trying to update a subnet with no gateway
+        defined
+      minor_changes:
+      - plugins/module_utils/purefa.py - Removed ``get_system`` function as REST v1
+        no longer supported by Collection
+      - purefa_dsrole_old - Upgraded to REST v2
+      - purefa_policy - Upgraded to REST v2
+      - purefa_volume_tags - Add `tag` parameter to specify tag to be deleted by key
+        name
+      - purefa_volume_tags - Upgraded to REST v2 and added Fusion support
+    fragments:
+    - 778_remove_system.yaml
+    - 802_empty_gateway_subnet.yaml
+    - 805_no_pe.yaml
+    - 806_throttle_info_fix.yaml
+    - 812_info_sso.yaml
+    - 813_host_pa.yaml
+    - 814_policy_v2.yaml
+    - 815_volume_tags_v2.yaml
+    - 818_cert_import.yaml
+    - 81_dsrole_old_v2.yaml
+    release_date: '2025-09-19'
+  1.39.0:
+    changes:
+      bugfixes:
+      - purefa_eradication - Idempotency fix
+      - purefa_info - Fixed AttributeError for hgroups subset
+      - purefa_pg - Fixed AttributeError adding target to PG
+      minor_changes:
+      - purefa_arrayname - Added Fusion support
+      - purefa_audits - Added Fusion support
+      - purefa_banner - Added Fusion support
+      - purefa_connect - Added Fusion support
+      - purefa_console - Added Fusion support
+      - purefa_directory - Added Fusion support
+      - purefa_dirsnap - Added Fusion support
+      - purefa_ds - Added Fusion support
+      - purefa_dsrole - Added Fusion support
+      - purefa_endpoint - Added Fusion support
+      - purefa_eradication - Added Fusion support
+      - purefa_export - Added Fusion support
+      - purefa_fs - Added Fusion support
+      - purefa_maintenance - Timeout window updated
+      - purefa_messages - Added Fusion support
+      - purefa_offload - Added Fusion support
+      - purefa_policy - Added Fusion support
+      - purefa_syslog_settings - Added Fusion support
+      - purefa_timeout - Added Fusion support
+    fragments:
+    - 821_dir_fusion.yaml
+    - 822_dirsnap_fusion.yaml
+    - 823_arrays_fusion.yaml
+    - 824_audit_fusion.yaml
+    - 825_conn_fusion.yaml
+    - 826_ds_fusion.yaml
+    - 827_pe_fusion.yaml
+    - 829_exports_fusion.yaml
+    - 830_fs_fusion.yaml
+    - 831_messages_fusion.yaml
+    - 833_hg_destroyed_info.yaml
+    - 834_offload_fusion.yaml
+    - 835_policy_fusion.yaml
+    - 835_syslog_servers_fusion.yaml
+    - 838_pg_target_fix.yaml
+    - 840_eradication_idempotency.yaml
+    - 844_main_window.yaml
+    release_date: '2025-10-02'
   1.4.0:
     changes:
       bugfixes:

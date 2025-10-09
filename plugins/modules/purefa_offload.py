@@ -20,9 +20,8 @@ module: purefa_offload
 version_added: '1.0.0'
 short_description: Create, modify and delete NFS, S3 or Azure offload targets
 description:
-- Create, modify and delete NFS, S3 or Azure offload targets.
-- Only supported on Purity v5.2.0 or higher.
-- You must have a correctly configured offload network for offload to work.
+- Create, modify and delete NFS, S3, Azure or GCP offload targets.
+- You must have a correctly configured offload app installed and a correctly configured offload network for offload to work.
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
@@ -113,6 +112,14 @@ options:
     - This parameter is optional and should be used only when region autodetection fails.
     type: str
     version_added: '1.32.0'
+  context:
+    description:
+    - Name of fleet member on which to perform the operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.39.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -188,29 +195,27 @@ REGEX_TARGET_NAME = re.compile(r"^[a-zA-Z0-9\-]*$")
 MULTIOFFLOAD_LIMIT = 1
 PROFILE_API_VERSION = "2.25"
 NO_SNAP2NFS_VERSION = "2.27"
+CONTEXT_VERSION = "2.38"
 
 
 def get_target(module, array):
     """Return target or None"""
-    res = array.get_offloads(names=[module.params["name"]])
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        res = array.get_offloads(
+            names=[module.params["name"]], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_offloads(names=[module.params["name"]])
     if res.status_code == 200:
         return list(res.items)[0]
-    else:
-        return None
+    return None
 
 
 def create_offload(module, array):
     """Create offload target"""
     changed = True
     api_version = array.get_rest_version()
-    # First check if the offload network inteface is there and enabled
-    res = array.get_network_interfaces(names=["@offload.data0"])
-    if res.status_code != 200:
-        module.fail_json(msg="Offload Network interface doesn't exist. Please resolve.")
-    if not list(res.items)[0].enabled:
-        module.fail_json(
-            msg="Offload Network interface not correctly configured. Please resolve."
-        )
     if not module.check_mode:
         if module.params["protocol"] == "gcp":
             if PROFILE_API_VERSION in api_version and module.params["profile"]:
@@ -284,11 +289,19 @@ def create_offload(module, array):
                     mount_options=module.params["options"],
                 )
             offload = OffloadPost(nfs=bucket)
-        res = array.post_offloads(
-            offload=offload,
-            initialize=module.params["initialize"],
-            names=[module.params["name"]],
-        )
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.post_offloads(
+                offload=offload,
+                initialize=module.params["initialize"],
+                names=[module.params["name"]],
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.post_offloads(
+                offload=offload,
+                initialize=module.params["initialize"],
+                names=[module.params["name"]],
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to create {0} offload {1}. Error: {2}"
@@ -310,8 +323,14 @@ def update_offload(module, array):
 def delete_offload(module, array):
     """Delete offload target"""
     changed = True
+    api_version = array.get_rest_version()
     if not module.check_mode:
-        res = array.delete_offloads(names=[module.params["name"]])
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.delete_offloads(
+                names=[module.params["name"]], context_names=[module.params["context"]]
+            )
+        else:
+            res = array.delete_offloads(names=[module.params["name"]])
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to delete offload {0}. Error: {1}".format(
@@ -365,6 +384,7 @@ def main():
             options=dict(type="str", default=""),
             uri=dict(type="str"),
             auth_region=dict(type="str"),
+            context=dict(type="str", default=""),
         )
     )
 
@@ -443,20 +463,6 @@ def main():
                 "Bucket name must be between 3 and 63 characters "
                 "(lowercase, alphanumeric, dash or period) in length "
                 "and begin and end with a letter or number."
-            )
-
-    res = array.get_apps(names=["offload"])
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Correct Offload app not installed or incorrectly configured"
-        )
-    else:
-        app_state = list(res.items)[0]
-        if LooseVersion(app_state.version) != LooseVersion(
-            list(array.get_arrays().items)[0].version
-        ):
-            module.fail_json(
-                msg="Offload app version must match Purity version. Please upgrade."
             )
 
     target = get_target(module, array)

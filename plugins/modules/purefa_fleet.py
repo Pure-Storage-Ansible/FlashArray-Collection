@@ -177,10 +177,13 @@ def add_fleet_members(module, array):
     api_version = array.get_rest_version()
     if not module.params["member_url"] and not module.params["member_api"]:
         module.fail_json(msg="missing required arguments: member_api, member_url")
-    try:
-        fleet_key = list(array.post_fleets_fleet_key().items)[0].fleet_key
-    except Exception:
-        module.fail_json(msg="Fleet key generation failed")
+    res = array.post_fleets_fleet_key()
+    if res.status_code == 200:
+        fleet_key = list(res.items)[0].fleet_key
+    else:
+        module.fail_json(
+            msg="Fleet key generation failed. Error: {0}".format(res.errors[0].message)
+        )
     if HAS_URLLIB3 and module.params["disable_warnings"]:
         urllib3.disable_warnings()
     if HAS_DISTRO:
@@ -354,17 +357,15 @@ def main():
         )
     state = module.params["state"]
 
+    fleet = False
     fleet_res = array.get_fleets()
     if fleet_res.status_code == 404:
         module.fail_json(
             msg="Fusion is not enabled on this system. "
             "Please speak to Pure Support to enable this feature"
         )
-    else:
-        try:
-            fleet = list(fleet_res.items)
-        except Exception:
-            fleet = False
+    elif fleet_res.status_code:
+        fleet = list(fleet_res.items)
 
     if state == "create" and not fleet:
         create_fleet(module, array)

@@ -4,6 +4,100 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.39.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_arrayname - Added Fusion support
+- purefa_audits - Added Fusion support
+- purefa_banner - Added Fusion support
+- purefa_connect - Added Fusion support
+- purefa_console - Added Fusion support
+- purefa_directory - Added Fusion support
+- purefa_dirsnap - Added Fusion support
+- purefa_ds - Added Fusion support
+- purefa_dsrole - Added Fusion support
+- purefa_endpoint - Added Fusion support
+- purefa_eradication - Added Fusion support
+- purefa_export - Added Fusion support
+- purefa_fs - Added Fusion support
+- purefa_maintenance - Timeout window updated
+- purefa_messages - Added Fusion support
+- purefa_offload - Added Fusion support
+- purefa_policy - Added Fusion support
+- purefa_syslog_settings - Added Fusion support
+- purefa_timeout - Added Fusion support
+
+Bugfixes
+--------
+
+- purefa_eradication - Idempotency fix
+- purefa_info - Fixed AttributeError for hgroups subset
+- purefa_pg - Fixed AttributeError adding target to PG
+
+v1.38.0
+=======
+
+Minor Changes
+-------------
+
+- plugins/module_utils/purefa.py - Removed ``get_system`` function as REST v1 no longer supported by Collection
+- purefa_dsrole_old - Upgraded to REST v2
+- purefa_policy - Upgraded to REST v2
+- purefa_volume_tags - Add `tag` parameter to specify tag to be deleted by key name
+- purefa_volume_tags - Upgraded to REST v2 and added Fusion support
+
+Bugfixes
+--------
+
+- purefa_certs - Resolved error with incorrect use of ``key_size`` for imported certificates
+- purefa_host - Fixed Pydantic error when updating preferred_arrays
+- purefa_info - Ensured that volumes, hosts, host_groups and transfers are correctly listed for protection groups
+- purefa_info - Fixed AttributeError in config section related to SSO SAML2
+- purefa_info - Fixed issue with replication connection throttle reporting
+- purefa_info - Fixed issue with undo-demote pods not reporting correctly
+- purefa_info - Resolved AttributeError in volume subset
+- purefa_subnet - Fixed failure when trying to update a subnet with no gateway defined
+
+v1.37.1
+=======
+
+Bugfixes
+--------
+
+- purefa_network - Resolve typo that causes network updates to not apply correctly
+
+v1.37.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_connect - Allow asynchronous FC-based replication
+- purefa_default_protection - Added Fusion support.
+- purefa_info - Added new subsets ``workloads`` and ``presets``
+- purefa_info - Converted to use REST 2
+- purefa_network - Converted to REST v2
+- purefa_ntp - Added Fusion support.
+- purefa_pod - Added support for SafeMode protection group configuration
+- purefa_syslog - Added Fusion support.
+- purefa_user - All AD users to have SSH keys and/or API tokens assigned, even if they have never accessed the FlashArray before. AD users must have ``ad_user`` set as ``true``.
+
+Deprecated Features
+-------------------
+
+- purefa_volume_tags - Deprecated due to removal of REST 1.x support. Will be removed in Collection 2.0.0
+
+Bugfixes
+--------
+
+- purefa_connect - Ensured that encrypted connections use encrypted connection keys
+- purefa_eradication - Fixed idempotency issue
+- purefa_eula - Fix AttributeError when first sogning EULA
+- purefa_pg - Changing target for PG no longer requires a ``FixedReference``
+
 v1.36.0
 =======
 

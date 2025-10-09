@@ -57,11 +57,6 @@ EXAMPLES = r"""
 RETURN = r"""
 """
 
-HAS_PURESTORAGE = True
-try:
-    from pypureclient import flasharray
-except ImportError:
-    HAS_PURESTORAGE = False
 import time
 
 from ansible.module_utils.basic import AnsibleModule
@@ -86,9 +81,6 @@ def main():
     )
     module = AnsibleModule(argument_spec, supports_check_mode=True)
 
-    if not HAS_PURESTORAGE:
-        module.fail_json(msg="py-pure-client sdk is required for this module")
-
     array = get_array(module)
     api_version = array.get_rest_version()
     audits = []
@@ -100,14 +92,14 @@ def main():
                 all_audits = list(
                     array.get_audits(
                         limit=module.params["limit"],
-                        sort=flasharray.Property("time-"),
+                        sort=["time-"],
                     ).items
                 )
             else:
                 all_audits = list(
                     array.get_sessions(
                         limit=module.params["limit"],
-                        sort=flasharray.Property("start_time-"),
+                        sort=["start_time-"],
                     ).items
                 )
             for audit in range(0, len(all_audits)):
@@ -133,7 +125,7 @@ def main():
                         "location": getattr(all_audits[audit], "location", None),
                         "user": getattr(all_audits[audit], "user", None),
                         "event": all_audits[audit].event,
-                        "event_count": all_audits[audit].event_count,
+                        "event_count": getattr(all_audits[audit], "event_count", None),
                         "user_interface": getattr(
                             all_audits[audit], "user_interface", None
                         ),

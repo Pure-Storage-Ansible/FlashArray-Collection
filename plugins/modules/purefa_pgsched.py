@@ -112,7 +112,7 @@ options:
     type: int
   context:
     description:
-    - Name of fleet member on which to perform the volume operation.
+    - Name of fleet member on which to perform the operation.
     - This requires the array receiving the request is a member of a fleet
       and the context name to be a member of the same fleet.
     type: str
@@ -226,13 +226,16 @@ def get_pgroup(module, array):
 
 
 def _convert_to_minutes(hour):
-    if hour[-2:] == "AM" and hour[:2] == "12":
+    period = hour[-2:].upper()
+    hour_value = int(hour[:-2])
+
+    if period == "AM" and hour_value == 12:
         return 0
-    elif hour[-2:] == "AM":
-        return int(hour[:-2]) * 3600
-    elif hour[-2:] == "PM" and hour[:2] == "12":
+    if period == "AM":
+        return hour_value * 3600
+    if period == "PM" and hour_value == 12:
         return 43200
-    return (int(hour[:-2]) + 12) * 3600
+    return (hour_value + 12) * 3600
 
 
 def update_schedule(module, array, snap_time, repl_time):

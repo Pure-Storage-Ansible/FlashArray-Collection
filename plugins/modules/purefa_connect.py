@@ -57,6 +57,14 @@ options:
     type: bool
     default: false
     version_added: '1.30.0'
+  context:
+    description:
+    - Name of fleet member on which to perform the operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.39.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -113,6 +121,7 @@ import socket
 
 
 ENCRYPT_VERSION = "2.33"
+CONTEXT_VERSION = "2.38"
 
 
 def _lookup(address):
@@ -123,33 +132,46 @@ def _lookup(address):
 
 
 def _check_connected(module, array):
-    res = array.get_array_connections()
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        res = array.get_array_connections(context_names=[module.params["context"]])
+    else:
+        res = array.get_array_connections()
     if res.status_code != 200:
         return None
-    else:
-        connected_arrays = list(res.items)
-        for target in range(0, len(connected_arrays)):
-            remote_mgmt_address = connected_arrays[target].management_address
-            if (
-                remote_mgmt_address == module.params["target_url"].strip("[]")
-                or remote_mgmt_address
-                in [_lookup(module.params["target_url"].strip("[]"))]
-                and "connected" in connected_arrays[target].status
-            ):
-                return connected_arrays[target]
-        return None
+    connected_arrays = list(res.items)
+    for target in range(0, len(connected_arrays)):
+        remote_mgmt_address = connected_arrays[target].management_address
+        if (
+            remote_mgmt_address == module.params["target_url"].strip("[]")
+            or remote_mgmt_address in [_lookup(module.params["target_url"].strip("[]"))]
+            and "connected" in connected_arrays[target].status
+        ):
+            return connected_arrays[target]
+    return None
 
 
 def break_connection(module, array, target_array):
     """Break connection between arrays"""
     changed = True
-    source_array = list(array.get_arrays().items)[0].name
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        source_array = list(
+            array.get_arrays(context_names=[module.params["context"]]).items
+        )[0].name
+    else:
+        source_array = list(array.get_arrays().items)[0].name
     if getattr(target_array, "management_address", None) is None:
         module.fail_json(
             msg="disconnect can only happen from the array that formed the connection"
         )
     if not module.check_mode:
-        res = array.delete_array_connections(names=[target_array.name])
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.delete_array_connections(
+                names=[target_array.name], context_names=[module.params["context"]]
+            )
+        else:
+            res = array.delete_array_connections(names=[target_array.name])
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to disconnect {0} from {1}.Error: {2}".format(
@@ -179,51 +201,47 @@ def create_connection(module, array):
             "version": 1.5,
             "platform": platform.platform(),
         }
-    try:
-        remote_system = flasharray.Client(
-            target=module.params["target_url"],
-            api_token=module.params["target_api"],
-            user_agent=user_agent,
+    remote_system = flasharray.Client(
+        target=module.params["target_url"],
+        api_token=module.params["target_api"],
+        user_agent=user_agent,
+    )
+    connection_key = list(
+        remote_system.get_array_connections_connection_key(
+            encrypted=module.params["encrypted"]
+        ).items
+    )[0].connection_key
+    if LooseVersion(ENCRYPT_VERSION) >= LooseVersion(api_version):
+        if module.params["encrypted"]:
+            encrypted = "encrypted"
+        else:
+            encrypted = "unencrypted"
+        array_connection = flasharray.ArrayConnectionPost(
+            type=module.params["connection"].lower(),
+            management_address=module.params["target_url"].strip("[]"),
+            replication_transport=module.params["connection"],
+            connection_key=connection_key,
+            encypted=encrypted,
         )
-        connection_key = list(
-            remote_system.get_array_connections_connection_key(
-                encrypted=module.params["encrypted"]
-            ).items
-        )[0].connection_key
-        remote_array = list(remote_system.get_arrays().items)[0].name
-        if LooseVersion(ENCRYPT_VERSION) >= LooseVersion(api_version):
-            if module.params["encrypted"]:
-                encrypted = "encrypted"
-            else:
-                encrypted = "unencrypted"
-            array_connection = flasharray.ArrayConnectionPost(
-                type=module.params["connection"].lower(),
-                management_address=module.params["target_url"].strip("[]"),
-                replication_transport=module.params["connection"],
-                connection_key=connection_key,
-                encypted=encrypted,
+    else:
+        array_connection = flasharray.ArrayConnectionPost(
+            type=module.params["connection"].lower(),
+            management_address=module.params["target_url"].strip("[]"),
+            replication_transport=module.params["connection"],
+            connection_key=connection_key,
+        )
+    if not module.check_mode:
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.post_array_connections(
+                array_connection=array_connection,
+                context_names=[module.params["context"]],
             )
         else:
-            array_connection = flasharray.ArrayConnectionPost(
-                type=module.params["connection"].lower(),
-                management_address=module.params["target_url"].strip("[]"),
-                replication_transport=module.params["connection"],
-                connection_key=connection_key,
-            )
-        if not module.check_mode:
             res = array.post_array_connections(array_connection=array_connection)
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Array Connection failed. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
-    except Exception:
-        module.fail_json(
-            msg="Failed to connect to remote array {0}.".format(
-                module.params["target_url"]
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Array Connection failed. Error: {0}".format(res.errors[0].message)
             )
-        )
     module.exit_json(changed=changed)
 
 
@@ -237,6 +255,7 @@ def main():
             target_url=dict(type="str", required=True),
             target_api=dict(type="str"),
             encrypted=dict(type="bool", default=False),
+            context=dict(type="str", default=""),
         )
     )
 

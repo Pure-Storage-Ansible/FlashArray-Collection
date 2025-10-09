@@ -70,7 +70,7 @@ options:
     version_added: '1.32.0'
   context:
     description:
-    - Name of fleet member on which to perform the volume operation.
+    - Name of fleet member on which to perform the operation.
     - This requires the array receiving the request is a member of a fleet
       and the context name to be a member of the same fleet.
     type: str
@@ -178,10 +178,9 @@ def rename_exists(module, array):
             ).status_code
             == 200
         )
-    else:
-        return bool(
-            array.get_host_groups(names=[module.params["rename"]]).status_code == 200
-        )
+    return bool(
+        array.get_host_groups(names=[module.params["rename"]]).status_code == 200
+    )
 
 
 def get_hostgroup_hosts(module, array):

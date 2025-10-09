@@ -132,10 +132,7 @@ def remove(duplicate):
 
 def _get_source(module, array):
     res = array.get_network_interfaces(names=[module.params["source"]])
-    if res.status_code == 200:
-        return True
-    else:
-        return False
+    return bool(res.status_code == 200)
 
 
 def delete_dns(module, array):

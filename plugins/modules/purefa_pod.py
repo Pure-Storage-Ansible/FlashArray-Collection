@@ -118,20 +118,52 @@ options:
     version_added: '1.29.0'
   context:
     description:
-    - Name of fleet member on which to perform the volume operation.
+    - Name of fleet member on which to perform the operation.
     - This requires the array receiving the request is a member of a fleet
       and the context name to be a member of the same fleet.
     type: str
     default: ""
     version_added: '1.33.0'
+  with_default_protection:
+    description:
+    - Whether to keep the default container protection for the pod
+    - Only applicable for first creation of a pod
+    type: bool
+    default: true
+    version_added: '1.37.0'
+  default_protection_pg:
+      description:
+      - Name of the default protection default for the pod
+      - Only applicable for existing pods
+      - Name must include the pod name
+      - Will create the PG in the pod if it doesn't already exist
+      - To remove an existing defaul protection group provide I([])
+      type: str
+      version_added: '1.37.0'
+  retention_lock:
+    description:
+      - Define if I(default_protection_pg) has retention lock enabled
+    type: bool
+    default: True
+    version_added: '1.37.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
 
 EXAMPLES = r"""
-- name: Create new pod named foo
+- name: Create new pod named foo without SafeMode default protection
   purestorage.flasharray.purefa_pod:
     name: foo
+    with_default_protection: false
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+    state: present
+
+- name: Create new pod named foo with default protection PG safe, and with PG retention lock disabled
+  purestorage.flasharray.purefa_pod:
+    name: foo
+    default_protection_pg: safe
+    retention_lock: false
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: present
@@ -188,7 +220,14 @@ RETURN = r"""
 
 HAS_PURESTORAGE = True
 try:
-    from pypureclient.flasharray import PodPost, PodPatch, Reference
+    from pypureclient.flasharray import (
+        PodPost,
+        PodPatch,
+        Reference,
+        ContainerDefaultProtection,
+        DefaultProtectionReference,
+        ProtectionGroup,
+    )
 except ImportError:
     HAS_PURESTORAGE = False
 
@@ -204,6 +243,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
     LooseVersion,
 )
 
+DEFAULT_API_VERSION = "2.16"
 POD_QUOTA_VERSION = "2.23"
 THROTTLE_VERSION = "2.31"
 MEMBERS_VERSION = "2.36"
@@ -222,35 +262,27 @@ def get_pod(module, array):
             ).status_code
             == 200
         )
-    else:
-        return bool(
-            array.get_pods(names=[module.params["name"]], destroyed=False).status_code
-            == 200
-        )
+    return bool(
+        array.get_pods(names=[module.params["name"]], destroyed=False).status_code
+        == 200
+    )
 
 
 def get_undo_pod(module, array):
     """Return Undo Pod or None"""
     api_version = array.get_rest_version()
     if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        try:
-            return list(
-                array.get_pods(
-                    names=[module.params["name"] + ".undo-demote.*"],
-                    context_names=[module.params["context"]],
-                ).items
-            )
-        except Exception:
-            return None
+        res = array.get_pods(
+            names=[module.params["name"] + ".undo-demote.*"],
+            context_names=[module.params["context"]],
+        )
     else:
-        try:
-            return list(
-                array.get_pods(
-                    names=[module.params["name"] + ".undo-demote.*"],
-                ).items
-            )
-        except Exception:
-            return None
+        res = array.get_pods(
+            names=[module.params["name"] + ".undo-demote.*"],
+        )
+    if res.status_code == 200:
+        return list(res.items)
+    return None
 
 
 def get_target(module, array):
@@ -264,11 +296,10 @@ def get_target(module, array):
             ).status_code
             == 200
         )
-    else:
-        return bool(
-            array.get_pods(names=[module.params["target"]], destroyed=False).status_code
-            == 200
-        )
+    return bool(
+        array.get_pods(names=[module.params["target"]], destroyed=False).status_code
+        == 200
+    )
 
 
 def get_destroyed_pod(module, array):
@@ -283,11 +314,9 @@ def get_destroyed_pod(module, array):
             ).status_code
             == 200
         )
-    else:
-        return bool(
-            array.get_pods(names=[module.params["name"]], destroyed=True).status_code
-            == 200
-        )
+    return bool(
+        array.get_pods(names=[module.params["name"]], destroyed=True).status_code == 200
+    )
 
 
 def get_destroyed_target(module, array):
@@ -302,11 +331,10 @@ def get_destroyed_target(module, array):
             ).status_code
             == 200
         )
-    else:
-        return bool(
-            array.get_pods(names=[module.params["target"]], destroyed=True).status_code
-            == 200
-        )
+    return bool(
+        array.get_pods(names=[module.params["target"]], destroyed=True).status_code
+        == 200
+    )
 
 
 def check_arrays(module, array):
@@ -478,6 +506,189 @@ def create_pod(module, array):
                         module.params["name"], res.errors[0].message
                     )
                 )
+        if LooseVersion(DEFAULT_API_VERSION) <= LooseVersion(api_version):
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.get_container_default_protections(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.get_container_default_protections(
+                    names=[module.params["name"]]
+                )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to get container default protection for pod {0}. Error: {1}".format(
+                        module.params["name"], res.errors[0].message
+                    )
+                )
+            safemode_pg = list(res.items)[0].default_protections
+            if safemode_pg:
+                pgname = safemode_pg[0].name
+            else:
+                pgname = None
+            if pgname and not module.params["with_default_protection"]:
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_container_default_protections(
+                        names=[module.params["name"]],
+                        context_names=[module.params["context"]],
+                        container_default_protection=(
+                            ContainerDefaultProtection(default_protections=[])
+                        ),
+                    )
+                else:
+                    res = array.patch_container_default_protections(
+                        names=[module.params["name"]],
+                        container_default_protection=(
+                            ContainerDefaultProtection(default_protections=[])
+                        ),
+                    )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to remove default protection for pod {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_protection_groups(
+                        names=[pgname],
+                        context_names=[module.params["context"]],
+                        protection_group=ProtectionGroup(destroyed=True),
+                    )
+                else:
+                    res = array.patch_protection_groups(
+                        names=[pgname],
+                        protection_group=ProtectionGroup(destroyed=True),
+                    )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Deleting safemode default pgroup {0} failed. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    res = array.delete_protection_groups(
+                        names=[pgname], context_names=[module.params["context"]]
+                    )
+                else:
+                    res = array.delete_protection_groups(names=[pgname])
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Eradicating safemode default pgroup {0} failed. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+            if (
+                safemode_pg
+                and not module.params["with_default_protection"]
+                and module.params["default_protection_pg"]
+            ):
+                if module.params["default_protection_pg"] == "[]":
+                    module.fail_json(
+                        msg="use with_default_protection: false to set no default protection"
+                    )
+                if pgname != module.params["default_protection_pg"]:
+                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                        res = array.get_protection_groups(
+                            context_names=[module.params["context"]],
+                            names=[module.params["default_protection_pg"]],
+                        )
+                    else:
+                        res = array.get_protection_groups(
+                            names=[module.params["default_protection_pg"]]
+                        )
+                if res.status_code != 200:
+                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                        pg_res = array.post_protection_groups(
+                            context_names=[module.params["context"]],
+                            names=[module.params["default_protection_pg"]],
+                        )
+                    else:
+                        pg_res = array.post_protection_groups(
+                            names=[module.params["default_protection_pg"]]
+                        )
+                    if pg_res.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to create default protection group {0}. Error: {1}".format(
+                                module.params["name"], res.errors[0].message
+                            )
+                        )
+                if (
+                    module.params["retention_lock"]
+                    and module.params["default_protection_pg"] != []
+                ):
+                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                        res = array.patch_protection_groups(
+                            context_names=[module.params["context"]],
+                            names=[module.params["default_protection_pg"]],
+                            protection_group=ProtectionGroup(
+                                retention_lock="ratcheted"
+                            ),
+                        )
+                    else:
+                        res = array.patch_protection_groups(
+                            names=[module.params["default_protection_pg"]],
+                            protection_group=ProtectionGroup(
+                                retention_lock="ratcheted"
+                            ),
+                        )
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Failed to set retention lock for protection group {0}. Error: {1}".format(
+                                module.params["default_protection_pg"],
+                                res.errors[0].message,
+                            )
+                        )
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    array.patch_container_default_protections(
+                        context_names=[module.params["context"]],
+                        names=[module.params["name"]],
+                        container_default_protection=(
+                            ContainerDefaultProtection(default_protections=[])
+                        ),
+                    )
+                else:
+                    array.patch_container_default_protections(
+                        names=[module.params["name"]],
+                        container_default_protection=(
+                            ContainerDefaultProtection(default_protections=[])
+                        ),
+                    )
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_container_default_protections(
+                        context_names=[module.params["context"]],
+                        names=[module.params["name"]],
+                        container_default_protection=(
+                            ContainerDefaultProtection(
+                                default_protections=[
+                                    DefaultProtectionReference(
+                                        name=module.params["default_protection_pg"],
+                                        type="protection_group",
+                                    )
+                                ]
+                            )
+                        ),
+                    )
+                else:
+                    res = array.patch_container_default_protections(
+                        names=[module.params["name"]],
+                        container_default_protection=(
+                            ContainerDefaultProtection(
+                                default_protections=[
+                                    DefaultProtectionReference(
+                                        name=module.params["default_protection_pg"],
+                                        type="protection_group",
+                                    )
+                                ]
+                            )
+                        ),
+                    )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to set default protection for pod {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
     module.exit_json(changed=changed)
 
 
@@ -780,7 +991,126 @@ def update_pod(module, array):
                             module.params["name"], res.errors[0].message
                         )
                     )
-
+    if module.params["default_protection_pg"] and LooseVersion(
+        DEFAULT_API_VERSION
+    ) <= LooseVersion(api_version):
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            safemode_pg = list(
+                array.get_container_default_protections(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                ).items
+            )[0].default_protections
+        else:
+            safemode_pg = list(
+                array.get_container_default_protections(
+                    names=[module.params["name"]]
+                ).items
+            )[0].default_protections
+        if safemode_pg:
+            pgname = safemode_pg[0].name
+        else:
+            pgname = []
+        if pgname != module.params["default_protection_pg"]:
+            changed = True
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.get_protection_groups(
+                    names=[module.params["default_protection_pg"]],
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.get_protection_groups(
+                    names=[module.params["default_protection_pg"]]
+                )
+            if res.status_code != 200:
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    pg_res = array.post_protection_groups(
+                        context_names=[module.params["context"]],
+                        names=[module.params["default_protection_pg"]],
+                    )
+                else:
+                    pg_res = array.post_protection_groups(
+                        names=[module.params["default_protection_pg"]]
+                    )
+                if pg_res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to create default protection group {0}. Error: {1}".format(
+                            module.params["name"], res.errors[0].message
+                        )
+                    )
+            if (
+                module.params["retention_lock"]
+                and module.params["default_protection_pg"] != []
+            ):
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_protection_groups(
+                        context_names=[module.params["context"]],
+                        names=[module.params["default_protection_pg"]],
+                        protection_group=ProtectionGroup(retention_lock="ratcheted"),
+                    )
+                else:
+                    res = array.patch_protection_groups(
+                        names=[module.params["default_protection_pg"]],
+                        protection_group=ProtectionGroup(retention_lock="ratcheted"),
+                    )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to set retention lock for protection group {0}. Error: {1}".format(
+                            module.params["default_protection_pg"],
+                            res.errors[0].message,
+                        )
+                    )
+            if safemode_pg:
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    array.patch_container_default_protections(
+                        context_names=[module.params["context"]],
+                        names=[module.params["name"]],
+                        container_default_protection=(
+                            ContainerDefaultProtection(default_protections=[])
+                        ),
+                    )
+                else:
+                    array.patch_container_default_protections(
+                        names=[module.params["name"]],
+                        container_default_protection=(
+                            ContainerDefaultProtection(default_protections=[])
+                        ),
+                    )
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.patch_container_default_protections(
+                context_names=[module.params["context"]],
+                names=[module.params["name"]],
+                container_default_protection=(
+                    ContainerDefaultProtection(
+                        default_protections=[
+                            DefaultProtectionReference(
+                                name=module.params["default_protection_pg"],
+                                type="protection_group",
+                            )
+                        ]
+                    )
+                ),
+            )
+        else:
+            res = array.patch_container_default_protections(
+                names=[module.params["name"]],
+                container_default_protection=(
+                    ContainerDefaultProtection(
+                        default_protections=[
+                            DefaultProtectionReference(
+                                name=module.params["default_protection_pg"],
+                                type="protection_group",
+                            )
+                        ]
+                    )
+                ),
+            )
+        if res.status_code != 200:
+            module.fail_json(
+                msg="Failed to update default protection for pod {0}. Error: {1}".format(
+                    module.params["name"], res.errors[0].message
+                )
+            )
     module.exit_json(changed=changed)
 
 
@@ -981,6 +1311,9 @@ def main():
             throttle=dict(type="bool", default=False),
             delete_contents=dict(type="bool", default=False),
             context=dict(type="str", default=""),
+            with_default_protection=dict(type="bool", default=True),
+            default_protection_pg=dict(type="str"),
+            retention_lock=dict(type="bool", default=True),
         )
     )
 
@@ -1001,7 +1334,6 @@ def main():
     state = module.params["state"]
     array = get_array(module)
 
-    api_version = array.get_rest_version()
     pod = get_pod(module, array)
     destroyed = ""
     if not pod:

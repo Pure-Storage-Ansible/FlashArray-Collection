@@ -160,7 +160,7 @@ options:
     version_added: '1.16.0'
   context:
     description:
-    - Name of fleet member on which to perform the volume operation.
+    - Name of fleet member on which to perform the operation.
     - This requires the array receiving the request is a member of a fleet
       and the context name to be a member of the same fleet.
     type: str
@@ -377,11 +377,12 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 
 VLAN_API_VERSION = "2.16"
 CONTEXT_API_VERSION = "2.38"
+REALMS_CONTEXT_VERSION = "2.47"
 
 
 def _is_cbs(array, is_cbs=False):
     """Is the selected array a Cloud Block Store"""
-    api_version = array.get_rest_version()
+    # api_version = array.get_rest_version()
     #
     # Until get_controller has context_names we can check against a target system
     # so CBS can't be support for Fusion until 6.8.4??
@@ -1033,17 +1034,22 @@ def _update_preferred_array(module, array, answer=False):
         ].preferred_arrays
     if preferred_array == [] and module.params["preferred_array"] != ["delete"]:
         answer = True
+        preferred_array_list = []
+        for preferred_array in range(0, len(module.params["preferred_array"])):
+            preferred_array_list.append(
+                Reference(name=module.params["preferred_array"][preferred_array])
+            )
         if not module.check_mode:
             if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                 res = array.patch_hosts(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
-                    host=HostPatch(preferred_arrays=module.params["preferred_array"]),
+                    host=HostPatch(preferred_arrays=preferred_array_list),
                 )
             else:
                 res = array.patch_hosts(
                     names=[module.params["name"]],
-                    host=HostPatch(preferred_arrays=module.params["preferred_array"]),
+                    host=HostPatch(preferred_arrays=preferred_array_list),
                 )
             if res.status_code != 200:
                 module.fail_json(
@@ -1190,8 +1196,7 @@ def get_multi_hosts(module, array):
             ).status_code
             == 200
         )
-    else:
-        return bool(array.get_hosts(names=hosts).status_code == 200)
+    return bool(array.get_hosts(names=hosts).status_code == 200)
 
 
 def get_host(module, array):
@@ -1531,15 +1536,15 @@ def move_host(module, array):
         module.fail_json(msg="context is not yet supported for host move function")
     api_version = array.get_rest_version()
     local_array = list(array.get_arrays().items)[0].name
-    current_realm = ""
+    # current_realm = ""
     if len(module.params["move"]) > 1 and len(module.params["move"]) != module.params[
         "move"
     ].count("local"):
         module.fail_json(msg="Cannot mix local with another realm in move target list")
     if "local" in module.params["move"] and "::" not in module.params["name"]:
         module.fail_json(msg="host must be provided with current realm name")
-    if "::" in module.params["name"]:
-        current_realm = module.params["name"].split("::")[0]
+    # if "::" in module.params["name"]:
+    #    current_realm = module.params["name"].split("::")[0]
     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
         current_connections = list(
             array.get_hosts(
@@ -1555,23 +1560,23 @@ def move_host(module, array):
     changed = True
     if not module.check_mode:
         if "local" in module.params["move"]:
-            # if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            #    res = array.patch_hosts(
-            #        names=[module.params["name"]],
-            #        from_member_names=[module.params["name"].split("::")[0]],
-            #        to_member_names=[local_array],
-            #        modify_resource_access=module.params["modify_resource_access"],
-            #        host=HostPatch(),
-            #        context_names=[module.params["context"]],
-            #    )
-            # else:
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                from_member_names=[module.params["name"].split("::")[0]],
-                to_member_names=[local_array],
-                modify_resource_access=module.params["modify_resource_access"],
-                host=HostPatch(),
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_hosts(
+                    names=[module.params["name"]],
+                    from_member_names=[module.params["name"].split("::")[0]],
+                    to_member_names=[local_array],
+                    modify_resource_access=module.params["modify_resource_access"],
+                    host=HostPatch(),
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_hosts(
+                    names=[module.params["name"]],
+                    from_member_names=[module.params["name"].split("::")[0]],
+                    to_member_names=[local_array],
+                    modify_resource_access=module.params["modify_resource_access"],
+                    host=HostPatch(),
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to move host {0} to local array. Error: {1}".format(
@@ -1580,13 +1585,13 @@ def move_host(module, array):
                 )
         else:
             realm_exists = False
-            # if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            #    res = array.get_realms(
-            #        names=module.params["move"],
-            #        context_names=[module.params["context"]],
-            #    )
-            # else:
-            res = array.get_realms(names=module.params["move"])
+            if LooseVersion(REALMS_CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.get_realms(
+                    names=module.params["move"],
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.get_realms(names=module.params["move"])
             if res.status_code != 200:
                 module.fail_json(
                     msg="Move target(s) error: {0}".format(res.errors[0].message)
@@ -1595,23 +1600,23 @@ def move_host(module, array):
                 source_realm = local_array
             else:
                 source_realm = module.params["name"].split("::")[0]
-            # if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            #    res = array.patch_hosts(
-            #        names=[module.params["name"]],
-            #        from_member_names=[source_realm],
-            #        to_member_names=module.params["move"],
-            #        modify_resource_access=module.params["modify_resource_access"],
-            #        host=HostPatch(),
-            #        context_names=[module.params["context"]],
-            #    )
-            # else:
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                from_member_names=[source_realm],
-                to_member_names=module.params["move"],
-                modify_resource_access=module.params["modify_resource_access"],
-                host=HostPatch(),
-            )
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.patch_hosts(
+                    names=[module.params["name"]],
+                    from_member_names=[source_realm],
+                    to_member_names=module.params["move"],
+                    modify_resource_access=module.params["modify_resource_access"],
+                    host=HostPatch(),
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_hosts(
+                    names=[module.params["name"]],
+                    from_member_names=[source_realm],
+                    to_member_names=module.params["move"],
+                    modify_resource_access=module.params["modify_resource_access"],
+                    host=HostPatch(),
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to move host {0} to realm {1}. Error: {2}".format(

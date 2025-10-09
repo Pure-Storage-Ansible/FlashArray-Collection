@@ -113,6 +113,14 @@ options:
     - A valid signed certicate in PEM format (Base64 encoded)
     - Includes the "-----BEGIN CERTIFICATE-----" and "-----END CERTIFICATE-----" lines
     version_added: 1.24.0
+  context:
+    description:
+    - Name of fleet member on which to perform the operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: '1.39.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -184,11 +192,17 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
+
+CONTEXT_VERSION = "2.42"
 
 
 def delete_ds(module, array):
     """Delete Directory Service"""
     changed = True
+    api_version = array.get_rest_version()
     if module.params["dstype"] == "management":
         management = DirectoryServiceManagement(
             user_login_attribute="", user_object_class=""
@@ -212,9 +226,16 @@ def delete_ds(module, array):
             services=[module.params["dstype"]],
         )
     if not module.check_mode:
-        res = array.patch_directory_services(
-            names=[module.params["dstype"]], directory_service=directory_service
-        )
+        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            res = array.patch_directory_services(
+                names=[module.params["dstype"]],
+                directory_service=directory_service,
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.patch_directory_services(
+                names=[module.params["dstype"]], directory_service=directory_service
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Delete {0} Directory Service failed. Error message: {1}".format(
@@ -227,10 +248,16 @@ def delete_ds(module, array):
 def update_ds(module, array):
     """Update Directory Service"""
     changed = False
+    api_version = array.get_rest_version()
     ds_change = False
     password_required = False
     current_ds = []
-    dirservlist = list(array.get_directory_services().items)
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        dirservlist = list(
+            array.get_directory_services(context_names=[module.params["context"]]).items
+        )
+    else:
+        dirservlist = list(array.get_directory_services().items)
     for dirs in range(0, len(dirservlist)):
         if dirservlist[dirs].name == module.params["dstype"]:
             current_ds = dirservlist[dirs]
@@ -343,9 +370,16 @@ def update_ds(module, array):
     if ds_change:
         changed = True
         if not module.check_mode:
-            res = array.patch_directory_services(
-                names=[module.params["dstype"]], directory_service=directory_service
-            )
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.patch_directory_services(
+                    names=[module.params["dstype"]],
+                    directory_service=directory_service,
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_directory_services(
+                    names=[module.params["dstype"]], directory_service=directory_service
+                )
             if res.status_code != 200:
                 module.fail_json(
                     msg="{0} Directory Service failed. Error message: {1}".format(
@@ -358,9 +392,18 @@ def update_ds(module, array):
 def test_ds(module, array):
     """Test directory services configuration"""
     test_response = []
-    response = list(
-        array.get_directory_services_test(names=[module.params["dstype"]]).items
-    )
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        response = list(
+            array.get_directory_services_test(
+                names=[module.params["dstype"]],
+                context_names=[module.params["context"]],
+            ).items
+        )
+    else:
+        response = list(
+            array.get_directory_services_test(names=[module.params["dstype"]]).items
+        )
     for component in range(0, len(response)):
         if response[component].enabled:
             enabled = "true"
@@ -406,6 +449,7 @@ def main():
             ),
             check_peer=dict(type="bool", default=False),
             certificate=dict(type="str"),
+            context=dict(type="str", default=""),
         )
     )
 
@@ -417,7 +461,6 @@ def main():
         module.fail_json(msg="py-pure-client sdk is required to for this module")
 
     state = module.params["state"]
-    ds_exists = False
     dirserv = []
     dirservlist = list(array.get_directory_services().items)
     for dirs in range(0, len(dirservlist)):

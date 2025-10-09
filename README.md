@@ -17,8 +17,7 @@ The Pure Storage FlashArray collection consists of the latest versions of the Fl
     - some modules require higher versions of Purity
 - Some modules require specific Purity versions
 - distro
-- purestorage
-- py-pure-client >= 1.57.0
+- py-pure-client >= 1.75.0
 - python >= 3.9
 - netaddr >= 1.2.0
 - requests
@@ -81,12 +80,10 @@ There are many ways in which you can participate in the project, for example:
 
 Only the latest release of this collection is supported.
 
-For support please raise a GitHub Issue on this repository.
+As Red Hat Ansible Certified Content, this collection is entitled to support through the Ansible Automation Platform (AAP) using the **Create issue** button on the top right corner. If a support case cannot be opened with Red Hat and the collection has been obtained either from Galaxy or GitHub, you can raise a GitHub Issue directly with the developers [here](https://github.com/Pure-Storage-Ansible/FlashArray-Collection/issues) or get community help available on the [Ansible Forum](https://forum.ansible.com/).
 
 If you are a Pure Storage customer, you may log a support call with the Pure Storage Support team ([support\@purestorage.com](mailto:support@purestorage.com?subject=FlashArray-Ansible-Collection))
 
-If you have a Red Hat Ansible support contract, as this is a Certified collection, you may log a support call with Red Hat directly.
-  
 ## Release Notes
 
 Release notes for this collection can be found [here](https://github.com/Pure-Storage-Ansible/FlashArray-Collection/releases)
