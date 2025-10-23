@@ -2977,7 +2977,11 @@ def generate_hgroups_dict(array, performance):
             and ":" not in hg_vol.host_group.name
         ):
             name = hg_vol.host_group.name
-            vol_entry = [hg_vol.volume.name, hg_vol.lun]
+            vol_entry = {
+                "name": hg_vol.volume.name,
+                "lun": getattr(hg_vol, "lun", None),
+                "nsid": getattr(hg_vol, "nsid", None),
+            }
             vols_list = hgroups_info[name]["vols"]
             if vol_entry not in vols_list:
                 vols_list.append(vol_entry)
