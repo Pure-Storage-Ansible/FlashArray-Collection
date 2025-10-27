@@ -50,7 +50,7 @@ options:
   gateway:
     description:
     - IPv4 or IPv6 address of subnet gateway.
-    - To clear the gateway enter 0.0.0.0 or \:\: depending on IP type
+    - To clear the gateway enter "0.0.0.0" or "::" depending on IP type
     required: false
     type: str
   mtu:
