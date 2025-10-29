@@ -116,7 +116,6 @@ try:
     from pypureclient.flasharray import (
         DirectoryServiceRole,
         DirectoryServiceRolePost,
-        FixedReference,
         Reference,
         ReferenceNoId,
     )
@@ -367,13 +366,11 @@ def main():
     role = {}
     if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
         res = array.get_directory_services_roles(
-            roles=[FixedReference(name=module.params["name"])],
+            names=[module.params["name"]],
             context_names=[module.params["context"]],
         )
     else:
-        res = array.get_directory_services_roles(
-            roles=[FixedReference(name=module.params["name"])]
-        )
+        res = array.get_directory_services_roles(names=[module.params["name"]])
     if res.status_code == 200:
         role = list(res.items)[0]
     if getattr(role, "group", None) is not None:
