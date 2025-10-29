@@ -851,14 +851,18 @@ def update_pod(module, array):
                                     api_version
                                 ):
                                     res = array.patch_pods(
-                                        pod=PodPatch(requested_promotion_state="promoted"),
+                                        pod=PodPatch(
+                                            requested_promotion_state="promoted"
+                                        ),
                                         names=[module.params["name"]],
                                         context_names=[module.params["context"]],
                                         promote_from=undo_pod[0].name,
                                     )
                                 else:
                                     res = array.patch_pods(
-                                        pod=PodPatch(requested_promotion_state="promoted"),
+                                        pod=PodPatch(
+                                            requested_promotion_state="promoted"
+                                        ),
                                         names=[module.params["name"]],
                                         promote_from=undo_pod[0].name,
                                     )
@@ -867,14 +871,18 @@ def update_pod(module, array):
                                     api_version
                                 ):
                                     res = array.patch_pods(
-                                        pod=PodPatch(requested_promotion_state="promoted"),
+                                        pod=PodPatch(
+                                            requested_promotion_state="promoted"
+                                        ),
                                         names=[module.params["name"]],
                                         context_names=[module.params["context"]],
                                         promote_from=undo_pod[-1].name,
                                     )
                                 else:
                                     res = array.patch_pods(
-                                        pod=PodPatch(requested_promotion_state="promoted"),
+                                        pod=PodPatch(
+                                            requested_promotion_state="promoted"
+                                        ),
                                         names=[module.params["name"]],
                                         promote_from=undo_pod[-1].name,
                                     )
