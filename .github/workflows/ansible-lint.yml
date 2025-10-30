@@ -10,5 +10,8 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+          
       - name: Run ansible-lint
         uses: ansible/ansible-lint@main
+        with:
+          setup_python: false
