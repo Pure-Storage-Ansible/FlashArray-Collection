@@ -255,6 +255,15 @@ options:
     type: str
     default: ""
     version_added: '1.39.0'
+  continuous_availability:
+    description:
+    - Defines if continuous availability on the policy.
+    - When continuous availability is enabled on a policy, file shares are
+      accessible during otherwise disruptive scenarios such as temporary
+      network outages, controller upgrades or failovers.
+    type: bool
+    default: false
+    version_added: 1.40.0
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -471,6 +480,7 @@ SECURITY_VERSION = "2.29"
 ABE_VERSION = "2.4"
 PASSWORD_VERSION = "2.34"
 CONTEXT_VERSION = "2.38"
+CA_VERSION = "2.43"
 
 
 def rename_policy(module, array):
@@ -1177,15 +1187,29 @@ def create_policy(module, array, all_squash):
             if res.status_code == 200:
                 if LooseVersion(ABE_VERSION) <= LooseVersion(array.get_rest_version()):
                     if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.patch_policies_smb(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                            policy=PolicySmbPatch(
-                                access_based_enumeration_enabled=module.params[
-                                    "access_based_enumeration"
-                                ]
-                            ),
-                        )
+                        if LooseVersion(CA_VERSION) <= LooseVersion(api_version):
+                            res = array.patch_policies_smb(
+                                names=[module.params["name"]],
+                                context_names=[module.params["context"]],
+                                policy=PolicySmbPatch(
+                                    access_based_enumeration_enabled=module.params[
+                                        "access_based_enumeration"
+                                    ],
+                                    continuous_availability_enabled=module.params[
+                                        "continuous_availability"
+                                    ],
+                                ),
+                            )
+                        else:
+                            res = array.patch_policies_smb(
+                                names=[module.params["name"]],
+                                context_names=[module.params["context"]],
+                                policy=PolicySmbPatch(
+                                    access_based_enumeration_enabled=module.params[
+                                        "access_based_enumeration"
+                                    ]
+                                ),
+                            )
                     else:
                         res = array.patch_policies_smb(
                             names=[module.params["name"]],
@@ -1470,7 +1494,7 @@ def update_policy(module, array, api_version, all_squash):
     """Update an existing policy including add/remove rules"""
     changed = changed_dir = changed_rule = changed_enable = changed_quota = (
         changed_member
-    ) = changed_user_map = changed_abe = changed_nfs = changed_rule = False
+    ) = changed_user_map = changed_abe = changed_ca = changed_nfs = changed_rule = False
     if module.params["policy"] == "nfs":
         if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
             current_policy = list(
@@ -1727,7 +1751,12 @@ def update_policy(module, array, api_version, all_squash):
         if res.status_code == 200:
             current = list(res.items)[0]
             current_enabled = current.enabled
-            current_access_based_enumeration = current.access_based_enumeration_enabled
+            current_access_based_enumeration = getattr(
+                current, "access_based_enumeration_enabled", False
+            )
+            current_continuous_availability = getattr(
+                current, "continuous_availability_enabled", False
+            )
         else:
             module.fail_json(
                 msg="Incorrect policy type specified for existing policy {0}".format(
@@ -1763,6 +1792,28 @@ def update_policy(module, array, api_version, all_squash):
                 if res.status_code != 200:
                     module.exit_json(
                         msg="Failed to enable/disable Access based enueration for SMB policy {0}".format(
+                            module.params["name"]
+                        )
+                    )
+        if (
+            LooseVersion(CA_VERSION) <= LooseVersion(api_version)
+            and current_continuous_availability
+            != module.params["continuous_availability"]
+        ):
+            changed_ca = True
+            if not module.check_mode:
+                res = array.patch_policies_smb(
+                    names=[module.params["name"]],
+                    policy=PolicySmbPatch(
+                        continuous_availability_enabled=module.params[
+                            "continuous_availability"
+                        ]
+                    ),
+                    context_names=[module.params["context"]],
+                )
+                if res.status_code != 200:
+                    module.exit_json(
+                        msg="Failed to enable/disable Continuous Availability for SMB policy {0}".format(
                             module.params["name"]
                         )
                     )
@@ -2718,6 +2769,7 @@ def update_policy(module, array, api_version, all_squash):
         or changed_dir
         or changed_user_map
         or changed_abe
+        or changed_ca
         or changed_nfs
         or changed_rule
     ):
@@ -2773,6 +2825,7 @@ def main():
                 choices=["auth_sys", "krb5", "krb5i", "krb5p"],
             ),
             access_based_enumeration=dict(type="bool", default=False),
+            continuous_availability=dict(type="bool", default=False),
             enforce_dictionary_check=dict(type="bool"),
             enforce_username_check=dict(type="bool"),
             lockout_duration=dict(type="int"),
