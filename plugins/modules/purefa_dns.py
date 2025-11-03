@@ -62,6 +62,14 @@ options:
     - A virtual network interface (vif)
     type: str
     version_added: 1.14.0
+  context:
+    description:
+    - Name of fleet member on which to perform the operation.
+    - This requires the array receiving the request is a member of a fleet
+      and the context name to be a member of the same fleet.
+    type: str
+    default: ""
+    version_added: 1.40.0
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -106,7 +114,7 @@ RETURN = r"""
 
 HAS_PURESTORAGE = True
 try:
-    from pypureclient import flasharray
+    from pypureclient.flasharray import DnsPost, DnsPatch, ReferenceNoId
 except ImportError:
     HAS_PURESTORAGE = False
 
@@ -120,6 +128,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 )
 
 MULTIPLE_DNS = "2.15"
+CONTEXT_API_VERSION = "2.47"
 
 
 def remove(duplicate):
@@ -131,14 +140,26 @@ def remove(duplicate):
 
 
 def _get_source(module, array):
-    res = array.get_network_interfaces(names=[module.params["source"]])
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_network_interfaces(
+            names=[module.params["source"]], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_network_interfaces(names=[module.params["source"]])
     return bool(res.status_code == 200)
 
 
 def delete_dns(module, array):
     """Delete DNS settings"""
     changed = False
-    current_dns = list(array.get_dns().items)[0]
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        current_dns = list(
+            array.get_dns(context_names=[module.params["context"]]).items
+        )[0]
+    else:
+        current_dns = list(array.get_dns().items)[0]
     if getattr(current_dns, "domain", None) in ["", None] and getattr(
         current_dns, "nameservers", None
     ) in [[""], None]:
@@ -146,7 +167,12 @@ def delete_dns(module, array):
     else:
         changed = True
         if not module.check_mode:
-            res = array.delete_dns(names=["management"])
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.delete_dns(
+                    names=["management"], context_names=[module.params["context"]]
+                )
+            else:
+                res = array.delete_dns(names=["management"])
         if res.status_code != 200:
             module.fail_json(
                 msg="Delete DNS settigs failed. Error: {0}".format(
@@ -159,6 +185,7 @@ def delete_dns(module, array):
 def create_dns(module, array):
     """Set DNS settings"""
     changed = False
+    api_version = array.get_rest_version()
     current_dns = list(array.get_dns().items)[0]
     if current_dns["domain"] != module.params["domain"] or sorted(
         module.params["nameservers"]
@@ -167,7 +194,7 @@ def create_dns(module, array):
         if not module.check_mode:
             res = array.patch_dns(
                 names=["management"],
-                dns=flasharray.DnsPatch(
+                dns=DnsPatch(
                     domain=module.params["domain"],
                     nameservers=module.params["nameservers"][0:3],
                 ),
@@ -182,7 +209,15 @@ def create_dns(module, array):
 def update_multi_dns(module, array):
     """Update a DNS configuration"""
     changed = False
-    current_dns = list(array.get_dns(names=[module.params["name"]]).items)[0]
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        current_dns = list(
+            array.get_dns(
+                names=[module.params["name"]], context_names=[module.params["context"]]
+            ).items
+        )[0]
+    else:
+        current_dns = list(array.get_dns(names=[module.params["name"]]).items)[0]
     new_dns = current_dns
     if module.params["domain"] and current_dns.domain != module.params["domain"]:
         new_dns.domain = module.params["domain"]
@@ -200,14 +235,25 @@ def update_multi_dns(module, array):
         new_dns.source.name = module.params["source"]
         changed = True
     if changed and not module.check_mode:
-        res = array.patch_dns(
-            names=[module.params["name"]],
-            dns=flasharray.Dns(
-                domain=new_dns.domain,
-                nameservers=new_dns.nameservers,
-                source=flasharray.ReferenceNoId(name=module.params["source"]),
-            ),
-        )
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.patch_dns(
+                names=[module.params["name"]],
+                dns=DnsPatch(
+                    domain=new_dns.domain,
+                    nameservers=new_dns.nameservers,
+                    source=ReferenceNoId(name=module.params["source"]),
+                ),
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.patch_dns(
+                names=[module.params["name"]],
+                dns=DnsPatch(
+                    domain=new_dns.domain,
+                    nameservers=new_dns.nameservers,
+                    source=ReferenceNoId(name=module.params["source"]),
+                ),
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Update to DNS service {0} failed. Error: {1}".format(
@@ -220,11 +266,19 @@ def update_multi_dns(module, array):
 def delete_multi_dns(module, array):
     """Delete a DNS configuration"""
     changed = True
+    api_version = array.get_rest_version()
     if module.params["name"] == "management":
-        res = array.patch_dns(
-            names=[module.params["name"]],
-            dns=flasharray.DnsPatch(domain="", nameservers=[]),
-        )
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.patch_dns(
+                names=[module.params["name"]],
+                dns=DnsPatch(domain="", nameservers=[]),
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.patch_dns(
+                names=[module.params["name"]],
+                dns=DnsPatch(domain="", nameservers=[]),
+            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Management DNS configuration not deleted. Error: {0}".format(
@@ -233,7 +287,13 @@ def delete_multi_dns(module, array):
             )
     else:
         if not module.check_mode:
-            res = array.delete_dns(names=[module.params["name"]])
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                res = array.delete_dns(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.delete_dns(names=[module.params["name"]])
             if res.status_code != 200:
                 module.fail_json(
                     msg="Failed to delete DNS configuration {0}. Error: {1}".format(
@@ -246,36 +306,71 @@ def delete_multi_dns(module, array):
 def create_multi_dns(module, array):
     """Create a DNS configuration"""
     changed = True
+    api_version = array.get_rest_version()
     if not module.check_mode:
         if module.params["service"] == "file":
             if module.params["source"]:
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_dns(
+                        names=[module.params["name"]],
+                        dns=DnsPost(
+                            services=[module.params["service"]],
+                            domain=module.params["domain"],
+                            nameservers=module.params["nameservers"],
+                            source=ReferenceNoId(name=module.params["source"].lower()),
+                        ),
+                        context_names=[module.params["context"]],
+                    )
+                else:
+                    res = array.post_dns(
+                        names=[module.params["name"]],
+                        dns=DnsPost(
+                            services=[module.params["service"]],
+                            domain=module.params["domain"],
+                            nameservers=module.params["nameservers"],
+                            source=ReferenceNoId(name=module.params["source"].lower()),
+                        ),
+                    )
+            else:
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.post_dns(
+                        names=[module.params["name"]],
+                        dns=DnsPost(
+                            services=[module.params["service"]],
+                            domain=module.params["domain"],
+                            nameservers=module.params["nameservers"],
+                        ),
+                        context_names=[module.params["context"]],
+                    )
+                else:
+                    res = array.post_dns(
+                        names=[module.params["name"]],
+                        dns=DnsPost(
+                            services=[module.params["service"]],
+                            domain=module.params["domain"],
+                            nameservers=module.params["nameservers"],
+                        ),
+                    )
+        else:
+            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                 res = array.post_dns(
                     names=[module.params["name"]],
-                    dns=flasharray.DnsPost(
+                    dns=DnsPost(
                         services=[module.params["service"]],
                         domain=module.params["domain"],
                         nameservers=module.params["nameservers"],
-                        source=flasharray.ReferenceNoId(
-                            name=module.params["source"].lower()
-                        ),
                     ),
+                    context_names=[module.params["context"]],
                 )
             else:
                 res = array.post_dns(
                     names=[module.params["name"]],
-                    dns=flasharray.DnsPost(
+                    dns=DnsPost(
                         services=[module.params["service"]],
                         domain=module.params["domain"],
                         nameservers=module.params["nameservers"],
                     ),
                 )
-        else:
-            res = array.create_dns(
-                names=[module.params["name"]],
-                services=[module.params["service"]],
-                domain=module.params["domain"],
-                nameservers=module.params["nameservers"],
-            )
         if res.status_code != 200:
             module.fail_json(
                 msg="Failed to create {0} DNS configuration {1}. Error: {2}".format(
@@ -299,6 +394,7 @@ def main():
             domain=dict(type="str"),
             source=dict(type="str"),
             nameservers=dict(type="list", elements="str"),
+            context=dict(type="str", default=""),
         )
     )
 
