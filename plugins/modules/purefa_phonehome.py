@@ -30,6 +30,13 @@ options:
     type: str
     default: present
     choices: [ present, absent ]
+  excludes:
+    description:
+    - Items that are excluded from phonehome data collection
+    type: list
+    elements: str
+    choices: [ "application-insights" ]
+    version_added: '1.40.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -61,6 +68,11 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
+    LooseVersion,
+)
+
+EXCLUDES_API_VERSION = "2.47"
 
 
 def main():
@@ -68,6 +80,9 @@ def main():
     argument_spec.update(
         dict(
             state=dict(type="str", default="present", choices=["present", "absent"]),
+            excludes=dict(
+                type="list", elements="str", choices=["application-insights"]
+            ),
         )
     )
 
@@ -77,8 +92,10 @@ def main():
         module.fail_json(msg="py-pure-client sdk is required to for this module")
 
     array = get_array(module)
-
-    phonehome = list(array.get_support().items)[0].phonehome_enabled
+    api_version = array.get_rest_version()
+    support = list(array.get_support().items)[0]
+    phonehome = support.phonehome_enabled
+    excludes = getattr(support, "phonehome_excludes", None)
     changed = False
     if module.params["state"] == "present" and not phonehome:
         changed = True
@@ -90,6 +107,35 @@ def main():
                         res.errors[0].message
                     )
                 )
+            if (
+                LooseVersion(EXCLUDES_API_VERSION) <= LooseVersion(api_version)
+                and module.params["excludes"]
+            ):
+                res = array.patch_support(
+                    support=SupportPatch(phonehome_excludes=module.params["excludes"])
+                )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Updating Phonehome failed. Error: {0}".format(
+                            res.errors[0].message
+                        )
+                    )
+    elif module.params["state"] == "present" and phonehome:
+        if LooseVersion(EXCLUDES_API_VERSION) <= LooseVersion(api_version):
+            if module.params["excludes"] != excludes:
+                changed = True
+                if not module.check_mode:
+                    res = array.patch_support(
+                        support=SupportPatch(
+                            phonehome_excludes=module.params["excludes"]
+                        )
+                    )
+                    if res.status_code != 200:
+                        module.fail_json(
+                            msg="Updating Phonehome failed. Error: {0}".format(
+                                res.errors[0].message
+                            )
+                        )
     elif module.params["state"] == "absent" and phonehome:
         changed = True
         if not module.check_mode:
