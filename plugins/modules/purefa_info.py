@@ -3137,6 +3137,11 @@ def generate_fleet_dict(array):
             fleet_info[fleet_name]["members"][name] = {
                 "status": members[member].status,
                 "status_details": members[member].status_details,
+                "role": (
+                    "fleet_coordinator"
+                    if hasattr(members[member], "coordinator_of")
+                    else None
+                ),
             }
     return fleet_info
 
