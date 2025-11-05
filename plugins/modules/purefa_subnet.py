@@ -49,7 +49,8 @@ options:
     type: str
   gateway:
     description:
-      - IPv4 or IPv6 address of subnet gateway.
+    - IPv4 or IPv6 address of subnet gateway.
+    - To clear the gateway enter "0.0.0.0" or "::" depending on IP type
     required: false
     type: str
   mtu:
@@ -222,7 +223,7 @@ def update_subnet(module, array, subnet):
                         subnet.name, res.errors[0].message
                     )
                 )
-                module.exit_json(changed=changed)
+    module.exit_json(changed=changed)
 
 
 def create_subnet(module, array):
