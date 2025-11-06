@@ -112,7 +112,7 @@ def update_role(module, array):
     """Update Directory Service Role"""
     changed = False
     role = list(
-        array.get_directory_services_roles(role_names=[module.params["role"]]).items
+        array.get_directory_services_roles(names=[module.params["role"]]).items
     )[0]
     if (
         role.group_base != module.params["group_base"]
@@ -205,7 +205,7 @@ def main():
             "Please use module ''purefa_dsrole`` instead."
         )
     role_configured = False
-    role = array.get_directory_services_roles(roles_names=[module.params["role"]])
+    role = array.get_directory_services_roles(names=[module.params["role"]])
     if hasattr(role[0], "group"):
         role_configured = True
 
