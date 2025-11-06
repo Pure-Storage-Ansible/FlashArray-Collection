@@ -53,7 +53,7 @@ options:
     default: ip
   encrypted:
     description:
-    - Defines if the array connection will be encryted
+    - Defines if the array connection will be encrypted
     type: bool
     default: false
     version_added: '1.30.0'
@@ -65,6 +65,21 @@ options:
     type: str
     default: ""
     version_added: '1.39.0'
+  renew_key:
+    description:
+    - Update array connection with a new encryption key.
+    - If set to true, other array connection attributes will not be modified.
+    type: bool
+    default: false
+    version_added: '1.40.0'
+  refresh:
+    description:
+    - Array will attempt to communicate with the connection peer in order to update
+      the connection attributes on both arrays with any changes that have occurred.
+    - If set to true, other array connection attributes will not be modified.
+    type: bool
+    default: false
+    version_added: '1.40.0'
 extends_documentation_fragment:
 - purestorage.flasharray.purestorage.fa
 """
@@ -183,6 +198,151 @@ def break_connection(module, array, target_array):
     module.exit_json(changed=changed)
 
 
+def update_connection(module, array, target_array):
+    """Change existing array connection"""
+    changed = False
+    if HAS_DISTRO:
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": "Ansible",
+            "class": __name__,
+            "version": 1.5,
+            "platform": distro.name(pretty=True),
+        }
+    else:
+        user_agent = "%(base)s %(class)s/%(version)s (%(platform)s)" % {
+            "base": "Ansible",
+            "class": __name__,
+            "version": 1.5,
+            "platform": platform.platform(),
+        }
+    api_version = array.get_rest_version()
+    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        source_array = list(
+            array.get_arrays(context_names=[module.params["context"]]).items
+        )[0].name
+    else:
+        source_array = list(array.get_arrays().items)[0].name
+    #
+    # Special cases
+    #
+    if module.params["renew_key"]:
+        # No other attributes can be changed when doing this
+        changed = True
+        if not module.check_mode:
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.patch_array_connections(
+                    names=[target_array.name],
+                    renew_encryption_key=True,
+                    array_connection=flasharray.ArrayConnectionPatch(),
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_array_connections(
+                    names=[target_array.name],
+                    renew_encryption_key=True,
+                    array_connection=flasharray.ArrayConnectionPatch(),
+                )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to renew encryption key for connection to {0}. Error: {1}".format(
+                        target_array.name, res.errors[0].message
+                    )
+                )
+        module.exit_json(changed=changed)
+    if module.params["refresh"]:
+        # No other attributes can be changed when doing this
+        changed = True
+        if not module.check_mode:
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.patch_array_connections(
+                    names=[target_array.name],
+                    refresh=True,
+                    array_connection=flasharray.ArrayConnectionPatch(),
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_array_connections(
+                    names=[target_array.name],
+                    refresh=True,
+                    array_connection=flasharray.ArrayConnectionPatch(),
+                )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to refresh connection to {0}. Error: {1}".format(
+                        target_array.name, res.errors[0].message
+                    )
+                )
+        module.exit_json(changed=changed)
+    #
+    # Special cases complete
+    #
+    if LooseVersion(ENCRYPT_VERSION) >= LooseVersion(api_version):
+        if module.params["encrypted"]:
+            encrypted = "encrypted"
+        else:
+            encrypted = "unencrypted"
+        if target_array.encryption != encrypted:
+            # Changing the encryption type requires the connection key
+            remote_system = flasharray.Client(
+                target=module.params["target_url"],
+                api_token=module.params["target_api"],
+                user_agent=user_agent,
+            )
+            connection_key = list(
+                remote_system.get_array_connections_connection_key(
+                    encrypted=module.params["encrypted"]
+                ).items
+            )[0].connection_key
+            changed = True
+            if not module.check_mode:
+                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_array_connections(
+                        names=[target_array.name],
+                        array_connection=flasharray.ArrayConnectionPatch(
+                            encryption=encrypted, connection_key=connection_key
+                        ),
+                        context_names=[module.params["context"]],
+                    )
+                else:
+                    res = array.patch_array_connections(
+                        names=[target_array.name],
+                        array_connection=flasharray.ArrayConnectionPatch(
+                            encryption=encrypted, connection_key=connection_key
+                        ),
+                    )
+                if res.status_code != 200:
+                    module.fail_json(
+                        msg="Failed to change encryption for {0}. Error: {1}".format(
+                            target_array.name, res.errors[0].message
+                        )
+                    )
+    if module.params["connection"] != target_array.type:
+        changed = True
+        if not module.check_mode:
+            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                res = array.patch_array_connections(
+                    names=[target_array.name],
+                    array_connection=flasharray.ArrayConnectionPatch(
+                        type=module.params["connection"]
+                    ),
+                    context_names=[module.params["context"]],
+                )
+            else:
+                res = array.patch_array_connections(
+                    names=[target_array.name],
+                    array_connection=flasharray.ArrayConnectionPatch(
+                        type=module.params["connection"]
+                    ),
+                )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to change connection type for {0}. Error: {1}".format(
+                        target_array.name, res.errors[0].message
+                    )
+                )
+    module.exit_json(changed=changed)
+
+
 def create_connection(module, array):
     """Create connection between arrays"""
     changed = True
@@ -221,7 +381,7 @@ def create_connection(module, array):
             management_address=module.params["target_url"].strip("[]"),
             replication_transport=module.params["connection"],
             connection_key=connection_key,
-            encypted=encrypted,
+            encryption=encrypted,
         )
     else:
         array_connection = flasharray.ArrayConnectionPost(
@@ -255,6 +415,8 @@ def main():
             target_url=dict(type="str", required=True),
             target_api=dict(type="str"),
             encrypted=dict(type="bool", default=False),
+            renew_key=dict(type="bool", default=False),
+            refresh=dict(type="bool", default=False),
             context=dict(type="str", default=""),
         )
     )
@@ -271,9 +433,13 @@ def main():
     state = module.params["state"]
     array = get_array(module)
     target_array = _check_connected(module, array)
+    # REST 2 changed connection names, so update
+    module.params["connection"] = module.params["connection"] + "-replication"
 
     if state == "present" and target_array is None:
         create_connection(module, array)
+    elif state == "present" and target_array is not None:
+        update_connection(module, array, target_array)
     elif state == "absent" and target_array is not None:
         break_connection(module, array, target_array)
 
