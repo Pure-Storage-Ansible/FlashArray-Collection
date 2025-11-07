@@ -4,6 +4,25 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.40.0
+=======
+
+Minor Changes
+-------------
+
+- purefa_connection - Add new parameters for key refresh and connection refresh, as well as ability to update existing connection
+- purefa_info - Added more data to hostgroup volume information to support NVMe connections
+- purefa_info - Added tags info to entities that support them
+- purefa_network - Addressed issues found in update_interface
+- purefa_phonehome - Added ``excludes`` parameter, supported from Purity//FA 6.10.0
+- purefa_pod - Fixed pydantic issue from lastest SDK version
+- purefa_policy - Added Continuous Availability support for SMB policies
+
+Bugfixes
+--------
+
+- purefa_info - Resolves issue with hostgroup info when NVMe connected volumes are in a hostgroup
+
 v1.39.0
 =======
 
