@@ -1584,6 +1584,16 @@ def generate_snap_dict(array):
                 except KeyError:
                     snap_info[remote_snap_name] = {"remote": []}
                     snap_info[remote_snap_name]["remote"].append(remote_dict)
+    snaps_tags = list(array.get_volume_snapshots_tags(resource_destroyed=False).items)
+    for tag in range(len(snaps_tags)):
+        snap_info[snaps_tags[tag].resource.name]["tags"].append(
+            {
+                "key": snaps_tags[tag].key,
+                "value": snaps_tags[tag].value,
+                "copyable": snaps_tags[tag].copyable,
+                "namespace": snaps_tags[tag].namespace,
+            }
+        )
     return snap_info
 
 
@@ -1651,6 +1661,16 @@ def generate_del_snap_dict(array):
                 except KeyError:
                     snap_info[remote_snap_name] = {"remote": []}
                     snap_info[remote_snap_name]["remote"].append(remote_dict)
+    snaps_tags = list(array.get_volume_snapshots_tags(resource_destroyed=True).items)
+    for tag in range(len(snaps_tags)):
+        snap_info[snaps_tags[tag].resource.name]["tags"].append(
+            {
+                "key": snaps_tags[tag].key,
+                "value": snaps_tags[tag].value,
+                "copyable": snaps_tags[tag].copyable,
+                "namespace": snaps_tags[tag].namespace,
+            }
+        )
     return snap_info
 
 
@@ -1717,6 +1737,16 @@ def generate_del_vol_dict(array):
             )
         if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
             volume_info[volume]["total_used"] = vols[vol].space.total_used
+    volume_tags = list(array.get_volumes_tags(resource_destroyed=True).items)
+    for tag in range(len(volume_tags)):
+        volume_info[volume_tags[tag].resource.name]["tags"].append(
+            {
+                "key": volume_tags[tag].key,
+                "value": volume_tags[tag].value,
+                "copyable": volume_tags[tag].copyable,
+                "namespace": volume_tags[tag].namespace,
+            }
+        )
     return volume_info
 
 
@@ -1808,6 +1838,16 @@ def generate_vol_dict(array, performance):
             dict(t)
             for t in set(tuple(d.items()) for d in volume_info[volume]["host_groups"])
         ]
+    volume_tags = list(array.get_volumes_tags(resource_destroyed=False).items)
+    for tag in range(len(volume_tags)):
+        volume_info[volume_tags[tag].resource.name]["tags"].append(
+            {
+                "key": volume_tags[tag].key,
+                "value": volume_tags[tag].value,
+                "copyable": volume_tags[tag].copyable,
+                "namespace": volume_tags[tag].namespace,
+            }
+        )
     if performance:
         vols_performance = list(array.get_volumes_performance(destroyed=False).items)
         for perf in range(0, len(vols_performance)):
@@ -1885,6 +1925,7 @@ def generate_host_dict(array, performance):
             "target_user": getattr(hosts[host].chap, "target_user", None),
             "target_port": [],
             "volumes": [],
+            "tags": [],
             "performance": [],
             "performance_balance": [],
             "preferred_array": [],
@@ -1935,6 +1976,16 @@ def generate_host_dict(array, performance):
             host_info[hosts[host]["name"]]["performance_balance"].append(
                 host_perf_balance
             )
+    host_tags = list(array.get_hosts_tags(resource_destroyed=False).items)
+    for tag in range(len(host_tags)):
+        host_info[host_tags[tag].resource.name]["tags"].append(
+            {
+                "key": host_tags[tag].key,
+                "value": host_tags[tag].value,
+                "copyable": host_tags[tag].copyable,
+                "namespace": host_tags[tag].namespace,
+            }
+        )
     if performance:
         for perf in range(0, len(hosts_performance)):
             if ":" not in hosts_performance[perf].name:
@@ -2052,6 +2103,7 @@ def generate_del_pgroups_dict(array):
             "used_provisioned": getattr(
                 pgroups[pgroup].space, "used_provisioned", None
             ),
+            "tags": [],
         }
         pgroup_transfers_res = array.get_protection_group_snapshots_transfer(
             names=[protgroup + ".*"]
@@ -2129,6 +2181,16 @@ def generate_del_pgroups_dict(array):
                 pgroups_info[protgroup]["manual_eradication"] = getattr(
                     pg_info.eradication_config, "manual_eradication", None
                 )
+    pgroup_tags = list(array.get_protection_groups_tags(resource_destroyed=True).items)
+    for tag in range(len(pgroup_tags)):
+        pgroups_info[pgroup_tags[tag].resource.name]["tags"].append(
+            {
+                "key": pgroup_tags[tag].key,
+                "value": pgroup_tags[tag].value,
+                "copyable": pgroup_tags[tag].copyable,
+                "namespace": pgroup_tags[tag].namespace,
+            }
+        )
     return pgroups_info
 
 
@@ -2182,6 +2244,7 @@ def generate_pgroups_dict(array):
             "used_provisioned": getattr(
                 pgroups[pgroup].space, "used_provisioned", None
             ),
+            "tags": [],
         }
         pgroup_transfers_res = array.get_protection_group_snapshots_transfer(
             names=[protgroup + ".*"]
@@ -2259,6 +2322,16 @@ def generate_pgroups_dict(array):
                 pgroups_info[protgroup]["manual_eradication"] = getattr(
                     pg_info.eradication_config, "manual_eradication", None
                 )
+    pgroup_tags = list(array.get_protection_groups_tags(resource_destroyed=False).items)
+    for tag in range(len(pgroup_tags)):
+        pgroups_info[pgroup_tags[tag].resource.name]["tags"].append(
+            {
+                "key": pgroup_tags[tag].key,
+                "value": pgroup_tags[tag].value,
+                "copyable": pgroup_tags[tag].copyable,
+                "namespace": pgroup_tags[tag].namespace,
+            }
+        )
     return pgroups_info
 
 
@@ -2315,6 +2388,7 @@ def generate_del_pods_dict(array):
             "used_provisioned": getattr(pods[pod].space, "used_provisioned", None),
             "quota_limit": getattr(pods[pod], "quota_limit", None),
             "total_used": pods[pod].space.total_used,
+            "tags": [],
         }
         for preferences in range(0, len(pods[pod].failover_preferences)):
             pods_info[name]["failover_preference"].append(
@@ -2340,6 +2414,16 @@ def generate_del_pods_dict(array):
                     "status": getattr(pods[pod].arrays[pod_array], "status", None),
                 }
             )
+    pods_tags = list(array.get_pods_tags(resource_destroyed=True).items)
+    for tag in range(len(pods_tags)):
+        pods_info[pods_tags[tag].resource.name]["tags"].append(
+            {
+                "key": pods_tags[tag].key,
+                "value": pods_tags[tag].value,
+                "copyable": pods_tags[tag].copyable,
+                "namespace": pods_tags[tag].namespace,
+            }
+        )
     return pods_info
 
 
@@ -2370,6 +2454,7 @@ def generate_pods_dict(array, performance):
             "used_provisioned": getattr(pods[pod].space, "used_provisioned", None),
             "quota_limit": getattr(pods[pod], "quota_limit", None),
             "total_used": pods[pod].space.total_used,
+            "tags": [],
         }
         for preferences in range(0, len(pods[pod].failover_preferences)):
             pods_info[name]["failover_preference"].append(
@@ -2399,6 +2484,16 @@ def generate_pods_dict(array, performance):
                     "status": getattr(pods[pod].arrays[pod_array], "status", None),
                 }
             )
+    pods_tags = list(array.get_pods_tags(resource_destroyed=False).items)
+    for tag in range(len(pods_tags)):
+        pods_info[pods_tags[tag].resource.name]["tags"].append(
+            {
+                "key": pods_tags[tag].key,
+                "value": pods_tags[tag].value,
+                "copyable": pods_tags[tag].copyable,
+                "namespace": pods_tags[tag].namespace,
+            }
+        )
     if performance:
         pods_performance = list(array.get_pods_performance().items)
         for perf in range(0, len(pods_performance)):
@@ -2537,6 +2632,7 @@ def generate_vgroups_dict(array, performance):
             "bandwidth_limit": getattr(vgroups[vgroup].qos, "bandwidth_limit", ""),
             "iops_limit": getattr(vgroups[vgroup].qos, "iops_limit", ""),
             "total_used": getattr(vgroups[vgroup].space, "total_used", None),
+            "tags": [],
         }
         if hasattr(vgroups_info[name], "priority_adjustment"):
             vgroups_info[name]["priority_adjustment"] = vgroups[
@@ -2544,6 +2640,16 @@ def generate_vgroups_dict(array, performance):
             ].priority_adjustment.priority_adjustment_operator + str(
                 vgroups[vgroup].priority_adjustment.priority_adjustment_value
             )
+    vgroup_tags = list(array.get_volume_groups_tags(resource_destroyed=False).items)
+    for tag in range(len(vgroup_tags)):
+        vgroups_info[vgroup_tags[tag].resource.name]["tags"].append(
+            {
+                "key": vgroup_tags[tag].key,
+                "value": vgroup_tags[tag].value,
+                "copyable": vgroup_tags[tag].copyable,
+                "namespace": vgroup_tags[tag].namespace,
+            }
+        )
     if performance:
         vgs_performance = list(array.get_volume_groups_performance().items)
         for perf in range(0, len(vgs_performance)):
@@ -2631,6 +2737,7 @@ def generate_del_vgroups_dict(array):
             "bandwidth_limit": getattr(vgroups[vgroup].qos, "bandwidth_limit", ""),
             "iops_limit": getattr(vgroups[vgroup].qos, "iops_limit", ""),
             "total_used": getattr(vgroups[vgroup].space, "total_used", None),
+            "tags": [],
         }
         if hasattr(vgroups_info[name], "priority_adjustment"):
             vgroups_info[name]["priority_adjustment"] = vgroups[
@@ -2643,6 +2750,16 @@ def generate_del_vgroups_dict(array):
         group_name = vg_volumes[vg_vol].group.name
         if group_name in vgroups_info:
             vgroups_info[group_name]["volumes"].append(vg_volumes[vg_vol].member.name)
+    vgroup_tags = list(array.get_volume_groups_tags(resource_destroyed=True).items)
+    for tag in range(len(vgroup_tags)):
+        vgroups_info[vgroup_tags[tag].resource.name]["tags"].append(
+            {
+                "key": vgroup_tags[tag].key,
+                "value": vgroup_tags[tag].value,
+                "copyable": vgroup_tags[tag].copyable,
+                "namespace": vgroup_tags[tag].namespace,
+            }
+        )
     return vgroups_info
 
 
@@ -2884,6 +3001,7 @@ def generate_hgroups_dict(array, performance):
                 "hosts": [],
                 "pgs": [],
                 "vols": [],
+                "tags": [],
                 "snapshots": getattr(hgroups[hgroup].space, "snapshots", None),
                 "data_reduction": getattr(
                     hgroups[hgroup].space, "data_reduction", None
@@ -2909,6 +3027,16 @@ def generate_hgroups_dict(array, performance):
                 "destroyed": getattr(hgroups[hgroup], "destroyed", False),
                 "time_remaining": getattr(hgroups[hgroup], "time_remaining", None),
             }
+    hgroup_tags = list(array.get_host_groups_tags(resource_destroyed=False).items)
+    for tag in range(len(hgroup_tags)):
+        hgroups_info[hgroup_tags[tag].resource.name]["tags"].append(
+            {
+                "key": hgroup_tags[tag].key,
+                "value": hgroup_tags[tag].value,
+                "copyable": hgroup_tags[tag].copyable,
+                "namespace": hgroup_tags[tag].namespace,
+            }
+        )
     if performance:
         hgs_performance = list(array.get_host_groups_performance().items)
         for perf in range(0, len(hgs_performance)):
@@ -2977,7 +3105,11 @@ def generate_hgroups_dict(array, performance):
             and ":" not in hg_vol.host_group.name
         ):
             name = hg_vol.host_group.name
-            vol_entry = [hg_vol.volume.name, hg_vol.lun]
+            vol_entry = {
+                "name": hg_vol.volume.name,
+                "lun": getattr(hg_vol, "lun", None),
+                "nsid": getattr(hg_vol, "nsid", None),
+            }
             vols_list = hgroups_info[name]["vols"]
             if vol_entry not in vols_list:
                 vols_list.append(vol_entry)
@@ -3133,6 +3265,11 @@ def generate_fleet_dict(array):
             fleet_info[fleet_name]["members"][name] = {
                 "status": members[member].status,
                 "status_details": members[member].status_details,
+                "role": (
+                    "fleet_coordinator"
+                    if hasattr(members[member], "coordinator_of")
+                    else None
+                ),
             }
     return fleet_info
 
@@ -3250,6 +3387,7 @@ def generate_realms_dict(array, performance):
             "virtual": getattr(realms[realm].space, "virtual", None),
             "performance": [],
             "qos": [],
+            "tags": [],
         }
         realms_info[name]["qos"] = {
             "iops_limit": getattr(realms[realm].qos, "iops_limit", None),
@@ -3257,6 +3395,16 @@ def generate_realms_dict(array, performance):
         }
         if realms_info[name]["destroyed"]:
             realms_info[name]["time_remaining"] = realms[realm].time_remaining
+    realms_tags = list(array.get_realms_tags(resource_destroyed=False).items)
+    for tag in range(len(realms_tags)):
+        realms_info[realms_tags[tag].resource.name]["tags"].append(
+            {
+                "key": realms_tags[tag].key,
+                "value": realms_tags[tag].value,
+                "copyable": realms_tags[tag].copyable,
+                "namespace": realms_tags[tag].namespace,
+            }
+        )
     if performance:
         r_perfs = list(array.get_realms_performance().items)
         for perf in range(0, len(r_perfs)):
