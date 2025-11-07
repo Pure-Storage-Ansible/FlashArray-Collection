@@ -1917,9 +1917,9 @@ def generate_host_dict(array, performance):
         hostname = hosts[host].name
         host_info[hostname] = {
             "hgroup": getattr(hosts[host].host_group, "name", None),
-            "nqn": hosts[host].nqns,
-            "iqn": hosts[host].iqns,
-            "wwn": hosts[host].wwns,
+            "nqn": getattr(hosts[host], "nqns", None),
+            "iqn": getattr(hosts[host], "iqns", None),
+            "wwn": getattr(hosts[host], "wwns", None),
             "personality": getattr(hosts[host], "personality", None),
             "host_user": getattr(hosts[host].chap, "host_user", None),
             "target_user": getattr(hosts[host].chap, "target_user", None),
@@ -1929,9 +1929,9 @@ def generate_host_dict(array, performance):
             "performance": [],
             "performance_balance": [],
             "preferred_array": [],
-            "destroyed": hosts[host].destroyed,
+            "destroyed": getattr(hosts[host], "destroyed", None),
             "time_remaining": getattr(hosts[host], "time_remaining", None),
-            "vlan": hosts[host].vlan,
+            "vlan": getattr(hosts[host], "vlan", None),
         }
         host_connections = list(array.get_connections(host_names=[hostname]).items)
         for connection in range(0, len(host_connections)):
