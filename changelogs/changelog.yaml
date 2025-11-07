@@ -1140,6 +1140,31 @@ releases:
     fragments:
     - v1.4.0_summary.yaml
     release_date: '2020-08-06'
+  1.40.0:
+    changes:
+      bugfixes:
+      - purefa_info - Resolves issue with hosthgroup info when NVMe connected volumes
+        are in a hostgroup
+      minor_changes:
+      - purefa_connection - Add new parameters for key refresh and connection refresh,
+        as well as ability to update existing connection
+      - purefa_info - Added more data to hostgroup volume information to support NVMe
+        connections
+      - purefa_info - Added tags info to entities that support them
+      - purefa_network - Addressed issues found in update_interface
+      - purefa_phonehome - Added ``excludes`` parameter, supported from Purity//FA
+        6.10.0
+      - purefa_pod - Fixed pydantic issue from lastest SDK version
+      - purefa_policy - Added Continuous Availability support for SMB policies
+    fragments:
+    - 851_network_interface.yaml
+    - 858_hgroups_nvme_fix.yaml
+    - 863_smb_ca.yaml
+    - 864_pod_pydantic.yaml
+    - 866_array_connection.yaml
+    - 868_phonehome_excludes.yaml
+    - 870_tags_info.yaml
+    release_date: '2025-11-07'
   1.5.0:
     changes:
       bugfixes:
