@@ -535,11 +535,12 @@ def generate_config_dict(module, array):
     config_info["directory_service_roles"] = {}
     roles = list(array.get_directory_services_roles().items)
     for role in range(0, len(roles)):
-        role_name = roles[role].name
-        config_info["directory_service_roles"][role_name] = {
-            "group": getattr(roles[role], "group", None),
-            "group_base": getattr(roles[role], "group_base", None),
-        }
+        role_name = getattr(roles[role], "name", None)
+        if role_name:
+            config_info["directory_service_roles"][role_name] = {
+                "group": getattr(roles[role], "group", None),
+                "group_base": getattr(roles[role], "group_base", None),
+            }
     config_info["ntp"] = array_info.ntp_servers
     syslog_info = list(array.get_syslog_servers().items)
     config_info["syslog"] = {}
