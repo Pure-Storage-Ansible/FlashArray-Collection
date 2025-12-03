@@ -244,9 +244,9 @@ def main():
 
     if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
         res = array.get_file_systems(
-                names=[module.params["filesystem"]],
-                context_names=[module.params["context"]],
-            )
+            names=[module.params["filesystem"]],
+            context_names=[module.params["context"]],
+        )
     else:
         res = array.get_file_systems(names=[module.params["filesystem"]])
     if res.status_code == 200:
