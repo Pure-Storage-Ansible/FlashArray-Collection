@@ -418,7 +418,7 @@ EXAMPLES = r"""
     policy: password
     max_login_attempts: 5
     enforce_username_check: true
-    enforce_dictopnary_check: true
+    enforce_dictionary_check: true
     min_password_length: 5
     password_history: 2
     fa_url: 10.10.10.2
@@ -556,8 +556,7 @@ def rename_policy(module, array):
                     )
                 )
         elif module.params["policy"] == "password":
-            module.warn("Password policy rename is not yet supported")
-            changed = False
+            module.fail_json(msg="Password policy rename is not yet supported")
         else:
             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                 res = array.patch_policies_quota(
@@ -1361,8 +1360,7 @@ def create_policy(module, array, all_squash):
                     )
                 )
         elif module.params["policy"] == "password":
-            module.warn("Password policy creation is not yet supported")
-            changed = False
+            module.fail_json(msg="Password policy creation is not yet supported")
         elif module.params["policy"] == "autodir":
             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                 res = array.post_policies_autodir(
