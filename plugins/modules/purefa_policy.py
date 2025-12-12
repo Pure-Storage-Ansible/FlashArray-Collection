@@ -2313,7 +2313,7 @@ def update_policy(module, array, api_version, all_squash):
         ):
             new_pwd_policy["enforce_dictionary_check"] = module.params[
                 "enforce_dictionary_check"
-                ]
+            ]
             changed = True
         if (
             module.params["enforce_username_check"]
@@ -2327,7 +2327,9 @@ def update_policy(module, array, api_version, all_squash):
             module.params["min_character_groups"]
             != current_pwd_policy["min_character_groups"]
         ):
-            new_pwd_policy["min_character_groups"] = module.params["min_character_groups"]
+            new_pwd_policy["min_character_groups"] = module.params[
+                "min_character_groups"
+            ]
             changed = True
         if (
             module.params["min_characters_per_group"]
@@ -2343,15 +2345,13 @@ def update_policy(module, array, api_version, all_squash):
         ):
             new_pwd_policy["min_password_length"] = module.params["min_password_length"]
             changed = True
-        if (
-            module.params["min_password_age"]
-            != current_pwd_policy["min_password_age"]
-        ):
+        if module.params["min_password_age"] != current_pwd_policy["min_password_age"]:
             new_pwd_policy["min_password_age"] = module.params["min_password_age"]
             changed = True
         if (
             module.params["password_history"]
-            and module.params["password_history"] != current_pwd_policy["password_history"]
+            and module.params["password_history"]
+            != current_pwd_policy["password_history"]
         ):
             new_pwd_policy["password_history"] = module.params["password_history"]
             changed = True
