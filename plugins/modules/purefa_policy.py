@@ -2308,7 +2308,7 @@ def update_policy(module, array, api_version, all_squash):
         }
         new_pwd_policy = current_pwd_policy.copy()
         if (
-            module.params["enforce_dictionary_check")]
+            module.params["enforce_dictionary_check"]
             != current_pwd_policy["enforce_dictionary_check"]
         ):
             new_pwd_policy["enforce_dictionary_check"] = module.params[
