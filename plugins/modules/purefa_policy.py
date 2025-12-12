@@ -2877,10 +2877,10 @@ def main():
         )
     if (
         module.params["policy"] == "password"
-        and module.params["lockout"]
-        and not 1 <= module.params["lockout"] <= 7776000
+        and module.params["lockout_duration"]
+        and not 1 <= module.params["lockout_duration"] <= 7776000
     ):
-        module.fail_json(msg="Lockout must be between 1 and 7776000 seconds")
+        module.fail_json(msg="Lockout duration must be between 1 and 7776000 seconds")
     state = module.params["state"]
     if module.params["quota_notifications"]:
         module.params["quota_notifications"].sort(reverse=True)
