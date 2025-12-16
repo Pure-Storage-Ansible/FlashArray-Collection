@@ -2856,21 +2856,21 @@ def main():
         )
     if module.params["policy"] == "quota" and LooseVersion(
         MIN_QUOTA_API_VERSION
-    ) <= LooseVersion(api_version):
+    ) < LooseVersion(api_version):
         module.fail_json(
             msg="FlashArray REST version not supportedi for directory quotas. "
             "Minimum version required: {0}".format(MIN_QUOTA_API_VERSION)
         )
     if module.params["policy"] == "autodir" and LooseVersion(
         AUTODIR_VERSION
-    ) <= LooseVersion(api_version):
+    ) < LooseVersion(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported for autodir policies. "
             "Minimum version required: {0}".format(AUTODIR_VERSION)
         )
     if module.params["policy"] == "password" and LooseVersion(
         PASSWORD_VERSION
-    ) <= LooseVersion(api_version):
+    ) < LooseVersion(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported for password policies. "
             "Minimum version required: {0}".format(PASSWORD_VERSION)
