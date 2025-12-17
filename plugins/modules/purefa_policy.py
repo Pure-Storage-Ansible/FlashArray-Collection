@@ -418,7 +418,7 @@ EXAMPLES = r"""
     policy: password
     max_login_attempts: 5
     enforce_username_check: true
-    enforce_dictopnary_check: true
+    enforce_dictionary_check: true
     min_password_length: 5
     password_history: 2
     fa_url: 10.10.10.2
@@ -556,8 +556,7 @@ def rename_policy(module, array):
                     )
                 )
         elif module.params["policy"] == "password":
-            module.warn("Password policy rename is not yet supported")
-            changed = False
+            module.fail_json(msg="Password policy rename is not yet supported")
         else:
             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                 res = array.patch_policies_quota(
@@ -1361,8 +1360,7 @@ def create_policy(module, array, all_squash):
                     )
                 )
         elif module.params["policy"] == "password":
-            module.warn("Password policy creation is not yet supported")
-            changed = False
+            module.fail_json(msg="Password policy creation is not yet supported")
         elif module.params["policy"] == "autodir":
             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                 res = array.post_policies_autodir(
@@ -2302,66 +2300,73 @@ def update_policy(module, array, api_version, all_squash):
             "min_character_groups": pwd_policy.min_character_groups,
             "min_characters_per_group": pwd_policy.min_characters_per_group,
             "min_password_length": pwd_policy.min_password_length,
+            "min_password_age": pwd_policy.min_password_age,
             "max_login_attempts": getattr(pwd_policy, "max_login_attempts", 0),
             "password_history": getattr(pwd_policy, "password_history", 0),
         }
-        new_pwd_policy = current_pwd_policy
+        new_pwd_policy = current_pwd_policy.copy()
         if (
-            module.params("enforce_dictionary_check")
-            != current_pwd_policy.enforce_dictionary_check
+            module.params["enforce_dictionary_check"]
+            != current_pwd_policy["enforce_dictionary_check"]
         ):
-            new_pwd_policy.enforce_dictionary_check = module.params(
+            new_pwd_policy["enforce_dictionary_check"] = module.params[
                 "enforce_dictionary_check"
-            )
+            ]
             changed = True
         if (
-            module.params("enforce_username_check")
-            != current_pwd_policy.enforce_username_check
+            module.params["enforce_username_check"]
+            != current_pwd_policy["enforce_username_check"]
         ):
-            new_pwd_policy.enforce_username_check = module.params(
+            new_pwd_policy["enforce_username_check"] = module.params[
                 "enforce_username_check"
-            )
+            ]
             changed = True
         if (
-            module.params("min_character_groups")
-            != current_pwd_policy.min_character_groups
+            module.params["min_character_groups"]
+            != current_pwd_policy["min_character_groups"]
         ):
-            new_pwd_policy.min_character_groups = module.params("min_character_groups")
+            new_pwd_policy["min_character_groups"] = module.params[
+                "min_character_groups"
+            ]
             changed = True
         if (
-            module.params("min_characters_per_group")
-            != current_pwd_policy.min_characters_per_group
+            module.params["min_characters_per_group"]
+            != current_pwd_policy["min_characters_per_group"]
         ):
-            new_pwd_policy.min_characters_per_group = module.params(
+            new_pwd_policy["min_characters_per_group"] = module.params[
                 "min_characters_per_group"
-            )
+            ]
             changed = True
         if (
-            module.params("min_password_length")
-            != current_pwd_policy.min_password_length
+            module.params["min_password_length"]
+            != current_pwd_policy["min_password_length"]
         ):
-            new_pwd_policy.min_password_length = module.params("min_password_length")
+            new_pwd_policy["min_password_length"] = module.params["min_password_length"]
+            changed = True
+        if module.params["min_password_age"] != current_pwd_policy["min_password_age"]:
+            new_pwd_policy["min_password_age"] = module.params["min_password_age"]
             changed = True
         if (
-            module.params("password_history")
-            and module.params("password_history") != current_pwd_policy.password_history
+            module.params["password_history"]
+            and module.params["password_history"]
+            != current_pwd_policy["password_history"]
         ):
-            new_pwd_policy.password_history = module.params("password_history")
+            new_pwd_policy["password_history"] = module.params["password_history"]
             changed = True
         if (
-            module.params("max_login_attempts")
-            and module.params("max_login_attempts")
-            != current_pwd_policy.max_login_attempts
+            module.params["max_login_attempts"]
+            and module.params["max_login_attempts"]
+            != current_pwd_policy["max_login_attempts"]
         ):
-            new_pwd_policy.max_login_attempts = module.params("max_login_attempts")
+            new_pwd_policy["max_login_attempts"] = module.params["max_login_attempts"]
             changed = True
-        if module.params("lockout_duration"):
+        if module.params["lockout_duration"]:
             if (
-                module.params("lockout_duration") * 1000
-                != current_pwd_policy.lockout_duration
+                module.params["lockout_duration"] * 1000
+                != current_pwd_policy["lockout_duration"]
             ):
-                current_pwd_policy.lockout_duration = (
-                    module.params("lockout_duration") * 1000
+                current_pwd_policy["lockout_duration"] = (
+                    module.params["lockout_duration"] * 1000
                 )
                 changed = True
         if changed and not module.check_mode:
@@ -2856,31 +2861,31 @@ def main():
         )
     if module.params["policy"] == "quota" and LooseVersion(
         MIN_QUOTA_API_VERSION
-    ) < LooseVersion(api_version):
+    ) > LooseVersion(api_version):
         module.fail_json(
-            msg="FlashArray REST version not supportedi for directory quotas. "
+            msg="FlashArray REST version not supported for directory quotas. "
             "Minimum version required: {0}".format(MIN_QUOTA_API_VERSION)
         )
     if module.params["policy"] == "autodir" and LooseVersion(
         AUTODIR_VERSION
-    ) < LooseVersion(api_version):
+    ) > LooseVersion(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported for autodir policies. "
             "Minimum version required: {0}".format(AUTODIR_VERSION)
         )
     if module.params["policy"] == "password" and LooseVersion(
         PASSWORD_VERSION
-    ) < LooseVersion(api_version):
+    ) > LooseVersion(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported for password policies. "
             "Minimum version required: {0}".format(PASSWORD_VERSION)
         )
     if (
         module.params["policy"] == "password"
-        and module.params["lockout"]
-        and not 1 <= module.params["lockout"] <= 7776000
+        and module.params["lockout_duration"]
+        and not 1 <= module.params["lockout_duration"] <= 7776000
     ):
-        module.fail_json(msg="Lockout must be between 1 and 7776000 seconds")
+        module.fail_json(msg="Lockout duration must be between 1 and 7776000 seconds")
     state = module.params["state"]
     if module.params["quota_notifications"]:
         module.params["quota_notifications"].sort(reverse=True)
