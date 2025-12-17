@@ -4,6 +4,16 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.41.0
+=======
+
+Bugfixes
+--------
+
+- purefa_info - Added version check to ensure tags are only used in appropriate Purity versions
+- purefa_info - Fixed AttributeError when directory service role has no name
+- purefa_policy - Multiple syntax errors fixed in the password policy update section
+
 v1.40.0
 =======
 
@@ -21,7 +31,7 @@ Minor Changes
 Bugfixes
 --------
 
-- purefa_info - Resolves issue with hostgroup info when NVMe connected volumes are in a hostgroup
+- purefa_info - Resolves issue with hosthgroup info when NVMe connected volumes are in a hostgroup
 
 v1.39.0
 =======

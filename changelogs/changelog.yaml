@@ -1165,6 +1165,19 @@ releases:
     - 868_phonehome_excludes.yaml
     - 870_tags_info.yaml
     release_date: '2025-11-07'
+  1.41.0:
+    changes:
+      bugfixes:
+      - purefa_info - Added version check to ensure tags are only used in appropriate
+        Purity versions
+      - purefa_info - Fixed AttributeError when directory service role has no name
+      - purefa_policy - Multiple syntax errors fixed in the password policy update
+        section
+    fragments:
+    - 877_tags_info.yaml
+    - 878_dsr_noname.yaml
+    - 883_passwd_policy.yaml
+    release_date: '2025-12-17'
   1.5.0:
     changes:
       bugfixes:
