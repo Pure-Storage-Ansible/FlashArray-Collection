@@ -369,7 +369,7 @@ def export_cert(module, array):
                 )
             )
         with open(module.params["export_file"], "w", encoding="utf-8") as ssl_file:
-            ssl_file.write(list(ssl.items)[0].certificate)
+            ssl_file.writelines(list(ssl.items)[0].certificate)
     module.exit_json(changed=changed)
 
 
@@ -446,7 +446,7 @@ def create_csr(module, array):
             ).items
         )[0].certificate_signing_request
         with open(module.params["export_file"], "w", encoding="utf-8") as csr_file:
-            csr_file.write(list(csr))
+            csr_file.writelines(list(csr))
     module.exit_json(changed=changed)
 
 
