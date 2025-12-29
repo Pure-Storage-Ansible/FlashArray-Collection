@@ -369,7 +369,7 @@ def export_cert(module, array):
                 )
             )
         with open(module.params["export_file"], "w", encoding="utf-8") as ssl_file:
-            ssl_file.writelines(list(ssl.items)[0].certificate)
+            ssl_file.write(list(ssl.items)[0].certificate)
     module.exit_json(changed=changed)
 
 
