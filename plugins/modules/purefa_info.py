@@ -182,7 +182,9 @@ def generate_default_dict(array):
                 default_info["safe_mode"] = "Enabled"
         if LooseVersion(UPTIME_API_VERSION) <= LooseVersion(api_version):
             default_info["controller_uptime"] = []
-            controllers = list(array.get_controllers().items)
+            controllers = list(
+                array.get_controllers(filter="type='array_controller'").items
+            )
             timenow = datetime.fromtimestamp(time.time())
             for controller in range(0, len(controllers)):
                 boottime = datetime.fromtimestamp(
