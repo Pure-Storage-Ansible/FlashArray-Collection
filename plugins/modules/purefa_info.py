@@ -1693,7 +1693,8 @@ def generate_del_vol_dict(array):
             "protocol_endpoint": bool(vols[vol].subtype == "protocol_endpoint"),
             "protocol_endpoint_version": getattr(
                 getattr(vols[vol], "protocol_endpoint", None),
-                        "container_version", None,
+                "container_version",
+                None,
             ),
             "size": vols[vol].provisioned,
             "source": getattr(vols[vol].source, "name", None),
