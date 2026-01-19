@@ -178,7 +178,6 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
     LooseVersion,
 )
 
-
 HAS_PURESTORAGE = True
 try:
     from pypureclient.flasharray import (
