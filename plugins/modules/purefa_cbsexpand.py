@@ -71,7 +71,6 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     purefa_argument_spec,
 )
 
-
 EXPAND_API_VERSION = "2.29"
 
 
