@@ -54,7 +54,6 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
     LooseVersion,
 )
 
-
 SFP_API_VERSION = "2.16"
 
 
