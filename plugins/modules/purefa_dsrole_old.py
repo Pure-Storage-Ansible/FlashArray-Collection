@@ -104,7 +104,6 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
     LooseVersion,
 )
 
-
 MAX_API_VERSION = "2.30"
 
 
