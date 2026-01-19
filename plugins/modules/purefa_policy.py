@@ -2300,7 +2300,7 @@ def update_policy(module, array, api_version, all_squash):
             "min_character_groups": pwd_policy.min_character_groups,
             "min_characters_per_group": pwd_policy.min_characters_per_group,
             "min_password_length": pwd_policy.min_password_length,
-            "min_password_age": pwd_policy.min_password_age,
+            "min_password_age": getattr(pwd_policy, "min_password_age", 0),
             "max_login_attempts": getattr(pwd_policy, "max_login_attempts", 0),
             "password_history": getattr(pwd_policy, "password_history", 0),
         }
