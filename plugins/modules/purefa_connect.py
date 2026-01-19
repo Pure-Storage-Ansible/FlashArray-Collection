@@ -134,7 +134,6 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 import platform
 import socket
 
-
 ENCRYPT_VERSION = "2.33"
 CONTEXT_VERSION = "2.38"
 
