@@ -205,7 +205,7 @@ def main():
         )
     role_configured = False
     role = array.get_directory_services_roles(role_names=[module.params["role"]])
-    if hasattr(role[0], "group"):
+    if hasattr(ilist(role.items)[0], "group"):
         role_configured = True
 
     if state == "absent" and role_configured:
