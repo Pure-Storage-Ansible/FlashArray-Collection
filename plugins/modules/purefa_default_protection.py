@@ -143,7 +143,7 @@ def _get_pg(module, array, pod):
         )
     else:
         res = array.get_protection_groups(names=[pod])
-    if res.staus_code == 200:
+    if res.status_code == 200:
         return list(res.items)[0]
     return None
 
