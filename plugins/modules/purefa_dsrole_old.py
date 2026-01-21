@@ -111,7 +111,7 @@ def update_role(module, array):
     """Update Directory Service Role"""
     changed = False
     role = list(
-        array.get_directory_services_roles(names=[module.params["role"]]).items
+        array.get_directory_services_roles(role_names=[module.params["role"]]).items
     )[0]
     if (
         role.group_base != module.params["group_base"]
@@ -120,7 +120,7 @@ def update_role(module, array):
         changed = True
         if not module.check_mode:
             res = array.patch_directory_services_roles(
-                names=[module.params["role"]],
+                role_names=[module.params["role"]],
                 directory_service_roles=DirectoryServiceRole(
                     group_base=module.params["group_base"],
                     group=module.params["group"],
@@ -140,7 +140,7 @@ def delete_role(module, array):
     changed = True
     if not module.check_mode:
         res = array.patch_directory_service_roles(
-            names=[module.params["role"]],
+            role_names=[module.params["role"]],
             directory_service_roles=DirectoryServiceRole(group_base="", group=""),
         )
         if res.status_code != 200:
@@ -159,7 +159,7 @@ def create_role(module, array):
         changed = True
         if not module.check_mode:
             res = array.patch_directory_service_roles(
-                names=[module.params["role"]],
+                role_names=[module.params["role"]],
                 directory_service_roles=DirectoryServiceRole(
                     group_base=module.params["group_base"],
                     group=module.params["group"],
@@ -198,14 +198,14 @@ def main():
     state = module.params["state"]
     array = get_array(module)
     api_version = array.get_rest_version()
-    if LooseVersion(MAX_API_VERSION) <= LooseVersion(api_version):
+    if LooseVersion(api_version) > LooseVersion(MAX_API_VERSION):
         module.fail_json(
             msg="This module is deprecated for your version of Purity//FA. "
             "Please use module ''purefa_dsrole`` instead."
         )
     role_configured = False
-    role = array.get_directory_services_roles(names=[module.params["role"]])
-    if hasattr(role[0], "group"):
+    role = array.get_directory_services_roles(role_names=[module.params["role"]])
+    if hasattr(list(role.items)[0], "group"):
         role_configured = True
 
     if state == "absent" and role_configured:
