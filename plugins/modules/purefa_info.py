@@ -570,8 +570,8 @@ def generate_config_dict(module, array):
     config_info["syslog"] = {}
     for syslog in range(0, len(syslog_info)):
         config_info["syslog"][syslog_info[syslog].name] = {
-            "uri": syslog_info[syslog].uri,
-            "services": syslog_info[syslog].services,
+            "uri": getattr(syslog_info[syslog], "uri", None),
+            "services": getattr(syslog_info[syslog], "services", None),
         }
     support_info = list(array.get_support().items)[0]
     config_info["phonehome"] = ("disabled", "enabled")[support_info.phonehome_enabled]
