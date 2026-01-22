@@ -143,17 +143,35 @@ def generate_default_dict(array):
         default_info["virtual_machine_snaps"] = len(
             getattr(array.get_virtual_machine_snapshots(vm_type="vvol"), "items", [])
         )
-    default_info["snapshot_policies"] = len(array.get_policies_snapshot().items)
-    default_info["nfs_policies"] = len(array.get_policies_nfs().items)
-    default_info["smb_policies"] = len(array.get_policies_smb().items)
-    default_info["filesystems"] = len(array.get_file_systems().items)
-    default_info["directories"] = len(array.get_directories().items)
-    default_info["exports"] = len(array.get_directory_exports().items)
-    default_info["directory_snapshots"] = len(array.get_directory_snapshots().items)
+    default_info["snapshot_policies"] = len(
+        getattr(array.get_policies_snapshot(), "items", []) or []
+    )
+    default_info["nfs_policies"] = len(
+        getattr(array.get_policies_nfs(), "items", []) or []
+    )
+    default_info["smb_policies"] = len(
+        getattr(array.get_policies_smb(), "items", []) or []
+    )
+    default_info["filesystems"] = len(
+        getattr(array.get_file_systems(), "items", []) or []
+    )
+    default_info["directories"] = len(
+        getattr(array.get_directories(), "items", []) or []
+    )
+    default_info["exports"] = len(
+        getattr(array.get_directory_exports(), "items", []) or []
+    )
+    default_info["directory_snapshots"] = len(
+        getattr(array.get_directory_snapshots(), "items", []) or []
+    )
     if LooseVersion(DIR_QUOTA_API_VERSION) <= LooseVersion(api_version):
-        default_info["quota_policies"] = len(array.get_policies_quota().items)
+        default_info["quota_policies"] = len(
+            getattr(array.get_policies_quota(), "items", []) or []
+        )
     if LooseVersion(PWD_POLICY_API_VERSION) <= LooseVersion(api_version):
-        default_info["password_policies"] = len(array.get_policies_password().items)
+        default_info["password_policies"] = len(
+            getattr(array.get_policies_password(), "items", []) or []
+        )
     if LooseVersion(ENCRYPTION_STATUS_API_VERSION) <= LooseVersion(api_version):
         array_data = list(array.get_arrays().items)[0]
         encryption = array_data.encryption
@@ -187,14 +205,17 @@ def generate_default_dict(array):
             )
             timenow = datetime.fromtimestamp(time.time())
             for controller in range(0, len(controllers)):
-                boottime = datetime.fromtimestamp(
-                    controllers[controller].mode_since / 1000
-                )
-                delta = timenow - boottime
+                mode_since = getattr(controller, "mode_since", None)
+                if mode_since is not None:
+                    boottime = datetime.fromtimestamp(mode_since / 1000)
+                    delta = timenow - boottime
+                    uptime = str(delta)
+                else:
+                    uptime = "unknown"
                 default_info["controller_uptime"].append(
                     {
                         "controller": controllers[controller].name,
-                        "uptime": str(delta),
+                        "uptime": uptime,
                     }
                 )
     default_info["volume_groups"] = len(list(array.get_volume_groups().items))
