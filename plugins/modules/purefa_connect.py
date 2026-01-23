@@ -113,7 +113,11 @@ RETURN = r"""
 
 HAS_PYPURECLIENT = True
 try:
-    from pypureclient import flasharray
+    from pypureclient.flasharray import (
+        ArrayConnectionPost,
+        ArrayConnectionPatch,
+        Client,
+    )
 except ImportError:
     HAS_PYPURECLIENT = False
 
@@ -232,14 +236,14 @@ def update_connection(module, array, target_array):
                 res = array.patch_array_connections(
                     names=[target_array.name],
                     renew_encryption_key=True,
-                    array_connection=flasharray.ArrayConnectionPatch(),
+                    array_connection=ArrayConnectionPatch(),
                     context_names=[module.params["context"]],
                 )
             else:
                 res = array.patch_array_connections(
                     names=[target_array.name],
                     renew_encryption_key=True,
-                    array_connection=flasharray.ArrayConnectionPatch(),
+                    array_connection=ArrayConnectionPatch(),
                 )
             if res.status_code != 200:
                 module.fail_json(
@@ -256,14 +260,14 @@ def update_connection(module, array, target_array):
                 res = array.patch_array_connections(
                     names=[target_array.name],
                     refresh=True,
-                    array_connection=flasharray.ArrayConnectionPatch(),
+                    array_connection=ArrayConnectionPatch(),
                     context_names=[module.params["context"]],
                 )
             else:
                 res = array.patch_array_connections(
                     names=[target_array.name],
                     refresh=True,
-                    array_connection=flasharray.ArrayConnectionPatch(),
+                    array_connection=ArrayConnectionPatch(),
                 )
             if res.status_code != 200:
                 module.fail_json(
@@ -282,7 +286,7 @@ def update_connection(module, array, target_array):
             encrypted = "unencrypted"
         if target_array.encryption != encrypted:
             # Changing the encryption type requires the connection key
-            remote_system = flasharray.Client(
+            remote_system = Client(
                 target=module.params["target_url"],
                 api_token=module.params["target_api"],
                 user_agent=user_agent,
@@ -297,7 +301,7 @@ def update_connection(module, array, target_array):
                 if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                     res = array.patch_array_connections(
                         names=[target_array.name],
-                        array_connection=flasharray.ArrayConnectionPatch(
+                        array_connection=ArrayConnectionPatch(
                             encryption=encrypted, connection_key=connection_key
                         ),
                         context_names=[module.params["context"]],
@@ -305,7 +309,7 @@ def update_connection(module, array, target_array):
                 else:
                     res = array.patch_array_connections(
                         names=[target_array.name],
-                        array_connection=flasharray.ArrayConnectionPatch(
+                        array_connection=ArrayConnectionPatch(
                             encryption=encrypted, connection_key=connection_key
                         ),
                     )
@@ -321,7 +325,7 @@ def update_connection(module, array, target_array):
             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                 res = array.patch_array_connections(
                     names=[target_array.name],
-                    array_connection=flasharray.ArrayConnectionPatch(
+                    array_connection=ArrayConnectionPatch(
                         type=module.params["connection"]
                     ),
                     context_names=[module.params["context"]],
@@ -329,7 +333,7 @@ def update_connection(module, array, target_array):
             else:
                 res = array.patch_array_connections(
                     names=[target_array.name],
-                    array_connection=flasharray.ArrayConnectionPatch(
+                    array_connection=ArrayConnectionPatch(
                         type=module.params["connection"]
                     ),
                 )
@@ -360,33 +364,43 @@ def create_connection(module, array):
             "version": 1.5,
             "platform": platform.platform(),
         }
-    remote_system = flasharray.Client(
+    remote_system = Client(
         target=module.params["target_url"],
         api_token=module.params["target_api"],
         user_agent=user_agent,
     )
-    connection_key = list(
-        remote_system.get_array_connections_connection_key(
+    try:
+        connections = remote_system.get_array_connections_connection_key(
             encrypted=module.params["encrypted"]
-        ).items
-    )[0].connection_key
+        )
+    except TypeError as exc:
+        if module.params["encrypted"] == "encrypted":
+            module.warning(
+                msg=(
+                    "Remote array version of Purity//FA does not support "
+                    "encryption. Continuing without encryption"
+                ),
+            )
+        connections = remote_system.get_array_connections_connection_key()
+
+    connection_key = list(connections.items)[0].connection_key
     if LooseVersion(ENCRYPT_VERSION) >= LooseVersion(api_version):
         if module.params["encrypted"]:
             encrypted = "encrypted"
         else:
             encrypted = "unencrypted"
-        array_connection = flasharray.ArrayConnectionPost(
+        array_connection = ArrayConnectionPost(
             type=module.params["connection"].lower(),
             management_address=module.params["target_url"].strip("[]"),
-            replication_transport=module.params["connection"],
+            replication_transport=module.params["transport"],
             connection_key=connection_key,
             encryption=encrypted,
         )
     else:
-        array_connection = flasharray.ArrayConnectionPost(
+        array_connection = ArrayConnectionPost(
             type=module.params["connection"].lower(),
             management_address=module.params["target_url"].strip("[]"),
-            replication_transport=module.params["connection"],
+            replication_transport=module.params["transport"],
             connection_key=connection_key,
         )
     if not module.check_mode:
