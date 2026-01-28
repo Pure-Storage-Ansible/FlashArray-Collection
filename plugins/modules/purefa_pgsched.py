@@ -632,7 +632,12 @@ def delete_schedule(module, array):
     """Delete, ie. disable, Protection Group Schedules"""
     api_version = array.get_rest_version()
     changed = False
-    res = {"status_code": 200}
+
+    class Res:
+        def __init__(self, status_code):
+            self.status_code = status_code
+
+    res = Res(200)
     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
         schedule = list(
             array.get_protection_groups(
