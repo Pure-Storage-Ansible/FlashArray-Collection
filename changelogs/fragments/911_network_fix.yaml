@@ -1,0 +1,2 @@
+bugfixes:
+ - purefa_network - Fixes issue caused by None meaning change in SDK
