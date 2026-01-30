@@ -229,6 +229,7 @@ def update_default(module, array, current_default):
         new_list = sorted(list(set(current).difference(module.params["name"])))
     else:
         new_list = []
+    module.warn("{0}".format(new_list))
     if not new_list:
         delete_default(module, array)
     elif new_list == current:
@@ -250,43 +251,43 @@ def update_default(module, array, current_default):
                             type="protection_group",
                         )
                     )
-                if module.params["scope"] == "array":
-                    protection = flasharray.ContainerDefaultProtection(
-                        name="", type="", default_protections=pg_list
+            if module.params["scope"] == "array":
+                protection = flasharray.ContainerDefaultProtection(
+                    name="", type="", default_protections=pg_list
+                )
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_container_default_protections(
+                        names=[""],
+                        container_default_protection=protection,
+                        context_names=[module.params["context"]],
                     )
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        res = array.patch_container_default_protections(
-                            names=[""],
-                            container_default_protection=protection,
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.patch_container_default_protections(
-                            names=[""], container_default_protection=protection
-                        )
                 else:
-                    protection = flasharray.ContainerDefaultProtection(
-                        name=module.params["pod"],
-                        type="pod",
-                        default_protections=pg_list,
+                    res = array.patch_container_default_protections(
+                        names=[""], container_default_protection=protection
                     )
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        res = array.patch_container_default_protections(
-                            names=[module.params["pod"]],
-                            container_default_protection=protection,
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.patch_container_default_protections(
-                            names=[module.params["pod"]],
-                            container_default_protection=protection,
-                        )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to update default protection. Error: {0}".format(
-                            res.errors[0].message
-                        )
+            else:
+                protection = flasharray.ContainerDefaultProtection(
+                    name=module.params["pod"],
+                    type="pod",
+                    default_protections=pg_list,
+                )
+                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    res = array.patch_container_default_protections(
+                        names=[module.params["pod"]],
+                        container_default_protection=protection,
+                        context_names=[module.params["context"]],
                     )
+                else:
+                    res = array.patch_container_default_protections(
+                        names=[module.params["pod"]],
+                        container_default_protection=protection,
+                    )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg="Failed to update default protection. Error: {0}".format(
+                        res.errors[0].message
+                    )
+                )
     module.exit_json(changed=changed)
 
 
@@ -324,6 +325,11 @@ def delete_default(module, array):
                     names=[module.params["pod"]], container_default_protection=[]
                 )
         if res.status_code != 200:
+            if res.status_code == 403:
+                module.fail_json(
+                    msg="Removing protection groups in SafeMode from default "
+                    "protection is not allowed."
+                )
             module.fail_json(
                 msg="Failed to delete default protection. Error: {0}".format(
                     res.errors[0].message
@@ -386,7 +392,7 @@ def main():
             pod_name = module.params["pod"] + module.params["name"][pgroup]
         else:
             pod_name = module.params["name"][pgroup]
-        if not _get_pg(module, array, pod_name):
+        if not _get_pg(module, array, pod_name) and state == "present":
             module.fail_json(msg="Protection Group {0} does not exist".format(pod_name))
 
     if state == "present" and not current_default:
