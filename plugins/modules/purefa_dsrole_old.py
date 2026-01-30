@@ -121,7 +121,7 @@ def update_role(module, array):
         if not module.check_mode:
             res = array.patch_directory_services_roles(
                 role_names=[module.params["role"]],
-                directory_service_roles=DirectoryServiceRole(
+                directory_services_roles=DirectoryServiceRole(
                     group_base=module.params["group_base"],
                     group=module.params["group"],
                 ),
@@ -139,7 +139,7 @@ def delete_role(module, array):
     """Delete Directory Service Role"""
     changed = True
     if not module.check_mode:
-        res = array.patch_directory_service_roles(
+        res = array.patch_directory_services_roles(
             role_names=[module.params["role"]],
             directory_service_roles=DirectoryServiceRole(group_base="", group=""),
         )
