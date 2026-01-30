@@ -929,7 +929,7 @@ def generate_subnet_dict(array):
             "enabled": subnets[sub].enabled,
             "gateway": getattr(subnets[sub], "gateway", None),
             "mtu": subnets[sub].mtu,
-            "vlan": subnets[sub].vlan,
+            "vlan": getattr(subnets[sub], "vlan", None),
             "prefix": subnets[sub].prefix,
             "interfaces": [],
             "services": subnets[sub].services,
