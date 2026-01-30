@@ -585,12 +585,12 @@ def _update_host_initiators(module, array, answer=False):
                     res = array.patch_hosts(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],
-                        host=HostPatch(remove_wwns=current_connectors.wwn),
+                        host=HostPatch(remove_wwns=current_connectors.wwns),
                     )
                 else:
                     res = array.patch_hosts(
                         names=[module.params["name"]],
-                        host=HostPatch(remove_wwns=current_connectors.wwn),
+                        host=HostPatch(remove_wwns=current_connectors.wwns),
                     )
                 if res.status_code != 200:
                     module.fail_json(
