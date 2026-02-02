@@ -22,8 +22,8 @@ from ansible.module_utils.facts.utils import get_file_content
 def _findstr(text, match):
     for line in text.splitlines():
         if match in line:
-            found = line
-    return found
+            return line
+    return None
 
 
 def human_to_bytes(size):
