@@ -43,7 +43,7 @@ options:
   kvp:
     description:
     - List of key value pairs to assign to the volume.
-    - Seperate the key from the value using a colon (:) only.
+    - Separate the key from the value using a colon (:) only.
     - All items in list will use I(namespace) and I(copyable) settings.
     - See examples for exact formatting requirements
     type: list

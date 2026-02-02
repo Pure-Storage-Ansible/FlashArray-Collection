@@ -354,7 +354,7 @@ def generate_perf_dict(array):
         "usec_per_write_op": perf_data.usec_per_write_op,
         "write_bytes_per_sec": perf_data.write_bytes_per_sec,
         "writes_per_sec": perf_data.writes_per_sec,
-        # These are legacy values. Return 0 for backwards compatability
+        # These are legacy values. Return 0 for backwards compatibility
         "input_per_sec": 0,
         "output_per_sec": 0,
         "queue_depth": 0,
@@ -2149,8 +2149,8 @@ def generate_del_pgroups_dict(array):
             for pgroup_transfer in range(0, len(pgroup_transfers)):
                 snap = pgroup_transfers[pgroup_transfer]["name"]
                 pgroups_info[protgroup]["snaps"][snap] = {
-                    "time_remaining": None,  # Backwards compatability
-                    "created": None,  # Backwards compatability
+                    "time_remaining": None,  # Backwards compatibility
+                    "created": None,  # Backwards compatibility
                     "started": getattr(
                         pgroup_transfers[pgroup_transfer], "started", None
                     ),
@@ -2293,8 +2293,8 @@ def generate_pgroups_dict(array):
             for pgroup_transfer in range(0, len(pgroup_transfers)):
                 snap = pgroup_transfers[pgroup_transfer]["name"]
                 pgroups_info[protgroup]["snaps"][snap] = {
-                    "time_remaining": None,  # Backwards compatability
-                    "created": None,  # Backwards compatability
+                    "time_remaining": None,  # Backwards compatibility
+                    "created": None,  # Backwards compatibility
                     "started": getattr(
                         pgroup_transfers[pgroup_transfer], "started", None
                     ),
@@ -2661,7 +2661,7 @@ def generate_vgroups_dict(array, performance):
             "volumes": [],
             "performance": [],
             "snapshots_space": vgroups[vgroup].space.snapshots,
-            "system": vgroups[vgroup].space.unique,  # Backwards compatability
+            "system": vgroups[vgroup].space.unique,  # Backwards compatibility
             "unique_space": vgroups[vgroup].space.unique,
             "virtual_space": vgroups[vgroup].space.virtual,
             "data_reduction": (getattr(vgroups[vgroup].space, "data_reduction", None),),
@@ -2767,7 +2767,7 @@ def generate_del_vgroups_dict(array):
             "volumes": [],
             "performance": [],
             "snapshots_space": vgroups[vgroup].space.snapshots,
-            "system": vgroups[vgroup].space.unique,  # Backwards compatability
+            "system": vgroups[vgroup].space.unique,  # Backwards compatibility
             "unique_space": vgroups[vgroup].space.unique,
             "virtual_space": vgroups[vgroup].space.virtual,
             "data_reduction": (getattr(vgroups[vgroup].space, "data_reduction", None),),

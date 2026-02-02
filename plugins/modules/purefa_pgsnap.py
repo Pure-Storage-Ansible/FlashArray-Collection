@@ -73,7 +73,7 @@ options:
     type: str
   now:
     description:
-    - Whether to initiate a snapshot of the protection group immeadiately
+    - Whether to initiate a snapshot of the protection group immediately
     type: bool
     default: false
   apply_retention:
@@ -83,7 +83,7 @@ options:
     default: false
   remote:
     description:
-    - Force immeadiate snapshot to remote targets
+    - Force immediate snapshot to remote targets
     type: bool
     default: false
   throttle:
@@ -95,7 +95,7 @@ options:
   with_default_protection:
     description:
     - Whether to add the default container protection groups to
-      those specified in I(add_to_pgs) as the inital protection
+      those specified in I(add_to_pgs) as the initial protection
       of a volume created from a snapshot.
     type: bool
     default: true
@@ -168,7 +168,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: copy
 
-- name: Create snapshot of existing pgroup foo with suffix and force immeadiate copy to remote targets
+- name: Create snapshot of existing pgroup foo with suffix and force immediate copy to remote targets
   purestorage.flasharray.purefa_pgsnap:
     name: pgname
     suffix: force
@@ -978,7 +978,7 @@ def main():
             module.params["add_to_pgs"] or module.params["with_default_protection"]
         ):
             module.fail_json(
-                msg="overwrite and add_to_pgs or with_default_protection are incompatable"
+                msg="overwrite and add_to_pgs or with_default_protection are incompatible"
             )
         restore_pgsnapvolume(module, array)
     elif state == "present" and not pgsnap:

@@ -110,7 +110,7 @@ def get_local_tz(module, timezone="UTC"):
     We will attempt to get the local timezone of the server running the module and use that.
     If we can't get the timezone then we will set the default to be UTC
 
-    Linnux has been tested and other opersting systems should be OK.
+    Linux has been tested and other operating systems should be OK.
     Failures cause assumption of UTC
 
     Windows is not supported and will assume UTC

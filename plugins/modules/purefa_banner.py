@@ -28,7 +28,7 @@ author:
 options:
   state:
     description:
-    - Set ot delete the MOTD
+    - Set or delete the MOTD
     default: present
     type: str
     choices: [ present, absent ]

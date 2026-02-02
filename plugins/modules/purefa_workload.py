@@ -88,7 +88,7 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: Create a workload using an exisitng preset on a specific placement target and connect to host myhost
+- name: Create a workload using an existing preset on a specific placement target and connect to host myhost
   purestorage.flasharray.purefa_workload:
     name: foo
     preset: bar
@@ -97,7 +97,7 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Create a workload using an exisitng preset using the recommended target and connect to host myhost
+- name: Create a workload using an existing preset using the recommended target and connect to host myhost
   purestorage.flasharray.purefa_workload:
     name: foo
     preset: bar
@@ -284,7 +284,7 @@ def create_workload(module, array, fleet, preset_config):
                 )
             )
         workload_calc = list(res.items)[0].name
-        # Wait for the workload calulation to complete
+        # Wait for the workload calculation to complete
         result = list(
             array.get_workloads_placement_recommendations(
                 names=[workload_calc], context_names=[module.params["context"]]

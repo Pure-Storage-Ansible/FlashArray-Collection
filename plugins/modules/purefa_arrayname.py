@@ -81,7 +81,7 @@ CONTEXT_VERSION = "2.38"
 
 
 def update_name(module, array):
-    """Change aray name"""
+    """Change array name"""
     changed = True
     api_version = array.get_rest_version()
     if not module.check_mode:

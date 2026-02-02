@@ -24,7 +24,7 @@ description:
   to SSL certificates at this time. Use the FlashArray GUI for this
   additional configuration work.
 - To modify an existing directory service configuration you must first delete
-  an exisitng configuration and then recreate with new settings.
+  an existing configuration and then recreate with new settings.
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
@@ -110,7 +110,7 @@ options:
     - The certificate of the Certificate Authority (CA) that signed the
       certificates of the directory servers, which is used to validate the
       authenticity of the configured servers
-    - A valid signed certicate in PEM format (Base64 encoded)
+    - A valid signed certificate in PEM format (Base64 encoded)
     - Includes the "-----BEGIN CERTIFICATE-----" and "-----END CERTIFICATE-----" lines
     version_added: 1.24.0
   context:
@@ -476,7 +476,7 @@ def main():
             update_ds(module, array)
     else:
         module.warn(
-            "Direcotry Service of type {0} does not exist. Check FlashArray configuration".format(
+            "Directory Service of type {0} does not exist. Check FlashArray configuration".format(
                 module.params["dstype"]
             )
         )
