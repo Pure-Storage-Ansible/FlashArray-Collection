@@ -158,7 +158,7 @@ def create_role(module, array):
     if not module.params["group"] == "" or not module.params["group_base"] == "":
         changed = True
         if not module.check_mode:
-            res = array.patch_directory_service_roles(
+            res = array.patch_directory_services_roles(
                 role_names=[module.params["role"]],
                 directory_service_roles=DirectoryServiceRole(
                     group_base=module.params["group_base"],
