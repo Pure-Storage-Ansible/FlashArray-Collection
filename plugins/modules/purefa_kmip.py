@@ -31,7 +31,7 @@ options:
     required: true
   certificate:
     description:
-    - Name of existing certifcate used to verify FlashArray
+    - Name of existing certificate used to verify FlashArray
       authenticity to the KMIP server.
     - Use the I(purestorage.flasharray.purefa_certs) module to create certificates.
     type: str
