@@ -99,7 +99,7 @@ def update_capacity(module, array):
     if module.params["capacity"] not in available:
         module.fail_json(
             msg="Selected capacity is not available. "
-            "Run this module with `list` to get available capapcity points."
+            "Run this module with `list` to get available capacity points."
         )
     expanded = array.patch_arrays_cloud_capacity(
         capacity=flasharray.CloudCapacityStatus(
