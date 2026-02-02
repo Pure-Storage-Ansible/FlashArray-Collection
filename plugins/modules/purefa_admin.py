@@ -26,7 +26,7 @@ author:
 options:
   sso:
     description:
-    - Enable or disable the array Signle Sign-On from Pure1 Manage
+    - Enable or disable the array Single Sign-On from Pure1 Manage
     default: false
     type: bool
   max_login:

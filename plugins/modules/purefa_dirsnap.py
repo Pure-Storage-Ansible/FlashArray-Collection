@@ -72,7 +72,7 @@ options:
     description:
     - Whether to rename a directory snapshot
     - The snapshot client name and suffix can be changed
-    - Required with I(new_client) ans I(new_suffix)
+    - Required with I(new_client) and I(new_suffix)
     type: bool
     default: false
     version_added: '1.12.0'
@@ -96,7 +96,7 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: Create a snapshot direcotry foo in filesysten bar for client test with suffix test
+- name: Create a snapshot directory foo in filesysten bar for client test with suffix test
   purestorage.flasharray.purefa_dirsnap:
     name: foo
     filesystem: bar

@@ -82,7 +82,7 @@ def _is_cbs(array):
 
 
 def list_capacity(module, array):
-    """Get avaible expansion points"""
+    """Get available expansion points"""
     steps = list(array.get_arrays_cloud_capacity_supported_steps().items)
     available = []
     for step in range(0, len(steps)):

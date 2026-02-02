@@ -65,7 +65,7 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Copy a file in a direcotry to the same directory with a different name
+- name: Copy a file in a directory to the same directory with a different name
   purestorage.flasharray.purefa_file:
     source_file: "/directory1/file1"
     source_dir: "fs1:root"
@@ -73,7 +73,7 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Copy a file in a direcotry to an existing file with overwrite
+- name: Copy a file in a directory to an existing file with overwrite
   purestorage.flasharray.purefa_file:
     source_file: "/directory1/file1"
     source_dir: "fs1:root"
@@ -154,9 +154,9 @@ def main():
     if not module.params["target_dir"]:
         module.params["target_dir"] = module.params["source_dir"]
     if ":" not in module.params["target_dir"]:
-        module.fail_json(msg="Target Direcotry is not formatted correctly")
+        module.fail_json(msg="Target Directory is not formatted correctly")
     if ":" not in module.params["source_dir"]:
-        module.fail_json(msg="Source Direcotry is not formatted correctly")
+        module.fail_json(msg="Source Directory is not formatted correctly")
     _check_dirs(module, array)
     changed = True
     if not module.check_mode:

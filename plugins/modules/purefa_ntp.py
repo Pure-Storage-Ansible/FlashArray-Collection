@@ -62,7 +62,7 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: Delete exisitng NTP server entries
+- name: Delete existing NTP server entries
   purestorage.flasharray.purefa_ntp:
     state: absent
     fa_url: 10.10.10.2

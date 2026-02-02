@@ -89,7 +89,7 @@ EXAMPLES = r"""
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: absent
 
-- name: Rename endpoint foor to bar
+- name: Rename endpoint foo to bar
   purestorage.flasharray.purefa_endpoint:
     name: foo
     rename: bar
@@ -348,7 +348,7 @@ def delete_endpoint(module, array):
                 res = array.delete_volumes(names=[module.params["name"]])
             if res.status_code != 200:
                 module.fail_json(
-                    msg="Eradicate endpoint {0} failed. Erro: {1}".format(
+                    msg="Eradicate endpoint {0} failed. Error: {1}".format(
                         module.params["name"], res.errors[0].message
                     )
                 )
@@ -428,7 +428,7 @@ def main():
     )
 
     if not HAS_PURESTORAGE:
-        module.fail_json(msg="py-pure-client sdk is required for this mudule")
+        module.fail_json(msg="py-pure-client sdk is required for this module")
     state = module.params["state"]
     array = get_array(module)
     volume = get_volume(module, module.params["name"], array)
