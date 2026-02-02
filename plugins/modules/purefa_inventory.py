@@ -28,7 +28,7 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: collect FlashArray invenroty
+- name: collect FlashArray inventory
   purestorage.flasharray.purefa_inventory:
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
