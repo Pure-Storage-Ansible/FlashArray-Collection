@@ -106,7 +106,7 @@ def update_capacity(module, array):
             requested_capacity=module.params["capacity"]
         )
     )
-    if expanded.sttaus_code != 200:
+    if expanded.status_code != 200:
         module.fail_json(
             msg="Expansion request failed. Error: {0}".format(
                 expanded.errors[0].message
