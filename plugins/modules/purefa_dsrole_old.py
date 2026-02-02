@@ -61,7 +61,7 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: Delete exisitng array_admin directory service role
+- name: Delete existing array_admin directory service role
   purestorage.flasharray.purefa_dsrole_old:
     role: array_admin
     state: absent

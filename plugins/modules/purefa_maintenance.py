@@ -18,7 +18,7 @@ DOCUMENTATION = r"""
 ---
 module: purefa_maintenance
 version_added: '1.7.0'
-short_description: Configure Pure Storage FlashArray Maintence Windows
+short_description: Configure Pure Storage FlashArray Maintenance Windows
 description:
 - Configuration for Pure Storage FlashArray Maintenance Windows.
 author:
@@ -42,7 +42,7 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: Delete exisitng maintenance window
+- name: Delete existing maintenance window
   purestorage.flasharray.purefa_maintenance:
     state: absent
     fa_url: 10.10.10.2
@@ -91,7 +91,7 @@ def delete_window(module, array):
 
 
 def set_window(module, array):
-    """Set Maintenace Window"""
+    """Set Maintenance Window"""
     changed = True
     if not 3600 <= module.params["timeout"] <= 172800:
         module.fail_json(

@@ -34,16 +34,16 @@ options:
   ca_certificate:
     type: str
     description:
-    - The text of the CA certificate for condifured syslog servers.
+    - The text of the CA certificate for configured syslog servers.
     - Includes the "-----BEGIN CERTIFICATE-----" and "-----END CERTIFICATE-----" lines
     - Does not exceed 3000 characters in length
-    - To delete the existing CA certifcate use the special string `DELETE`
+    - To delete the existing CA certificate use the special string `DELETE`
   tls_audit:
     type: bool
     default: true
     description:
     - If messages that are necessary in order to audit TLS negotiations
-      performed by the array are forwared to the syslog servers.
+      performed by the array are forwarded to the syslog servers.
   context:
     description:
     - Name of fleet member on which to perform the operation.
@@ -65,7 +65,7 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Delete existing CA certifcate for syslog servers settings
+- name: Delete existing CA certificate for syslog servers settings
   purestorage.flasharray.purefa_syslog_settings:
     ca_certificate: DELETE
     fa_url: 10.10.10.2

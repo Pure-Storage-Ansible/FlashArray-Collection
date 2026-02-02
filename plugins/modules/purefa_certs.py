@@ -35,7 +35,7 @@ options:
     - I(present) will create or re-create an SSL certificate
     - I(absent) will delete an existing SSL certificate
     - I(sign) will construct a Certificate Signing request (CSR)
-    - I(export) will export the exisitng SSL certificate
+    - I(export) will export the existing SSL certificate
     - I(import) will import a CA provided certificate.
     default: present
     choices: [ absent, present, import, export, sign ]
@@ -98,7 +98,7 @@ options:
     type: str
     description:
     - Required for I(import)
-    - A valid signed certicate in PEM format (Base64 encoded)
+    - A valid signed certificate in PEM format (Base64 encoded)
     - Includes the "-----BEGIN CERTIFICATE-----" and "-----END CERTIFICATE-----" lines
   intermeadiate_cert:
     type: str
@@ -125,7 +125,7 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: Create SSL certifcate foo
+- name: Create SSL certificate foo
   purestorage.flasharray.purefa_certs:
     name: foo
     key_size: 4096
@@ -322,7 +322,7 @@ def delete_cert(module, array):
         res = array.delete_certificates(names=[module.params["name"]])
         if res.status_code != 200:
             module.fail_json(
-                msg="Failed to delete {0} SSL certifcate. Error: {1}".format(
+                msg="Failed to delete {0} SSL certificate. Error: {1}".format(
                     module.params["name"], res.errors[0].message
                 )
             )

@@ -54,7 +54,7 @@ options:
     type: str
     description:
     - SNMP v3 only. Passphrade used by Purity//FA to authenticate the
-      array wit hthe specified managers.
+      array with the specified managers.
     - Must be between 8 and 63 non-space ASCII characters.
   auth_protocol:
     type: str

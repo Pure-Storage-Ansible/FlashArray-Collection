@@ -151,7 +151,7 @@ def delete_fleet(module, array):
     """Delete the fleet.
 
     Only works when the current array is the only remaining
-    memebr of the fleet'
+    member of the fleet'
     """
     changed = True
     api_version = array.get_rest_version()

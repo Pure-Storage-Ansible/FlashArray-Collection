@@ -57,7 +57,7 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: Create KMIP obejct
+- name: Create KMIP object
   purestorage.flasharray.purefa_kmip:
     name: foo
     certificate: bar

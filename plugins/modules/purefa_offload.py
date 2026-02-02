@@ -39,7 +39,7 @@ options:
   protocol:
     description:
     - Define which protocol the offload engine uses
-    - NFS is not a supported protocl from Purity//FA 6.6.0 and higher
+    - NFS is not a supported protocol from Purity//FA 6.6.0 and higher
     default: nfs
     choices: [ nfs, s3, azure, gcp ]
     type: str
@@ -53,7 +53,7 @@ options:
     type: str
   options:
     description:
-    - Additonal mount options for the NFS share
+    - Additional mount options for the NFS share
     - Supported mount options include I(port), I(rsize),
       I(wsize), I(nfsvers), and I(tcp) or I(udp)
     required: false
