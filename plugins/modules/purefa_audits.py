@@ -74,12 +74,10 @@ except ImportError:
 
 import datetime
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
     get_local_tz,
@@ -122,10 +120,8 @@ def main():
 
     array = get_array(module)
     api_version = array.get_rest_version()
-    if not module.params["timezone"] and LooseVersion(TZ_VERSION) <= LooseVersion(
-        api_version
-    ):
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if not module.params["timezone"] and Version(TZ_VERSION) <= Version(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             timezone = list(
                 array.get_arrays(context_names=[module.params["context"]]).items
             )[0].time_zone
@@ -142,7 +138,7 @@ def main():
     tzoffset = datetime.datetime.now(pytz.timezone(timezone)).strftime("%z")
     filter_string = _get_filter_string(module, tzoffset)
     audit_log = {}
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         if filter_string:
             res = array.get_audits(
                 context_names=[module.params["context"]], filter=filter_string

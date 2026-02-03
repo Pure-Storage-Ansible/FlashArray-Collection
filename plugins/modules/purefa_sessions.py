@@ -84,12 +84,10 @@ except ImportError:
 
 import datetime
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
     get_local_tz,
@@ -153,9 +151,7 @@ def main():
 
     array = get_array(module)
     api_version = array.get_rest_version()
-    if not module.params["timezone"] and LooseVersion(TZ_VERSION) <= LooseVersion(
-        api_version
-    ):
+    if not module.params["timezone"] and Version(TZ_VERSION) <= Version(api_version):
         timezone = list(array.get_arrays().items)[0].time_zone
     elif not module.params["timezone"]:
         timezone = get_local_tz(module)

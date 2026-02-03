@@ -124,12 +124,10 @@ except ImportError:
 
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 
@@ -141,7 +139,7 @@ def update_role(module, array):
     # Here we have to just blank out the group and group_base fields
     if module.params["state"] == "absent":
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_directory_services_roles(
                     names=[module.params["name"]],
                     directory_service_roles=DirectoryServiceRole(
@@ -167,7 +165,7 @@ def update_role(module, array):
                 )
         module.exit_json(changed=True)
 
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         role = list(
             array.get_directory_services_roles(
                 names=[module.params["name"]], context_names=[module.params["context"]]
@@ -190,7 +188,7 @@ def update_role(module, array):
         ):
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.patch_directory_services_roles(
                         names=[module.params["name"]],
                         directory_service_roles=DirectoryServiceRole(
@@ -222,7 +220,7 @@ def update_role(module, array):
         ):
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.patch_directory_services_roles(
                         names=[module.params["name"]],
                         directory_service_roles=DirectoryServiceRole(
@@ -253,7 +251,7 @@ def delete_role(module, array):
     changed = True
     api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.delete_directory_services_roles(
                 names=[module.params["name"]], context_names=[module.params["context"]]
             )
@@ -275,8 +273,8 @@ def create_role(module, array):
     if not module.params["group"] == "" or not module.params["group_base"] == "":
         changed = True
         if not module.check_mode:
-            if LooseVersion(api_version) >= LooseVersion(POLICY_API_VERSION):
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(api_version) >= Version(POLICY_API_VERSION):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.post_directory_services_roles(
                         names=[module.params["name"]],
                         directory_service_roles=DirectoryServiceRolePost(
@@ -296,7 +294,7 @@ def create_role(module, array):
                         ),
                     )
             else:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.post_directory_services_roles(
                         names=[module.params["name"]],
                         directory_service_roles=DirectoryServiceRole(
@@ -357,14 +355,14 @@ def main():
     if not module.params["name"]:
         module.params["name"] = module.params["role"]
     api_version = array.get_rest_version()
-    if LooseVersion(MIN_DSROLE_API_VERSION) > LooseVersion(api_version):
+    if Version(MIN_DSROLE_API_VERSION) > Version(api_version):
         module.fail_json(
             msg="This module requires Purity//FA 6.6.3 and higher. "
             "For older Purity versions please use the ``purefa_dsrole_old`` module"
         )
     role_configured = False
     role = {}
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         res = array.get_directory_services_roles(
             names=[module.params["name"]],
             context_names=[module.params["context"]],

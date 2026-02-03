@@ -181,12 +181,10 @@ except ImportError:
 
 import time
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 VERSION = 1.5
@@ -489,7 +487,7 @@ def main():
 
     array = get_array(module)
     api_version = array.get_rest_version()
-    if LooseVersion(MIN_REQUIRED_API_VERSION) > LooseVersion(api_version):
+    if Version(MIN_REQUIRED_API_VERSION) > Version(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)

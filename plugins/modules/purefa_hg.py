@@ -156,12 +156,10 @@ except ImportError:
 
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 CONTEXT_API_VERSION = "2.38"
@@ -170,7 +168,7 @@ CONTEXT_API_VERSION = "2.38"
 def rename_exists(module, array):
     """Determine if rename target already exists"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         return bool(
             array.get_host_groups(
                 names=[module.params["rename"]],
@@ -186,7 +184,7 @@ def rename_exists(module, array):
 def get_hostgroup_hosts(module, array):
     api_version = array.get_rest_version()
     hostgroup = None
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_host_groups_hosts(
             group_names=[module.params["name"]],
             context_names=[module.params["context"]],
@@ -201,7 +199,7 @@ def get_hostgroup_hosts(module, array):
 def get_hostgroup(module, array):
     api_version = array.get_rest_version()
     hostgroup = None
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_host_groups(
             names=[module.params["name"]], context_names=[module.params["context"]]
         )
@@ -222,7 +220,7 @@ def make_hostgroup(module, array):
         )
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.post_host_groups(
                 names=[module.params["name"]], context_names=[module.params["context"]]
             )
@@ -235,7 +233,7 @@ def make_hostgroup(module, array):
                 )
             )
         if module.params["host"]:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.post_host_groups_hosts(
                     context_names=[module.params["context"]],
                     group_names=[module.params["name"]],
@@ -254,7 +252,7 @@ def make_hostgroup(module, array):
                 )
         if module.params["volume"]:
             if len(module.params["volume"]) == 1 and module.params["lun"]:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.post_connections(
                         host_group_names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -276,7 +274,7 @@ def make_hostgroup(module, array):
                         )
                     )
             else:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.post_connections(
                         host_group_names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -302,7 +300,7 @@ def update_hostgroup(module, array):
     renamed = False
     hgroup = get_hostgroup_hosts(module, array)
     current_hostgroup = module.params["name"]
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         volumes = list(
             array.get_connections(
                 host_group_names=[module.params["name"]],
@@ -317,7 +315,7 @@ def update_hostgroup(module, array):
         if module.params["rename"]:
             if not rename_exists(module, array):
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.patch_host_groups(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -350,7 +348,7 @@ def update_hostgroup(module, array):
             new_hosts = list(set(hosts).difference(hghosts))
             if new_hosts:
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.patch_hosts(
                             host=HostPatch(
                                 host_group=ReferenceNoId(name=current_hostgroup)
@@ -379,9 +377,7 @@ def update_hostgroup(module, array):
                 new_volumes = list(set(vols).difference(set(current_vols)))
                 if len(new_volumes) == 1 and module.params["lun"]:
                     if not module.check_mode:
-                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                            api_version
-                        ):
+                        if Version(CONTEXT_API_VERSION) <= Version(api_version):
                             res = array.post_connections(
                                 host_group_names=[current_hostgroup],
                                 context_names=[module.params["context"]],
@@ -406,9 +402,7 @@ def update_hostgroup(module, array):
                 else:
                     for cvol in new_volumes:
                         if not module.check_mode:
-                            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                                api_version
-                            ):
+                            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                                 res = array.post_connections(
                                     host_group_names=[current_hostgroup],
                                     context_names=[module.params["context"]],
@@ -429,9 +423,7 @@ def update_hostgroup(module, array):
             else:
                 if len(module.params["volume"]) == 1 and module.params["lun"]:
                     if not module.check_mode:
-                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                            api_version
-                        ):
+                        if Version(CONTEXT_API_VERSION) <= Version(api_version):
                             res = array.post_connections(
                                 host_group_names=[current_hostgroup],
                                 context_names=[module.params["context"]],
@@ -456,9 +448,7 @@ def update_hostgroup(module, array):
                 else:
                     for cvol in module.params["volume"]:
                         if not module.check_mode:
-                            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                                api_version
-                            ):
+                            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                                 res = array.post_connections(
                                     host_group_names=[current_hostgroup],
                                     context_names=[module.params["context"]],
@@ -485,7 +475,7 @@ def update_hostgroup(module, array):
             old_hosts = list(set(old_hosts).intersection(hosts))
             if old_hosts:
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.delete_host_groups_hosts(
                             group_names=[current_hostgroup],
                             member_names=old_hosts,
@@ -510,7 +500,7 @@ def update_hostgroup(module, array):
             if old_volumes:
                 changed = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.delete_connections(
                             host_group_names=[current_hostgroup],
                             volume_names=old_volumes,
@@ -534,7 +524,7 @@ def update_hostgroup(module, array):
 def delete_hostgroup(module, array):
     api_version = array.get_rest_version()
     changed = False
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_connections(
             host_group_names=[module.params["name"]],
             context_names=[module.params["context"]],
@@ -553,7 +543,7 @@ def delete_hostgroup(module, array):
     if remove_vols:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.delete_connections(
                     host_group_names=[module.params["name"]],
                     volume_names=remove_vols,
@@ -576,7 +566,7 @@ def delete_hostgroup(module, array):
     if hghosts:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.delete_host_groups_hosts(
                     group_names=[hgroup[0].group.name],
                     member_names=hghosts,
@@ -592,7 +582,7 @@ def delete_hostgroup(module, array):
                         res.errors[0].message
                     )
                 )
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.delete_host_groups(
             names=[module.params["name"]], context_names=[module.params["context"]]
         )
@@ -630,7 +620,7 @@ def main():
     hostgroup = get_hostgroup(module, array)
 
     if module.params["host"]:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.get_hosts(
                 names=module.params["host"], context_names=[module.params["context"]]
             )
@@ -650,7 +640,7 @@ def main():
         )
 
     if module.params["volume"]:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.get_volumes(
                 names=module.params["volume"], context_names=[module.params["context"]]
             )

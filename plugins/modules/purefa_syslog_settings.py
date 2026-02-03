@@ -82,12 +82,10 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 MIN_REQUIRED_API_VERSION = "2.9"
@@ -120,7 +118,7 @@ def main():
     array = get_array(module)
     api_version = array.get_rest_version()
 
-    if LooseVersion(MIN_REQUIRED_API_VERSION) > LooseVersion(api_version):
+    if Version(MIN_REQUIRED_API_VERSION) > Version(api_version):
         module.fail_json(
             msg="Purity//FA version not supported. Minimum version required: 6.2.0"
         )
@@ -128,7 +126,7 @@ def main():
     changed = cert_change = False
     if module.params["ca_certificate"] and len(module.params["ca_certificate"]) > 3000:
         module.fail_json(msg="Certificate exceeds 3000 characters")
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         current = list(
             array.get_syslog_servers_settings(
                 context_names=[module.params["context"]]
@@ -165,7 +163,7 @@ def main():
             new_cert = module.params["ca_certificate"]
     if changed and not module.check_mode:
         if cert_change:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_syslog_servers_settings(
                     syslog_server_settings=flasharray.SyslogServerSettings(
                         ca_certificate=new_cert,
@@ -183,7 +181,7 @@ def main():
                     )
                 )
         else:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_syslog_servers_settings(
                     context_names=[module.params["context"]],
                     syslog_server_settings=flasharray.SyslogServerSettings(

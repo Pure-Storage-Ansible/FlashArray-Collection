@@ -63,9 +63,7 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
-)
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
@@ -136,7 +134,7 @@ def main():
     if not _is_cbs(array):
         module.fail_json(msg="Module only valid on Cloud Block Store array")
     api_version = array.get_rest_version()
-    if LooseVersion(EXPAND_API_VERSION) > LooseVersion(api_version):
+    if Version(EXPAND_API_VERSION) > Version(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(EXPAND_API_VERSION)

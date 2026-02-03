@@ -64,12 +64,10 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 EXCLUDES_API_VERSION = "2.47"
@@ -108,7 +106,7 @@ def main():
                     )
                 )
             if (
-                LooseVersion(EXCLUDES_API_VERSION) <= LooseVersion(api_version)
+                Version(EXCLUDES_API_VERSION) <= Version(api_version)
                 and module.params["excludes"]
             ):
                 res = array.patch_support(
@@ -121,7 +119,7 @@ def main():
                         )
                     )
     elif module.params["state"] == "present" and phonehome:
-        if LooseVersion(EXCLUDES_API_VERSION) <= LooseVersion(api_version):
+        if Version(EXCLUDES_API_VERSION) <= Version(api_version):
             if module.params["excludes"] != excludes:
                 changed = True
                 if not module.check_mode:

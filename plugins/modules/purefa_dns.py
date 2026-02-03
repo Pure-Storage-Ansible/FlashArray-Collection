@@ -119,9 +119,7 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
-)
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
@@ -141,7 +139,7 @@ def remove(duplicate):
 
 def _get_source(module, array):
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_network_interfaces(
             names=[module.params["source"]], context_names=[module.params["context"]]
         )
@@ -154,7 +152,7 @@ def delete_dns(module, array):
     """Delete DNS settings"""
     changed = False
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         current_dns = list(
             array.get_dns(context_names=[module.params["context"]]).items
         )[0]
@@ -167,7 +165,7 @@ def delete_dns(module, array):
     else:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.delete_dns(
                     names=["management"], context_names=[module.params["context"]]
                 )
@@ -210,7 +208,7 @@ def update_multi_dns(module, array):
     """Update a DNS configuration"""
     changed = False
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         current_dns = list(
             array.get_dns(
                 names=[module.params["name"]], context_names=[module.params["context"]]
@@ -235,7 +233,7 @@ def update_multi_dns(module, array):
         new_dns.source.name = module.params["source"]
         changed = True
     if changed and not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_dns(
                 names=[module.params["name"]],
                 dns=DnsPatch(
@@ -268,7 +266,7 @@ def delete_multi_dns(module, array):
     changed = True
     api_version = array.get_rest_version()
     if module.params["name"] == "management":
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_dns(
                 names=[module.params["name"]],
                 dns=DnsPatch(domain="", nameservers=[]),
@@ -287,7 +285,7 @@ def delete_multi_dns(module, array):
             )
     else:
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.delete_dns(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -310,7 +308,7 @@ def create_multi_dns(module, array):
     if not module.check_mode:
         if module.params["service"] == "file":
             if module.params["source"]:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.post_dns(
                         names=[module.params["name"]],
                         dns=DnsPost(
@@ -332,7 +330,7 @@ def create_multi_dns(module, array):
                         ),
                     )
             else:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.post_dns(
                         names=[module.params["name"]],
                         dns=DnsPost(
@@ -352,7 +350,7 @@ def create_multi_dns(module, array):
                         ),
                     )
         else:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.post_dns(
                     names=[module.params["name"]],
                     dns=DnsPost(
@@ -408,7 +406,7 @@ def main():
         if module.params["service"] == "management":
             module.params["nameservers"] = module.params["nameservers"][0:3]
 
-    if LooseVersion(MULTIPLE_DNS) <= LooseVersion(api_version):
+    if Version(MULTIPLE_DNS) <= Version(api_version):
         configs = list(array.get_dns().items)
         exists = False
         for config in range(0, len(configs)):

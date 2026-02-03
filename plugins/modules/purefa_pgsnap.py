@@ -220,12 +220,10 @@ except ImportError:
 
 import re
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 from datetime import datetime
@@ -237,7 +235,7 @@ CONTEXT_API_VERSION = "2.38"
 
 def _check_offload(module, array):
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_offloads(
             names=[module.params["offload"]], context_names=[module.params["context"]]
         )
@@ -251,7 +249,7 @@ def _check_offload(module, array):
 def get_pgroup(module, array):
     """Return Protection Group"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         return bool(
             array.get_protection_groups(
                 names=[module.params["name"]], context_names=[module.params["context"]]
@@ -268,7 +266,7 @@ def get_pgroupvolume(module, array):
     api_version = array.get_rest_version()
     try:
         volumes = []
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             pgroup = list(
                 array.get_protection_groups(
                     names=[module.params["name"]],
@@ -280,7 +278,7 @@ def get_pgroupvolume(module, array):
                 array.get_protection_groups(names=[module.params["name"]]).items
             )[0]
         if pgroup.host_count > 0:  # We have a host PG
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 host_dict = list(
                     array.get_protection_groups_hosts(
                         context_names=[module.params["context"]],
@@ -294,7 +292,7 @@ def get_pgroupvolume(module, array):
                     ).items
                 )
             for host in range(0, len(host_dict)):
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     hostvols = list(
                         array.get_connections(
                             context_names=[module.params["context"]],
@@ -310,7 +308,7 @@ def get_pgroupvolume(module, array):
                 for hvol in range(0, len(hostvols)):
                     volumes.append(hostvols[hvol].volume["name"])
         elif pgroup.host_group_count > 0:  # We have a hostgroup PG
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 hgroup_dict = list(
                     array.get_protection_groups_host_groups(
                         context_names=[module.params["context"]],
@@ -325,7 +323,7 @@ def get_pgroupvolume(module, array):
                 )
             # First check if there are any volumes in the host groups
             for hgentry in range(0, len(hgroup_dict)):
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     hgvols = list(
                         array.get_connections(
                             context_names=[module.params["context"]],
@@ -342,7 +340,7 @@ def get_pgroupvolume(module, array):
                     volumes.append(hgvols[hgvol].volume["name"])
             # Second check for host specific volumes
             for hgroup in range(0, len(hgroup_dict)):
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     hg_hosts = list(
                         array.get_host_groups_hosts(
                             context_names=[module.params["context"]],
@@ -356,7 +354,7 @@ def get_pgroupvolume(module, array):
                         ).items
                     )
                 for hg_host in range(0, len(hg_hosts)):
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         host_vols = list(
                             array.get_connections(
                                 context_names=[module.params["context"]],
@@ -372,7 +370,7 @@ def get_pgroupvolume(module, array):
                     for host_vol in range(0, len(host_vols)):
                         volumes.append(host_vols[host_vol].volume["name"])
         else:  # We have a volume PG
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 vol_dict = list(
                     array.get_protection_groups_volumes(
                         context_names=[module.params["context"]],
@@ -411,7 +409,7 @@ def get_rpgsnapshot(module, array):
         + "."
         + module.params["restore"]
     )
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_volume_snapshots(
             names=[snapname], context_names=[module.params["context"]]
         )
@@ -426,7 +424,7 @@ def get_pgsnapshot(module, array):
     """Return Snapshot (active or deleted) or None"""
     api_version = array.get_rest_version()
     snapname = module.params["name"] + "." + module.params["suffix"]
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_protection_group_snapshots(
             names=[snapname], context_names=[module.params["context"]]
         )
@@ -444,7 +442,7 @@ def create_pgsnapshot(module, array):
     changed = True
     if not module.check_mode:
         suffix = ProtectionGroupSnapshot(suffix=module.params["suffix"])
-        if LooseVersion(THROTTLE_API) >= LooseVersion(api_version):
+        if Version(THROTTLE_API) >= Version(api_version):
             if (
                 list(array.get_protection_groups(names=[module.params["name"]]).items)[
                     0
@@ -472,7 +470,7 @@ def create_pgsnapshot(module, array):
                     protection_group_snapshot=suffix,
                 )
         else:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 remote_target = (
                     list(
                         array.get_protection_groups(
@@ -491,7 +489,7 @@ def create_pgsnapshot(module, array):
                 )
             if remote_target:
                 if module.params["now"]:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.post_protection_group_snapshots(
                             source_names=[module.params["name"]],
                             apply_retention=module.params["apply_retention"],
@@ -509,7 +507,7 @@ def create_pgsnapshot(module, array):
                             protection_group_snapshot=suffix,
                         )
                 else:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.post_protection_group_snapshots(
                             source_names=[module.params["name"]],
                             apply_retention=module.params["apply_retention"],
@@ -527,7 +525,7 @@ def create_pgsnapshot(module, array):
                             replicate=module.params["remote"],
                         )
             else:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.post_protection_group_snapshots(
                         source_names=[module.params["name"]],
                         apply_retention=module.params["apply_retention"],
@@ -562,7 +560,7 @@ def restore_pgsnapvolume(module, array):
     api_version = array.get_rest_version()
     changed = True
     if module.params["suffix"] == "latest":
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             latest_snapshot = list(
                 array.get_protection_group_snapshots(
                     names=[module.params["name"]],
@@ -604,7 +602,7 @@ def restore_pgsnapvolume(module, array):
         else:
             source_pod_name = ""
         if source_pod_name != target_pod_name:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 if (
                     list(
                         array.get_pods(
@@ -622,14 +620,14 @@ def restore_pgsnapvolume(module, array):
                 ):
                     module.fail_json(msg="Volume cannot be restored to a stretched pod")
     if not module.check_mode:
-        if LooseVersion(DEFAULT_API) <= LooseVersion(array.get_rest_version()):
+        if Version(DEFAULT_API) <= Version(array.get_rest_version()):
             if module.params["add_to_pgs"]:
                 add_to_pgs = []
                 for add_pg in range(0, len(module.params["add_to_pgs"])):
                     add_to_pgs.append(
                         FixedReference(name=module.params["add_to_pgs"][add_pg])
                     )
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.post_volumes(
                         names=[module.params["target"]],
                         volume=VolumePost(source=Reference(name=source_volume)),
@@ -649,7 +647,7 @@ def restore_pgsnapvolume(module, array):
                         add_to_protection_groups=add_to_pgs,
                     )
             else:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     if module.params["overwrite"]:
                         res = array.post_volumes(
                             names=[module.params["target"]],
@@ -702,7 +700,7 @@ def delete_offload_snapshot(module, array):
     snapname = module.params["name"] + "." + module.params["suffix"]
     if ":" in module.params["name"] and module.params["offload"]:
         if _check_offload(module, array):
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.get_remote_protection_group_snapshots(
                     names=[snapname],
                     on=module.params["offload"],
@@ -723,7 +721,7 @@ def delete_offload_snapshot(module, array):
             if not module.check_mode:
                 if not rpg_destroyed:
                     changed = True
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.patch_remote_protection_group_snapshots(
                             names=[snapname],
                             on=module.params["offload"],
@@ -749,9 +747,7 @@ def delete_offload_snapshot(module, array):
                             )
                         )
                     if module.params["eradicate"]:
-                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                            api_version
-                        ):
+                        if Version(CONTEXT_API_VERSION) <= Version(api_version):
                             res = array.delete_remote_protection_group_snapshots(
                                 names=[snapname],
                                 on=module.params["offload"],
@@ -772,9 +768,7 @@ def delete_offload_snapshot(module, array):
                 else:
                     if module.params["eradicate"]:
                         changed = True
-                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                            api_version
-                        ):
+                        if Version(CONTEXT_API_VERSION) <= Version(api_version):
                             res = array.delete_remote_protection_group_snapshots(
                                 names=[snapname],
                                 on=module.params["offload"],
@@ -810,7 +804,7 @@ def delete_pgsnapshot(module, array):
     api_version = array.get_rest_version()
     if not module.check_mode:
         snapname = module.params["name"] + "." + module.params["suffix"]
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_protection_group_snapshots(
                 names=[snapname],
                 protection_group_snapshot=ProtectionGroupSnapshotPatch(destroyed=True),
@@ -828,7 +822,7 @@ def delete_pgsnapshot(module, array):
                 )
             )
         if module.params["eradicate"]:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.delete_protection_group_snapshots(
                     names=[snapname], context_names=[module.params["context"]]
                 )
@@ -849,7 +843,7 @@ def eradicate_pgsnapshot(module, array):
     api_version = array.get_rest_version()
     if not module.check_mode:
         snapname = module.params["name"] + "." + module.params["suffix"]
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.delete_protection_group_snapshots(
                 names=[snapname], context_names=[module.params["context"]]
             )
@@ -871,7 +865,7 @@ def update_pgsnapshot(module, array):
     if not module.check_mode:
         current_name = module.params["name"] + "." + module.params["suffix"]
         new_name = module.params["name"] + "." + module.params["target"]
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_protection_group_snapshots(
                 names=[current_name],
                 protection_group_snapshot=ProtectionGroupSnapshotPatch(name=new_name),

@@ -57,12 +57,10 @@ RETURN = r"""
 """
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 HAS_PURESTORAGE = True
@@ -122,7 +120,7 @@ def main():
 
     array = get_array(module)
     api_version = array.get_rest_version()
-    if LooseVersion(EULA_V2) > LooseVersion(api_version):
+    if Version(EULA_V2) > Version(api_version):
         if not (
             module.params["company"]
             and module.params["title"]

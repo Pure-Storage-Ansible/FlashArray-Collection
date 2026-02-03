@@ -232,15 +232,13 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
 )
 from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
     human_to_bytes,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 DEFAULT_API_VERSION = "2.16"
@@ -253,7 +251,7 @@ CONTEXT_VERSION = "2.38"
 def get_pod(module, array):
     """Return Pod or None"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         return bool(
             array.get_pods(
                 names=[module.params["name"]],
@@ -271,7 +269,7 @@ def get_pod(module, array):
 def get_undo_pod(module, array):
     """Return Undo Pod or None"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         res = array.get_pods(
             names=[module.params["name"] + ".undo-demote.*"],
             context_names=[module.params["context"]],
@@ -287,7 +285,7 @@ def get_undo_pod(module, array):
 
 def get_target(module, array):
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         return bool(
             array.get_pods(
                 names=[module.params["target"]],
@@ -305,7 +303,7 @@ def get_target(module, array):
 def get_destroyed_pod(module, array):
     """Return Destroyed Volume or None"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         return bool(
             array.get_pods(
                 names=[module.params["name"]],
@@ -322,7 +320,7 @@ def get_destroyed_pod(module, array):
 def get_destroyed_target(module, array):
     """Return Destroyed Volume or None"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         return bool(
             array.get_pods(
                 names=[module.params["target"]],
@@ -341,7 +339,7 @@ def check_arrays(module, array):
     """Check if array name provided are sync-replicated"""
     api_version = array.get_rest_version()
     good_arrays = []
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         good_arrays.append(
             list(array.get_arrays(context_names=[module.params["context"]]).items)[
                 0
@@ -390,13 +388,13 @@ def create_pod(module, array):
             failovers = []
             for fo_array in range(0, len(module.params["failover"])):
                 failovers.append(Reference(name=module.params["failover"][fo_array]))
-            if LooseVersion(THROTTLE_VERSION) > LooseVersion(api_version):
+            if Version(THROTTLE_VERSION) > Version(api_version):
                 res = array.post_pods(
                     names=[module.params["name"]],
                     pod=PodPost(failover_preferences=failovers),
                 )
             else:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.post_pods(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -410,13 +408,13 @@ def create_pod(module, array):
                         allow_throttle=module.params["throttle"],
                     )
         else:
-            if LooseVersion(THROTTLE_VERSION) > LooseVersion(api_version):
+            if Version(THROTTLE_VERSION) > Version(api_version):
                 res = array.post_pods(
                     names=[module.params["name"]],
                     pod=PodPost(),
                 )
             else:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.post_pods(
                         names=[module.params["name"]],
                         pod=PodPost(),
@@ -436,7 +434,7 @@ def create_pod(module, array):
                 )
             )
         if module.params["mediator"] != "purestorage":
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_pods(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -454,15 +452,15 @@ def create_pod(module, array):
                     )
                 )
         if module.params["stretch"]:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 current_array = list(
                     array.get_arrays(context_names=[module.params["context"]]).items
                 )[0].name
             else:
                 current_array = list(array.get_arrays().items)[0].name
             if module.params["stretch"] != current_array:
-                if LooseVersion(MEMBERS_VERSION) <= LooseVersion(api_version):
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(MEMBERS_VERSION) <= Version(api_version):
+                    if Version(CONTEXT_VERSION) <= Version(api_version):
                         res = array.post_pods_members(
                             pod_names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -486,10 +484,10 @@ def create_pod(module, array):
                             res.errors[0].message,
                         )
                     )
-        if module.params["quota"] and LooseVersion(POD_QUOTA_VERSION) <= LooseVersion(
+        if module.params["quota"] and Version(POD_QUOTA_VERSION) <= Version(
             api_version
         ):
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_pods(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -506,8 +504,8 @@ def create_pod(module, array):
                         module.params["name"], res.errors[0].message
                     )
                 )
-        if LooseVersion(DEFAULT_API_VERSION) <= LooseVersion(api_version):
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(DEFAULT_API_VERSION) <= Version(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.get_container_default_protections(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -528,7 +526,7 @@ def create_pod(module, array):
             else:
                 pgname = None
             if pgname and not module.params["with_default_protection"]:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.patch_container_default_protections(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -549,7 +547,7 @@ def create_pod(module, array):
                             module.params["name"], res.errors[0].message
                         )
                     )
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.patch_protection_groups(
                         names=[pgname],
                         context_names=[module.params["context"]],
@@ -566,7 +564,7 @@ def create_pod(module, array):
                             module.params["name"], res.errors[0].message
                         )
                     )
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.delete_protection_groups(
                         names=[pgname], context_names=[module.params["context"]]
                     )
@@ -588,7 +586,7 @@ def create_pod(module, array):
                         msg="use with_default_protection: false to set no default protection"
                     )
                 if pgname != module.params["default_protection_pg"]:
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_VERSION) <= Version(api_version):
                         res = array.get_protection_groups(
                             context_names=[module.params["context"]],
                             names=[module.params["default_protection_pg"]],
@@ -598,7 +596,7 @@ def create_pod(module, array):
                             names=[module.params["default_protection_pg"]]
                         )
                 if res.status_code != 200:
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_VERSION) <= Version(api_version):
                         pg_res = array.post_protection_groups(
                             context_names=[module.params["context"]],
                             names=[module.params["default_protection_pg"]],
@@ -617,7 +615,7 @@ def create_pod(module, array):
                     module.params["retention_lock"]
                     and module.params["default_protection_pg"] != []
                 ):
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_VERSION) <= Version(api_version):
                         res = array.patch_protection_groups(
                             context_names=[module.params["context"]],
                             names=[module.params["default_protection_pg"]],
@@ -639,7 +637,7 @@ def create_pod(module, array):
                                 res.errors[0].message,
                             )
                         )
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     array.patch_container_default_protections(
                         context_names=[module.params["context"]],
                         names=[module.params["name"]],
@@ -654,7 +652,7 @@ def create_pod(module, array):
                             ContainerDefaultProtection(default_protections=[])
                         ),
                     )
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.patch_container_default_protections(
                         context_names=[module.params["context"]],
                         names=[module.params["name"]],
@@ -700,13 +698,13 @@ def clone_pod(module, array):
         if not get_destroyed_target(module, array):
             changed = True
             if not module.check_mode:
-                if LooseVersion(THROTTLE_VERSION) > LooseVersion(api_version):
+                if Version(THROTTLE_VERSION) > Version(api_version):
                     res = array.post_pods(
                         pod=PodPost(source=Reference(name=module.params["name"])),
                         names=[module.params["target"]],
                     )
                 else:
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_VERSION) <= Version(api_version):
                         res = array.post_pods(
                             pod=PodPost(source=Reference(name=module.params["name"])),
                             names=[module.params["target"]],
@@ -741,7 +739,7 @@ def update_pod(module, array):
     """Update Pod configuration"""
     api_version = array.get_rest_version()
     changed = False
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         current_config = list(
             array.get_pods(
                 names=[module.params["name"]], context_names=[module.params["context"]]
@@ -758,7 +756,7 @@ def update_pod(module, array):
             if not module.check_mode:
                 if module.params["failover"] == ["auto"]:
                     if current_failover != []:
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                        if Version(CONTEXT_VERSION) <= Version(api_version):
                             res = array.patch_pods(
                                 names=[module.params["name"]],
                                 context_names=[module.params["context"]],
@@ -782,7 +780,7 @@ def update_pod(module, array):
                         failovers.append(
                             Reference(name=module.params["failover"][fo_array])
                         )
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_VERSION) <= Version(api_version):
                         res = array.patch_pods(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -803,7 +801,7 @@ def update_pod(module, array):
     if current_config.mediator != module.params["mediator"]:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_pods(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -847,9 +845,7 @@ def update_pod(module, array):
                         undo_pod = get_undo_pod(module, array)
                         if undo_pod:
                             if len(undo_pod) == 1:
-                                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
-                                    api_version
-                                ):
+                                if Version(CONTEXT_VERSION) <= Version(api_version):
                                     res = array.patch_pods(
                                         pod=PodPatch(
                                             requested_promotion_state="promoted"
@@ -867,9 +863,7 @@ def update_pod(module, array):
                                         promote_from=undo_pod[0].name,
                                     )
                             else:
-                                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
-                                    api_version
-                                ):
+                                if Version(CONTEXT_VERSION) <= Version(api_version):
                                     res = array.patch_pods(
                                         pod=PodPatch(
                                             requested_promotion_state="promoted"
@@ -899,7 +893,7 @@ def update_pod(module, array):
                                 )
                             )
                     else:
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                        if Version(CONTEXT_VERSION) <= Version(api_version):
                             res = array.patch_pods(
                                 names=[module.params["name"]],
                                 context_names=[module.params["context"]],
@@ -928,7 +922,7 @@ def update_pod(module, array):
                     if module.params["quiesce"] is None:
                         module.params["quiesce"] = True
                     if current_config["link_target_count"] == 0:
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                        if Version(CONTEXT_VERSION) <= Version(api_version):
                             res = array.patch_pods(
                                 names=[module.params["name"]],
                                 context_names=[module.params["context"]],
@@ -940,7 +934,7 @@ def update_pod(module, array):
                                 pod=PodPatch(requested_promotion_state="demoted"),
                             )
                     elif not module.params["quiesce"]:
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                        if Version(CONTEXT_VERSION) <= Version(api_version):
                             res = array.patch_pods(
                                 names=[module.params["name"]],
                                 context_names=[module.params["context"]],
@@ -954,7 +948,7 @@ def update_pod(module, array):
                                 skip_quiesce=True,
                             )
                     else:
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                        if Version(CONTEXT_VERSION) <= Version(api_version):
                             res = array.patch_pods(
                                 names=[module.params["name"]],
                                 context_names=[module.params["context"]],
@@ -973,14 +967,12 @@ def update_pod(module, array):
                                 module.params["name"], res.errors[0].message
                             )
                         )
-    if module.params["quota"] and LooseVersion(POD_QUOTA_VERSION) <= LooseVersion(
-        api_version
-    ):
+    if module.params["quota"] and Version(POD_QUOTA_VERSION) <= Version(api_version):
         quota = human_to_bytes(module.params["quota"])
         if current_config.quota_limit != quota:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.patch_pods(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -1003,10 +995,10 @@ def update_pod(module, array):
                             module.params["name"], res.errors[0].message
                         )
                     )
-    if module.params["default_protection_pg"] and LooseVersion(
+    if module.params["default_protection_pg"] and Version(
         DEFAULT_API_VERSION
-    ) <= LooseVersion(api_version):
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    ) <= Version(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             safemode_pg = list(
                 array.get_container_default_protections(
                     names=[module.params["name"]],
@@ -1025,7 +1017,7 @@ def update_pod(module, array):
             pgname = []
         if pgname != module.params["default_protection_pg"]:
             changed = True
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.get_protection_groups(
                     names=[module.params["default_protection_pg"]],
                     context_names=[module.params["context"]],
@@ -1035,7 +1027,7 @@ def update_pod(module, array):
                     names=[module.params["default_protection_pg"]]
                 )
             if res.status_code != 200:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     pg_res = array.post_protection_groups(
                         context_names=[module.params["context"]],
                         names=[module.params["default_protection_pg"]],
@@ -1054,7 +1046,7 @@ def update_pod(module, array):
                 module.params["retention_lock"]
                 and module.params["default_protection_pg"] != []
             ):
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.patch_protection_groups(
                         context_names=[module.params["context"]],
                         names=[module.params["default_protection_pg"]],
@@ -1073,7 +1065,7 @@ def update_pod(module, array):
                         )
                     )
             if safemode_pg:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     array.patch_container_default_protections(
                         context_names=[module.params["context"]],
                         names=[module.params["name"]],
@@ -1088,7 +1080,7 @@ def update_pod(module, array):
                             ContainerDefaultProtection(default_protections=[])
                         ),
                     )
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.patch_container_default_protections(
                 context_names=[module.params["context"]],
                 names=[module.params["name"]],
@@ -1130,7 +1122,7 @@ def stretch_pod(module, array):
     """Stretch/unstretch Pod configuration"""
     api_version = array.get_rest_version()
     changed = False
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         current_config = list(
             array.get_pods(
                 names=[module.params["name"]], context_names=[module.params["context"]]
@@ -1148,8 +1140,8 @@ def stretch_pod(module, array):
         ):
             changed = True
             if not module.check_mode:
-                if LooseVersion(MEMBERS_VERSION) <= LooseVersion(api_version):
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(MEMBERS_VERSION) <= Version(api_version):
+                    if Version(CONTEXT_VERSION) <= Version(api_version):
                         res = array.post_pods_members(
                             pod_names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -1180,8 +1172,8 @@ def stretch_pod(module, array):
         ):
             changed = True
             if not module.check_mode:
-                if LooseVersion(MEMBERS_VERSION) <= LooseVersion(api_version):
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(MEMBERS_VERSION) <= Version(api_version):
+                    if Version(CONTEXT_VERSION) <= Version(api_version):
                         res = array.delete_pods_members(
                             pod_names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -1214,7 +1206,7 @@ def delete_pod(module, array):
     api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.patch_pods(
                 names=[module.params["name"]],
                 context_names=[module.params["context"]],
@@ -1234,7 +1226,7 @@ def delete_pod(module, array):
                 )
             )
         if module.params["eradicate"]:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.delete_pods(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -1260,7 +1252,7 @@ def eradicate_pod(module, array):
     if module.params["eradicate"]:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.delete_pods(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -1285,7 +1277,7 @@ def recover_pod(module, array):
     api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.patch_pods(
                 names=[module.params["name"]],
                 pod=PodPatch(destroyed=False),

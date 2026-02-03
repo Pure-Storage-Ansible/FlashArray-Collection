@@ -180,12 +180,10 @@ except ImportError:
 
 import re
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 MIN_REQUIRED_API_VERSION = "2.2"
@@ -207,7 +205,7 @@ def eradicate_snap(module, array):
             + "."
             + module.params["suffix"]
         )
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.delete_directory_snapshots(
                 names=[snapname], context_names=[module.params["context"]]
             )
@@ -237,7 +235,7 @@ def delete_snap(module, array):
             + module.params["suffix"]
         )
         directory_snapshot = DirectorySnapshotPatch(destroyed=True)
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.patch_directory_snapshots(
                 names=[snapname],
                 directory_snapshot=directory_snapshot,
@@ -294,7 +292,7 @@ def update_snap(module, array, snap_detail):
         )
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_directory_snapshots(
                     names=[snapname],
                     directory_snapshot=directory_snapshot,
@@ -322,7 +320,7 @@ def update_snap(module, array, snap_detail):
         changed = True
         if not module.check_mode:
             directory_snapshot = DirectorySnapshotPatch(destroyed=False)
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_directory_snapshots(
                     names=[snapname],
                     directory_snapshot=directory_snapshot,
@@ -340,7 +338,7 @@ def update_snap(module, array, snap_detail):
                 )
             if keep_for != 0:  # Set a new keep-for after recovery if requested
                 directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.patch_directory_snapshots(
                         names=[snapname],
                         directory_snapshot=directory_snapshot,
@@ -360,7 +358,7 @@ def update_snap(module, array, snap_detail):
         directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_directory_snapshots(
                     names=[snapname],
                     directory_snapshot=directory_snapshot,
@@ -380,7 +378,7 @@ def update_snap(module, array, snap_detail):
         directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_directory_snapshots(
                     names=[new_snapname],
                     directory_snapshot=directory_snapshot,
@@ -421,7 +419,7 @@ def create_snap(module, array):
             directory_snapshot = DirectorySnapshotPost(
                 client_name=module.params["client"], keep_for=keep_for
             )
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.post_directory_snapshots(
                 source_names=[directory],
                 directory_snapshot=directory_snapshot,
@@ -501,12 +499,12 @@ def main():
 
     array = get_array(module)
     api_version = array.get_rest_version()
-    if LooseVersion(MIN_REQUIRED_API_VERSION) > LooseVersion(api_version):
+    if Version(MIN_REQUIRED_API_VERSION) > Version(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
         )
-    if module.params["rename"] and LooseVersion(MIN_RENAME_API_VERSION) > LooseVersion(
+    if module.params["rename"] and Version(MIN_RENAME_API_VERSION) > Version(
         api_version
     ):
         module.fail_json(
@@ -515,7 +513,7 @@ def main():
         )
     state = module.params["state"]
     snapshot_root = module.params["filesystem"] + ":" + module.params["name"]
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         res = array.get_directories(
             filter='name="' + snapshot_root + '"',
             total_item_count=True,

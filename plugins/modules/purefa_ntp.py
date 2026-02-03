@@ -84,12 +84,10 @@ RETURN = r"""
 """
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 HAS_PURESTORAGE = True
@@ -110,7 +108,7 @@ def _is_cbs(array, is_cbs=False):
     # Until get_controller has context_names we can check against a target system
     # CBS can't be support for Fusion
     #
-    # if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    # if Version(CONTEXT_API_VERSION) <= Version(api_version):
     #    model = list(
     #        array.get_controllers(context_names=[module.params["context"]]).items
     #    )[0].model
@@ -136,7 +134,7 @@ def test_ntp(module, array):
     # Until get_arrays_ntp_test has context_names we can check against a target system
     # test_ntp is not supported with context
     #
-    # if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    # if Version(CONTEXT_API_VERSION) <= Version(api_version):
     #     response = list(array.get_arrays_ntp_test(context_names=[module.params["context"]]).items)
     # else:
     response = list(array.get_arrays_ntp_test().items)
@@ -169,14 +167,14 @@ def delete_ntp(module, array):
     """Delete NTP Servers"""
     api_version = array.get_rest_version()
     changed = False
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         array_list = array.get_arrays(context_names=[module.params["context"]])
     else:
         array_list = array.get_arrays()
     if list(array_list.items)[0].ntp_servers != []:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_arrays(
                     array=Arrays(ntp_servers=[]),
                     context_names=[module.params["context"]],
@@ -199,7 +197,7 @@ def create_ntp(module, array):
     if not module.check_mode:
         if not module.params["ntp_servers"]:
             module.params["ntp_servers"] = ["0.pool.ntp.org"]
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_arrays(
                 array=Arrays(ntp_servers=module.params["ntp_servers"][0:4]),
                 context_names=[module.params["context"]],
@@ -220,7 +218,7 @@ def create_ntp(module, array):
 def update_ntp_key(module, array):
     """Update NTP Symmetric Key"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         array_list = array.get_arrays(context_names=[module.params["context"]])
     else:
         array_list = array.get_arrays()
@@ -241,7 +239,7 @@ def update_ntp_key(module, array):
             if not all(ord(c) < 128 for c in module.params["ntp_key"]):
                 module.fail_json(msg="NTP key is non-ASCII")
         changed = True
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_arrays(
                 array=Arrays(ntp_symmetric_key=module.params["ntp_key"]),
                 context_names=[module.params["context"]],
@@ -298,7 +296,7 @@ def main():
         test_ntp(module, array)
     elif module.params["ntp_servers"]:
         module.params["ntp_servers"] = remove(module.params["ntp_servers"])
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             array_list = array.get_arrays(context_names=[module.params["context"]])
         else:
             array_list = array.get_arrays()
@@ -307,7 +305,7 @@ def main():
         ):
             create_ntp(module, array)
     if module.params["ntp_key"] or module.params["ntp_key"] == "":
-        if LooseVersion(KEY_API_VERSION) > LooseVersion(api_version):
+        if Version(KEY_API_VERSION) > Version(api_version):
             module.fail_json(msg="REST API does not support setting NTP Symmetric Key")
         else:
             update_ntp_key(module, array)

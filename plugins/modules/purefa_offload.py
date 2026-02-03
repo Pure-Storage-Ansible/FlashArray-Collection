@@ -183,12 +183,10 @@ except ImportError:
 import re
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 REGEX_TARGET_NAME = re.compile(r"^[a-zA-Z0-9\-]*$")
@@ -201,7 +199,7 @@ CONTEXT_VERSION = "2.38"
 def get_target(module, array):
     """Return target or None"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         res = array.get_offloads(
             names=[module.params["name"]], context_names=[module.params["context"]]
         )
@@ -289,7 +287,7 @@ def create_offload(module, array):
                     mount_options=module.params["options"],
                 )
             offload = OffloadPost(nfs=bucket)
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.post_offloads(
                 offload=offload,
                 initialize=module.params["initialize"],
@@ -325,7 +323,7 @@ def delete_offload(module, array):
     changed = True
     api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.delete_offloads(
                 names=[module.params["name"]], context_names=[module.params["context"]]
             )
@@ -409,7 +407,7 @@ def main():
     api_version = array.get_rest_version()
 
     if (
-        LooseVersion(NO_SNAP2NFS_VERSION) <= LooseVersion(api_version)
+        Version(NO_SNAP2NFS_VERSION) <= Version(api_version)
         and module.params["protocol"] == "nfs"
     ):
         module.fail_json(

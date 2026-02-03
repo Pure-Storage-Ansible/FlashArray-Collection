@@ -60,12 +60,10 @@ RETURN = r"""
 import time
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 AUDIT_API_VERSION = "2.2"
@@ -85,7 +83,7 @@ def main():
     api_version = array.get_rest_version()
     audits = []
     changed = False
-    if LooseVersion(AUDIT_API_VERSION) <= LooseVersion(api_version):
+    if Version(AUDIT_API_VERSION) <= Version(api_version):
         changed = True
         if not module.check_mode:
             if module.params["log_type"] == "audit":

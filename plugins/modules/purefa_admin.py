@@ -69,12 +69,10 @@ except ImportError:
 
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 MIN_API_VERSION = "2.2"
@@ -100,7 +98,7 @@ def main():
     array = get_array(module)
     api_version = array.get_rest_version()
     changed = False
-    if LooseVersion(MIN_API_VERSION) <= LooseVersion(api_version):
+    if Version(MIN_API_VERSION) <= Version(api_version):
         current_settings = list(array.get_admins_settings().items)[0]
         if (
             module.params["sso"]

@@ -128,12 +128,10 @@ except ImportError:
     HAS_DISTRO = False
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 import platform
 import socket
@@ -151,7 +149,7 @@ def _lookup(address):
 
 def _check_connected(module, array):
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         res = array.get_array_connections(context_names=[module.params["context"]])
     else:
         res = array.get_array_connections()
@@ -173,7 +171,7 @@ def break_connection(module, array, target_array):
     """Break connection between arrays"""
     changed = True
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         source_array = list(
             array.get_arrays(context_names=[module.params["context"]]).items
         )[0].name
@@ -184,7 +182,7 @@ def break_connection(module, array, target_array):
             msg="disconnect can only happen from the array that formed the connection"
         )
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.delete_array_connections(
                 names=[target_array.name], context_names=[module.params["context"]]
             )
@@ -219,7 +217,7 @@ def update_connection(module, array, target_array):
             "platform": platform.platform(),
         }
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         source_array = list(
             array.get_arrays(context_names=[module.params["context"]]).items
         )[0].name
@@ -232,7 +230,7 @@ def update_connection(module, array, target_array):
         # No other attributes can be changed when doing this
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_array_connections(
                     names=[target_array.name],
                     renew_encryption_key=True,
@@ -256,7 +254,7 @@ def update_connection(module, array, target_array):
         # No other attributes can be changed when doing this
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_array_connections(
                     names=[target_array.name],
                     refresh=True,
@@ -279,7 +277,7 @@ def update_connection(module, array, target_array):
     #
     # Special cases complete
     #
-    if LooseVersion(ENCRYPT_VERSION) >= LooseVersion(api_version):
+    if Version(ENCRYPT_VERSION) >= Version(api_version):
         if module.params["encrypted"]:
             encrypted = "encrypted"
         else:
@@ -298,7 +296,7 @@ def update_connection(module, array, target_array):
             )[0].connection_key
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.patch_array_connections(
                         names=[target_array.name],
                         array_connection=ArrayConnectionPatch(
@@ -322,7 +320,7 @@ def update_connection(module, array, target_array):
     if module.params["connection"] != target_array.type:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_array_connections(
                     names=[target_array.name],
                     array_connection=ArrayConnectionPatch(
@@ -384,7 +382,7 @@ def create_connection(module, array):
         connections = remote_system.get_array_connections_connection_key()
 
     connection_key = list(connections.items)[0].connection_key
-    if LooseVersion(ENCRYPT_VERSION) >= LooseVersion(api_version):
+    if Version(ENCRYPT_VERSION) >= Version(api_version):
         if module.params["encrypted"]:
             encrypted = "encrypted"
         else:
@@ -404,7 +402,7 @@ def create_connection(module, array):
             connection_key=connection_key,
         )
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.post_array_connections(
                 array_connection=array_connection,
                 context_names=[module.params["context"]],

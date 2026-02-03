@@ -115,12 +115,10 @@ except ImportError:
 
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 CONTEXT_API_VERSION = "2.38"
@@ -129,7 +127,7 @@ CONTEXT_API_VERSION = "2.38"
 def get_volume(module, array):
     """Return Volume or None"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_volumes(
             names=[module.params["name"]], context_names=[module.params["context"]]
         )
@@ -143,7 +141,7 @@ def get_volume(module, array):
 def get_endpoint(module, array):
     """Return Endpoint or None"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_volumes(
             names=[module.params["name"]], context_names=[module.params["context"]]
         )
@@ -178,7 +176,7 @@ def create_tag(module, array):
             )
             for key, value in pairs
         ]
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.put_volumes_tags_batch(
                 tag=tags,
                 resource_names=[module.params["name"]],
@@ -226,7 +224,7 @@ def update_tags(module, array, current_tags):
                 )
                 for key, value in add_pairs
             ]
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.put_volumes_tags_batch(
                     tag=tags,
                     resource_names=[module.params["name"]],
@@ -260,7 +258,7 @@ def delete_tags(module, array, current_tags):
         changed = True
         if not module.check_mode:
             for tag in range(0, len(del_tags)):
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.delete_volumes_tags(
                         resource_names=[module.params["name"]],
                         keys=[del_tags[tag]],
@@ -315,7 +313,7 @@ def main():
                 module.params["name"]
             )
         )
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         current_tags = list(
             array.get_volumes_tags(
                 namespaces=[module.params["namespace"]],

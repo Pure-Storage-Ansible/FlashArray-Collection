@@ -46,12 +46,10 @@ purefa_inventory:
 
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 SFP_API_VERSION = "2.16"
@@ -140,7 +138,7 @@ def generate_new_hardware_dict(array):
             "type": drives[drive].type,
         }
     api_version = array.get_rest_version()
-    if LooseVersion(SFP_API_VERSION) <= LooseVersion(api_version):
+    if Version(SFP_API_VERSION) <= Version(api_version):
         port_details = list(array.get_network_interfaces_port_details().items)
         for port_detail in range(0, len(port_details)):
             port_name = port_details[port_detail].name

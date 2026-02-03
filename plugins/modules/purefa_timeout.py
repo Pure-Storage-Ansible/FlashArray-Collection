@@ -73,12 +73,10 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 CONTEXT_VERSION = "2.38"
@@ -89,7 +87,7 @@ def set_timeout(module, array):
     changed = True
     api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.patch_arrays(
                 array=Arrays(idle_timeout=module.params["timeout"]),
                 context_names=[module.params["context"]],
@@ -113,7 +111,7 @@ def disable_timeout(module, array):
     changed = True
     api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.patch_arrays(
                 array=Arrays(idle_timeout=0), context_names=[module.params["context"]]
             )
@@ -144,7 +142,7 @@ def main():
         module.fail_json(msg="py-pure-client sdk is required for this module")
     array = get_array(module)
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         current_timeout = list(
             array.get_arrays(context_names=[module.params["context"]]).items
         )[0].idle_timeout

@@ -66,12 +66,10 @@ except ImportError:
     HAS_PYPURECLIENT = False
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 CONTEXT_VERSION = "2.38"
@@ -81,7 +79,7 @@ def update_console(module, array):
     """Update Console Lockout setting"""
     changed = False
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         current_state = list(
             array.get_arrays(context_names=[module.params["context"]]).items
         )[0].console_lock_enabled
@@ -91,7 +89,7 @@ def update_console(module, array):
     if current_state != new_state:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_arrays(
                     array=Arrays(console_lock_enabled=new_state),
                     context_names=[module.params["context"]],

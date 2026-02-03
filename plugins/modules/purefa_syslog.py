@@ -109,12 +109,10 @@ except ImportError:
 
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 CONTEXT_API_VERSION = "2.38"
@@ -124,7 +122,7 @@ def test_syslog(module, array):
     """Test syslog configuration"""
     api_version = array.get_rest_version()
     test_response = []
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         response = list(
             array.get_syslog_servers_test(
                 context_names=[module.params["context"]]
@@ -162,7 +160,7 @@ def delete_syslog(module, array):
     api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.delete_syslog_servers(
                 names=[module.params["name"]],
                 context_names=[module.params["context"]],
@@ -189,7 +187,7 @@ def add_syslog(module, array):
     else:
         full_address = noport_address
     if not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.post_syslog_servers(
                 names=[module.params["name"]],
                 syslog_server=SyslogServer(
@@ -217,7 +215,7 @@ def update_syslog(module, array):
     """Update Syslog Server"""
     api_version = array.get_rest_version()
     changed = False
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         syslog_server_list = array.get_syslog_servers(
             names=[module.params["name"]],
             context_names=[module.params["context"]],
@@ -233,7 +231,7 @@ def update_syslog(module, array):
         full_address = noport_address
     if full_address != syslog_config.uri:
         changed = True
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_syslog_servers(
                 names=[module.params["name"]],
                 syslog_server=SyslogServer(uri=full_address),
@@ -276,7 +274,7 @@ def main():
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_syslog_servers(
             names=[module.params["name"]],
             context_names=[module.params["context"]],

@@ -188,12 +188,13 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
 )
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
+from ansible_collections.purestoragesasharray.plugins.module_utils.version import (
+    Version,
 )
 
 CONTEXT_VERSION = "2.42"
@@ -226,7 +227,7 @@ def delete_ds(module, array):
             services=[module.params["dstype"]],
         )
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.patch_directory_services(
                 names=[module.params["dstype"]],
                 directory_service=directory_service,
@@ -252,7 +253,7 @@ def update_ds(module, array):
     ds_change = False
     password_required = False
     current_ds = []
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         dirservlist = list(
             array.get_directory_services(context_names=[module.params["context"]]).items
         )
@@ -370,7 +371,7 @@ def update_ds(module, array):
     if ds_change:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_directory_services(
                     names=[module.params["dstype"]],
                     directory_service=directory_service,
@@ -393,7 +394,7 @@ def test_ds(module, array):
     """Test directory services configuration"""
     test_response = []
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         response = list(
             array.get_directory_services_test(
                 names=[module.params["dstype"]],

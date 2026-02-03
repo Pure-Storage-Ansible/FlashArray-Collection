@@ -100,12 +100,10 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 MIN_REQUIRED_API_VERSION = "2.2"
@@ -119,7 +117,7 @@ def delete_fs(module, array):
     api_version = array.get_rest_version()
     if not module.check_mode:
         file_system = flasharray.FileSystemPatch(destroyed=True)
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.patch_file_systems(
                 names=[module.params["name"]],
                 file_system=file_system,
@@ -136,7 +134,7 @@ def delete_fs(module, array):
                 )
             )
         if module.params["eradicate"]:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.delete_file_systems(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -158,7 +156,7 @@ def recover_fs(module, array):
     api_version = array.get_rest_version()
     if not module.check_mode:
         file_system = flasharray.FileSystemPatch(destroyed=False)
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.patch_file_systems(
                 names=[module.params["name"]],
                 file_system=file_system,
@@ -182,7 +180,7 @@ def eradicate_fs(module, array):
     changed = True
     api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.delete_file_systems(
                 names=[module.params["name"]], context_names=[module.params["context"]]
             )
@@ -206,7 +204,7 @@ def rename_fs(module, array):
     if "::" in module.params["name"]:
         pod_name = module.params["name"].split("::")[0]
         target_name = pod_name + "::" + module.params["rename"]
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         res = array.get_file_systems(
             names=[target_name], context_names=[module.params["context"]]
         )
@@ -218,7 +216,7 @@ def rename_fs(module, array):
         changed = True
         if not module.check_mode:
             file_system = flasharray.FileSystemPatch(name=target_name)
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_file_systems(
                     names=[module.params["name"]],
                     file_system=file_system,
@@ -247,7 +245,7 @@ def create_fs(module, array):
     api_version = array.get_rest_version()
     if "::" in module.params["name"]:
         pod_name = module.params["name"].split("::")[0]
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.get_pods(
                 names=[pod_name], context_names=[module.params["context"]]
             )
@@ -264,7 +262,7 @@ def create_fs(module, array):
         if pod.promotion_status == "demoted":
             module.fail_json(msg="Filesystem cannot be created in a demoted pod")
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.post_file_systems(
                 names=[module.params["name"]], context_names=[module.params["context"]]
             )
@@ -292,7 +290,7 @@ def move_fs(module, array):
         target_location = ""
         if "::" not in module.params["name"]:
             module.fail_json(msg="Source and destination [local] cannot be the same.")
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.get_file_systems(
                 names=[fs_name], context_names=[module.params["context"]]
             )
@@ -301,7 +299,7 @@ def move_fs(module, array):
         if res.status_code == 200:
             module.fail_json(msg="Target filesystem {0} already exists".format(fs_name))
     else:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.get_pods(
                 names=[module.params["move"]], context_names=[module.params["context"]]
             )
@@ -322,7 +320,7 @@ def move_fs(module, array):
                 msg="Failed to move filesystem. Pod {0} does not exist".format(pod_name)
             )
         if "::" in module.params["name"]:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.get_pods(
                     names=[module.params["move"]],
                     context_names=[module.params["context"]],
@@ -353,7 +351,7 @@ def move_fs(module, array):
         file_system = flasharray.FileSystemPatch(
             pod=flasharray.Reference(name=target_location)
         )
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             move_res = array.patch_file_systems(
                 names=[module.params["name"]],
                 file_system=file_system,
@@ -396,13 +394,13 @@ def main():
     array = get_array(module)
     api_version = array.get_rest_version()
 
-    if LooseVersion(MIN_REQUIRED_API_VERSION) > LooseVersion(api_version):
+    if Version(MIN_REQUIRED_API_VERSION) > Version(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
         )
     if (
-        LooseVersion(REPL_SUPPORT_API) > LooseVersion(api_version)
+        Version(REPL_SUPPORT_API) > Version(api_version)
         and "::" in module.params["name"]
     ):
         module.fail_json(
@@ -410,7 +408,7 @@ def main():
         )
     state = module.params["state"]
     exists = False
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         res = array.get_file_systems(
             names=[module.params["name"]], context_names=[module.params["context"]]
         )

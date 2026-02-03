@@ -96,12 +96,10 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 MAX_API_VERSION = "2.30"
@@ -198,7 +196,7 @@ def main():
     state = module.params["state"]
     array = get_array(module)
     api_version = array.get_rest_version()
-    if LooseVersion(api_version) > LooseVersion(MAX_API_VERSION):
+    if Version(api_version) > Version(MAX_API_VERSION):
         module.fail_json(
             msg="This module is deprecated for your version of Purity//FA. "
             "Please use module ''purefa_dsrole`` instead."

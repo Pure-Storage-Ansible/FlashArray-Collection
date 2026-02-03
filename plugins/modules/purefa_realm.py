@@ -142,6 +142,7 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
@@ -149,9 +150,6 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
     human_to_bytes,
     human_to_real,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 MINIMUM_API_VERSION = "2.36"
@@ -467,7 +465,7 @@ def main():
     state = module.params["state"]
     array = get_array(module)
     api_version = array.get_rest_version()
-    if LooseVersion(MINIMUM_API_VERSION) > LooseVersion(api_version):
+    if Version(MINIMUM_API_VERSION) > Version(api_version):
         module.fail_json(
             msg="Realms are not supported. Purity//FA 6.6.11, or higher, is required."
         )

@@ -367,12 +367,10 @@ except ImportError:
 
 import re
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 VLAN_API_VERSION = "2.16"
@@ -387,7 +385,7 @@ def _is_cbs(array, is_cbs=False):
     # Until get_controller has context_names we can check against a target system
     # so CBS can't be support for Fusion until 6.8.4??
     #
-    # if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    # if Version(CONTEXT_API_VERSION) <= Version(api_version):
     #    model = list(
     #        array.get_controllers(context_names=[module.params["context"]]).items
     #    )[0].model
@@ -401,7 +399,7 @@ def _set_host_initiators(module, array):
     """Set host initiators."""
     api_version = array.get_rest_version()
     if module.params["nqn"]:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_hosts(
                 names=[module.params["name"]],
                 host=HostPatch(nqns=module.params["nqn"]),
@@ -419,7 +417,7 @@ def _set_host_initiators(module, array):
                 )
             )
     if module.params["iqn"]:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_hosts(
                 names=[module.params["name"]],
                 host=HostPatch(iqns=module.params["iqn"]),
@@ -437,7 +435,7 @@ def _set_host_initiators(module, array):
                 )
             )
     if module.params["wwns"]:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_hosts(
                 names=[module.params["name"]],
                 host=HostPatch(wwns=module.params["wwns"]),
@@ -459,7 +457,7 @@ def _set_host_initiators(module, array):
 def _update_host_initiators(module, array, answer=False):
     """Change host initiator if iscsi or nvme or add new FC WWNs"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         current_connectors = list(
             array.get_hosts(
                 names=[module.params["name"]],
@@ -475,7 +473,7 @@ def _update_host_initiators(module, array, answer=False):
             if sorted(current_connectors.nqns) != sorted(module.params["nqn"]):
                 answer = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.patch_hosts(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -495,7 +493,7 @@ def _update_host_initiators(module, array, answer=False):
         elif current_connectors.nqns:
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_hosts(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -517,7 +515,7 @@ def _update_host_initiators(module, array, answer=False):
             if sorted(current_connectors.iqns) != sorted(module.params["iqn"]):
                 answer = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.patch_hosts(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -537,7 +535,7 @@ def _update_host_initiators(module, array, answer=False):
         elif current_connectors.iqns:
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_hosts(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -561,7 +559,7 @@ def _update_host_initiators(module, array, answer=False):
             if sorted(current_connectors.wwns) != sorted(module.params["wwns"]):
                 answer = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.patch_hosts(
                             names=module.params["name"],
                             context_names=[module.params["context"]],
@@ -581,7 +579,7 @@ def _update_host_initiators(module, array, answer=False):
         elif current_connectors.wwns:
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_hosts(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -606,7 +604,7 @@ def _connect_new_volume(module, array):
     api_version = array.get_rest_version()
     if not module.check_mode:
         if module.params["lun"]:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.post_connections(
                     host_names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -620,7 +618,7 @@ def _connect_new_volume(module, array):
                     connection=ConnectionPost(lun=module.params["lun"]),
                 )
         else:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.post_connections(
                     host_names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -646,7 +644,7 @@ def _disconnect_volume(module, array):
     """Disconnect volume from host"""
     api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.delete_connections(
                 host_names=[module.params["name"]],
                 context_names=[module.params["context"]],
@@ -672,7 +670,7 @@ def _set_host_personality(module, array):
     """Set host personality"""
     api_version = array.get_rest_version()
     if module.params["personality"] != "delete":
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_hosts(
                 names=[module.params["name"]],
                 context_names=[module.params["context"]],
@@ -684,7 +682,7 @@ def _set_host_personality(module, array):
                 host=HostPatch(personality=module.params["personality"]),
             )
     else:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_hosts(
                 names=[module.params["name"]],
                 context_names=[module.params["context"]],
@@ -711,7 +709,7 @@ def _set_preferred_array(module, array):
             preferred_array_list.append(
                 Reference(name=module.params["preferred_array"][preferred_array])
             )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_hosts(
                 names=[module.params["name"]],
                 context_names=[module.params["context"]],
@@ -723,7 +721,7 @@ def _set_preferred_array(module, array):
                 host=HostPatch(preferred_arrays=preferred_array_list),
             )
     else:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_hosts(
                 names=[module.params["name"]],
                 context_names=[module.params["context"]],
@@ -750,7 +748,7 @@ def _set_chap_security(module, array):
             module.fail_json(
                 msg="host_password must contain a minimum of 12 and a maximum of 255 characters"
             )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_hosts(
                 names=[module.params["name"]],
                 context_names=[module.params["context"]],
@@ -782,7 +780,7 @@ def _set_chap_security(module, array):
             module.fail_json(
                 msg="target_password must contain a minimum of 12 and a maximum of 255 characters"
             )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_hosts(
                 names=[module.params["name"]],
                 context_names=[module.params["context"]],
@@ -815,7 +813,7 @@ def _update_chap_security(module, array, answer=False):
     """Change CHAP usernames and passwords"""
     api_version = array.get_rest_version()
     pattern = re.compile("[^ ]{12,255}")
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         chap = list(
             array.get_hosts(
                 names=[module.params["name"]],
@@ -829,7 +827,7 @@ def _update_chap_security(module, array, answer=False):
             if hasattr(chap, "host_user"):
                 answer = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.patch_hosts(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -853,7 +851,7 @@ def _update_chap_security(module, array, answer=False):
                 )
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_hosts(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -885,7 +883,7 @@ def _update_chap_security(module, array, answer=False):
             if hasattr(chap, "target_user"):
                 answer = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.patch_hosts(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -913,7 +911,7 @@ def _update_chap_security(module, array, answer=False):
                 )
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_hosts(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -946,7 +944,7 @@ def _update_chap_security(module, array, answer=False):
 def _update_host_personality(module, array, answer=False):
     """Change host personality"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         host = list(
             array.get_hosts(
                 names=[module.params["name"]],
@@ -958,7 +956,7 @@ def _update_host_personality(module, array, answer=False):
     if not hasattr(host, "personality") and module.params["personality"] != "delete":
         answer = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_hosts(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -979,7 +977,7 @@ def _update_host_personality(module, array, answer=False):
         if module.params["personality"] == "delete":
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_hosts(
                         names=[module.params["name"]],
                         host=HostPatch(personality=""),
@@ -998,7 +996,7 @@ def _update_host_personality(module, array, answer=False):
         elif host.personality != module.params["personality"]:
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_hosts(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -1021,7 +1019,7 @@ def _update_host_personality(module, array, answer=False):
 def _update_preferred_array(module, array, answer=False):
     """Update existing preferred array list"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         preferred_array = list(
             array.get_hosts(
                 names=[module.params["name"]],
@@ -1040,7 +1038,7 @@ def _update_preferred_array(module, array, answer=False):
                 Reference(name=module.params["preferred_array"][preferred_array])
             )
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_hosts(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -1061,7 +1059,7 @@ def _update_preferred_array(module, array, answer=False):
         if module.params["preferred_array"] == ["delete"]:
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_hosts(
                         names=[module.params["name"]],
                         host=HostPatch(preferred_arrays=[]),
@@ -1092,7 +1090,7 @@ def _update_preferred_array(module, array, answer=False):
                         preferred_array_list.append(
                             Reference(name=module.params["preferred_array"][array_name])
                         )
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.patch_hosts(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -1114,7 +1112,7 @@ def _update_preferred_array(module, array, answer=False):
 
 def _set_vlan(module, array):
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.patch_hosts(
             names=[module.params["name"]],
             context_names=[module.params["context"]],
@@ -1134,7 +1132,7 @@ def _set_vlan(module, array):
 def _update_vlan(module, array):
     api_version = array.get_rest_version()
     changed = False
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         host_vlan = getattr(
             list(
                 array.get_hosts(
@@ -1152,7 +1150,7 @@ def _update_vlan(module, array):
     if module.params["vlan"] != host_vlan:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_hosts(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -1189,7 +1187,7 @@ def get_multi_hosts(module, array):
             hosts.append(
                 module.params["name"] + str(host_num).zfill(module.params["digits"])
             )
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         return bool(
             array.get_hosts(
                 names=hosts, context_names=[module.params["context"]]
@@ -1203,7 +1201,7 @@ def get_host(module, array):
     """Return host or None"""
     api_version = array.get_rest_version()
     host = None
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_hosts(
             names=[module.params["name"]], context_names=[module.params["context"]]
         )
@@ -1218,7 +1216,7 @@ def rename_exists(module, array):
     """Determine if rename target already exists"""
     api_version = array.get_rest_version()
     exists = False
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_hosts(
             names=[module.params["rename"]],
             context_names=[module.params["context"]],
@@ -1253,7 +1251,7 @@ def make_multi_hosts(module, array):
             host = HostPost(personality=module.params["personality"])
         else:
             host = HostPost()
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.post_hosts(
                 names=hosts, host=host, context_names=[module.params["context"]]
             )
@@ -1275,7 +1273,7 @@ def make_host(module, array):
     api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.post_hosts(
                 names=[module.params["name"]],
                 host=HostPost(),
@@ -1300,7 +1298,7 @@ def make_host(module, array):
             _set_chap_security(module, array)
         if module.params["volume"]:
             if module.params["lun"]:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.post_connections(
                         host_names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -1320,7 +1318,7 @@ def make_host(module, array):
                         )
                     )
             else:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.post_connections(
                         host_names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -1348,15 +1346,12 @@ def update_host(module, array):
     vlan_changed = False
     api_version = array.get_rest_version()
     if module.params["state"] == "present":
-        if (
-            LooseVersion(VLAN_API_VERSION) <= LooseVersion(api_version)
-            and module.params["vlan"]
-        ):
+        if Version(VLAN_API_VERSION) <= Version(api_version) and module.params["vlan"]:
             vlan_changed = _update_vlan(module, array)
         if module.params["rename"]:
             if not rename_exists(module, array):
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.patch_hosts(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -1385,7 +1380,7 @@ def update_host(module, array):
                     )
                 )
         init_changed = pers_changed = pref_changed = chap_changed = False
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             volumes = list(
                 array.get_connections(
                     host_names=[module.params["name"]],
@@ -1419,7 +1414,7 @@ def update_host(module, array):
         )
     else:
         if module.params["volume"]:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 volumes = list(
                     array.get_connections(
                         host_names=[module.params["name"]],
@@ -1442,7 +1437,7 @@ def delete_host(module, array):
     api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             has_hg = hasattr(
                 list(
                     array.get_hosts(
@@ -1460,7 +1455,7 @@ def delete_host(module, array):
                 "name",
             )
         if has_hg:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.delete_host_groups_hosts(
                     group_names=[
                         list(array.get_hosts(names=[module.params["name"]]).items)[
@@ -1485,7 +1480,7 @@ def delete_host(module, array):
                         module.params["name"], res.errors[0].message
                     )
                 )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             volumes = list(
                 array.get_connections(
                     host_names=[module.params["name"]],
@@ -1498,7 +1493,7 @@ def delete_host(module, array):
             )
         current_vols = [vol.volume.name for vol in volumes]
         if current_vols:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.delete_connections(
                     host_names=[module.params["name"]],
                     volume_names=current_vols,
@@ -1514,7 +1509,7 @@ def delete_host(module, array):
                         module.params["name"], res.errors[0].message
                     )
                 )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.delete_hosts(
                 names=[module.params["name"]],
                 context_names=[module.params["context"]],
@@ -1545,7 +1540,7 @@ def move_host(module, array):
         module.fail_json(msg="host must be provided with current realm name")
     # if "::" in module.params["name"]:
     #    current_realm = module.params["name"].split("::")[0]
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         current_connections = list(
             array.get_hosts(
                 names=[module.params["name"]], context_names=[module.params["context"]]
@@ -1560,7 +1555,7 @@ def move_host(module, array):
     changed = True
     if not module.check_mode:
         if "local" in module.params["move"]:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_hosts(
                     names=[module.params["name"]],
                     from_member_names=[module.params["name"].split("::")[0]],
@@ -1585,7 +1580,7 @@ def move_host(module, array):
                 )
         else:
             realm_exists = False
-            if LooseVersion(REALMS_CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(REALMS_CONTEXT_VERSION) <= Version(api_version):
                 res = array.get_realms(
                     names=module.params["move"],
                     context_names=[module.params["context"]],
@@ -1600,7 +1595,7 @@ def move_host(module, array):
                 source_realm = local_array
             else:
                 source_realm = module.params["name"].split("::")[0]
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_hosts(
                     names=[module.params["name"]],
                     from_member_names=[source_realm],
@@ -1729,10 +1724,7 @@ def main():
         suffix_len = len(module.params["suffix"])
     else:
         suffix_len = 0
-    if (
-        LooseVersion(VLAN_API_VERSION) > LooseVersion(api_version)
-        and module.params["vlan"]
-    ):
+    if Version(VLAN_API_VERSION) > Version(api_version) and module.params["vlan"]:
         module.fail_json(
             msg="'vlan' parameter is not supported until Purity//FA 6.3.4 or higher"
         )
@@ -1786,7 +1778,7 @@ def main():
                 )
             )
         if module.params["volume"]:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.get_volumes(
                     names=[module.params["volume"]],
                     context_names=[module.params["context"]],
@@ -1798,7 +1790,7 @@ def main():
         if module.params["preferred_array"] and module.params["preferred_array"] != [
             "delete"
         ]:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 connections = array.get_array_connections(
                     context_names=[module.params["context"]], total_item_count=True
                 )
@@ -1815,7 +1807,7 @@ def main():
                     msg="No target arrays connected to source array - preferred arrays not possible."
                 )
             else:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     all_connected_arrays = list(
                         array.get_array_connections(
                             context_names=[module.params["context"]]
@@ -1823,7 +1815,7 @@ def main():
                     )
                 else:
                     all_connected_arrays = list(array.get_array_connections().items)
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     current_arrays = [
                         list(
                             array.get_arrays(

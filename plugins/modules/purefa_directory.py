@@ -97,12 +97,10 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 CONTEXT_VERSION = "2.38"
@@ -113,7 +111,7 @@ def delete_dir(module, array):
     api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.delete_directories(
                 names=[module.params["filesystem"] + ":" + module.params["name"]],
                 context_names=[module.params["context"]],
@@ -135,7 +133,7 @@ def rename_dir(module, array):
     """Rename a file system directory"""
     api_version = array.get_rest_version()
     changed = False
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         target = array.get_directories(
             names=[module.params["filesystem"] + ":" + module.params["rename"]],
             context_names=[module.params["context"]],
@@ -150,7 +148,7 @@ def rename_dir(module, array):
             directory = flasharray.DirectoryPatch(
                 name=module.params["filesystem"] + ":" + module.params["rename"]
             )
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.patch_directories(
                     names=[module.params["filesystem"] + ":" + module.params["name"]],
                     directory=directory,
@@ -178,7 +176,7 @@ def create_dir(module, array):
     changed = False
     if not module.params["path"]:
         module.params["path"] = module.params["name"]
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         all_fs = list(
             array.get_directories(
                 file_system_names=[module.params["filesystem"]],
@@ -201,7 +199,7 @@ def create_dir(module, array):
         directory = flasharray.DirectoryPost(
             directory_name=module.params["name"], path=module.params["path"]
         )
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.post_directories(
                 file_system_names=[module.params["filesystem"]],
                 directory=directory,
@@ -242,7 +240,7 @@ def main():
     state = module.params["state"]
     api_version = array.get_rest_version()
 
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         res = array.get_file_systems(
             names=[module.params["filesystem"]],
             context_names=[module.params["context"]],

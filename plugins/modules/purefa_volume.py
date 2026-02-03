@@ -337,6 +337,7 @@ except ImportError:
 import re
 import time
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
@@ -344,9 +345,6 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
     human_to_bytes,
     human_to_real,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 PURE_OUI = "naa.624a9370"
@@ -358,7 +356,7 @@ CONTEXT_API_VERSION = "2.38"
 def _volfact(module, array, volume_name):
     api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             volume_data = list(
                 array.get_volumes(
                     names=[volume_name], context_names=[module.params["context"]]
@@ -385,14 +383,14 @@ def _volfact(module, array, volume_name):
                 "destroyed": volume_data.destroyed,
             }
         }
-        if LooseVersion(PRIORITY_API_VERSION) <= LooseVersion(api_version):
+        if Version(PRIORITY_API_VERSION) <= Version(api_version):
             volfact[volume_name][
                 "priority_operator"
             ] = volume_data.priority_adjustment.priority_adjustment_operator
             volfact[volume_name][
                 "priority_value"
             ] = volume_data.priority_adjustment.priority_adjustment_value
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             volfact[volume_name]["context"] = volume_data.context.name
     else:
         volfact = {}
@@ -408,7 +406,7 @@ def get_pod(module, array):
     """Get ActiveCluster Pod"""
     api_version = array.get_rest_version()
     pod_name = "::".join(module.params["pgroup"].split("::")[:-1])
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_pods(names=[pod_name], context_names=[module.params["context"]])
     else:
         res = array.get_pods(names=[pod_name])
@@ -420,7 +418,7 @@ def get_pod(module, array):
 def get_pending_pgroup(module, array):
     """Get Protection Group"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_protection_groups(
             names=[module.params["pgroup"]], context_names=[module.params["context"]]
         )
@@ -436,7 +434,7 @@ def get_pending_pgroup(module, array):
 def get_pgroup(module, array):
     """Get Protection Group"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_protection_groups(
             names=[module.params["pgroup"]], context_names=[module.params["context"]]
         )
@@ -450,7 +448,7 @@ def get_pgroup(module, array):
 def pg_exists(module, pgs, array):
     """Get Protection Group"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_protection_groups(
             names=[pgs], context_names=[module.params["context"]]
         )
@@ -471,7 +469,7 @@ def get_multi_volumes(module, array):
             + str(vol_num).zfill(module.params["digits"])
             + module.params["suffix"]
         )
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_volumes(
             names=names, destroyed=False, context_names=[module.params["context"]]
         )
@@ -485,7 +483,7 @@ def get_multi_volumes(module, array):
 def get_volume(module, array):
     """Return Volume or None"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_volumes(
             names=[module.params["name"]],
             destroyed=False,
@@ -501,7 +499,7 @@ def get_volume(module, array):
 def get_endpoint(module, name, array):
     """Return Endpoint or None"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_volumes(names=[name], context_names=[module.params["context"]])
     else:
         res = array.get_volumes(names=[name])
@@ -515,7 +513,7 @@ def get_endpoint(module, name, array):
 def get_destroyed_volume(module, array):
     """Return Destroyed Volume or None"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_volumes(
             names=[module.params["name"]],
             destroyed=True,
@@ -531,7 +529,7 @@ def get_destroyed_volume(module, array):
 def get_target(module, array):
     """Return Volume or None"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_volumes(
             names=[module.params["target"]], context_names=[module.params["context"]]
         )
@@ -546,7 +544,7 @@ def check_vgroup(module, array):
     """Check is the requested VG to create volume in exists"""
     api_version = array.get_rest_version()
     vg_name = module.params["name"].split("/")[0]
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_volume_groups(
             names=[vg_name], context_names=[module.params["context"]]
         )
@@ -559,7 +557,7 @@ def check_pod(module, array):
     """Check is the requested pod to create volume in exists"""
     api_version = array.get_rest_version()
     pod_name = "::".join(module.params["name"].split("::")[:-1])
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_pods(names=[pod_name], context_names=[module.params["context"]])
     else:
         res = array.get_pods(names=[pod_name])
@@ -586,7 +584,7 @@ def create_volume(module, array):
                 )
             )
         pod_name = "::".join(module.params["name"].split("::")[:-1])
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = list(
                 array.get_pods(
                     names=[pod_name], context_names=[module.params["context"]]
@@ -602,7 +600,7 @@ def create_volume(module, array):
         if module.params["bw_qos"] and not module.params["iops_qos"]:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.post_volumes(
                         names=[module.params["name"]],
                         volume=VolumePost(
@@ -637,7 +635,7 @@ def create_volume(module, array):
         elif module.params["iops_qos"] and not module.params["bw_qos"]:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.post_volumes(
                         names=[module.params["name"]],
                         volume=VolumePost(
@@ -664,7 +662,7 @@ def create_volume(module, array):
         else:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.post_volumes(
                         names=[module.params["name"]],
                         volume=VolumePost(
@@ -705,7 +703,7 @@ def create_volume(module, array):
     else:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.post_volumes(
                     names=[module.params["name"]],
                     volume=VolumePost(
@@ -731,7 +729,7 @@ def create_volume(module, array):
         volume = VolumePatch(requested_promotion_state=module.params["promotion_state"])
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_volumes(
                     names=[module.params["name"]],
                     volume=volume,
@@ -741,7 +739,7 @@ def create_volume(module, array):
                 res = array.patch_volumes(names=[module.params["name"]], volume=volume)
             if res.status_code != 200:
                 message = res.errors[0].message
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     array.patch_volumes(
                         names=[module.params["name"]],
                         volume=VolumePatch(destroyed=True),
@@ -770,7 +768,7 @@ def create_volume(module, array):
                 priority_adjustment_value=module.params["priority_value"],
             )
         )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_volumes(
                 names=[module.params["name"]],
                 volume=volume,
@@ -780,7 +778,7 @@ def create_volume(module, array):
             res = array.patch_volumes(names=[module.params["name"]], volume=volume)
         if res.status_code != 200:
             message = res.errors[0].message
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 array.patch_volumes(
                     names=[module.params["name"]],
                     volume=VolumePatch(destroyed=True),
@@ -804,7 +802,7 @@ def create_volume(module, array):
     if module.params["pgroup"]:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_volumes(
                     names=[module.params["name"]],
                     add_to_protection_groups=ReferenceType(
@@ -856,7 +854,7 @@ def create_multi_volume(module, array, single=False):
                 )
             )
         pod_name = "::".join(module.params["name"].split("::")[:-1])
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             if (
                 list(
                     array.get_pods(
@@ -915,9 +913,9 @@ def create_multi_volume(module, array, single=False):
                 add_to_pgs.append(
                     ReferenceType(name=module.params["add_to_pgs"][add_pg])
                 )
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                api_version
-            ) and module.params["context"] not in [
+            if Version(CONTEXT_API_VERSION) <= Version(api_version) and module.params[
+                "context"
+            ] not in [
                 "",
                 list(array.get_arrays().items)[0].name,
             ]:
@@ -969,7 +967,7 @@ def create_multi_volume(module, array, single=False):
             # Initialize res
             res = {}
             if (
-                LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version)
+                Version(CONTEXT_API_VERSION) <= Version(api_version)
                 and module.params["context"]
                 not in ["", list(array.get_arrays().items)[0].name]
                 and module.params["with_default_protection"]
@@ -978,7 +976,7 @@ def create_multi_volume(module, array, single=False):
                     msg="Cannot specify a remote fleet member and default protection group"
                 )
             else:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.post_volumes(
                         names=names,
                         volume=vols,
@@ -1007,7 +1005,7 @@ def create_multi_volume(module, array, single=False):
             volume = VolumePatch(
                 requested_promotion_state=module.params["promotion_state"]
             )
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 prom_res = array.patch_volumes(
                     names=names,
                     volume=volume,
@@ -1016,7 +1014,7 @@ def create_multi_volume(module, array, single=False):
             else:
                 prom_res = array.patch_volumes(names=names, volume=volume)
             if prom_res.status_code != 200:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     array.patch_volumes(
                         names=names,
                         context_names=[module.params["context"]],
@@ -1041,7 +1039,7 @@ def create_multi_volume(module, array, single=False):
                     priority_adjustment_value=module.params["priority_value"],
                 )
             )
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 prio_res = array.patch_volumes(
                     names=names,
                     volume=volume,
@@ -1050,7 +1048,7 @@ def create_multi_volume(module, array, single=False):
             else:
                 prio_res = array.patch_volumes(names=names, volume=volume)
             if prio_res.status_code != 200:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     array.patch_volumes(
                         names=names,
                         context_names=[module.params["context"]],
@@ -1108,14 +1106,14 @@ def copy_from_volume(module, array):
     if tgt is None:
         changed = True
         if not module.check_mode:
-            if LooseVersion(DEFAULT_API_VERSION) <= LooseVersion(api_version):
+            if Version(DEFAULT_API_VERSION) <= Version(api_version):
                 if module.params["add_to_pgs"]:
                     add_to_pgs = []
                     for add_pg in range(0, len(module.params["add_to_pgs"])):
                         add_to_pgs.append(
                             ReferenceType(name=module.params["add_to_pgs"][add_pg])
                         )
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.post_volumes(
                             with_default_protection=module.params[
                                 "with_default_protection"
@@ -1139,7 +1137,7 @@ def copy_from_volume(module, array):
                             ),
                         )
                 else:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.post_volumes(
                             with_default_protection=module.params[
                                 "with_default_protection"
@@ -1185,7 +1183,7 @@ def copy_from_volume(module, array):
     elif tgt is not None and module.params["overwrite"]:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.post_volumes(
                     names=[module.params["target"]],
                     volume=VolumePost(source=Reference(name=module.params["name"])),
@@ -1215,17 +1213,14 @@ def update_volume(module, array):
     """Update Volume size and/or QoS"""
     changed = False
     api_version = array.get_rest_version()
-    if (
-        LooseVersion(api_version) >= LooseVersion(DEFAULT_API_VERSION)
-        and module.params["pgroup"]
-    ):
+    if Version(api_version) >= Version(DEFAULT_API_VERSION) and module.params["pgroup"]:
         module.fail_json(msg="For Purity//FA 6.3.4 or higher, use add_to_pgs parameter")
     elif (
-        LooseVersion(api_version) <= LooseVersion(DEFAULT_API_VERSION)
+        Version(api_version) <= Version(DEFAULT_API_VERSION)
         and module.params["add_to_pgs"]
     ):
         module.fail_json(msg="For Purity//FA 6.3.4 or lower, use pgroup parameter")
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         vol = list(
             array.get_volumes(
                 names=[module.params["name"]], context_names=[module.params["context"]]
@@ -1243,7 +1238,7 @@ def update_volume(module, array):
             if human_to_bytes(module.params["size"]) > vol.provisioned:
                 changed = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         res = array.patch_volumes(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -1271,7 +1266,7 @@ def update_volume(module, array):
         if module.params["bw_qos"] == "0":
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_volumes(
                         context_names=[module.params["context"]],
                         names=[module.params["name"]],
@@ -1292,7 +1287,7 @@ def update_volume(module, array):
         else:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_volumes(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -1328,7 +1323,7 @@ def update_volume(module, array):
         if module.params["iops_qos"] == "0":
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_volumes(
                         context_names=[module.params["context"]],
                         names=[module.params["name"]],
@@ -1348,7 +1343,7 @@ def update_volume(module, array):
         else:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_volumes(
                         context_names=[module.params["context"]],
                         names=[module.params["name"]],
@@ -1380,7 +1375,7 @@ def update_volume(module, array):
             )
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_volumes(
                         context_names=[module.params["context"]],
                         names=[module.params["name"]],
@@ -1431,7 +1426,7 @@ def update_volume(module, array):
         if change_prio:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     prio_res = array.patch_volumes(
                         context_names=[module.params["context"]],
                         names=[module.params["name"]],
@@ -1449,7 +1444,7 @@ def update_volume(module, array):
                     )
     if module.params["add_to_pgs"]:
         pgs_now = []
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             current_pgs = list(
                 array.get_protection_groups_volumes(
                     context_names=[module.params["context"]],
@@ -1467,7 +1462,7 @@ def update_volume(module, array):
         new_pgs = list(filter(lambda x: x not in pgs_now, module.params["add_to_pgs"]))
         if new_pgs:
             changed = True
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.post_volumes_protection_groups(
                     member_names=[module.params["name"]],
                     group_names=new_pgs,
@@ -1506,7 +1501,7 @@ def rename_volume(module, array):
         target_name = vgroup_name + "/" + module.params["rename"]
     else:
         target_name = module.params["rename"]
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         target_exists = bool(
             array.get_volumes(
                 names=[target_name], context_names=[module.params["context"]]
@@ -1520,7 +1515,7 @@ def rename_volume(module, array):
     else:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_volumes(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -1564,7 +1559,7 @@ def move_volume(module, array):
                 module.fail_json(
                     msg="Source and destination [local] cannot be the same."
                 )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             target_exists = bool(
                 array.get_volumes(
                     names=[volume_name], context_names=[module.params["context"]]
@@ -1578,7 +1573,7 @@ def move_volume(module, array):
         if target_exists:
             module.fail_json(msg="Target volume {0} already exists".format(volume_name))
     else:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             pod_exists = bool(
                 array.get_pods(
                     names=[module.params["move"]],
@@ -1591,7 +1586,7 @@ def move_volume(module, array):
                 array.get_pods(names=[module.params["move"]]).status_code == 200
             )
         if pod_exists:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 pod = list(
                     array.get_pods(
                         names=[module.params["move"]],
@@ -1606,7 +1601,7 @@ def move_volume(module, array):
                 module.fail_json(msg="Volume cannot be moved into a linked source pod")
             if pod.promotion_status == "demoted":
                 module.fail_json(msg="Volume cannot be moved into a demoted pod")
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 target_exists = bool(
                     array.get_volumes(
                         names=[module.params["move"] + "::" + volume_name],
@@ -1621,7 +1616,7 @@ def move_volume(module, array):
                     ).status_code
                     == 200
                 )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             vgroup_exists = bool(
                 array.get_volume_groups(
                     names=[module.params["move"]],
@@ -1635,7 +1630,7 @@ def move_volume(module, array):
                 == 200
             )
         if vgroup_exists:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 target_exists = bool(
                     array.get_volumes(
                         names=[module.params["move"] + "/" + volume_name],
@@ -1663,7 +1658,7 @@ def move_volume(module, array):
                 msg="Move location {0} does not exist.".format(module.params["move"])
             )
         if "::" in module.params["name"] and not vgroup_exists:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 pod = list(array.get_pods(names=[pod_name]).items)[0]
             else:
                 pod = list(
@@ -1694,7 +1689,7 @@ def move_volume(module, array):
     changed = True
     if not module.check_mode:
         if pod_exists:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_volumes(
                     context_names=[module.params["context"]],
                     names=[module.params["name"]],
@@ -1706,7 +1701,7 @@ def move_volume(module, array):
                     volume=VolumePatch(pod=Reference(name=module.params["move"])),
                 )
         elif vgroup_exists:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_volumes(
                     context_names=[module.params["context"]],
                     names=[module.params["name"]],
@@ -1723,7 +1718,7 @@ def move_volume(module, array):
                 )
         elif module.params["move"] == "local":
             if "/" in module.params["name"]:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_volumes(
                         context_names=[module.params["context"]],
                         names=[module.params["name"]],
@@ -1735,7 +1730,7 @@ def move_volume(module, array):
                         volume=VolumePatch(volume_group=Reference(name="")),
                     )
             else:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_volumes(
                         context_names=[module.params["context"]],
                         names=[module.params["name"]],
@@ -1767,7 +1762,7 @@ def delete_volume(module, array):
     changed = False
     if module.params["add_to_pgs"]:
         pgs_now = []
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             current_pgs = list(
                 array.get_protection_groups_volumes(
                     context_names=[module.params["context"]],
@@ -1786,7 +1781,7 @@ def delete_volume(module, array):
         if old_pgs:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.delete_volumes_protection_groups(
                         member_names=[module.params["name"]],
                         group_names=old_pgs,
@@ -1806,7 +1801,7 @@ def delete_volume(module, array):
     else:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_volumes(
                     names=[module.params["name"]],
                     volume=VolumePatch(destroyed=True),
@@ -1817,7 +1812,7 @@ def delete_volume(module, array):
                     names=[module.params["name"]], volume=VolumePatch(destroyed=True)
                 )
             if res.status_code == 200 and module.params["eradicate"]:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.delete_volumes(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -1853,7 +1848,7 @@ def eradicate_volume(module, array):
         changed = True
         volfact = []
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.delete_volumes(
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
@@ -1874,7 +1869,7 @@ def recover_volume(module, array):
     api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             res = array.patch_volumes(
                 names=[module.params["name"]],
                 volume=VolumePatch(destroyed=False),
@@ -1949,7 +1944,7 @@ def main():
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
     if (
-        LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version)
+        Version(CONTEXT_API_VERSION) <= Version(api_version)
         and not module.params["context"]
     ):
         # If no context is provided set the context to the local array name
@@ -2037,7 +2032,7 @@ def main():
             module.warn("Method not yet supported for multi-volume")
     else:
         if state == "present" and not volume and not destroyed and size:
-            if LooseVersion(DEFAULT_API_VERSION) <= LooseVersion(api_version):
+            if Version(DEFAULT_API_VERSION) <= Version(api_version):
                 create_multi_volume(module, array, True)
             else:
                 create_volume(module, array)

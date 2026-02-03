@@ -86,12 +86,10 @@ purefa_info:
 
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 from datetime import datetime
@@ -136,7 +134,7 @@ def generate_default_dict(array):
     default_info = {}
     api_version = array.get_rest_version()
     default_info["api_versions"] = api_version
-    if LooseVersion(VM_VERSION) <= LooseVersion(api_version):
+    if Version(VM_VERSION) <= Version(api_version):
         default_info["virtual_machines"] = len(
             getattr(array.get_virtual_machines(vm_type="vvol"), "items", [])
         )
@@ -164,15 +162,15 @@ def generate_default_dict(array):
     default_info["directory_snapshots"] = len(
         getattr(array.get_directory_snapshots(), "items", []) or []
     )
-    if LooseVersion(DIR_QUOTA_API_VERSION) <= LooseVersion(api_version):
+    if Version(DIR_QUOTA_API_VERSION) <= Version(api_version):
         default_info["quota_policies"] = len(
             getattr(array.get_policies_quota(), "items", []) or []
         )
-    if LooseVersion(PWD_POLICY_API_VERSION) <= LooseVersion(api_version):
+    if Version(PWD_POLICY_API_VERSION) <= Version(api_version):
         default_info["password_policies"] = len(
             getattr(array.get_policies_password(), "items", []) or []
         )
-    if LooseVersion(ENCRYPTION_STATUS_API_VERSION) <= LooseVersion(api_version):
+    if Version(ENCRYPTION_STATUS_API_VERSION) <= Version(api_version):
         array_data = list(array.get_arrays().items)[0]
         encryption = array_data.encryption
         default_info["encryption_enabled"] = encryption.data_at_rest.enabled
@@ -180,7 +178,7 @@ def generate_default_dict(array):
             default_info["encryption_algorithm"] = encryption.data_at_rest.algorithm
             default_info["encryption_module_version"] = encryption.module_version
         eradication = array_data.eradication_config
-        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(api_version):
+        if Version(SUBS_API_VERSION) <= Version(api_version):
             default_info["service_mode"] = list(array.get_subscriptions().items)[
                 0
             ].service
@@ -193,12 +191,12 @@ def generate_default_dict(array):
         eradication_delay = getattr(eradication, "eradication_delay", None)
         if eradication_delay is not None:
             default_info["eradication_days_timer"] = int(eradication_delay / SEC_TO_DAY)
-        if LooseVersion(SAFE_MODE_VERSION) <= LooseVersion(api_version):
+        if Version(SAFE_MODE_VERSION) <= Version(api_version):
             if eradication.manual_eradication == "all-enabled":
                 default_info["safe_mode"] = "Disabled"
             else:
                 default_info["safe_mode"] = "Enabled"
-        if LooseVersion(UPTIME_API_VERSION) <= LooseVersion(api_version):
+        if Version(UPTIME_API_VERSION) <= Version(api_version):
             default_info["controller_uptime"] = []
             controllers = list(
                 array.get_controllers(filter="type='array_controller'").items
@@ -225,7 +223,7 @@ def generate_default_dict(array):
         array.get_array_connections_connection_key().items
     )[0].connection_key
     if (
-        LooseVersion(TLS_CONNECTION_API_VERSION) <= LooseVersion(api_version)
+        Version(TLS_CONNECTION_API_VERSION) <= Version(api_version)
         and default_info["connected_arrays"] > 0
     ):
         default_info["connection_paths"] = []
@@ -270,7 +268,7 @@ def generate_default_dict(array):
     default_info["admins"] = len(list(array.get_admins().items))
     support_info = list(array.get_support().items)[0]
     default_info["remote_assist"] = support_info.remote_assist_status
-    if LooseVersion(RA_API_VERSION) <= LooseVersion(api_version):
+    if Version(RA_API_VERSION) <= Version(api_version):
         default_info["remote_assist_detail"] = {
             "remote_assist_duration": str(
                 int(support_info.remote_assist_duration / 3600000)
@@ -313,7 +311,7 @@ def generate_default_dict(array):
         ]
     else:
         default_info["maintenance_window"] = []
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_fleets()
         if res.status_code == 200:
             if len(res.items) > 0:
@@ -441,7 +439,7 @@ def generate_config_dict(module, array):
             "group_base": getattr(roles[role], "group_base", None),
             "management_access_policies": None,
         }
-        if LooseVersion(DSROLE_POLICY_API_VERSION) <= LooseVersion(api_version):
+        if Version(DSROLE_POLICY_API_VERSION) <= Version(api_version):
             config_info["directory_service_roles"][role_name][
                 "management_access_policies"
             ] = getattr(roles[role].management_access_policies[0], "name", None)
@@ -466,7 +464,7 @@ def generate_config_dict(module, array):
         config_info["dns"][dns_configs[config].services[0]]["source"] = getattr(
             dns_configs[config].source, "name", None
         )
-    if LooseVersion(SAML2_VERSION) <= LooseVersion(api_version):
+    if Version(SAML2_VERSION) <= Version(api_version):
         config_info["saml2sso"] = {}
         saml2 = list(array.get_sso_saml2_idps().items)
         if saml2:
@@ -519,7 +517,7 @@ def generate_config_dict(module, array):
                 ),
                 "tls": getattr(ad_accounts[ad_account], "tls", None),
             }
-    if LooseVersion(DEFAULT_PROT_API_VERSION) <= LooseVersion(api_version):
+    if Version(DEFAULT_PROT_API_VERSION) <= Version(api_version):
         config_info["default_protections"] = {}
         default_prots = list(array.get_container_default_protections().items)
         for prot in range(0, len(default_prots)):
@@ -541,7 +539,7 @@ def generate_config_dict(module, array):
                         .name,
                     }
                 )
-    if LooseVersion(SUBS_API_VERSION) <= LooseVersion(api_version):
+    if Version(SUBS_API_VERSION) <= Version(api_version):
         array_info = list(array.get_arrays().items)[0]
         config_info["ntp_keys"] = bool(getattr(array_info, "ntp_symmetric_key", None))
         config_info["timezone"] = array_info.time_zone
@@ -642,9 +640,7 @@ def generate_filesystems_dict(array, performance):
                 "limited_by": None,
                 "performance": [],
             }
-            if LooseVersion(QUOTA_API_VERSION) <= LooseVersion(
-                array.get_rest_version()
-            ):
+            if Version(QUOTA_API_VERSION) <= Version(array.get_rest_version()):
                 if hasattr(directories[directory].limited_by, "member"):
                     files_info[fs_name]["directories"][d_name]["limited_by"] = getattr(
                         directories[directory].limited_by.member, "name", None
@@ -757,7 +753,7 @@ def generate_dir_snaps_dict(array):
                 snapshots[snapshot].space, "used_provisioned", None
             ),
         }
-        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+        if Version(SUBS_API_VERSION) <= Version(array.get_rest_version()):
             dir_snaps_info[s_name]["total_used"] = snapshots[snapshot].space.total_used
         if hasattr(snapshots[snapshot], "policy"):
             dir_snaps_info[s_name]["policy"] = getattr(
@@ -804,15 +800,11 @@ def generate_policies_dict(array, quota_available, autodir_available, nfs_user_m
                 policy_info[p_name][
                     "user_mapping_enabled"
                 ] = nfs_policy.user_mapping_enabled
-                if LooseVersion(SUBS_API_VERSION) <= LooseVersion(
-                    array.get_rest_version()
-                ):
+                if Version(SUBS_API_VERSION) <= Version(array.get_rest_version()):
                     policy_info[p_name]["nfs_version"] = getattr(
                         nfs_policy, "nfs_version", None
                     )
-                if LooseVersion(NFS_SECURITY_VERSION) <= LooseVersion(
-                    array.get_rest_version()
-                ):
+                if Version(NFS_SECURITY_VERSION) <= Version(array.get_rest_version()):
                     policy_info[p_name]["security"] = getattr(
                         nfs_policy, "security", None
                     )
@@ -825,15 +817,12 @@ def generate_policies_dict(array, quota_available, autodir_available, nfs_user_m
                     "permission": rules[rule].permission,
                     "client": rules[rule].client,
                 }
-                if LooseVersion(SUBS_API_VERSION) <= LooseVersion(
-                    array.get_rest_version()
-                ):
+                if Version(SUBS_API_VERSION) <= Version(array.get_rest_version()):
                     nfs_rules_dict["nfs_version"] = rules[rule].nfs_version
                 policy_info[p_name]["rules"].append(nfs_rules_dict)
         if policies[policy].policy_type == "snapshot":
             suffix_enabled = bool(
-                LooseVersion(array.get_rest_version())
-                >= LooseVersion(SHARED_CAP_API_VERSION)
+                Version(array.get_rest_version()) >= Version(SHARED_CAP_API_VERSION)
             )
             rules = list(array.get_policies_snapshot_rules(policy_names=[p_name]).items)
             for rule in range(0, len(rules)):
@@ -910,9 +899,9 @@ def generate_admin_dict(array):
             "role": getattr(admins[admin].role, "name", None),
             "management_access_policy": None,
         }
-        if admins[admin].is_local and LooseVersion(
-            array.get_rest_version()
-        ) >= LooseVersion(DSROLE_POLICY_API_VERSION):
+        if admins[admin].is_local and Version(array.get_rest_version()) >= Version(
+            DSROLE_POLICY_API_VERSION
+        ):
             if hasattr(admins[admin], "management_access_policies"):
                 admin_info[admin_name]["management_access_policy"] = getattr(
                     admins[admin].management_access_policies[0], "name", None
@@ -1205,7 +1194,7 @@ def generate_network_dict(array, performance):
                         ),
                     },
                 }
-    if LooseVersion(NEIGHBOR_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(NEIGHBOR_API_VERSION) <= Version(array.get_rest_version()):
         neighbors = list(array.get_network_interfaces_neighbors().items)
         for neighbor in range(0, len(neighbors)):
             neighbor_info = neighbors[neighbor]
@@ -1481,7 +1470,7 @@ def generate_capacity_dict(array):
     capacity_info["total_capacity"] = total_capacity
     capacity_info["parity"] = getattr(capacity, "parity", None)
     capacity_info["capacity_installed"] = getattr(capacity, "capacity_installed", None)
-    if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(SHARED_CAP_API_VERSION) <= Version(array.get_rest_version()):
         capacity_info["provisioned_space"] = getattr(
             capacity.space, "total_provisioned", 0
         )
@@ -1511,7 +1500,7 @@ def generate_capacity_dict(array):
         capacity_info["used_provisioned"] = getattr(
             capacity.space, "used_provisioned", 0
         )
-        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+        if Version(SUBS_API_VERSION) <= Version(array.get_rest_version()):
             capacity_info["total_used"] = capacity.space.total_used
     else:
         capacity_info["provisioned_space"] = capacity.space["total_provisioned"]
@@ -1524,9 +1513,9 @@ def generate_capacity_dict(array):
         capacity_info["thin_provisioning"] = capacity.space["thin_provisioning"]
         capacity_info["total_reduction"] = capacity.space["total_reduction"]
         capacity_info["replication"] = capacity.space["replication"]
-    if LooseVersion(NFS_SECURITY_VERSION) <= LooseVersion(
-        array.get_rest_version()
-    ) and _is_cbs(array):
+    if Version(NFS_SECURITY_VERSION) <= Version(array.get_rest_version()) and _is_cbs(
+        array
+    ):
         cloud = list(array.get_arrays_cloud_capacity().items)[0]
         capacity_info["cloud_capacity"] = {
             "current_capacity": cloud.current_capacity,
@@ -1561,13 +1550,11 @@ def generate_snap_dict(array):
         snap_info[snapshot]["total_physical"] = snaps[snap].space.total_physical
         snap_info[snapshot]["total_provisioned"] = snaps[snap].space.total_provisioned
         snap_info[snapshot]["unique_space"] = snaps[snap].space.unique
-        if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(
-            array.get_rest_version()
-        ):
+        if Version(SHARED_CAP_API_VERSION) <= Version(array.get_rest_version()):
             snap_info[snapshot]["snapshots_effective"] = getattr(
                 snaps[snap].space, "snapshots_effective", None
             )
-        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+        if Version(SUBS_API_VERSION) <= Version(array.get_rest_version()):
             snap_info[snapshot]["total_used"] = snaps[snap].space.total_used
     offloads = list(array.get_offloads().items)
     for offload in range(0, len(offloads)):
@@ -1609,7 +1596,7 @@ def generate_snap_dict(array):
                 except KeyError:
                     snap_info[remote_snap_name] = {"remote": []}
                     snap_info[remote_snap_name]["remote"].append(remote_dict)
-    if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(TAGS_API_VERSION) <= Version(array.get_rest_version()):
         snaps_tags = list(
             array.get_volume_snapshots_tags(resource_destroyed=False).items
         )
@@ -1649,7 +1636,7 @@ def generate_del_snap_dict(array):
         snap_info[snapshot]["total_physical"] = snaps[snap].space.total_physical
         snap_info[snapshot]["total_provisioned"] = snaps[snap].space.total_provisioned
         snap_info[snapshot]["unique_space"] = snaps[snap].space.unique
-        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+        if Version(SUBS_API_VERSION) <= Version(array.get_rest_version()):
             snap_info[snapshot]["total_used"] = snaps[snap].space.total_used
     offloads = list(array.get_offloads().items)
     for offload in range(0, len(offloads)):
@@ -1689,7 +1676,7 @@ def generate_del_snap_dict(array):
                 except KeyError:
                     snap_info[remote_snap_name] = {"remote": []}
                     snap_info[remote_snap_name]["remote"].append(remote_dict)
-    if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(TAGS_API_VERSION) <= Version(array.get_rest_version()):
         snaps_tags = list(
             array.get_volume_snapshots_tags(resource_destroyed=True).items
         )
@@ -1748,7 +1735,7 @@ def generate_del_vol_dict(array):
             "host_encryption_key_status": vols[vol].host_encryption_key_status,
             "subtype": vols[vol].subtype,
         }
-        if LooseVersion(SAFE_MODE_VERSION) <= LooseVersion(array.get_rest_version()):
+        if Version(SAFE_MODE_VERSION) <= Version(array.get_rest_version()):
             volume_info[volume]["subtype"] = vols[vol].subtype
             volume_info[volume]["priority"] = vols[vol].priority
             volume_info[volume]["priority_adjustment"] = vols[
@@ -1756,9 +1743,7 @@ def generate_del_vol_dict(array):
             ].priority_adjustment.priority_adjustment_operator + str(
                 vols[vol].priority_adjustment.priority_adjustment_value
             )
-        if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(
-            array.get_rest_version()
-        ):
+        if Version(SHARED_CAP_API_VERSION) <= Version(array.get_rest_version()):
             volume_info[volume]["snapshots_effective"] = getattr(
                 vols[vol].space, "snapshots_effective", None
             )
@@ -1768,9 +1753,9 @@ def generate_del_vol_dict(array):
             volume_info[volume]["used_provisioned"] = (
                 getattr(vols[vol].space, "used_provisioned", None),
             )
-        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+        if Version(SUBS_API_VERSION) <= Version(array.get_rest_version()):
             volume_info[volume]["total_used"] = vols[vol].space.total_used
-    if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(TAGS_API_VERSION) <= Version(array.get_rest_version()):
         volume_tags = list(array.get_volumes_tags(resource_destroyed=True).items)
         for tag in range(len(volume_tags)):
             volume_info[volume_tags[tag].resource.name]["tags"].append(
@@ -1827,9 +1812,7 @@ def generate_vol_dict(array, performance):
             "host_encryption_key_status": vols[vol].host_encryption_key_status,
             "subtype": vols[vol].subtype,
         }
-        if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(
-            array.get_rest_version()
-        ):
+        if Version(SHARED_CAP_API_VERSION) <= Version(array.get_rest_version()):
             volume_info[volume]["snapshots_effective"] = getattr(
                 vols[vol].space, "snapshots_effective", None
             )
@@ -1842,9 +1825,9 @@ def generate_vol_dict(array, performance):
             volume_info[volume]["used_provisioned"] = (
                 getattr(vols[vol].space, "used_provisioned", None),
             )
-        if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+        if Version(SUBS_API_VERSION) <= Version(array.get_rest_version()):
             volume_info[volume]["total_used"] = vols[vol].space.total_used
-        if LooseVersion(SAFE_MODE_VERSION) <= LooseVersion(array.get_rest_version()):
+        if Version(SAFE_MODE_VERSION) <= Version(array.get_rest_version()):
             volume_info[volume]["priority"] = vols[vol].priority
             volume_info[volume]["priority_adjustment"] = vols[
                 vol
@@ -1872,7 +1855,7 @@ def generate_vol_dict(array, performance):
             dict(t)
             for t in set(tuple(d.items()) for d in volume_info[volume]["host_groups"])
         ]
-    if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(TAGS_API_VERSION) <= Version(array.get_rest_version()):
         volume_tags = list(array.get_volumes_tags(resource_destroyed=False).items)
         for tag in range(len(volume_tags)):
             volume_info[volume_tags[tag].resource.name]["tags"].append(
@@ -2011,7 +1994,7 @@ def generate_host_dict(array, performance):
             host_info[hosts[host]["name"]]["performance_balance"].append(
                 host_perf_balance
             )
-    if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(TAGS_API_VERSION) <= Version(array.get_rest_version()):
         host_tags = list(array.get_hosts_tags(resource_destroyed=False).items)
         for tag in range(len(host_tags)):
             host_info[host_tags[tag].resource.name]["tags"].append(
@@ -2194,7 +2177,7 @@ def generate_del_pgroups_dict(array):
             pgroups_info[protgroup]["targets"].append(
                 pgroup_targets[pg_target].member.name
             )
-        if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(api_version):
+        if Version(SHARED_CAP_API_VERSION) <= Version(api_version):
             pgroups_info[protgroup]["deleted_volumes"] = []
             volumes = list(
                 array.get_protection_groups_volumes(group_names=[protgroup]).items
@@ -2207,7 +2190,7 @@ def generate_del_pgroups_dict(array):
                         )
             else:
                 pgroups_info[protgroup]["deleted_volumes"] = None
-        if LooseVersion(PER_PG_VERSION) <= LooseVersion(api_version):
+        if Version(PER_PG_VERSION) <= Version(api_version):
             res = array.get_protection_groups(names=[protgroup])
             if res.status_code == 200:
                 pg_info = list(res.items)[0]
@@ -2217,7 +2200,7 @@ def generate_del_pgroups_dict(array):
                 pgroups_info[protgroup]["manual_eradication"] = getattr(
                     pg_info.eradication_config, "manual_eradication", None
                 )
-    if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(TAGS_API_VERSION) <= Version(array.get_rest_version()):
         pgroup_tags = list(
             array.get_protection_groups_tags(resource_destroyed=True).items
         )
@@ -2338,7 +2321,7 @@ def generate_pgroups_dict(array):
             pgroups_info[protgroup]["targets"].append(
                 pgroup_targets[pg_target].member.name
             )
-        if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(api_version):
+        if Version(SHARED_CAP_API_VERSION) <= Version(api_version):
             pgroups_info[protgroup]["deleted_volumes"] = []
             volumes = list(
                 array.get_protection_groups_volumes(group_names=[protgroup]).items
@@ -2351,7 +2334,7 @@ def generate_pgroups_dict(array):
                         )
             else:
                 pgroups_info[protgroup]["deleted_volumes"] = None
-        if LooseVersion(PER_PG_VERSION) <= LooseVersion(api_version):
+        if Version(PER_PG_VERSION) <= Version(api_version):
             res = array.get_protection_groups(names=[protgroup])
             if res.status_code == 200:
                 pg_info = list(res.items)[0]
@@ -2361,7 +2344,7 @@ def generate_pgroups_dict(array):
                 pgroups_info[protgroup]["manual_eradication"] = getattr(
                     pg_info.eradication_config, "manual_eradication", None
                 )
-    if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(TAGS_API_VERSION) <= Version(array.get_rest_version()):
         pgroup_tags = list(
             array.get_protection_groups_tags(resource_destroyed=False).items
         )
@@ -2456,7 +2439,7 @@ def generate_del_pods_dict(array):
                     "status": getattr(pods[pod].arrays[pod_array], "status", None),
                 }
             )
-    if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(TAGS_API_VERSION) <= Version(array.get_rest_version()):
         pods_tags = list(array.get_pods_tags(resource_destroyed=True).items)
         for tag in range(len(pods_tags)):
             pods_info[pods_tags[tag].resource.name]["tags"].append(
@@ -2527,7 +2510,7 @@ def generate_pods_dict(array, performance):
                     "status": getattr(pods[pod].arrays[pod_array], "status", None),
                 }
             )
-    if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(TAGS_API_VERSION) <= Version(array.get_rest_version()):
         pods_tags = list(array.get_pods_tags(resource_destroyed=False).items)
         for tag in range(len(pods_tags)):
             pods_info[pods_tags[tag].resource.name]["tags"].append(
@@ -2684,7 +2667,7 @@ def generate_vgroups_dict(array, performance):
             ].priority_adjustment.priority_adjustment_operator + str(
                 vgroups[vgroup].priority_adjustment.priority_adjustment_value
             )
-    if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(TAGS_API_VERSION) <= Version(array.get_rest_version()):
         vgroup_tags = list(array.get_volume_groups_tags(resource_destroyed=False).items)
         for tag in range(len(vgroup_tags)):
             vgroups_info[vgroup_tags[tag].resource.name]["tags"].append(
@@ -2795,7 +2778,7 @@ def generate_del_vgroups_dict(array):
         group_name = vg_volumes[vg_vol].group.name
         if group_name in vgroups_info:
             vgroups_info[group_name]["volumes"].append(vg_volumes[vg_vol].member.name)
-    if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(TAGS_API_VERSION) <= Version(array.get_rest_version()):
         vgroup_tags = list(array.get_volume_groups_tags(resource_destroyed=True).items)
         for tag in range(len(vgroup_tags)):
             vgroups_info[vgroup_tags[tag].resource.name]["tags"].append(
@@ -3032,7 +3015,7 @@ def generate_google_offload_dict(array):
                 ),
                 "total_used": getattr(offloads[offload].space, "total_used", None),
             }
-            if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+            if Version(SUBS_API_VERSION) <= Version(array.get_rest_version()):
                 offload_info[name]["total_used"] = offloads[offload].space.total_used
     return offload_info
 
@@ -3073,7 +3056,7 @@ def generate_hgroups_dict(array, performance):
                 "destroyed": getattr(hgroups[hgroup], "destroyed", False),
                 "time_remaining": getattr(hgroups[hgroup], "time_remaining", None),
             }
-    if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(TAGS_API_VERSION) <= Version(array.get_rest_version()):
         hgroup_tags = list(array.get_host_groups_tags(resource_destroyed=False).items)
         for tag in range(len(hgroup_tags)):
             hgroups_info[hgroup_tags[tag].resource.name]["tags"].append(
@@ -3442,7 +3425,7 @@ def generate_realms_dict(array, performance):
         }
         if realms_info[name]["destroyed"]:
             realms_info[name]["time_remaining"] = realms[realm].time_remaining
-    if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
+    if Version(TAGS_API_VERSION) <= Version(array.get_rest_version()):
         realms_tags = list(array.get_realms_tags(resource_destroyed=False).items)
         for tag in range(len(realms_tags)):
             realms_info[realms_tags[tag].resource.name]["tags"].append(
@@ -3613,9 +3596,9 @@ def main():
     if "filesystems" in subset or "all" in subset:
         info["filesystems"] = generate_filesystems_dict(array, performance)
     if "policies" in subset or "all" in subset:
-        user_map = bool(LooseVersion(NFS_USER_MAP_VERSION) <= LooseVersion(api_version))
-        quota = bool(LooseVersion(DIR_QUOTA_API_VERSION) <= LooseVersion(api_version))
-        autodir = bool(LooseVersion(AUTODIR_API_VERSION) <= LooseVersion(api_version))
+        user_map = bool(Version(NFS_USER_MAP_VERSION) <= Version(api_version))
+        quota = bool(Version(DIR_QUOTA_API_VERSION) <= Version(api_version))
+        autodir = bool(Version(AUTODIR_API_VERSION) <= Version(api_version))
         info["policies"] = generate_policies_dict(array, quota, autodir, user_map)
     if "clients" in subset or "all" in subset:
         info["clients"] = generate_clients_dict(array)
@@ -3625,19 +3608,19 @@ def main():
         info["pg_snapshots"] = generate_pgsnaps_dict(array)
     if "alerts" in subset or "all" in subset:
         info["alerts"] = generate_alerts_dict(array)
-    if LooseVersion(SUBS_API_VERSION) <= LooseVersion(api_version) and (
+    if Version(SUBS_API_VERSION) <= Version(api_version) and (
         "subscriptions" in subset or "all" in subset
     ):
         info["subscriptions"] = generate_subs_dict(array)
-    if LooseVersion(VM_VERSION) <= LooseVersion(api_version) and (
+    if Version(VM_VERSION) <= Version(api_version) and (
         "virtual_machines" in subset or "all" in subset
     ):
         info["virtual_machines"] = generate_vm_dict(array)
         info["virtual_machines_snaps"] = generate_vmsnap_dict(array)
-    if LooseVersion(DSROLE_POLICY_API_VERSION) <= LooseVersion(api_version):
+    if Version(DSROLE_POLICY_API_VERSION) <= Version(api_version):
         if "realms" in subset or "all" in subset:
             info["realms"] = generate_realms_dict(array, performance)
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         if "fleet" in subset or "all" in subset:
             info["fleet"] = generate_fleet_dict(array)
         if "presets" in subset or "all" in subset:

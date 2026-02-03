@@ -151,10 +151,8 @@ try:
 except ImportError:
     HAS_PURESTORAGE = False
 
+from packaging.version import Version
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
-)
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
@@ -207,7 +205,7 @@ def update_account(module, array):
 def create_account(module, array, api_version):
     """Create Active Directory Account"""
     changed = True
-    if LooseVersion(MIN_JOIN_OU_API_VERSION) > LooseVersion(api_version):
+    if Version(MIN_JOIN_OU_API_VERSION) > Version(api_version):
         ad_config = ActiveDirectoryPost(
             computer_name=module.params["computer"],
             directory_servers=module.params["directory_servers"],
@@ -216,7 +214,7 @@ def create_account(module, array, api_version):
             user=module.params["username"],
             password=module.params["password"],
         )
-    elif LooseVersion(MIN_TLS_API_VERSION) <= LooseVersion(api_version):
+    elif Version(MIN_TLS_API_VERSION) <= Version(api_version):
         ad_config = ActiveDirectoryPost(
             computer_name=module.params["computer"],
             directory_servers=module.params["directory_servers"],
@@ -288,7 +286,7 @@ def main():
 
     array = get_array(module)
     api_version = array.get_rest_version()
-    if LooseVersion(MIN_REQUIRED_API_VERSION) > LooseVersion(api_version):
+    if Version(MIN_REQUIRED_API_VERSION) > Version(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
@@ -301,12 +299,12 @@ def main():
     if not module.params["computer"]:
         module.params["computer"] = module.params["name"].replace("_", "-")
     if module.params["kerberos_servers"]:
-        if LooseVersion(SERVER_API_VERSION) <= LooseVersion(api_version):
+        if Version(SERVER_API_VERSION) <= Version(api_version):
             module.params["kerberos_servers"] = module.params["kerberos_servers"][0:3]
         else:
             module.params["kerberos_servers"] = module.params["kerberos_servers"][0:1]
     if module.params["directory_servers"]:
-        if LooseVersion(SERVER_API_VERSION) <= LooseVersion(api_version):
+        if Version(SERVER_API_VERSION) <= Version(api_version):
             module.params["directory_servers"] = module.params["directory_servers"][0:3]
         else:
             module.params["directory_servers"] = module.params["directory_servers"][0:1]
@@ -315,7 +313,7 @@ def main():
     elif (
         exists
         and state == "present"
-        and LooseVersion(MIN_TLS_API_VERSION) <= LooseVersion(api_version)
+        and Version(MIN_TLS_API_VERSION) <= Version(api_version)
     ):
         update_account(module, array)
     elif exists and state == "absent":

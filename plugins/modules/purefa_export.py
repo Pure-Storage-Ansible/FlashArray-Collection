@@ -98,12 +98,10 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 MIN_REQUIRED_API_VERSION = "2.3"
@@ -119,7 +117,7 @@ def delete_export(module, array):
     if not module.params["nfs_policy"] and not module.params["smb_policy"]:
         module.fail_json(msg="At least one policy must be provided")
     if module.params["nfs_policy"]:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             policy_exists = bool(
                 array.get_directory_exports(
                     export_names=[module.params["name"]],
@@ -141,7 +139,7 @@ def delete_export(module, array):
         if policy_exists:
             all_policies.append(module.params["nfs_policy"])
     if module.params["smb_policy"]:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             policy_exists = bool(
                 array.get_directory_exports(
                     export_names=[module.params["name"]],
@@ -165,7 +163,7 @@ def delete_export(module, array):
     if all_policies:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.delete_directory_exports(
                     export_names=[module.params["name"]],
                     policy_names=all_policies,
@@ -192,7 +190,7 @@ def create_export(module, array):
         module.fail_json(msg="At least one policy must be provided")
     all_policies = []
     if module.params["nfs_policy"]:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.get_policies_nfs(
                 names=[module.params["nfs_policy"]],
                 context_names=[module.params["context"]],
@@ -203,7 +201,7 @@ def create_export(module, array):
             module.fail_json(
                 msg="NFS Policy {0} does not exist.".format(module.params["nfs_policy"])
             )
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.get_directory_exports(
                 export_names=[module.params["name"]],
                 policy_names=[module.params["nfs_policy"]],
@@ -217,7 +215,7 @@ def create_export(module, array):
         if bool(res.status_code != 200):
             all_policies.append(module.params["nfs_policy"])
     if module.params["smb_policy"]:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.get_policies_smb(
                 names=[module.params["smb_policy"]],
                 context_names=[module.params["context"]],
@@ -228,7 +226,7 @@ def create_export(module, array):
             module.fail_json(
                 msg="SMB Policy {0} does not exist.".format(module.params["smb_policy"])
             )
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_VERSION) <= Version(api_version):
             res = array.get_directory_exports(
                 export_names=[module.params["name"]],
                 policy_names=[module.params["smb_policy"]],
@@ -245,7 +243,7 @@ def create_export(module, array):
         export = flasharray.DirectoryExportPost(export_name=module.params["name"])
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_VERSION) <= Version(api_version):
                 res = array.post_directory_exports(
                     directory_names=[
                         module.params["filesystem"] + ":" + module.params["directory"]
@@ -297,14 +295,14 @@ def main():
 
     array = get_array(module)
     api_version = array.get_rest_version()
-    if LooseVersion(MIN_REQUIRED_API_VERSION) > LooseVersion(api_version):
+    if Version(MIN_REQUIRED_API_VERSION) > Version(api_version):
         module.fail_json(
             msg="FlashArray REST version not supported. "
             "Minimum version required: {0}".format(MIN_REQUIRED_API_VERSION)
         )
     state = module.params["state"]
 
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         exists = bool(
             array.get_directory_exports(
                 export_names=[module.params["name"]],

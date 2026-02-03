@@ -170,12 +170,10 @@ RETURN = r"""
 """
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 HAS_PURESTORAGE = True
@@ -197,7 +195,7 @@ CONTEXT_API_VERSION = "2.38"
 def get_pending_pgroup(module, array):
     """Get Protection Group"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_protection_groups(
             names=[module.params["name"]],
             destroyed=True,
@@ -213,7 +211,7 @@ def get_pending_pgroup(module, array):
 def get_pgroup(module, array):
     """Get Protection Group"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_protection_groups(
             names=[module.params["name"]], context_names=[module.params["context"]]
         )
@@ -241,7 +239,7 @@ def update_schedule(module, array, snap_time, repl_time):
     """Update Protection Group Schedule"""
     api_version = array.get_rest_version()
     changed = False
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         schedule = list(
             array.get_protection_groups(
                 names=[module.params["name"]], context_names=[module.params["context"]]
@@ -330,7 +328,7 @@ def update_schedule(module, array, snap_time, repl_time):
             changed = True
             if not module.check_mode:
                 try:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         array.patch_protection_groups(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -367,9 +365,7 @@ def update_schedule(module, array, snap_time, repl_time):
                             ),
                         )
                     if snap_time:
-                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                            api_version
-                        ):
+                        if Version(CONTEXT_API_VERSION) <= Version(api_version):
                             array.patch_protection_groups(
                                 names=[module.params["name"]],
                                 context_names=[module.params["context"]],
@@ -388,7 +384,7 @@ def update_schedule(module, array, snap_time, repl_time):
                                     )
                                 ),
                             )
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         array.patch_protection_groups(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -487,7 +483,7 @@ def update_schedule(module, array, snap_time, repl_time):
             changed = True
             if not module.check_mode:
                 try:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         array.patch_protection_groups(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -524,9 +520,7 @@ def update_schedule(module, array, snap_time, repl_time):
                             ),
                         )
                     if repl_time:
-                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                            api_version
-                        ):
+                        if Version(CONTEXT_API_VERSION) <= Version(api_version):
                             array.patch_protection_groups(
                                 names=[module.params["name"]],
                                 context_names=[module.params["context"]],
@@ -546,9 +540,7 @@ def update_schedule(module, array, snap_time, repl_time):
                                 ),
                             )
                     if blackout_start == 0:
-                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                            api_version
-                        ):
+                        if Version(CONTEXT_API_VERSION) <= Version(api_version):
                             array.patch_protection_groups(
                                 names=[module.params["name"]],
                                 context_names=[module.params["context"]],
@@ -568,9 +560,7 @@ def update_schedule(module, array, snap_time, repl_time):
                                 ),
                             )
                     else:
-                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                            api_version
-                        ):
+                        if Version(CONTEXT_API_VERSION) <= Version(api_version):
                             array.patch_protection_groups(
                                 names=[module.params["name"]],
                                 context_names=[module.params["context"]],
@@ -595,7 +585,7 @@ def update_schedule(module, array, snap_time, repl_time):
                                     )
                                 ),
                             )
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                    if Version(CONTEXT_API_VERSION) <= Version(api_version):
                         array.patch_protection_groups(
                             names=[module.params["name"]],
                             context_names=[module.params["context"]],
@@ -638,7 +628,7 @@ def delete_schedule(module, array):
             self.status_code = status_code
 
     res = Res(200)
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         schedule = list(
             array.get_protection_groups(
                 names=[module.params["name"]], context_names=[module.params["context"]]
@@ -652,7 +642,7 @@ def delete_schedule(module, array):
         if schedule.replication_schedule.enabled:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_protection_groups(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],
@@ -716,7 +706,7 @@ def delete_schedule(module, array):
         if schedule.snapshot_schedule.enabled:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_protection_groups(
                         names=[module.params["name"]],
                         context_names=[module.params["context"]],

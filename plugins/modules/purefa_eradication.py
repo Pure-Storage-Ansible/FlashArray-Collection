@@ -86,12 +86,10 @@ except ImportError:
 
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 SEC_PER_DAY = 86400000
@@ -127,7 +125,7 @@ def main():
     changed = False
     current_disabled = None
     current_enabled = None
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_VERSION) <= Version(api_version):
         current_eradication_config = list(
             array.get_arrays(context_names=[module.params["context"]]).items
         )[0].eradication_config
@@ -135,7 +133,7 @@ def main():
         current_eradication_config = list(array.get_arrays().items)[
             0
         ].eradication_config
-    if LooseVersion(ERADICATION_API_VERSION) <= LooseVersion(api_version):
+    if Version(ERADICATION_API_VERSION) <= Version(api_version):
         base_eradication_timer = getattr(
             current_eradication_config, "eradication_delay", None
         )
@@ -143,7 +141,7 @@ def main():
             current_eradication_timer = int(base_eradication_timer / SEC_PER_DAY)
             if not module.params["timer"]:
                 module.params["timer"] = current_eradication_timer
-        if LooseVersion(DELAY_API_VERSION) <= LooseVersion(api_version):
+        if Version(DELAY_API_VERSION) <= Version(api_version):
             current_disabled = int(
                 current_eradication_config.disabled_delay / SEC_PER_DAY
             )
@@ -162,7 +160,7 @@ def main():
             if not module.check_mode:
                 new_timer = SEC_PER_DAY * target_timer
                 eradication_config = EradicationConfig(eradication_delay=new_timer)
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.patch_arrays(
                         context_names=[module.params["context"]],
                         array=Arrays(eradication_config=eradication_config),
@@ -188,7 +186,7 @@ def main():
                 eradication_config = EradicationConfig(
                     enabled_delay=new_enabled, disabled_delay=new_disabled
                 )
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_VERSION) <= Version(api_version):
                     res = array.patch_arrays(
                         context_names=[module.params["context"]],
                         array=Arrays(eradication_config=eradication_config),

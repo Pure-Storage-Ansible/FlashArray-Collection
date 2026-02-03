@@ -5,3 +5,4 @@ requests
 pycountry
 pytz
 urllib3
+packaging

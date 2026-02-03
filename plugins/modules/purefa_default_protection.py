@@ -106,12 +106,10 @@ except ImportError:
     HAS_PURESTORAGE = False
 
 from ansible.module_utils.basic import AnsibleModule
+from packaging.version import Version
 from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa import (
     get_array,
     purefa_argument_spec,
-)
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
 )
 
 DEFAULT_API_VERSION = "2.16"
@@ -121,7 +119,7 @@ CONTEXT_API_VERSION = "2.38"
 def _get_pod(module, array):
     """Return Pod or None"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_pods(
             names=[module.params["pod"]],
             context_names=[module.params["context"]],
@@ -136,7 +134,7 @@ def _get_pod(module, array):
 def _get_pg(module, array, pod):
     """Return Protection Group or None"""
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+    if Version(CONTEXT_API_VERSION) <= Version(api_version):
         res = array.get_protection_groups(
             names=[pod],
             context_names=[module.params["context"]],
@@ -174,7 +172,7 @@ def create_default(module, array):
             protection = flasharray.ContainerDefaultProtection(
                 name="", type="", default_protections=pg_list
             )
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_container_default_protections(
                     names=[""],
                     container_default_protection=protection,
@@ -188,7 +186,7 @@ def create_default(module, array):
             protection = flasharray.ContainerDefaultProtection(
                 name=module.params["pod"], type="pod", default_protections=pg_list
             )
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_container_default_protections(
                     names=[module.params["pod"]],
                     container_default_protection=protection,
@@ -255,7 +253,7 @@ def update_default(module, array, current_default):
                 protection = flasharray.ContainerDefaultProtection(
                     name="", type="", default_protections=pg_list
                 )
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_container_default_protections(
                         names=[""],
                         container_default_protection=protection,
@@ -271,7 +269,7 @@ def update_default(module, array, current_default):
                     type="pod",
                     default_protections=pg_list,
                 )
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+                if Version(CONTEXT_API_VERSION) <= Version(api_version):
                     res = array.patch_container_default_protections(
                         names=[module.params["pod"]],
                         container_default_protection=protection,
@@ -300,7 +298,7 @@ def delete_default(module, array):
             protection = flasharray.ContainerDefaultProtection(
                 name="", type="", default_protections=[]
             )
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_container_default_protections(
                     names=[""],
                     container_default_protection=protection,
@@ -314,7 +312,7 @@ def delete_default(module, array):
             protection = flasharray.ContainerDefaultProtection(
                 name=module.params["pod"], type="pod", default_protections=[]
             )
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            if Version(CONTEXT_API_VERSION) <= Version(api_version):
                 res = array.patch_container_default_protections(
                     names=[module.params["pod"]],
                     container_default_protection=[],
@@ -362,7 +360,7 @@ def main():
     module.params["name"] = sorted(module.params["name"])
     array = get_array(module)
     api_version = array.get_rest_version()
-    if LooseVersion(DEFAULT_API_VERSION) > LooseVersion(api_version):
+    if Version(DEFAULT_API_VERSION) > Version(api_version):
         module.fail_json(
             msg="Default Protection is not supported. Purity//FA 6.3.4, or higher, is required."
         )
@@ -371,7 +369,7 @@ def main():
             module.fail_json(
                 msg="Invalid pod {0} specified.".format(module.params["pod"])
             )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             ret = array.get_container_default_protections(
                 names=[module.params["pod"]],
                 context_names=[module.params["context"]],
@@ -380,7 +378,7 @@ def main():
             ret = array.get_container_default_protections(names=[module.params["pod"]])
         current_default = list(ret.items)[0].default_protections
     else:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        if Version(CONTEXT_API_VERSION) <= Version(api_version):
             ret = array.get_container_default_protections(
                 context_names=[module.params["context"]]
             )
