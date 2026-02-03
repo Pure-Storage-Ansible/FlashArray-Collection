@@ -259,9 +259,9 @@ def get_targets(module, array):
     else:
         target_details = list(array.get_offloads().items)
 
-    for targetcnt in range(0, len(target_details)):
-        if target_details[targetcnt].status in ["connected", "partially_connected"]:
-            targets.append(target_details[targetcnt].name)
+    for target in target_details:
+        if target.status in ["connected", "partially_connected"]:
+            targets.append(target.name)
     return targets
 
 
@@ -275,12 +275,12 @@ def get_arrays(module, array):
         )
     else:
         array_details = list(array.get_array_connections().items)
-    for arraycnt in range(0, len(array_details)):
-        if array_details[arraycnt].status in [
+    for array_detail in array_details:
+        if array_details.status in [
             "connected",
             "partially_connected",
         ]:
-            arrays.append(array_details[arraycnt].name)
+            arrays.append(array_detail.name)
     return arrays
 
 
@@ -597,8 +597,8 @@ def update_pgroup(module, array):
         current_targets = []
 
         if current_connects:
-            for targetcnt in range(0, len(current_connects)):
-                current_targets.append(current_connects[targetcnt].member.name)
+            for connect in current_connects:
+                current_targets.append(connect.member.name)
 
         if set(module.params["target"][0:4]) != set(current_targets):
             if not set(module.params["target"][0:4]).issubset(connected_arrays):
@@ -607,17 +607,17 @@ def update_pgroup(module, array):
                 )
             changed = True
             if not module.check_mode:
-                for target in range(0, len(module.params["target"][0:4])):
+                for target in module.params["target"][0:4]:
                     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                         res = array.post_protection_groups_targets(
                             group_names=[module.params["name"]],
                             context_names=[module.params["context"]],
-                            member_names=[module.params["target"][target]],
+                            member_names=[target],
                         )
                     else:
                         res = array.post_protection_groups_targets(
                             group_names=[module.params["name"]],
-                            member_names=[module.params["target"][target]],
+                            member_names=[target],
                         )
                     if res.status_code != 200:
                         module.fail_json(
@@ -730,8 +730,8 @@ def update_pgroup(module, array):
                         group_names=[module.params["name"]]
                     ).items
                 )
-            for vol in range(0, len(vols)):
-                pgvols.append(vols[vol].member["name"])
+            for vol in vols:
+                pgvols.append(vol.member["name"])
             if state == "present":
                 if not all(x in pgvols for x in module.params["volume"]):
                     if not module.check_mode:
@@ -819,8 +819,8 @@ def update_pgroup(module, array):
                         group_names=[module.params["name"]]
                     ).items
                 )
-            for host in range(0, len(hosts)):
-                pghosts.append(hosts[host].member["name"])
+            for host in hosts:
+                pghosts.append(host.member["name"])
             if state == "present":
                 if not all(x in pghosts for x in module.params["host"]):
                     if not module.check_mode:
@@ -908,8 +908,8 @@ def update_pgroup(module, array):
                         group_names=[module.params["name"]]
                     ).items
                 )
-            for hostg in range(0, len(hostgs)):
-                pghostgs.append(hostgs[hostg].member["name"])
+            for hostg in hostgs:
+                pghostgs.append(hostg.member["name"])
             if state == "present":
                 if not all(x in pghostgs for x in module.params["hostgroup"]):
                     if not module.check_mode:

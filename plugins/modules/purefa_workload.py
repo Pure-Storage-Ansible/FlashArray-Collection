@@ -322,8 +322,8 @@ def create_workload(module, array, fleet, preset_config):
 def expand_workload(module, array, fleet, volume_configs):
     """Add new volumes to workload"""
     changed = False
-    for vol_config in range(0, len(volume_configs)):
-        if volume_configs[vol_config].name == module.params["volume_configuration"]:
+    for vol_config in volume_configs:
+        if vol_config.name == module.params["volume_configuration"]:
             for x in range(module.params["volume_count"]):
                 changed = True
                 _create_volume(module, array)
