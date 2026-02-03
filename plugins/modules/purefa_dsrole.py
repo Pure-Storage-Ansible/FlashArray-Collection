@@ -27,7 +27,7 @@ options:
   name:
     description:
     - Name of role
-    - If not providied, will be assinged to the same as I(role)
+    - If not providied, will be assigned to the same as I(role)
     type: str
     version_added: 1.32.0
   state:
@@ -72,7 +72,7 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: Delete exisitng array_admin directory service role
+- name: Delete existing array_admin directory service role
   purestorage.flasharray.purefa_dsrole:
     role: array_admin
     state: absent

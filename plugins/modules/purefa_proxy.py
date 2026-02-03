@@ -50,7 +50,7 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: Delete exisitng proxy settings
+- name: Delete existing proxy settings
   purestorage.flasharray.purefa_proxy:
     state: absent
     fa_url: 10.10.10.2
@@ -91,7 +91,7 @@ def delete_proxy(module, array):
             res = array.patch_support(support=SupportPatch(proxy=""))
             if res.status_code != 200:
                 module.fail_json(
-                    msg="Delete proxy settigs failed. Error: {0}".format(
+                    msg="Delete proxy settings failed. Error: {0}".format(
                         res.errors[0].message
                     )
                 )

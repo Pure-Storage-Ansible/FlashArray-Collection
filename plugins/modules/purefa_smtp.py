@@ -24,7 +24,7 @@ short_description: Configure FlashArray SMTP settings
 description:
 - Set or erase configuration for the SMTP settings.
 - If username/password are set this will always force a change as there is
-  no way to see if the password is differnet from the current SMTP configuration.
+  no way to see if the password is different from the current SMTP configuration.
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
@@ -81,7 +81,7 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: Delete exisitng SMTP settings
+- name: Delete existing SMTP settings
   purestorage.flasharray.purefa_smtp:
     state: absent
     fa_url: 10.10.10.2
@@ -133,7 +133,7 @@ def delete_smtp(module, array):
         )
         if res.status_code != 200:
             module.fail_json(
-                msg="Delete SMTP settigs failed. Error: {0}".foramt(
+                msg="Delete SMTP settings failed. Error: {0}".format(
                     res.errors[0].message
                 )
             )
@@ -260,7 +260,7 @@ def main():
         supports_check_mode=True,
     )
     if not HAS_PURESTORAGE:
-        module.fail_json(msg="py-pure-client sdk is required for this mudule")
+        module.fail_json(msg="py-pure-client sdk is required for this module")
 
     state = module.params["state"]
     array = get_array(module)

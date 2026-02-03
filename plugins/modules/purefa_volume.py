@@ -52,7 +52,7 @@ options:
     default: false
   overwrite:
     description:
-    - Define whether to overwrite a target volume if it already exisits.
+    - Define whether to overwrite a target volume if it already exists.
     type: bool
     default: false
   size:
@@ -118,9 +118,9 @@ options:
     type: str
   pgroup:
     description:
-    - Name of exisitng, not deleted, protection group to add volume to
+    - Name of existing, not deleted, protection group to add volume to
     - Only application for volume(s) creation
-    - Superceeded from Purity//FA 6.3.4 by I(add_to_pgs)
+    - Superseded from Purity//FA 6.3.4 by I(add_to_pgs)
     type: str
     version_added: 1.8.0
   priority_operator:
@@ -138,7 +138,7 @@ options:
   with_default_protection:
     description:
     - Whether to add the default container protection groups to
-      those specified in I(add_to_pgs) as the inital protection
+      those specified in I(add_to_pgs) as the initial protection
       of a new volume.
     type: bool
     default: true
@@ -1947,7 +1947,7 @@ def main():
     api_version = array.get_rest_version()
     endpoint = get_endpoint(module, module.params["name"], array)
     if not HAS_PURESTORAGE:
-        module.fail_json(msg="py-pure-client sdk is required for this mudule")
+        module.fail_json(msg="py-pure-client sdk is required for this module")
     if (
         LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version)
         and not module.params["context"]

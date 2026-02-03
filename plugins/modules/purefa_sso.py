@@ -20,7 +20,7 @@ module: purefa_sso
 version_added: '1.9.0'
 deprecated:
     removed_in: '2.0.0'
-    why: Superceeded by M(purestorage.flasharray.purefa_admin)
+    why: Superseded by M(purestorage.flasharray.purefa_admin)
     alternative: Use M(purestorage.flasharray.purefa_admin) instead.
 short_description: Configure Pure Storage FlashArray Single Sign-On
 description:
@@ -32,7 +32,7 @@ author:
 options:
   state:
     description:
-    - Enable or disable the array Signle Sign-On from Pure1 Manage
+    - Enable or disable the array Single Sign-On from Pure1 Manage
     default: present
     type: str
     choices: [ present, absent ]

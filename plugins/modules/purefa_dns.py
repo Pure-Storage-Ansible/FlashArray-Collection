@@ -22,7 +22,7 @@ short_description: Configure FlashArray DNS settings
 description:
 - Set or erase configuration for the DNS settings.
 - Nameservers provided will overwrite any existing nameservers.
-- From Purity//FA 6.3.3 DNS setting for FA-File can be configured seperately
+- From Purity//FA 6.3.3 DNS setting for FA-File can be configured separately
   to the management DNS settings
 author:
 - Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
@@ -52,7 +52,7 @@ options:
     elements: str
   service:
     description:
-    - Type of ser vice the DNS will work with
+    - Type of service the DNS will work with
     type: str
     version_added: 1.14.0
     choices: [ management, file ]
@@ -75,7 +75,7 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r"""
-- name: Delete exisitng management DNS settings
+- name: Delete existing management DNS settings
   purestorage.flasharray.purefa_dns:
     state: absent
     fa_url: 10.10.10.2
@@ -175,7 +175,7 @@ def delete_dns(module, array):
                 res = array.delete_dns(names=["management"])
         if res.status_code != 200:
             module.fail_json(
-                msg="Delete DNS settigs failed. Error: {0}".format(
+                msg="Delete DNS settings failed. Error: {0}".format(
                     res.errors[0].message
                 )
             )

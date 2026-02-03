@@ -41,8 +41,8 @@ options:
   failover:
     description:
     - The name of the array given priority to stay online if arrays loose
-      contact with eachother.
-    - Oprions are either array in the cluster, or I(auto)
+      contact with each other.
+    - Options are either array in the cluster, or I(auto)
     type: list
     elements: str
   state:
@@ -137,7 +137,7 @@ options:
       - Only applicable for existing pods
       - Name must include the pod name
       - Will create the PG in the pod if it doesn't already exist
-      - To remove an existing defaul protection group provide I([])
+      - To remove an existing default protection group provide I([])
       type: str
       version_added: '1.37.0'
   retention_lock:
@@ -384,7 +384,7 @@ def create_pod(module, array):
     api_version = array.get_rest_version()
     changed = True
     if module.params["target"]:
-        module.fail_json(msg="Cannot clone non-existant pod.")
+        module.fail_json(msg="Cannot clone non-existent pod.")
     if not module.check_mode:
         if module.params["failover"]:
             failovers = []
