@@ -893,7 +893,7 @@ def generate_clients_dict(array):
             "client_id": client.id,
             "key_id": client.key_id,
             "issuer": getattr(client, "issuer", None),
-            "max_role": client.max_role,
+            "max_role": getattr(client, "max_role", None),
             "access_token_ttl_ms": client.access_token_ttl_in_ms,
             "access_token_ttl_seconds": (
                 client.access_token_ttl_in_ms / 1000
