@@ -258,9 +258,9 @@ def update_ds(module, array):
         )
     else:
         dirservlist = list(array.get_directory_services().items)
-    for dirs in range(0, len(dirservlist)):
-        if dirservlist[dirs].name == module.params["dstype"]:
-            current_ds = dirservlist[dirs]
+    for dirs in dirservlist:
+        if dirs.name == module.params["dstype"]:
+            current_ds = dirs
     if module.params["uri"] and current_ds.uris is None:
         password_required = True
     if module.params["uri"] and current_ds.uris != module.params["uri"]:
@@ -404,26 +404,26 @@ def test_ds(module, array):
         response = list(
             array.get_directory_services_test(names=[module.params["dstype"]]).items
         )
-    for component in range(0, len(response)):
-        if response[component].enabled:
+    for component in response:
+        if component.enabled:
             enabled = "true"
         else:
             enabled = "false"
-        if response[component].success:
+        if component.success:
             success = "true"
         else:
             success = "false"
         test_response.append(
             {
-                "component_address": response[component].component_address,
-                "component_name": response[component].component_name,
-                "description": response[component].description,
-                "destination": response[component].destination,
+                "component_address": component.component_address,
+                "component_name": component.component_name,
+                "description": component.description,
+                "destination": component.destination,
                 "enabled": enabled,
-                "result_details": getattr(response[component], "result_details", ""),
+                "result_details": getattr(component, "result_details", ""),
                 "success": success,
-                "test_type": response[component].test_type,
-                "resource_name": response[component].resource.name,
+                "test_type": component.test_type,
+                "resource_name": component.resource.name,
             }
         )
     module.exit_json(changed=False, test_response=test_response)
@@ -463,9 +463,9 @@ def main():
     state = module.params["state"]
     dirserv = []
     dirservlist = list(array.get_directory_services().items)
-    for dirs in range(0, len(dirservlist)):
-        if dirservlist[dirs].name == module.params["dstype"]:
-            dirserv = dirservlist[dirs]
+    for dirs in dirservlist:
+        if dirs.name == module.params["dstype"]:
+            dirserv = dirs
     if dirserv:
         if state == "absent":
             if dirserv.uris != []:

@@ -178,29 +178,29 @@ def main():
         module.fail_json(
             msg="Failed to get sessions. Error: {0}".format(res.errors[0].message)
         )
-    for session in range(0, len(sessions)):
-        name = sessions[session].name
-        if hasattr(sessions[session], "start_time"):
+    for session in sessions:
+        name = session.name
+        if hasattr(session, "start_time"):
             start_time = datetime.datetime.fromtimestamp(
-                sessions[session].start_time / 1000, tz=pytz.timezone(timezone)
+                session.start_time / 1000, tz=pytz.timezone(timezone)
             ).strftime("%Y-%m-%d %H:%M:%S %Z")
         else:
             start_time = "-"
-        if hasattr(sessions[session], "end_time"):
+        if hasattr(session, "end_time"):
             end_time = datetime.datetime.fromtimestamp(
-                sessions[session].end_time / 1000, tz=pytz.timezone(timezone)
+                session.end_time / 1000, tz=pytz.timezone(timezone)
             ).strftime("%Y-%m-%d %H:%M:%S %Z")
         else:
             end_time = "-"
         session_log[name] = {
             "start_time": start_time,
             "end_time": end_time,
-            "interface": sessions[session].user_interface,
-            "user": getattr(sessions[session], "user", ""),
-            "location": sessions[session].location,
-            "repeat": getattr(sessions[session], "event_count", ""),
-            "event": sessions[session].event,
-            "method": getattr(sessions[session], "method", ""),
+            "interface": session.user_interface,
+            "user": getattr(session, "user", ""),
+            "location": session.location,
+            "repeat": getattr(session, "event_count", ""),
+            "event": session.event,
+            "method": getattr(session, "method", ""),
         }
     module.exit_json(changed=False, purefa_sessions=session_log)
 

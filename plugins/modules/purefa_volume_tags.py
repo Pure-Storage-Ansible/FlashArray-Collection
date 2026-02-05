@@ -162,11 +162,11 @@ def create_tag(module, array):
     api_version = array.get_rest_version()
     if not module.check_mode:
         pairs = []
-        for tag in range(0, len(module.params["kvp"])):
+        for tag in module.params["kvp"]:
             pairs.append(
                 (
-                    module.params["kvp"][tag].split(":")[0],
-                    module.params["kvp"][tag].split(":")[1],
+                    tag.split(":")[0],
+                    tag.split(":")[1],
                 )
             )
         tags = [
@@ -206,11 +206,11 @@ def update_tags(module, array, current_tags):
     new_pairs = []
     for tag in current_tags:
         current_pairs.append((tag.key, tag.value))
-    for new_tag in range(0, len(module.params["kvp"])):
+    for new_tag in module.params["kvp"]:
         new_pairs.append(
             (
-                module.params["kvp"][new_tag].split(":")[0],
-                module.params["kvp"][new_tag].split(":")[1],
+                new_tag.split(":")[0],
+                new_tag.split(":")[1],
             )
         )
     add_pairs = list(set(new_pairs) - set(current_pairs))
@@ -253,30 +253,30 @@ def delete_tags(module, array, current_tags):
     old_tags = []
     for tag in current_tags:
         now_tags.append(tag.key)
-    for old_tag in range(0, len(module.params["tag"])):
-        old_tags.append((module.params["tag"][old_tag],))
+    for old_tag in module.params["tag"]:
+        old_tags.append((old_tag,))
     del_tags = list(set(old_tags) & set(now_tags))
     if del_tags:
         changed = True
         if not module.check_mode:
-            for tag in range(0, len(del_tags)):
+            for tag in del_tags:
                 if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                     res = array.delete_volumes_tags(
                         resource_names=[module.params["name"]],
-                        keys=[del_tags[tag]],
+                        keys=[tag],
                         namespaces=[module.params["namespace"]],
                         context_names=[module.params["context"]],
                     )
                 else:
                     res = array.delete_volumes_tags(
                         resource_names=[module.params["name"]],
-                        keys=[del_tags[tag]],
+                        keys=[tag],
                         namespaces=[module.params["namespace"]],
                     )
                 if res.status_code != 200:
                     module.fail_json(
                         msg="Failed to remove tag {0} from volume {1}. Error: {2}".format(
-                            del_tags[tag],
+                            tag,
                             module.params["name"],
                             res.errors[0].message,
                         )

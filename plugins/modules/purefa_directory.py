@@ -189,8 +189,8 @@ def create_dir(module, array):
         all_fs = list(
             array.get_directories(file_system_names=[module.params["filesystem"]]).items
         )
-    for check in range(0, len(all_fs)):
-        if module.params["path"] == all_fs[check].path[1:]:
+    for check in all_fs:
+        if module.params["path"] == check.path[1:]:
             module.fail_json(
                 msg="Path {0} already existis in file system {1}".format(
                     module.params["path"], module.params["filesystem"]

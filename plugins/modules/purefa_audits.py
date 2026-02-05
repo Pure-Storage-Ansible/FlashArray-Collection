@@ -162,18 +162,18 @@ def main():
         module.fail_json(
             msg="Failed to get audit events. Error: {0}".format(res.errors[0].message)
         )
-    for audit in range(0, len(audits)):
-        name = audits[audit].name
+    for audit in audits:
+        name = audit.name
         time = datetime.datetime.fromtimestamp(
-            audits[audit].time / 1000, tz=pytz.timezone(timezone)
+            audit.time / 1000, tz=pytz.timezone(timezone)
         ).strftime("%Y-%m-%d %H:%M:%S %Z")
         audit_log[name] = {
             "time": time,
-            "arguments": audits[audit].arguments,
-            "user": audits[audit].user,
-            "command": audits[audit].command,
-            "subcommand": audits[audit].subcommand,
-            "origin": audits[audit].origin.name,
+            "arguments": audit.arguments,
+            "user": audit.user,
+            "command": audit.command,
+            "subcommand": audit.subcommand,
+            "origin": audit.origin.name,
         }
     module.exit_json(changed=False, purefa_audits=audit_log)
 

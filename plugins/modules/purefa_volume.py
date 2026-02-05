@@ -185,7 +185,7 @@ EXAMPLES = r"""
     name: foo
     size: 1T
     priority_operator: +
-    priorty_value: 10
+    priority_value: 10
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: present
@@ -911,10 +911,8 @@ def create_multi_volume(module, array, single=False):
     if not module.check_mode:
         if module.params["add_to_pgs"]:
             add_to_pgs = []
-            for add_pg in range(0, len(module.params["add_to_pgs"])):
-                add_to_pgs.append(
-                    ReferenceType(name=module.params["add_to_pgs"][add_pg])
-                )
+            for add_pg in module.params["add_to_pgs"]:
+                add_to_pgs.append(ReferenceType(name=add_pg))
             if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
                 api_version
             ) and module.params["context"] not in [
@@ -927,27 +925,21 @@ def create_multi_volume(module, array, single=False):
             else:
                 if "::" in module.params["name"]:
                     pod_name = "::".join(module.params["name"].split("::")[:-1])
-                    for pgs in range(0, len(module.params["add_to_pgs"])):
+                    for pgs in module.params["add_to_pgs"]:
                         if "::" not in module.params["add_to_pgs"][pgs]:
                             module.fail_json(msg="Specified PG is not a pod PG")
-                        elif pg_exists(
-                            module, module.params["add_to_pgs"][pgs], array
-                        ) and pod_name != "::".join(
-                            module.params["add_to_pgs"][pgs].split("::")[:-1]
+                        elif pg_exists(module, pgs, array) and pod_name != "::".join(
+                            pgs.split("::")[:-1]
                         ):
                             module.fail_json(
                                 msg="Protection Group {0} is not associated with pod {1}".format(
-                                    module.params["add_to_pgs"][pgs],
+                                    pgs,
                                     pod_name,
                                 )
                             )
-                        elif not pg_exists(
-                            module, module.params["add_to_pgs"][pgs], array
-                        ):
+                        elif not pg_exists(module, pgs, array):
                             module.fail_json(
-                                msg="Protection Group {0} does not exist".format(
-                                    module.params["add_to_pgs"][pgs]
-                                )
+                                msg="Protection Group {0} does not exist".format(pgs)
                             )
                     res = array.post_volumes(
                         names=names,
@@ -1070,32 +1062,35 @@ def create_multi_volume(module, array, single=False):
                 )
             prio_temp = list(prio_res.items)
         temp = list(res.items)
-        for count in range(0, len(temp)):
-            vol_name = temp[count].name
+        for count, item in enumerate(temp):
+            vol_name = item.name
+
+            # Base volume info
             volfact[vol_name] = {
-                "size": temp[count].provisioned,
-                "serial": temp[count].serial,
+                "size": item.provisioned,
+                "serial": item.serial,
                 "created": time.strftime(
-                    "%Y-%m-%d %H:%M:%S", time.localtime(temp[count].created / 1000)
+                    "%Y-%m-%d %H:%M:%S", time.localtime(item.created / 1000)
                 ),
-                "page83_naa": PURE_OUI + temp[count].serial.lower(),
-                "nvme_nguid": _create_nguid(temp[count].serial.lower()),
+                "page83_naa": PURE_OUI + item.serial.lower(),
+                "nvme_nguid": _create_nguid(item.serial.lower()),
             }
+
+            # Optional fields
             if module.params["bw_qos"]:
-                volfact[vol_name]["bandwidth_limit"] = temp[count].qos.bandwidth_limit
+                volfact[vol_name]["bandwidth_limit"] = item.qos.bandwidth_limit
             if module.params["iops_qos"]:
-                volfact[vol_name]["iops_limit"] = temp[count].qos.iops_limit
+                volfact[vol_name]["iops_limit"] = item.qos.iops_limit
             if module.params["promotion_state"]:
                 volfact[vol_name]["promotion_status"] = prio_temp[
                     count
                 ].promotion_status
             if module.params["priority_operator"]:
-                volfact[vol_name]["priority_operator"] = prio_temp[
-                    count
-                ].priority_adjustment.priority_adjustment_operator
-                volfact[vol_name]["priority_value"] = prio_temp[
-                    count
-                ].priority_adjustment.priority_adjustment_value
+                adj = prio_temp[count].priority_adjustment
+                volfact[vol_name][
+                    "priority_operator"
+                ] = adj.priority_adjustment_operator
+                volfact[vol_name]["priority_value"] = adj.priority_adjustment_value
 
     module.exit_json(changed=changed, volume=volfact)
 
@@ -1111,10 +1106,8 @@ def copy_from_volume(module, array):
             if LooseVersion(DEFAULT_API_VERSION) <= LooseVersion(api_version):
                 if module.params["add_to_pgs"]:
                     add_to_pgs = []
-                    for add_pg in range(0, len(module.params["add_to_pgs"])):
-                        add_to_pgs.append(
-                            ReferenceType(name=module.params["add_to_pgs"][add_pg])
-                        )
+                    for add_pg in module.params["add_to_pgs"]:
+                        add_to_pgs.append(ReferenceType(name=add_pg))
                     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                         res = array.post_volumes(
                             with_default_protection=module.params[
@@ -1462,8 +1455,8 @@ def update_volume(module, array):
                     member_names=[module.params["name"]]
                 ).items
             )
-        for current_pg in range(0, len(current_pgs)):
-            pgs_now.append(current_pgs[current_pg].group.name)
+        for current_pg in current_pgs:
+            pgs_now.append(current_pg.group.name)
         new_pgs = list(filter(lambda x: x not in pgs_now, module.params["add_to_pgs"]))
         if new_pgs:
             changed = True
@@ -1780,8 +1773,8 @@ def delete_volume(module, array):
                     member_names=[module.params["name"]]
                 ).items
             )
-        for current_pg in range(0, len(current_pgs)):
-            pgs_now.append(current_pgs[current_pg].group.name)
+        for current_pg in current_pgs:
+            pgs_now.append(current_pg.group.name)
         old_pgs = list(filter(lambda x: x in module.params["add_to_pgs"], pgs_now))
         if old_pgs:
             changed = True

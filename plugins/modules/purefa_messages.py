@@ -156,35 +156,33 @@ def main():
         module.fail_json(
             msg="Failed to get alert messages. Error: {0}".format(res.errors[0].message)
         )
-    for message in range(0, len(alerts)):
-        name = alerts[message].name
+    for message in alerts:
+        name = message.name
         messages[name] = {
-            "summary": alerts[message].summary,
-            "component_type": alerts[message].component_type,
-            "component_name": alerts[message].component_name,
-            "code": alerts[message].code,
-            "severity": alerts[message].severity,
-            "actual": alerts[message].actual,
-            "issue": alerts[message].issue,
-            "state": alerts[message].state,
-            "flagged": alerts[message].flagged,
+            "summary": message.summary,
+            "component_type": message.component_type,
+            "component_name": message.component_name,
+            "code": message.code,
+            "severity": message.severity,
+            "actual": message.actual,
+            "issue": message.issue,
+            "state": message.state,
+            "flagged": message.flagged,
             "closed": None,
             "created": time.strftime(
                 "%Y-%m-%d %H:%M:%S",
-                time.gmtime(alerts[message].created / 1000),
+                time.gmtime(message.created / 1000),
             )
             + " UTC",
             "updated": time.strftime(
                 "%Y-%m-%d %H:%M:%S",
-                time.gmtime(alerts[message].updated / 1000),
+                time.gmtime(message.updated / 1000),
             )
             + " UTC",
         }
-        if alerts[message].state == "closed":
+        if message.state == "closed":
             messages[name]["closed"] = (
-                time.strftime(
-                    "%Y-%m-%d %H:%M:%S", time.gmtime(alerts[message].closed / 1000)
-                )
+                time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(message.closed / 1000))
                 + " UTC"
             )
     module.exit_json(changed=False, purefa_messages=messages)

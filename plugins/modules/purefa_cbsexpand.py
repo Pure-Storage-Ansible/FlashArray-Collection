@@ -85,8 +85,8 @@ def list_capacity(module, array):
     """Get available expansion points"""
     steps = list(array.get_arrays_cloud_capacity_supported_steps().items)
     available = []
-    for step in range(0, len(steps)):
-        available.append(steps[step].supported_capacity)
+    for step in steps:
+        available.append(step.supported_capacity)
     module.exit_json(changed=True, available=available)
 
 
@@ -94,8 +94,8 @@ def update_capacity(module, array):
     """Expand CBS capacity"""
     steps = list(array.get_arrays_cloud_capacity_supported_steps().items)
     available = []
-    for step in range(0, len(steps)):
-        available.append(steps[step].supported_capacity)
+    for step in steps:
+        available.append(step.supported_capacity)
     if module.params["capacity"] not in available:
         module.fail_json(
             msg="Selected capacity is not available. "
