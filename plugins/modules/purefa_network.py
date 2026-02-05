@@ -797,7 +797,7 @@ def main():
             create_interface(module, array)
         elif interface and module.params["state"] == "absent":
             delete_interface(module, array)
-        elif module.params["state"] == "present":
+        elif interface and module.params["state"] == "present":
             update_interface(module, array)
         else:
             module.exit_json(changed=False)
