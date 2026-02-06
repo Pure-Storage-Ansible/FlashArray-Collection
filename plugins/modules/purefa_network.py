@@ -149,7 +149,7 @@ RETURN = """
 """
 
 try:
-    from netaddr import IPAddress, IPNetwork, valid_ipv4, valid_ipv6
+    from netaddr import IPAddress, IPNetwork, valid_ipv4
 
     HAS_NETADDR = True
 except ImportError:
@@ -288,11 +288,18 @@ def _create_subinterfaces(module, array):
 def update_interface(module, array):
     """Modify Interface settings"""
     changed = False
-    interface = list(array.get_network_interfaces(names=[module.params["name"]]).items)[
-        0
-    ]
+    interfaces = array.get_network_interfaces(names=[module.params["name"]]).items
+    if not interfaces:
+        module.fail_json("Interface {0} not found".format(module.params["name"]))
+
+    interface = interfaces[0]
+
+    def is_fc_interface(ifname):
+        parts = ifname.split(".")
+        return len(parts) > 1 and parts[1].lower().startswith("f")
+
     # Modify FC Interface settings
-    if module.params["name"].split(".")[1][0].lower() == "f":
+    if is_fc_interface(module.params["name"]):
         if not interface.enabled and module.params["state"] == "present":
             changed = True
             if not module.check_mode:
@@ -346,32 +353,26 @@ def update_interface(module, array):
         "subinterfaces": sorted(interface.eth.subinterfaces),
     }
     new_state = current_state.copy()
+
     if module.params["subinterfaces"]:
         new_subinterfaces = _check_subinterfaces(module, array)
         if new_subinterfaces != current_state["subinterfaces"]:
             new_state["subinterfaces"] = new_subinterfaces
+
     if module.params["subordinates"]:
         subordinates = _check_subinterfaces(module, array)
         if sorted(subordinates) != sorted(module.params["subordinates"]):
             new_state["subinterfaces"] = module.params["subordinates"]
+
     if module.params["enabled"] != current_state["enabled"]:
         new_state["enabled"] = module.params["enabled"]
-    if not current_state["gateway"]:
-        if getattr(interface.eth, "address", None) and valid_ipv4(
-            getattr(interface.eth, "address", None)
-        ):
-            current_state["gateway"] = None
-        elif getattr(interface.eth, "address", None) and valid_ipv6(
-            getattr(interface.eth, "address", None)
-        ):
-            current_state["gateway"] = None
-        else:
-            current_state["gateway"] = None
+
     if (
         module.params["servicelist"]
         and sorted(module.params["servicelist"]) != current_state["services"]
     ):
         new_state["services"] = sorted(module.params["servicelist"])
+
     if (
         module.params["address"]
         and module.params["address"] != current_state["address"]
@@ -390,8 +391,8 @@ def update_interface(module, array):
             module.fail_json(msg="Gateway and subnet are not compatible.")
         new_state["address"] = str(module.params["address"].split("/", 1)[0])
         if new_state["address"] in ["0.0.0.0", "::"]:
-            new_state["address"] = None
-            new_state["netmask"] = None
+            new_state["netmask"] = ""
+
     if module.params["mtu"] and module.params["mtu"] != current_state["mtu"]:
         if not 1280 <= module.params["mtu"] <= 9216:
             module.fail_json(
@@ -401,6 +402,7 @@ def update_interface(module, array):
             )
         else:
             new_state["mtu"] = module.params["mtu"]
+
     if module.params["address"]:
         if new_state["address"]:
             if valid_ipv4(new_state["address"]):
@@ -408,9 +410,10 @@ def update_interface(module, array):
             else:
                 new_state["netmask"] = str(module.params["address"].split("/", 1)[1])
         if new_state["netmask"] in ["0.0.0.0", "0"]:
-            new_state["netmask"] = None
+            new_state["netmask"] = ""
+
     if module.params["gateway"] and module.params["gateway"] in ["0.0.0.0", "::"]:
-        new_state["gateway"] = None
+        new_state["gateway"] = ""
     elif new_state["address"] and valid_ipv4(new_state["address"]):
         cidr = str(IPAddress(new_state["netmask"]).netmask_bits())
         full_addr = new_state["address"] + "/" + cidr
@@ -797,7 +800,7 @@ def main():
             create_interface(module, array)
         elif interface and module.params["state"] == "absent":
             delete_interface(module, array)
-        elif module.params["state"] == "present":
+        elif interface and module.params["state"] == "present":
             update_interface(module, array)
         else:
             module.exit_json(changed=False)
