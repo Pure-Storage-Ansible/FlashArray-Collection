@@ -345,8 +345,8 @@ def update_hostgroup(module, array):
         if module.params["host"]:
             hosts = list(module.params["host"])
             hghosts = []
-            for host in range(0, len(hgroup)):
-                hghosts.append(hgroup[host].member.name)
+            for host in hgroup:
+                hghosts.append(host.member.name)
             new_hosts = list(set(hosts).difference(hghosts))
             if new_hosts:
                 if not module.check_mode:
@@ -480,8 +480,8 @@ def update_hostgroup(module, array):
         if module.params["host"]:
             old_hosts = list(module.params["host"])
             hosts = []
-            for host in range(0, len(hgroup)):
-                hosts.append(hgroup[host].member.name)
+            for host in hgroup:
+                hosts.append(host.member.name)
             old_hosts = list(set(old_hosts).intersection(hosts))
             if old_hosts:
                 if not module.check_mode:
@@ -571,8 +571,8 @@ def delete_hostgroup(module, array):
                 )
     hgroup = get_hostgroup_hosts(module, array)
     hghosts = []
-    for host in range(0, len(hgroup)):
-        hghosts.append(hgroup[host].member.name)
+    for host in hgroup:
+        hghosts.append(host.member.name)
     if hghosts:
         changed = True
         if not module.check_mode:

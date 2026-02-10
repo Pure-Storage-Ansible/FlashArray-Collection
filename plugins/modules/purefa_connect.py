@@ -158,12 +158,12 @@ def _check_connected(module, array):
     if res.status_code != 200:
         return None
     connected_arrays = list(res.items)
-    for target in range(0, len(connected_arrays)):
-        remote_mgmt_address = connected_arrays[target].management_address
+    for target in connected_arrays:
+        remote_mgmt_address = target.management_address
         if (
             remote_mgmt_address == module.params["target_url"].strip("[]")
             or remote_mgmt_address in [_lookup(module.params["target_url"].strip("[]"))]
-            and "connected" in connected_arrays[target].status
+            and "connected" in target.status
         ):
             return connected_arrays[target]
     return None

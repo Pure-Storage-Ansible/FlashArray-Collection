@@ -353,17 +353,17 @@ def check_arrays(module, array):
     else:
         good_arrays.append(list(array.get_arrays().items)[0].name)
         connected_arrays = list(array.get_array_connections().items)
-    for arr in range(0, len(connected_arrays)):
-        if connected_arrays[arr].type == "sync-replication":
-            good_arrays.append(connected_arrays[arr].name)
+    for arr in connected_arrays:
+        if arr.type == "sync-replication":
+            good_arrays.append(arr.name)
     if module.params["failover"] is not None:
         if module.params["failover"] == ["auto"]:
             failover_array = []
         else:
             failover_array = module.params["failover"]
         if failover_array != []:
-            for arr in range(0, len(failover_array)):
-                if failover_array[arr] not in good_arrays:
+            for arr in failover_array:
+                if arr not in good_arrays:
                     module.fail_json(
                         msg="Failover array {0} is not valid.".format(
                             failover_array[arr]
@@ -388,8 +388,8 @@ def create_pod(module, array):
     if not module.check_mode:
         if module.params["failover"]:
             failovers = []
-            for fo_array in range(0, len(module.params["failover"])):
-                failovers.append(Reference(name=module.params["failover"][fo_array]))
+            for fo_array in module.params["failover"]:
+                failovers.append(Reference(name=fo_array))
             if LooseVersion(THROTTLE_VERSION) > LooseVersion(api_version):
                 res = array.post_pods(
                     names=[module.params["name"]],
@@ -778,10 +778,8 @@ def update_pod(module, array):
                             )
                 else:
                     failovers = []
-                    for fo_array in range(0, len(module.params["failover"])):
-                        failovers.append(
-                            Reference(name=module.params["failover"][fo_array])
-                        )
+                    for fo_array in module.params["failover"]:
+                        failovers.append(Reference(name=fo_array))
                     if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                         res = array.patch_pods(
                             names=[module.params["name"]],
@@ -1140,8 +1138,8 @@ def stretch_pod(module, array):
         current_config = list(array.get_pods(names=[module.params["name"]]).items)[0]
     if module.params["stretch"]:
         current_arrays = []
-        for arr in range(0, len(current_config.arrays)):
-            current_arrays.append(current_config.arrays[arr]["name"])
+        for arr in current_config.arrays:
+            current_arrays.append(arr["name"])
         if (
             module.params["stretch"] not in current_arrays
             and module.params["state"] == "present"

@@ -154,11 +154,11 @@ def create_default(module, array):
     changed = True
     pg_list = []
     if not module.check_mode:
-        for pgroup in range(0, len(module.params["name"])):
+        for pgroup in module.params["name"]:
             if module.params["scope"] == "array":
                 pg_list.append(
                     flasharray.DefaultProtectionReference(
-                        name=module.params["name"][pgroup], type="protection_group"
+                        name=pgroup, type="protection_group"
                     )
                 )
             else:
@@ -214,11 +214,11 @@ def update_default(module, array, current_default):
     api_version = array.get_rest_version()
     changed = False
     current = []
-    for default in range(0, len(current_default)):
+    for default in current_default:
         if module.params["scope"] == "array":
-            current.append(current_default[default].name)
+            current.append(default.name)
         else:
-            current.append(current_default[default].name.split(":")[-1])
+            current.append(default.name.split(":")[-1])
     pg_list = []
     if module.params["state"] == "present":
         if current:
@@ -237,17 +237,17 @@ def update_default(module, array, current_default):
     else:
         changed = True
         if not module.check_mode:
-            for pgroup in range(0, len(new_list)):
+            for pgroup in new_list:
                 if module.params["scope"] == "array":
                     pg_list.append(
                         flasharray.DefaultProtectionReference(
-                            name=new_list[pgroup], type="protection_group"
+                            name=pgroup, type="protection_group"
                         )
                     )
                 else:
                     pg_list.append(
                         flasharray.DefaultProtectionReference(
-                            name=module.params["pod"] + "::" + new_list[pgroup],
+                            name=module.params["pod"] + "::" + pgroup,
                             type="protection_group",
                         )
                     )
@@ -387,11 +387,11 @@ def main():
         else:
             ret = array.get_container_default_protections()
         current_default = list(ret.items)[0].default_protections
-    for pgroup in range(0, len(module.params["name"])):
+    for pgroup in module.params["name"]:
         if module.params["scope"] == "pod":
-            pod_name = module.params["pod"] + module.params["name"][pgroup]
+            pod_name = module.params["pod"] + pgroup
         else:
-            pod_name = module.params["name"][pgroup]
+            pod_name = pgroup
         if not _get_pg(module, array, pod_name) and state == "present":
             module.fail_json(msg="Protection Group {0} does not exist".format(pod_name))
 
