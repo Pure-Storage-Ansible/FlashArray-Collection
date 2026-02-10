@@ -783,7 +783,7 @@ def main():
             module.params["interface"] == "lacp" and module.params["subinterfaces"]
         ):
             module.fail_json(
-                msg="interface type not compatable with provided subinterfaces | subordinates"
+                msg="interface type not compatible with provided subinterfaces | subordinates"
             )
         interface = bool(
             array.get_network_interfaces(names=[module.params["name"]]).status_code

@@ -27,7 +27,7 @@ author: Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com
 options:
   name:
     description:
-      - Interface name, including controller indentifier.
+      - Interface name, including controller identifier.
       - VLANs are only supported on iSCSI, NVMe-RoCE and file
         physical interfaces
     required: true
@@ -77,7 +77,7 @@ EXAMPLES = """
     fa_url: 10.10.10.2
     api_token: c6033033-fe69-2515-a9e8-966bb7fe4b40
 
-- name: Delete VLAN inteface for subnet test on ct0.eth4
+- name: Delete VLAN interface for subnet test on ct0.eth4
   purestorage.flasharray.purefa_vlan:
     name: ct0.eth4
     subnet: test

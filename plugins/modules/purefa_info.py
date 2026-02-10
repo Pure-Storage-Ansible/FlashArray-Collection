@@ -354,7 +354,7 @@ def generate_perf_dict(array):
         "usec_per_write_op": perf_data.usec_per_write_op,
         "write_bytes_per_sec": perf_data.write_bytes_per_sec,
         "writes_per_sec": perf_data.writes_per_sec,
-        # These are legacy values. Return 0 for backwards compatability
+        # These are legacy values. Return 0 for backwards compatibility
         "input_per_sec": 0,
         "output_per_sec": 0,
         "queue_depth": 0,
@@ -886,15 +886,33 @@ def generate_policies_dict(array, quota_available, autodir_available, nfs_user_m
 def generate_clients_dict(array):
     clients_info = {}
     clients = list(array.get_api_clients().items)
-    for client in range(0, len(clients)):
-        c_name = clients[client].name
-        clients_info[c_name] = {
-            "enabled": clients[client].enabled,
-            "TTL(seconds)": clients[client].access_token_ttl_in_ms / 1000,
-            "key_id": clients[client].key_id,
-            "client_id": clients[client].id,
-            "max_role": clients[client].max_role,
-            "public_key": clients[client].public_key,
+    for client in clients:
+        clients_info[client.name] = {
+            "name": client.name,
+            "enabled": client.enabled,
+            "client_id": client.id,
+            "key_id": client.key_id,
+            "issuer": getattr(client, "issuer", None),
+            "max_role": getattr(client, "max_role", None),
+            "access_token_ttl_ms": client.access_token_ttl_in_ms,
+            "access_token_ttl_seconds": (
+                client.access_token_ttl_in_ms / 1000
+                if client.access_token_ttl_in_ms is not None
+                else None
+            ),
+            # For backwards compatability
+            "TTL(seconds)": (
+                client.access_token_ttl_in_ms / 1000
+                if client.access_token_ttl_in_ms is not None
+                else None
+            ),
+            "public_key": getattr(client, "public_key", None),
+            "access_policies": [
+                {
+                    "name": policy.name,
+                }
+                for policy in getattr(client, "access_policies", []) or []
+            ],
         }
     return clients_info
 
@@ -2149,8 +2167,8 @@ def generate_del_pgroups_dict(array):
             for pgroup_transfer in range(0, len(pgroup_transfers)):
                 snap = pgroup_transfers[pgroup_transfer]["name"]
                 pgroups_info[protgroup]["snaps"][snap] = {
-                    "time_remaining": None,  # Backwards compatability
-                    "created": None,  # Backwards compatability
+                    "time_remaining": None,  # Backwards compatibility
+                    "created": None,  # Backwards compatibility
                     "started": getattr(
                         pgroup_transfers[pgroup_transfer], "started", None
                     ),
@@ -2293,8 +2311,8 @@ def generate_pgroups_dict(array):
             for pgroup_transfer in range(0, len(pgroup_transfers)):
                 snap = pgroup_transfers[pgroup_transfer]["name"]
                 pgroups_info[protgroup]["snaps"][snap] = {
-                    "time_remaining": None,  # Backwards compatability
-                    "created": None,  # Backwards compatability
+                    "time_remaining": None,  # Backwards compatibility
+                    "created": None,  # Backwards compatibility
                     "started": getattr(
                         pgroup_transfers[pgroup_transfer], "started", None
                     ),
@@ -2661,7 +2679,7 @@ def generate_vgroups_dict(array, performance):
             "volumes": [],
             "performance": [],
             "snapshots_space": vgroups[vgroup].space.snapshots,
-            "system": vgroups[vgroup].space.unique,  # Backwards compatability
+            "system": vgroups[vgroup].space.unique,  # Backwards compatibility
             "unique_space": vgroups[vgroup].space.unique,
             "virtual_space": vgroups[vgroup].space.virtual,
             "data_reduction": (getattr(vgroups[vgroup].space, "data_reduction", None),),
@@ -2767,7 +2785,7 @@ def generate_del_vgroups_dict(array):
             "volumes": [],
             "performance": [],
             "snapshots_space": vgroups[vgroup].space.snapshots,
-            "system": vgroups[vgroup].space.unique,  # Backwards compatability
+            "system": vgroups[vgroup].space.unique,  # Backwards compatibility
             "unique_space": vgroups[vgroup].space.unique,
             "virtual_space": vgroups[vgroup].space.virtual,
             "data_reduction": (getattr(vgroups[vgroup].space, "data_reduction", None),),

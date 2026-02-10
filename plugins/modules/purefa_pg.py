@@ -79,7 +79,7 @@ options:
     - Note that all replicated protection groups are asynchronous.
     - Target arrays or offload targets must already be connected to the source array.
     - Maximum number of targets per Portection Group is 4, assuming your
-      configuration suppors this.
+      configuration supports this.
     type: list
     elements: str
   rename:

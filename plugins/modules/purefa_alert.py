@@ -191,7 +191,7 @@ def main():
     res = array.get_alert_watchers()
     if res.status_code != 200:
         module.fail_json(
-            msg="Failed to get exisitng email list. Error: {0}".format(
+            msg="Failed to get existing email list. Error: {0}".format(
                 res.errors[0].message
             )
         )

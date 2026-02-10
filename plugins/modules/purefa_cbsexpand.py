@@ -82,7 +82,7 @@ def _is_cbs(array):
 
 
 def list_capacity(module, array):
-    """Get avaible expansion points"""
+    """Get available expansion points"""
     steps = list(array.get_arrays_cloud_capacity_supported_steps().items)
     available = []
     for step in range(0, len(steps)):
@@ -99,14 +99,14 @@ def update_capacity(module, array):
     if module.params["capacity"] not in available:
         module.fail_json(
             msg="Selected capacity is not available. "
-            "Run this module with `list` to get available capapcity points."
+            "Run this module with `list` to get available capacity points."
         )
     expanded = array.patch_arrays_cloud_capacity(
         capacity=flasharray.CloudCapacityStatus(
             requested_capacity=module.params["capacity"]
         )
     )
-    if expanded.sttaus_code != 200:
+    if expanded.status_code != 200:
         module.fail_json(
             msg="Expansion request failed. Error: {0}".format(
                 expanded.errors[0].message
