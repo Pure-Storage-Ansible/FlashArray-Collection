@@ -620,9 +620,9 @@ def delete_policy(module, array):
                     )
                 if rules:
                     rule_name = ""
-                    for rule in range(0, len(rules)):
-                        if rules[rule].client == module.params["client"]:
-                            rule_name = rules[rule].name
+                    for rule in rules:
+                        if rule.client == module.params["client"]:
+                            rule_name = rule.name
                             break
                     if rule_name:
                         if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
@@ -685,9 +685,9 @@ def delete_policy(module, array):
                     )
                 if rules:
                     rule_name = ""
-                    for rule in range(0, len(rules)):
-                        if rules[rule].client == module.params["client"]:
-                            rule_name = rules[rule].name
+                    for rule in rules:
+                        if rule.client == module.params["client"]:
+                            rule_name = rule.name
                             break
                     if rule_name:
                         if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
@@ -751,23 +751,23 @@ def delete_policy(module, array):
                         ).items
                     )
                 if current_dirs:
-                    for current_dir in range(0, len(current_dirs)):
-                        dirs.append(current_dirs[current_dir].member.name)
-                    for old_dir in range(0, len(module.params["directory"])):
-                        if module.params["directory"][old_dir] in dirs:
-                            old_dirs.append(module.params["directory"][old_dir])
+                    for current_dir in current_dirs:
+                        dirs.append(current_dir.member.name)
+                    for old_dir in module.params["directory"]:
+                        if old_dir in dirs:
+                            old_dirs.append(old_dir)
                 else:
                     pass
                 if old_dirs:
                     changed = True
-                    for rem_dir in range(0, len(old_dirs)):
+                    for rem_dir in old_dirs:
                         if not module.check_mode:
                             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
                                 api_version
                             ):
                                 directory_removed = (
                                     array.delete_directories_policies_snapshot(
-                                        member_names=[old_dirs[rem_dir]],
+                                        member_names=[rem_dir],
                                         policy_names=module.params["name"],
                                         context_names=[module.params["context"]],
                                     )
@@ -775,7 +775,7 @@ def delete_policy(module, array):
                             else:
                                 directory_removed = (
                                     array.delete_directories_policies_snapshot(
-                                        member_names=[old_dirs[rem_dir]],
+                                        member_names=[rem_dir],
                                         policy_names=module.params["name"],
                                     )
                                 )
@@ -802,9 +802,9 @@ def delete_policy(module, array):
                     )
                 if rules:
                     rule_name = ""
-                    for rule in range(0, len(rules)):
-                        if rules[rule].client_name == module.params["snap_client_name"]:
-                            rule_name = rules[rule].name
+                    for rule in rules:
+                        if rule.client_name == module.params["snap_client_name"]:
+                            rule_name = rule.name
                             break
                     if rule_name:
                         if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
@@ -868,23 +868,23 @@ def delete_policy(module, array):
                         ).items
                     )
                 if current_dirs:
-                    for current_dir in range(0, len(current_dirs)):
-                        dirs.append(current_dirs[current_dir].member.name)
-                    for old_dir in range(0, len(module.params["directory"])):
-                        if module.params["directory"][old_dir] in dirs:
-                            old_dirs.append(module.params["directory"][old_dir])
+                    for current_dir in current_dirs:
+                        dirs.append(current_dir.member.name)
+                    for old_dir in module.params["directory"]:
+                        if old_dir in dirs:
+                            old_dirs.append(old_dir)
                 else:
                     pass
                 if old_dirs:
                     changed = True
-                    for rem_dir in range(0, len(old_dirs)):
+                    for rem_dir in old_dirs:
                         if not module.check_mode:
                             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
                                 api_version
                             ):
                                 directory_removed = (
                                     array.delete_directories_policies_autodir(
-                                        member_names=[old_dirs[rem_dir]],
+                                        member_names=[rem_dir],
                                         policy_names=module.params["name"],
                                         context_names=[module.params["context"]],
                                     )
@@ -892,7 +892,7 @@ def delete_policy(module, array):
                             else:
                                 directory_removed = (
                                     array.delete_directories_policies_autodir(
-                                        member_names=[old_dirs[rem_dir]],
+                                        member_names=[rem_dir],
                                         policy_names=module.params["name"],
                                     )
                                 )
@@ -920,10 +920,10 @@ def delete_policy(module, array):
                         ).items
                     )
                 if rules:
-                    for rule in range(0, len(rules)):
-                        if rules[rule].quota_limit == quota_limit:
+                    for rule in rules:
+                        if rule.quota_limit == quota_limit:
                             if (
-                                module.params["quota_enforced"] == rules[rule].enforced
+                                module.params["quota_enforced"] == rule.enforced
                                 and ",".join(module.params["quota_notifications"])
                                 == rules[rule].notifications
                             ):
@@ -932,13 +932,13 @@ def delete_policy(module, array):
                                 ):
                                     res = array.delete_policies_quota_rules(
                                         policy_names=[module.params["name"]],
-                                        names=[rules[rule].name],
+                                        names=[rule.name],
                                         context_names=[module.params["context"]],
                                     )
                                 else:
                                     res = array.delete_policies_quota_rules(
                                         policy_names=[module.params["name"]],
-                                        names=[rules[rule].name],
+                                        names=[rule.name],
                                     )
                                 if res.status_code == 200:
                                     changed = True
@@ -963,27 +963,27 @@ def delete_policy(module, array):
                         ).items
                     )
                 if members:
-                    for member in range(0, len(members)):
-                        if members[member].member.name in module.params["directory"]:
+                    for member in members:
+                        if member.member.name in module.params["directory"]:
                             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
                                 api_version
                             ):
                                 res = array.delete_policies_quota_members(
                                     policy_names=[module.params["name"]],
-                                    member_names=[members[member].member.name],
+                                    member_names=[member.member.name],
                                     member_types="directories",
                                     context_names=[module.params["context"]],
                                 )
                             else:
                                 res = array.delete_policies_quota_members(
                                     policy_names=[module.params["name"]],
-                                    member_names=[members[member].member.name],
+                                    member_names=[member.member.name],
                                     member_types="directories",
                                 )
                             if res.status_code != 200:
                                 module.fail_json(
                                     msg="Deletion of Quota member {0} from policy {1}. Error: {2}".format(
-                                        members[member].member.name,
+                                        member.member.name,
                                         module.params["name"],
                                         res.errors[0].message,
                                     )
@@ -1006,8 +1006,8 @@ def delete_policy(module, array):
                     )
                 if members:
                     member_names = []
-                    for member in range(0, len(members)):
-                        member_names.append(members[member].member.name)
+                    for member in members:
+                        member_names.append(member.member.name)
                     if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                         res = array.delete_policies_quota_members(
                             policy_names=[module.params["name"]],
@@ -1449,11 +1449,11 @@ def create_policy(module, array, all_squash):
                         )
                 if module.params["directory"]:
                     members = []
-                    for mem in range(0, len(module.params["directory"])):
+                    for mem in module.params["directory"]:
                         members.append(
                             PolicymemberpostMembers(
                                 member=ReferenceWithType(
-                                    name=module.params["directory"][mem],
+                                    name=mem,
                                     resource_type="directories",
                                 )
                             )
@@ -1608,9 +1608,9 @@ def update_policy(module, array, api_version, all_squash):
                 )
             if rules:
                 rule_name = ""
-                for rule in range(0, len(rules)):
-                    if rules[rule].client == module.params["client"]:
-                        rule_name = rules[rule].name
+                for rule in rules:
+                    if rule.client == module.params["client"]:
+                        rule_name = rule.name
                         break
                 if not rule_name:
                     if LooseVersion(NFS_VERSION) > LooseVersion(api_version):
@@ -1851,9 +1851,9 @@ def update_policy(module, array, api_version, all_squash):
                 )
             if rules:
                 rule_name = ""
-                for rule in range(0, len(rules)):
-                    if rules[rule].client == module.params["client"]:
-                        rule_name = rules[rule].name
+                for rule in rules:
+                    if rule.client == module.params["client"]:
+                        rule_name = rule.name
                         break
                 if not rule_name:
                     rules = PolicyrulesmbclientpostRules(
@@ -1962,12 +1962,12 @@ def update_policy(module, array, api_version, all_squash):
                     ).items
                 )
             if current_dirs:
-                for current_dir in range(0, len(current_dirs)):
-                    dirs.append(current_dirs[current_dir].member.name)
-                for new_dir in range(0, len(module.params["directory"])):
-                    if module.params["directory"][new_dir] not in dirs:
+                for current_dir in current_dirs:
+                    dirs.append(current_dir.member.name)
+                for new_dir in module.params["directory"]:
+                    if new_dir not in dirs:
                         changed_dir = True
-                        new_dirs.append(module.params["directory"][new_dir])
+                        new_dirs.append(new_dir)
             else:
                 new_dirs = module.params["directory"]
             if new_dirs:
@@ -1979,17 +1979,17 @@ def update_policy(module, array, api_version, all_squash):
                     ]
                 )
                 changed_dir = True
-                for add_dir in range(0, len(new_dirs)):
+                for add_dir in new_dirs:
                     if not module.check_mode:
                         if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                             res = array.post_directories_policies_snapshot(
-                                member_names=[new_dirs[add_dir]],
+                                member_names=[add_dir],
                                 policies=policies,
                                 context_names=[module.params["context"]],
                             )
                         else:
                             res = array.post_directories_policies_snapshot(
-                                member_names=[new_dirs[add_dir]], policies=policies
+                                member_names=[add_dir], policies=policies
                             )
                         if res.status_code != 200:
                             module.fail_json(
@@ -2029,13 +2029,11 @@ def update_policy(module, array, api_version, all_squash):
                     ).items
                 )
             if rules:
-                for rule in range(0, len(rules)):
+                for rule in rules:
                     if (
-                        rules[rule].client_name == module.params["snap_client_name"]
-                        and int(rules[rule].every / 60000)
-                        == module.params["snap_every"]
-                        and int(rules[rule].keep_for / 60000)
-                        == module.params["snap_keep_for"]
+                        rule.client_name == module.params["snap_client_name"]
+                        and int(rule.every / 60000) == module.params["snap_every"]
+                        and int(rule.keep_for / 60000) == module.params["snap_keep_for"]
                     ):
                         module.exit_json(changed=False)
                 if module.params["snap_keep_for"] < module.params["snap_every"]:
@@ -2210,12 +2208,12 @@ def update_policy(module, array, api_version, all_squash):
                     ).items
                 )
             if current_dirs:
-                for current_dir in range(0, len(current_dirs)):
-                    dirs.append(current_dirs[current_dir].member.name)
-                for new_dir in range(0, len(module.params["directory"])):
-                    if module.params["directory"][new_dir] not in dirs:
+                for current_dir in current_dirs:
+                    dirs.append(current_dir.member.name)
+                for new_dir in module.params["directory"]:
+                    if new_dir not in dirs:
                         changed_dir = True
-                        new_dirs.append(module.params["directory"][new_dir])
+                        new_dirs.append(new_dir)
             else:
                 new_dirs = module.params["directory"]
             if new_dirs:
@@ -2227,17 +2225,17 @@ def update_policy(module, array, api_version, all_squash):
                     ]
                 )
                 changed_dir = True
-                for add_dir in range(0, len(new_dirs)):
+                for add_dir in new_dirs:
                     if not module.check_mode:
                         if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                             res = array.post_directories_policies_autodir(
-                                member_names=[new_dirs[add_dir]],
+                                member_names=[add_dir],
                                 policies=policies,
                                 context_names=[module.params["context"]],
                             )
                         else:
                             res = array.post_directories_policies_autodir(
-                                member_names=[new_dirs[add_dir]], policies=policies
+                                member_names=[add_dir], policies=policies
                             )
                         if res.status_code != 200:
                             module.fail_json(
@@ -2456,11 +2454,8 @@ def update_policy(module, array, api_version, all_squash):
                 )
             if current_members:
                 if module.params["state"] == "absent":
-                    for member in range(0, len(current_members)):
-                        if (
-                            current_members[member].member.name
-                            in module.params["directory"]
-                        ):
+                    for member in current_members:
+                        if member.member.name in module.params["directory"]:
                             changed_member = True
                             if not module.check_mode:
                                 if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
@@ -2468,22 +2463,18 @@ def update_policy(module, array, api_version, all_squash):
                                 ):
                                     res = array.delete_policies_quota_members(
                                         policy_names=[module.params["name"]],
-                                        member_names=[
-                                            current_members[member].member.name
-                                        ],
+                                        member_names=[member.member.name],
                                         context_names=[module.params["context"]],
                                     )
                                 else:
                                     res = array.delete_policies_quota_members(
                                         policy_names=[module.params["name"]],
-                                        member_names=[
-                                            current_members[member].member.name
-                                        ],
+                                        member_names=[member.member.name],
                                     )
                                 if res.status_code != 200:
                                     module.fail_json(
                                         msg="Failed to delete rule {0} from quota policy {1}. Error: {2}".format(
-                                            current_members[member].member.name,
+                                            member.member.name,
                                             module.params["name"],
                                             res.errors[0].message,
                                         )
@@ -2491,15 +2482,15 @@ def update_policy(module, array, api_version, all_squash):
                 else:
                     members = []
                     cmembers = []
-                    for cmem in range(0, len(current_members)):
-                        cmembers.append(current_members[cmem].member.name)
+                    for cmem in current_members:
+                        cmembers.append(cmem.member.name)
                     mem_diff = list(set(module.params["directory"]) - set(cmembers))
                     if mem_diff:
-                        for mem in range(0, len(mem_diff)):
+                        for mem in mem_diff:
                             members.append(
                                 PolicymemberpostMembers(
                                     member=ReferenceWithType(
-                                        name=mem_diff[mem],
+                                        name=mem,
                                         resource_type="directories",
                                     )
                                 )
@@ -2531,11 +2522,11 @@ def update_policy(module, array, api_version, all_squash):
                                 )
             else:
                 members = []
-                for mem in range(0, len(module.params["directory"])):
+                for mem in module.params["directory"]:
                     members.append(
                         PolicymemberpostMembers(
                             member=ReferenceWithType(
-                                name=module.params["directory"][mem],
+                                name=mem,
                                 resource_type="directories",
                             )
                         )
@@ -2673,10 +2664,10 @@ def update_policy(module, array, api_version, all_squash):
                             )
                 else:
                     one_enforced = False
-                    for check_rule in range(0, len(current_rules)):
-                        if current_rules[check_rule].enforced:
+                    for check_rule in current_rules:
+                        if check_rule.enforced:
                             one_enforced = True
-                    for rule in range(0, len(current_rules)):
+                    for rule in current_rules:
                         rule_exists = False
                         if not module.params["quota_notifications"]:
                             current_notifications = "none"
@@ -2687,15 +2678,9 @@ def update_policy(module, array, api_version, all_squash):
                                 module.params["quota_notifications"]
                             )
                         if bool(
-                            (current_rules[rule].quota_limit == quota)
-                            and (
-                                current_rules[rule].enforced
-                                == module.params["quota_enforced"]
-                            )
-                            and (
-                                current_rules[rule].notifications
-                                == current_notifications
-                            )
+                            (rule.quota_limit == quota)
+                            and (rule.enforced == module.params["quota_enforced"])
+                            and (rule.notifications == current_notifications)
                         ):
                             rule_exists = True
                             break

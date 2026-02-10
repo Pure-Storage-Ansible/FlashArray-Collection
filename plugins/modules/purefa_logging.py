@@ -102,10 +102,10 @@ def main():
                         sort=["start_time-"],
                     ).items
                 )
-            for audit in range(0, len(all_audits)):
+            for audit in all_audits:
                 if module.params["log_type"] == "session":
-                    start_time = getattr(all_audits[audit], "start_time", None)
-                    end_time = getattr(all_audits[audit], "end_time", None)
+                    start_time = getattr(audit, "start_time", None)
+                    end_time = getattr(audit, "end_time", None)
                     if start_time:
                         human_start_time = time.strftime(
                             "%Y-%m-%d %H:%M:%S", time.localtime(start_time / 1000)
@@ -122,16 +122,14 @@ def main():
                     data = {
                         "start_time": human_start_time,
                         "end_time": human_end_time,
-                        "location": getattr(all_audits[audit], "location", None),
-                        "user": getattr(all_audits[audit], "user", None),
-                        "event": all_audits[audit].event,
-                        "event_count": getattr(all_audits[audit], "event_count", None),
-                        "user_interface": getattr(
-                            all_audits[audit], "user_interface", None
-                        ),
+                        "location": getattr(audit, "location", None),
+                        "user": getattr(audit, "user", None),
+                        "event": audit.event,
+                        "event_count": getattr(audit, "event_count", None),
+                        "user_interface": getattr(audit, "user_interface", None),
                     }
                 else:
-                    event_time = getattr(all_audits[audit], "time", None)
+                    event_time = getattr(audit, "time", None)
                     if event_time:
                         human_event_time = time.strftime(
                             "%Y-%m-%d %H:%M:%S", time.localtime(event_time / 1000)
@@ -140,11 +138,11 @@ def main():
                         human_event_time = None
                     data = {
                         "time": human_event_time,
-                        "arguments": all_audits[audit].arguments,
-                        "command": all_audits[audit].command,
-                        "subcommand": all_audits[audit].subcommand,
-                        "user": all_audits[audit].user,
-                        "origin": getattr(all_audits[audit].origin, "name", None),
+                        "arguments": audit.arguments,
+                        "command": audit.command,
+                        "subcommand": audit.subcommand,
+                        "user": audit.user,
+                        "origin": getattr(audit.origin, "name", None),
                     }
                 audits.append(data)
     else:

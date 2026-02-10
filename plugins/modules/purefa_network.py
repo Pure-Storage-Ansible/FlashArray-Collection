@@ -225,8 +225,8 @@ def _check_subinterfaces(module, array):
     subinterfaces = list(
         array.get_network_interfaces(names=[module.params["name"]]).items
     )[0].eth.subinterfaces
-    for subinterface in range(0, len(subinterfaces)):
-        subordinates.append(subinterfaces[subinterface].name)
+    for subinterface in subinterfaces:
+        subordinates.append(subinterface)
     return subordinates
 
 
@@ -494,8 +494,8 @@ def update_interface(module, array):
                     and new_state["subinterfaces"] != []
                 ):
                     new_subs = []
-                    for sub in range(0, len(new_state["subinterfaces"])):
-                        new_subs.append(ReferenceNoId(new_state["subinterfaces"][sub]))
+                    for sub in new_state["subinterfaces"]:
+                        new_subs.append(ReferenceNoId(sub))
                     res = array.patch_network_interfaces(
                         names=[interface.name],
                         network=NetworkInterfacePatch(

@@ -68,47 +68,47 @@ def generate_new_hardware_dict(array):
         "temperature": {},
     }
     components = list(array.get_hardware().items)
-    for component in range(0, len(components)):
-        component_name = components[component].name
-        if components[component].type == "chassis":
+    for component in components:
+        component_name = component.name
+        if component.type == "chassis":
             hw_info["chassis"][component_name] = {
-                "status": components[component].status,
-                "serial": components[component].serial,
-                "model": components[component].model,
-                "identify_enabled": components[component].identify_enabled,
+                "status": component.status,
+                "serial": component.serial,
+                "model": component.model,
+                "identify_enabled": component.identify_enabled,
             }
-        if components[component].type == "controller":
+        if component.type == "controller":
             hw_info["controllers"][component_name] = {
-                "status": components[component].status,
-                "serial": components[component].serial,
-                "model": components[component].model,
-                "identify_enabled": components[component].identify_enabled,
+                "status": component.status,
+                "serial": component.serial,
+                "model": component.model,
+                "identify_enabled": component.identify_enabled,
             }
-        if components[component].type == "cooling":
+        if component.type == "cooling":
             hw_info["fans"][component_name] = {
-                "status": components[component].status,
+                "status": component.status,
             }
-        if components[component].type == "temp_sensor":
+        if component.type == "temp_sensor":
             hw_info["controllers"][component_name] = {
-                "status": components[component].status,
-                "temperature": components[component].temperature,
+                "status": component.status,
+                "temperature": component.temperature,
             }
-        if components[component].type == "drive_bay":
+        if component.type == "drive_bay":
             hw_info["drives"][component_name] = {
-                "status": components[component].status,
-                "identify_enabled": components[component].identify_enabled,
-                "serial": getattr(components[component], "serial", None),
+                "status": component.status,
+                "identify_enabled": component.identify_enabled,
+                "serial": getattr(component, "serial", None),
             }
-        if components[component].type in [
+        if component.type in [
             "sas_port",
             "fc_port",
             "eth_port",
             "ib_port",
         ]:
             hw_info["interfaces"][component_name] = {
-                "type": components[component].type,
-                "status": components[component].status,
-                "speed": components[component].speed,
+                "type": component.type,
+                "status": component.status,
+                "speed": component.speed,
                 "connector_type": None,
                 "rx_los": None,
                 "rx_power": None,
@@ -119,252 +119,201 @@ def generate_new_hardware_dict(array):
                 "tx_power": None,
                 "voltage": None,
             }
-        if components[component].type == "power_supply":
+        if component.type == "power_supply":
             hw_info["power"][component_name] = {
-                "status": components[component].status,
-                "voltage": getattr(components[component], "voltage", None),
-                "serial": getattr(components[component], "serial", None),
-                "model": getattr(components[component], "model", None),
+                "status": component.status,
+                "voltage": getattr(component, "voltage", None),
+                "serial": getattr(component, "serial", None),
+                "model": getattr(component, "model", None),
             }
     drives = list(array.get_drives().items)
-    for drive in range(0, len(drives)):
+    for drive in drives:
         drive_name = drives[drive].name
         hw_info["drives"][drive_name] = {
-            "capacity": drives[drive].capacity,
-            "capacity_installed": getattr(
-                drives[drive], "capacity_installed", drives[drive].capacity
-            ),
-            "status": drives[drive].status,
-            "protocol": getattr(drives[drive], "protocol", None),
-            "details": getattr(drives[drive], "details", None),
-            "type": drives[drive].type,
+            "capacity": drive.capacity,
+            "capacity_installed": getattr(drive, "capacity_installed", drive.capacity),
+            "status": drive.status,
+            "protocol": getattr(drive, "protocol", None),
+            "details": getattr(drive, "details", None),
+            "type": drive.type,
         }
     api_version = array.get_rest_version()
     if LooseVersion(SFP_API_VERSION) <= LooseVersion(api_version):
         port_details = list(array.get_network_interfaces_port_details().items)
-        for port_detail in range(0, len(port_details)):
-            port_name = port_details[port_detail].name
-            hw_info["interfaces"][port_name]["interface_type"] = port_details[
-                port_detail
-            ].interface_type
-            if not getattr(port_details[port_detail], "rx_los", None) is None:
-                hw_info["interfaces"][port_name]["rx_los"] = (
-                    port_details[port_detail].rx_los[0].flag
-                )
-            if not getattr(port_details[port_detail], "rx_power", None) is None:
-                hw_info["interfaces"][port_name]["rx_power"] = (
-                    port_details[port_detail].rx_power[0].measurement
-                )
+        for port_detail in port_details:
+            port_name = port_detail.name
+            hw_info["interfaces"][port_name][
+                "interface_type"
+            ] = port_detail.interface_type
+            if not getattr(port_detail, "rx_los", None) is None:
+                hw_info["interfaces"][port_name]["rx_los"] = port_detail.rx_los[0].flag
+            if not getattr(port_detail, "rx_power", None) is None:
+                hw_info["interfaces"][port_name]["rx_power"] = port_detail.rx_power[
+                    0
+                ].measurement
             hw_info["interfaces"][port_name]["static"] = {
-                "connector_type": getattr(
-                    port_details[port_detail].static, "connector_type", None
-                ),
-                "vendor_name": getattr(
-                    port_details[port_detail].static, "vendor_name", None
-                ),
-                "vendor_oui": getattr(
-                    port_details[port_detail].static, "vendor_oui", None
-                ),
+                "connector_type": getattr(port_detail.static, "connector_type", None),
+                "vendor_name": getattr(port_detail.static, "vendor_name", None),
+                "vendor_oui": getattr(port_detail.static, "vendor_oui", None),
                 "vendor_serial_number": getattr(
-                    port_details[port_detail].static, "vendor_serial_number", None
+                    port_detail.static, "vendor_serial_number", None
                 ),
                 "vendor_part_number": getattr(
-                    port_details[port_detail].static, "vendor_part_number", None
+                    port_detail.static, "vendor_part_number", None
                 ),
                 "vendor_date_code": getattr(
-                    port_details[port_detail].static, "vendor_date_code", None
+                    port_detail.static, "vendor_date_code", None
                 ),
-                "signaling_rate": getattr(
-                    port_details[port_detail].static, "signaling_rate", None
-                ),
-                "wavelength": getattr(
-                    port_details[port_detail].static, "wavelength", None
-                ),
-                "rate_identifier": getattr(
-                    port_details[port_detail].static, "rate_identifier", None
-                ),
-                "identifier": getattr(
-                    port_details[port_detail].static, "identifier", None
-                ),
-                "link_length": getattr(
-                    port_details[port_detail].static, "link_length", None
-                ),
-                "fc_speeds": getattr(
-                    port_details[port_detail].static, "fc_speeds", None
-                ),
-                "fc_technology": getattr(
-                    port_details[port_detail].static, "fc_technology", None
-                ),
-                "encoding": getattr(port_details[port_detail].static, "encoding", None),
-                "fc_link_lengths": getattr(
-                    port_details[port_detail].static, "fc_link_lengths", None
-                ),
+                "signaling_rate": getattr(port_detail.static, "signaling_rate", None),
+                "wavelength": getattr(port_detail.static, "wavelength", None),
+                "rate_identifier": getattr(port_detail.static, "rate_identifier", None),
+                "identifier": getattr(port_detail.static, "identifier", None),
+                "link_length": getattr(port_detail.static, "link_length", None),
+                "fc_speeds": getattr(port_detail.static, "fc_speeds", None),
+                "fc_technology": getattr(port_detail.static, "fc_technology", None),
+                "encoding": getattr(port_detail.static, "encoding", None),
+                "fc_link_lengths": getattr(port_detail.static, "fc_link_lengths", None),
                 "fc_transmission_media": getattr(
-                    port_details[port_detail].static, "fc_transmission_media", None
+                    port_detail.static, "fc_transmission_media", None
                 ),
                 "extended_identifier": getattr(
-                    port_details[port_detail].static, "extended_identifier", None
+                    port_detail.static, "extended_identifier", None
                 ),
             }
-            if (
-                not getattr(
-                    port_details[port_detail].static, "voltage_thresholds", None
-                )
-                is None
-            ):
+            if not getattr(port_detail.static, "voltage_thresholds", None) is None:
                 hw_info["interfaces"][port_name]["voltage_thresholds"] = {
                     "alarm_high": getattr(
-                        port_details[port_detail].static.voltage_thresholds,
+                        port_detail.static.voltage_thresholds,
                         "alarm_high",
                         None,
                     ),
                     "alarm_low": getattr(
-                        port_details[port_detail].static.voltage_thresholds,
+                        port_detail.static.voltage_thresholds,
                         "alarm_low",
                         None,
                     ),
                     "warn_high": getattr(
-                        port_details[port_detail].static.voltage_thresholds,
+                        port_detail.static.voltage_thresholds,
                         "warn_high",
                         None,
                     ),
                     "warn_low": getattr(
-                        port_details[port_detail].static.voltage_thresholds,
+                        port_detail.static.voltage_thresholds,
                         "warn_low",
                         None,
                     ),
                 }
-            if (
-                not getattr(
-                    port_details[port_detail].static, "tx_power_thresholds", None
-                )
-                is None
-            ):
+            if not getattr(port_detail.static, "tx_power_thresholds", None) is None:
                 hw_info["interfaces"][port_name]["tx_power_thresholds"] = {
                     "alarm_high": getattr(
-                        port_details[port_detail].static.tx_power_thresholds,
+                        port_detail.static.tx_power_thresholds,
                         "alarm_high",
                         None,
                     ),
                     "alarm_low": getattr(
-                        port_details[port_detail].static.tx_power_thresholds,
+                        port_detail.static.tx_power_thresholds,
                         "alarm_low",
                         None,
                     ),
                     "warn_high": getattr(
-                        port_details[port_detail].static.tx_power_thresholds,
+                        port_detail.static.tx_power_thresholds,
                         "warn_high",
                         None,
                     ),
                     "warn_low": getattr(
-                        port_details[port_detail].static.tx_power_thresholds,
+                        port_detail.static.tx_power_thresholds,
                         "warn_low",
                         None,
                     ),
                 }
-            if (
-                not getattr(
-                    port_details[port_detail].static, "rx_power_thresholds", None
-                )
-                is None
-            ):
+            if not getattr(port_detail.static, "rx_power_thresholds", None) is None:
                 hw_info["interfaces"][port_name]["rx_power_thresholds"] = {
                     "alarm_high": getattr(
-                        port_details[port_detail].static.rx_power_thresholds,
+                        port_detail.static.rx_power_thresholds,
                         "alarm_high",
                         None,
                     ),
                     "alarm_low": getattr(
-                        port_details[port_detail].static.rx_power_thresholds,
+                        port_detail.static.rx_power_thresholds,
                         "alarm_low",
                         None,
                     ),
                     "warn_high": getattr(
-                        port_details[port_detail].static.rx_power_thresholds,
+                        port_detail.static.rx_power_thresholds,
                         "warn_high",
                         None,
                     ),
                     "warn_low": getattr(
-                        port_details[port_detail].static.rx_power_thresholds,
+                        port_detail.static.rx_power_thresholds,
                         "warn_low",
                         None,
                     ),
                 }
-            if (
-                not getattr(
-                    port_details[port_detail].static, "tx_bias_thresholds", None
-                )
-                is None
-            ):
+            if not getattr(port_detail.static, "tx_bias_thresholds", None) is None:
                 hw_info["interfaces"][port_name]["tx_bias_thresholds"] = {
                     "alarm_high": getattr(
-                        port_details[port_detail].static.tx_bias_thresholds,
+                        port_detail.static.tx_bias_thresholds,
                         "alarm_high",
                         None,
                     ),
                     "alarm_low": getattr(
-                        port_details[port_detail].static.tx_bias_thresholds,
+                        port_detail.static.tx_bias_thresholds,
                         "alarm_low",
                         None,
                     ),
                     "warn_high": getattr(
-                        port_details[port_detail].static.tx_bias_thresholds,
+                        port_detail.static.tx_bias_thresholds,
                         "warn_high",
                         None,
                     ),
                     "warn_low": getattr(
-                        port_details[port_detail].static.tx_bias_thresholds,
+                        port_detail.static.tx_bias_thresholds,
                         "warn_low",
                         None,
                     ),
                 }
-            if (
-                not getattr(
-                    port_details[port_detail].static, "temperature_thresholds", None
-                )
-                is None
-            ):
+            if not getattr(port_detail.static, "temperature_thresholds", None) is None:
                 hw_info["interfaces"][port_name]["temperature_thresholds"] = {
                     "alarm_high": getattr(
-                        port_details[port_detail].static.temperature_thresholds,
+                        port_detail.static.temperature_thresholds,
                         "alarm_high",
                         None,
                     ),
                     "alarm_low": getattr(
-                        port_details[port_detail].static.temperature_thresholds,
+                        port_detail.static.temperature_thresholds,
                         "alarm_low",
                         None,
                     ),
                     "warn_high": getattr(
-                        port_details[port_detail].static.temperature_thresholds,
+                        port_detail.static.temperature_thresholds,
                         "warn_high",
                         None,
                     ),
                     "warn_low": getattr(
-                        port_details[port_detail].static.temperature_thresholds,
+                        port_detail.static.temperature_thresholds,
                         "warn_low",
                         None,
                     ),
                 }
-            if not getattr(port_details[port_detail], "temperature", None) is None:
+            if not getattr(port_detail, "temperature", None) is None:
                 hw_info["interfaces"][port_name]["temperature"] = getattr(
-                    port_details[port_detail].temperature[0], "measurement", None
+                    port_detail.temperature[0], "measurement", None
                 )
-            if not getattr(port_details[port_detail], "tx_bias", None) is None:
+            if not getattr(port_detail, "tx_bias", None) is None:
                 hw_info["interfaces"][port_name]["tx_bias"] = getattr(
-                    port_details[port_detail].tx_bias[0], "measurement", None
+                    port_detail.tx_bias[0], "measurement", None
                 )
-            if not getattr(port_details[port_detail], "tx_fault", None) is None:
+            if not getattr(port_detail, "tx_fault", None) is None:
                 hw_info["interfaces"][port_name]["tx_fault"] = getattr(
-                    port_details[port_detail].tx_fault[0], "flag", None
+                    port_detail.tx_fault[0], "flag", None
                 )
-            if not getattr(port_details[port_detail], "tx_power", None) is None:
+            if not getattr(port_detail, "tx_power", None) is None:
                 hw_info["interfaces"][port_name]["tx_power"] = getattr(
-                    port_details[port_detail].tx_power[0], "measurement", None
+                    port_detail.tx_power[0], "measurement", None
                 )
-            if not getattr(port_details[port_detail], "voltage", None) is None:
+            if not getattr(port_detail, "voltage", None) is None:
                 hw_info["interfaces"][port_name]["voltage"] = getattr(
-                    port_details[port_detail].voltage[0], "measurement", None
+                    port_detail.voltage[0], "measurement", None
                 )
     return hw_info
 

@@ -411,8 +411,8 @@ def main():
     if LooseVersion(MULTIPLE_DNS) <= LooseVersion(api_version):
         configs = list(array.get_dns().items)
         exists = False
-        for config in range(0, len(configs)):
-            if configs[config].name == module.params["name"]:
+        for config in configs:
+            if config.name == module.params["name"]:
                 exists = True
         if (
             module.params["service"] == "management"
