@@ -648,7 +648,10 @@ def generate_filesystems_dict(array, performance):
                         },
                     }
                 )
-            if performance:
+            if (
+                performance
+                and not files_info[fs_name]["directories"][d_name]["destroyed"]
+            ):
                 perf_stats = list(
                     array.get_directories_performance(
                         names=[files_info[fs_name]["directories"][d_name]["full_name"]]
@@ -716,17 +719,11 @@ def generate_dir_snaps_dict(array):
             "used_provisioned": getattr(snapshot.space, "used_provisioned", None),
         }
         if LooseVersion(SUBS_API_VERSION) <= LooseVersion(array.get_rest_version()):
-            dir_snaps_info[s_name]["total_used"] = snapshots[snapshot].space.total_used
-        if hasattr(snapshots[snapshot], "policy"):
-            dir_snaps_info[s_name]["policy"] = getattr(
-                snapshots[snapshot].policy, "name", None
-            )
-        if dir_snaps_info[s_name]["destroyed"] or hasattr(
-            snapshots[snapshot], "time_remaining"
-        ):
-            dir_snaps_info[s_name]["time_remaining"] = snapshots[
-                snapshot
-            ].time_remaining
+            dir_snaps_info[s_name]["total_used"] = snapshot.space.total_used
+        if hasattr(snapshot, "policy"):
+            dir_snaps_info[s_name]["policy"] = getattr(snapshot.policy, "name", None)
+        if dir_snaps_info[s_name]["destroyed"] or hasattr(snapshot, "time_remaining"):
+            dir_snaps_info[s_name]["time_remaining"] = snapshot.time_remaining
     return dir_snaps_info
 
 
@@ -1603,7 +1600,7 @@ def generate_del_snap_dict(array):
             "tags": [],
             "is_local": True,
             "remote": [],
-            "time_remaining": getattr(snaps[snap], "time_remaining", None),
+            "time_remaining": getattr(snap, "time_remaining", None),
         }
         snap_info[snapshot]["snapshot_space"] = snap.space.snapshots
         snap_info[snapshot]["used_provisioned"] = (
@@ -1716,7 +1713,7 @@ def generate_del_vol_dict(array):
             volume_info[volume]["priority"] = vol.priority
             volume_info[volume]["priority_adjustment"] = (
                 vol.priority_adjustment.priority_adjustment_operator
-                + str(vols[vol].priority_adjustment.priority_adjustment_value)
+                + str(vol.priority_adjustment.priority_adjustment_value)
             )
         if LooseVersion(SHARED_CAP_API_VERSION) <= LooseVersion(
             array.get_rest_version()
@@ -1847,33 +1844,34 @@ def generate_vol_dict(array, performance):
     if performance:
         vols_performance = list(array.get_volumes_performance(destroyed=False).items)
         for perf in vols_performance:
-            volume_info[perf.name]["performance"] = {
-                "bytes_per_mirrored_write": perf.bytes_per_mirrored_write,
-                "bytes_per_op": perf.bytes_per_op,
-                "bytes_per_read": perf.bytes_per_read,
-                "bytes_per_write": perf.bytes_per_write,
-                "mirrored_write_bytes_per_sec": perf.mirrored_write_bytes_per_sec,
-                "mirrored_writes_per_sec": perf.mirrored_writes_per_sec,
-                "qos_rate_limit_usec_per_mirrored_write_op": perf.qos_rate_limit_usec_per_mirrored_write_op,
-                "qos_rate_limit_usec_per_read_op": perf.qos_rate_limit_usec_per_mirrored_write_op,
-                "qos_rate_limit_usec_per_write_op": perf.qos_rate_limit_usec_per_read_op,
-                "queue_usec_per_mirrored_write_op": perf.queue_usec_per_mirrored_write_op,
-                "queue_usec_per_read_op": perf.queue_usec_per_read_op,
-                "queue_usec_per_write_op": perf.queue_usec_per_write_op,
-                "read_bytes_per_sec": perf.read_bytes_per_sec,
-                "reads_per_sec": perf.reads_per_sec,
-                "san_usec_per_mirrored_write_op": perf.san_usec_per_mirrored_write_op,
-                "san_usec_per_read_op": perf.san_usec_per_read_op,
-                "san_usec_per_write_op": perf.san_usec_per_write_op,
-                "service_usec_per_mirrored_write_op": perf.service_usec_per_mirrored_write_op,
-                "service_usec_per_read_op": perf.service_usec_per_read_op,
-                "service_usec_per_write_op": perf.service_usec_per_write_op,
-                "usec_per_mirrored_write_op": perf.usec_per_mirrored_write_op,
-                "usec_per_read_op": perf.usec_per_read_op,
-                "usec_per_write_op": perf.usec_per_write_op,
-                "write_bytes_per_sec": perf.write_bytes_per_sec,
-                "writes_per_sec": perf.writes_per_sec,
-            }
+            if perf.name in volume_info:
+                volume_info[perf.name]["performance"] = {
+                    "bytes_per_mirrored_write": perf.bytes_per_mirrored_write,
+                    "bytes_per_op": perf.bytes_per_op,
+                    "bytes_per_read": perf.bytes_per_read,
+                    "bytes_per_write": perf.bytes_per_write,
+                    "mirrored_write_bytes_per_sec": perf.mirrored_write_bytes_per_sec,
+                    "mirrored_writes_per_sec": perf.mirrored_writes_per_sec,
+                    "qos_rate_limit_usec_per_mirrored_write_op": perf.qos_rate_limit_usec_per_mirrored_write_op,
+                    "qos_rate_limit_usec_per_read_op": perf.qos_rate_limit_usec_per_mirrored_write_op,
+                    "qos_rate_limit_usec_per_write_op": perf.qos_rate_limit_usec_per_read_op,
+                    "queue_usec_per_mirrored_write_op": perf.queue_usec_per_mirrored_write_op,
+                    "queue_usec_per_read_op": perf.queue_usec_per_read_op,
+                    "queue_usec_per_write_op": perf.queue_usec_per_write_op,
+                    "read_bytes_per_sec": perf.read_bytes_per_sec,
+                    "reads_per_sec": perf.reads_per_sec,
+                    "san_usec_per_mirrored_write_op": perf.san_usec_per_mirrored_write_op,
+                    "san_usec_per_read_op": perf.san_usec_per_read_op,
+                    "san_usec_per_write_op": perf.san_usec_per_write_op,
+                    "service_usec_per_mirrored_write_op": perf.service_usec_per_mirrored_write_op,
+                    "service_usec_per_read_op": perf.service_usec_per_read_op,
+                    "service_usec_per_write_op": perf.service_usec_per_write_op,
+                    "usec_per_mirrored_write_op": perf.usec_per_mirrored_write_op,
+                    "usec_per_read_op": perf.usec_per_read_op,
+                    "usec_per_write_op": perf.usec_per_write_op,
+                    "write_bytes_per_sec": perf.write_bytes_per_sec,
+                    "writes_per_sec": perf.writes_per_sec,
+                }
     return volume_info
 
 
@@ -2234,6 +2232,7 @@ def generate_pgroups_dict(array):
 
 def generate_rl_dict(array):
     rl_info = {}
+    lag = None
     rlinks = list(array.get_pod_replica_links().items)
     for rlink in rlinks:
         link_name = rlink.local_pod.name
@@ -2305,7 +2304,7 @@ def generate_del_pods_dict(array):
                 {
                     "name": pod_array.member.name,
                     "type": pod_array.member.resource_type,
-                    "pre_elected": pod_array.pre_elected,
+                    "pre_elected": getattr(pod_array, "pre_elected", False),
                     "frozen_at": frozen_datetime,
                     "progress": getattr(pod_array, "progress", None),
                     "status": getattr(pod_array, "status", None),
@@ -2353,6 +2352,7 @@ def generate_pods_dict(array, performance):
             "quota_limit": getattr(pod, "quota_limit", None),
             "total_used": pod.space.total_used,
             "tags": [],
+            "source": getattr(pod.source, "name", None),
         }
         for preferences in pod.failover_preferences:
             pods_info[name]["failover_preference"].append(
@@ -2394,34 +2394,35 @@ def generate_pods_dict(array, performance):
     if performance:
         pods_performance = list(array.get_pods_performance().items)
         for perf in pods_performance:
-            pods_info[perf.name]["performance"] = {
-                "bytes_per_mirrored_write": perf.bytes_per_mirrored_write,
-                "bytes_per_op": perf.bytes_per_op,
-                "bytes_per_read": perf.bytes_per_read,
-                "bytes_per_write": perf.bytes_per_write,
-                "mirrored_write_bytes_per_sec": perf.mirrored_write_bytes_per_sec,
-                "mirrored_writes_per_sec": perf.mirrored_writes_per_sec,
-                "others_per_sec": perf.others_per_sec,
-                "qos_rate_limit_usec_per_mirrored_write_op": perf.qos_rate_limit_usec_per_mirrored_write_op,
-                "qos_rate_limit_usec_per_read_op": perf.qos_rate_limit_usec_per_mirrored_write_op,
-                "qos_rate_limit_usec_per_write_op": perf.qos_rate_limit_usec_per_read_op,
-                "queue_usec_per_mirrored_write_op": perf.queue_usec_per_mirrored_write_op,
-                "queue_usec_per_read_op": perf.queue_usec_per_read_op,
-                "queue_usec_per_write_op": perf.queue_usec_per_write_op,
-                "read_bytes_per_sec": perf.read_bytes_per_sec,
-                "reads_per_sec": perf.reads_per_sec,
-                "san_usec_per_mirrored_write_op": perf.san_usec_per_mirrored_write_op,
-                "san_usec_per_read_op": perf.san_usec_per_read_op,
-                "san_usec_per_write_op": perf.san_usec_per_write_op,
-                "service_usec_per_mirrored_write_op": perf.service_usec_per_mirrored_write_op,
-                "service_usec_per_read_op": perf.service_usec_per_read_op,
-                "service_usec_per_write_op": perf.service_usec_per_write_op,
-                "usec_per_mirrored_write_op": perf.usec_per_mirrored_write_op,
-                "usec_per_read_op": perf.usec_per_read_op,
-                "usec_per_write_op": perf.usec_per_write_op,
-                "write_bytes_per_sec": perf.write_bytes_per_sec,
-                "writes_per_sec": perf.writes_per_sec,
-            }
+            if perf.name in pods_info:
+                pods_info[perf.name]["performance"] = {
+                    "bytes_per_mirrored_write": perf.bytes_per_mirrored_write,
+                    "bytes_per_op": perf.bytes_per_op,
+                    "bytes_per_read": perf.bytes_per_read,
+                    "bytes_per_write": perf.bytes_per_write,
+                    "mirrored_write_bytes_per_sec": perf.mirrored_write_bytes_per_sec,
+                    "mirrored_writes_per_sec": perf.mirrored_writes_per_sec,
+                    "others_per_sec": perf.others_per_sec,
+                    "qos_rate_limit_usec_per_mirrored_write_op": perf.qos_rate_limit_usec_per_mirrored_write_op,
+                    "qos_rate_limit_usec_per_read_op": perf.qos_rate_limit_usec_per_mirrored_write_op,
+                    "qos_rate_limit_usec_per_write_op": perf.qos_rate_limit_usec_per_read_op,
+                    "queue_usec_per_mirrored_write_op": perf.queue_usec_per_mirrored_write_op,
+                    "queue_usec_per_read_op": perf.queue_usec_per_read_op,
+                    "queue_usec_per_write_op": perf.queue_usec_per_write_op,
+                    "read_bytes_per_sec": perf.read_bytes_per_sec,
+                    "reads_per_sec": perf.reads_per_sec,
+                    "san_usec_per_mirrored_write_op": perf.san_usec_per_mirrored_write_op,
+                    "san_usec_per_read_op": perf.san_usec_per_read_op,
+                    "san_usec_per_write_op": perf.san_usec_per_write_op,
+                    "service_usec_per_mirrored_write_op": perf.service_usec_per_mirrored_write_op,
+                    "service_usec_per_read_op": perf.service_usec_per_read_op,
+                    "service_usec_per_write_op": perf.service_usec_per_write_op,
+                    "usec_per_mirrored_write_op": perf.usec_per_mirrored_write_op,
+                    "usec_per_read_op": perf.usec_per_read_op,
+                    "usec_per_write_op": perf.usec_per_write_op,
+                    "write_bytes_per_sec": perf.write_bytes_per_sec,
+                    "writes_per_sec": perf.writes_per_sec,
+                }
     return pods_info
 
 
@@ -2501,11 +2502,10 @@ def generate_vgroups_dict(array, performance):
             "total_used": getattr(vgroup.space, "total_used", None),
             "tags": [],
         }
-        if hasattr(vgroups_info[name], "priority_adjustment"):
-            vgroups_info[name]["priority_adjustment"] = vgroups[
-                vgroup
-            ].priority_adjustment.priority_adjustment_operator + str(
-                vgroups[vgroup].priority_adjustment.priority_adjustment_value
+        if hasattr(vgroup, "priority_adjustment"):
+            vgroups_info[name]["priority_adjustment"] = (
+                vgroup.priority_adjustment.priority_adjustment_operator
+                + str(vgroup.priority_adjustment.priority_adjustment_value)
             )
     if LooseVersion(TAGS_API_VERSION) <= LooseVersion(array.get_rest_version()):
         vgroup_tags = list(array.get_volume_groups_tags(resource_destroyed=False).items)
@@ -2521,33 +2521,34 @@ def generate_vgroups_dict(array, performance):
     if performance:
         vgs_performance = list(array.get_volume_groups_performance().items)
         for perf in vgs_performance:
-            vgroups_info[perf.name]["performance"] = {
-                "bytes_per_mirrored_write": perf.bytes_per_mirrored_write,
-                "bytes_per_op": perf.bytes_per_op,
-                "bytes_per_read": perf.bytes_per_read,
-                "bytes_per_write": perf.bytes_per_write,
-                "mirrored_write_bytes_per_sec": perf.mirrored_write_bytes_per_sec,
-                "mirrored_writes_per_sec": perf.mirrored_writes_per_sec,
-                "qos_rate_limit_usec_per_mirrored_write_op": perf.qos_rate_limit_usec_per_mirrored_write_op,
-                "qos_rate_limit_usec_per_read_op": perf.qos_rate_limit_usec_per_mirrored_write_op,
-                "qos_rate_limit_usec_per_write_op": perf.qos_rate_limit_usec_per_read_op,
-                "queue_usec_per_mirrored_write_op": perf.queue_usec_per_mirrored_write_op,
-                "queue_usec_per_read_op": perf.queue_usec_per_read_op,
-                "queue_usec_per_write_op": perf.queue_usec_per_write_op,
-                "read_bytes_per_sec": perf.read_bytes_per_sec,
-                "reads_per_sec": perf.reads_per_sec,
-                "san_usec_per_mirrored_write_op": perf.san_usec_per_mirrored_write_op,
-                "san_usec_per_read_op": perf.san_usec_per_read_op,
-                "san_usec_per_write_op": perf.san_usec_per_write_op,
-                "service_usec_per_mirrored_write_op": perf.service_usec_per_mirrored_write_op,
-                "service_usec_per_read_op": perf.service_usec_per_read_op,
-                "service_usec_per_write_op": perf.service_usec_per_write_op,
-                "usec_per_mirrored_write_op": perf.usec_per_mirrored_write_op,
-                "usec_per_read_op": perf.usec_per_read_op,
-                "usec_per_write_op": perf.usec_per_write_op,
-                "write_bytes_per_sec": perf.write_bytes_per_sec,
-                "writes_per_sec": perf.writes_per_sec,
-            }
+            if perf.name in vgroups_info:
+                vgroups_info[perf.name]["performance"] = {
+                    "bytes_per_mirrored_write": perf.bytes_per_mirrored_write,
+                    "bytes_per_op": perf.bytes_per_op,
+                    "bytes_per_read": perf.bytes_per_read,
+                    "bytes_per_write": perf.bytes_per_write,
+                    "mirrored_write_bytes_per_sec": perf.mirrored_write_bytes_per_sec,
+                    "mirrored_writes_per_sec": perf.mirrored_writes_per_sec,
+                    "qos_rate_limit_usec_per_mirrored_write_op": perf.qos_rate_limit_usec_per_mirrored_write_op,
+                    "qos_rate_limit_usec_per_read_op": perf.qos_rate_limit_usec_per_mirrored_write_op,
+                    "qos_rate_limit_usec_per_write_op": perf.qos_rate_limit_usec_per_read_op,
+                    "queue_usec_per_mirrored_write_op": perf.queue_usec_per_mirrored_write_op,
+                    "queue_usec_per_read_op": perf.queue_usec_per_read_op,
+                    "queue_usec_per_write_op": perf.queue_usec_per_write_op,
+                    "read_bytes_per_sec": perf.read_bytes_per_sec,
+                    "reads_per_sec": perf.reads_per_sec,
+                    "san_usec_per_mirrored_write_op": perf.san_usec_per_mirrored_write_op,
+                    "san_usec_per_read_op": perf.san_usec_per_read_op,
+                    "san_usec_per_write_op": perf.san_usec_per_write_op,
+                    "service_usec_per_mirrored_write_op": perf.service_usec_per_mirrored_write_op,
+                    "service_usec_per_read_op": perf.service_usec_per_read_op,
+                    "service_usec_per_write_op": perf.service_usec_per_write_op,
+                    "usec_per_mirrored_write_op": perf.usec_per_mirrored_write_op,
+                    "usec_per_read_op": perf.usec_per_read_op,
+                    "usec_per_write_op": perf.usec_per_write_op,
+                    "write_bytes_per_sec": perf.write_bytes_per_sec,
+                    "writes_per_sec": perf.writes_per_sec,
+                }
     vg_volumes = list(array.get_volume_groups_volumes().items)
     for vg_vol in vg_volumes:
         group_name = vg_vol.group.name
@@ -2577,7 +2578,7 @@ def generate_del_vgroups_dict(array):
             "total_used": getattr(vgroup.space, "total_used", None),
             "tags": [],
         }
-        if hasattr(vgroups_info[name], "priority_adjustment"):
+        if hasattr(vgroup, "priority_adjustment"):
             vgroups_info[name]["priority_adjustment"] = (
                 vgroup.priority_adjustment.priority_adjustment_operator
                 + str(vgroup.priority_adjustment.priority_adjustment_value)
@@ -3296,6 +3297,8 @@ def main():
             info["apps"] = generate_apps_dict(array)
         else:
             info["apps"] = {}
+        if "minimum" not in subset or "all" not in subset:
+            del info["default"]
     if "arrays" in subset or "all" in subset:
         info["arrays"] = generate_conn_array_dict(array)
     if "certs" in subset or "all" in subset:

@@ -364,11 +364,7 @@ def check_arrays(module, array):
         if failover_array != []:
             for arr in failover_array:
                 if arr not in good_arrays:
-                    module.fail_json(
-                        msg="Failover array {0} is not valid.".format(
-                            failover_array[arr]
-                        )
-                    )
+                    module.fail_json(msg="Failover array {0} is not valid.".format(arr))
     if module.params["stretch"] is not None:
         if module.params["stretch"] not in good_arrays:
             module.fail_json(

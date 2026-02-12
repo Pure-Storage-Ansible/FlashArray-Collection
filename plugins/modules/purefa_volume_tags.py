@@ -253,7 +253,7 @@ def delete_tags(module, array, current_tags):
     old_tags = []
     for tag in current_tags:
         now_tags.append(tag.key)
-    for old_tag in module.params["tag"]:
+    for old_tag in module.params["kvp"]:
         old_tags.append((old_tag,))
     del_tags = list(set(old_tags) & set(now_tags))
     if del_tags:

@@ -2037,6 +2037,7 @@ def main():
         elif (
             state == "present"
             and volume
+            and not module.params["rename"]
             and (
                 size
                 or bw_qos_size
