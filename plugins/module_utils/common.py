@@ -20,6 +20,15 @@ from ansible.module_utils.facts.utils import get_file_content
 
 
 def _findstr(text, match):
+    """Find first line containing match string.
+
+    Args:
+        text: Multi-line string to search
+        match: String to find in lines
+
+    Returns:
+        First line containing match, or None if not found
+    """
     for line in text.splitlines():
         if match in line:
             return line
