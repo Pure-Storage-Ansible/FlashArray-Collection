@@ -128,7 +128,7 @@ def generate_new_hardware_dict(array):
             }
     drives = list(array.get_drives().items)
     for drive in drives:
-        drive_name = drives[drive].name
+        drive_name = drive.name
         hw_info["drives"][drive_name] = {
             "capacity": drive.capacity,
             "capacity_installed": getattr(drive, "capacity_installed", drive.capacity),

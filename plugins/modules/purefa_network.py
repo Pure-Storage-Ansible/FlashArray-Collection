@@ -288,7 +288,7 @@ def _create_subinterfaces(module, array):
 def update_interface(module, array):
     """Modify Interface settings"""
     changed = False
-    interfaces = array.get_network_interfaces(names=[module.params["name"]]).items
+    interfaces = list(array.get_network_interfaces(names=[module.params["name"]]).items)
     if not interfaces:
         module.fail_json("Interface {0} not found".format(module.params["name"]))
 

@@ -238,31 +238,33 @@ def _convert_to_minutes(hour):
 
 
 def update_schedule(module, array, snap_time, repl_time):
-    """Update Protection Group Schedule"""
+    """
+    Update Protection Group Schedule for snapshots and replication.
+    Immediately fail if any patch call returns an error.
+    """
     api_version = array.get_rest_version()
     changed = False
+
+    # Fetch protection group
     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        schedule = list(
+        groups = list(
             array.get_protection_groups(
                 names=[module.params["name"]], context_names=[module.params["context"]]
             ).items
-        )[0]
+        )
     else:
-        schedule = list(
-            array.get_protection_groups(names=[module.params["name"]]).items
-        )[0]
+        groups = list(array.get_protection_groups(names=[module.params["name"]]).items)
+
+    if not groups:
+        module.fail_json(msg=f"Protection group {module.params['name']} not found")
+
+    schedule = groups[0]
+
+    # Ensure blackout exists
     if not hasattr(schedule.replication_schedule.blackout, "start"):
         schedule.replication_schedule.blackout = TimeWindow(start=0, end=0)
-    current_repl = {
-        "replicate_frequency": schedule.replication_schedule.frequency,
-        "replicate_enabled": schedule.replication_schedule.enabled,
-        "target_days": schedule.target_retention.days,
-        "replicate_at": getattr(schedule.replication_schedule, "at", None),
-        "target_per_day": schedule.target_retention.days,
-        "target_all_for": schedule.target_retention.all_for_sec,
-        "blackout_start": schedule.replication_schedule.blackout.start,
-        "blackout_end": schedule.replication_schedule.blackout.end,
-    }
+
+    # Current snapshot schedule
     current_snap = {
         "days": schedule.source_retention.days,
         "snap_frequency": schedule.snapshot_schedule.frequency,
@@ -271,359 +273,225 @@ def update_schedule(module, array, snap_time, repl_time):
         "per_day": schedule.source_retention.per_day,
         "all_for": schedule.source_retention.all_for_sec,
     }
+
+    # Current replication schedule
+    current_repl = {
+        "replicate_frequency": schedule.replication_schedule.frequency,
+        "replicate_enabled": schedule.replication_schedule.enabled,
+        "replicate_at": getattr(schedule.replication_schedule, "at", None),
+        "target_days": schedule.target_retention.days,
+        "target_per_day": schedule.target_retention.per_day,
+        "target_all_for": schedule.target_retention.all_for_sec,
+        "blackout_start": schedule.replication_schedule.blackout.start,
+        "blackout_end": schedule.replication_schedule.blackout.end,
+    }
+
+    kwargs = {"names": [module.params["name"]]}
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        kwargs["context_names"] = [module.params["context"]]
+
+    # Snapshot schedule
     if module.params["schedule"] == "snapshot":
-        if not module.params["snap_frequency"]:
-            snap_frequency = current_snap["snap_frequency"]
-        else:
-            if not 300 <= module.params["snap_frequency"] <= 34560000:
-                module.fail_json(
-                    msg="Snap Frequency support is out of range (300 to 34560000)"
-                )
-            else:
-                snap_frequency = module.params["snap_frequency"] * 1000
+        snap_enabled = (
+            current_snap["snap_enabled"]
+            if module.params.get("enabled") is None
+            else module.params["enabled"]
+        )
+        snap_frequency = (
+            module.params["snap_frequency"] * 1000
+            if module.params.get("snap_frequency") is not None
+            else current_snap["snap_frequency"]
+        )
+        snap_at = (
+            _convert_to_minutes(module.params["snap_at"].upper())
+            if module.params.get("snap_at")
+            else current_snap["snap_at"]
+        )
+        days = (
+            current_snap["days"]
+            if module.params.get("days") is None
+            else module.params["days"]
+        )
+        per_day = (
+            current_snap["per_day"]
+            if module.params.get("per_day") is None
+            else module.params["per_day"]
+        )
+        all_for = (
+            current_snap["all_for"]
+            if module.params.get("all_for") is None
+            else module.params["all_for"]
+        )
 
-        if module.params["enabled"] is None:
-            snap_enabled = current_snap["snap_enabled"]
-        else:
-            snap_enabled = module.params["enabled"]
-
-        if not module.params["snap_at"]:
-            snap_at = current_snap["snap_at"]
-        else:
-            snap_at = _convert_to_minutes(module.params["snap_at"].upper())
-
-        if not module.params["days"]:
-            if isinstance(module.params["days"], int):
-                days = module.params["days"]
-            else:
-                days = current_snap["days"]
-        else:
-            if module.params["days"] > 4000:
-                module.fail_json(msg="Maximum value for days is 4000")
-            else:
-                days = module.params["days"]
-
-        if module.params["per_day"] is None:
-            per_day = current_snap["per_day"]
-        else:
-            if module.params["per_day"] > 1440:
-                module.fail_json(msg="Maximum value for per_day is 1440")
-            else:
-                per_day = module.params["per_day"]
-
-        if not module.params["all_for"]:
-            all_for = current_snap["all_for"]
-        else:
-            if module.params["all_for"] > 34560000:
-                module.fail_json(msg="Maximum all_for value is 34560000")
-            else:
-                all_for = module.params["all_for"]
-        new_snap = {
-            "days": days,
-            "snap_frequency": snap_frequency,
-            "snap_enabled": snap_enabled,
-            "snap_at": snap_at,
-            "per_day": per_day,
-            "all_for": all_for,
-        }
-        if current_snap != new_snap:
+        # Patch snap_enabled separately
+        if snap_enabled != current_snap["snap_enabled"]:
             changed = True
-            if not module.check_mode:
-                try:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        array.patch_protection_groups(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                            protection_group=ProtectionGroup(
-                                snapshot_schedule=SnapshotSchedule(
-                                    enabled=new_snap["snap_enabled"],
-                                )
-                            ),
-                        )
-                        array.patch_protection_groups(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                            protection_group=ProtectionGroup(
-                                snapshot_schedule=SnapshotSchedule(
-                                    frequency=new_snap["snap_frequency"],
-                                )
-                            ),
-                        )
-                    else:
-                        array.patch_protection_groups(
-                            names=[module.params["name"]],
-                            protection_group=ProtectionGroup(
-                                snapshot_schedule=SnapshotSchedule(
-                                    enabled=new_snap["snap_enabled"],
-                                )
-                            ),
-                        )
-                        array.patch_protection_groups(
-                            names=[module.params["name"]],
-                            protection_group=ProtectionGroup(
-                                snapshot_schedule=SnapshotSchedule(
-                                    frequency=new_snap["snap_frequency"],
-                                )
-                            ),
-                        )
-                    if snap_time:
-                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                            api_version
-                        ):
-                            array.patch_protection_groups(
-                                names=[module.params["name"]],
-                                context_names=[module.params["context"]],
-                                protection_group=ProtectionGroup(
-                                    snapshot_schedule=SnapshotSchedule(
-                                        at=new_snap["snap_at"],
-                                    )
-                                ),
-                            )
-                        else:
-                            array.patch_protection_groups(
-                                names=[module.params["name"]],
-                                protection_group=ProtectionGroup(
-                                    snapshot_schedule=SnapshotSchedule(
-                                        at=new_snap["snap_at"],
-                                    )
-                                ),
-                            )
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        array.patch_protection_groups(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                            protection_group=ProtectionGroup(
-                                source_retention=RetentionPolicy(
-                                    all_for_sec=new_snap["all_for"],
-                                    per_day=new_snap["per_day"],
-                                    days=new_snap["days"],
-                                )
-                            ),
-                        )
-                    else:
-                        array.patch_protection_groups(
-                            names=[module.params["name"]],
-                            protection_group=ProtectionGroup(
-                                source_retention=RetentionPolicy(
-                                    all_for_sec=new_snap["all_for"],
-                                    per_day=new_snap["per_day"],
-                                    days=new_snap["days"],
-                                )
-                            ),
-                        )
-                except Exception:
-                    module.fail_json(
-                        msg="Failed to change snapshot schedule for pgroup {0}.".format(
-                            module.params["name"]
-                        )
-                    )
-    else:
-        if not module.params["replicate_frequency"]:
-            replicate_frequency = current_repl["replicate_frequency"]
-        else:
-            replicate_frequency = module.params["replicate_frequency"] * 1000
-
-        if module.params["enabled"] is None:
-            replicate_enabled = current_repl["replicate_enabled"]
-        else:
-            replicate_enabled = module.params["enabled"]
-
-        if not module.params["replicate_at"]:
-            replicate_at = current_repl["replicate_at"]
-        else:
-            replicate_at = _convert_to_minutes(module.params["replicate_at"].upper())
-
-        if not module.params["target_days"]:
-            if isinstance(module.params["target_days"], int):
-                target_days = module.params["target_days"]
-            else:
-                target_days = current_repl["target_days"]
-        else:
-            if module.params["target_days"] > 4000:
-                module.fail_json(msg="Maximum value for target_days is 4000")
-            else:
-                target_days = module.params["target_days"]
-
-        if not module.params["target_per_day"]:
-            if isinstance(module.params["target_per_day"], int):
-                target_per_day = module.params["target_per_day"]
-            else:
-                target_per_day = current_repl["target_per_day"]
-        else:
-            if module.params["target_per_day"] > 1440:
-                module.fail_json(msg="Maximum value for target_per_day is 1440")
-            else:
-                target_per_day = module.params["target_per_day"]
-
-        if not module.params["target_all_for"]:
-            target_all_for = current_repl["target_all_for"]
-        else:
-            if module.params["target_all_for"] > 34560000:
-                module.fail_json(msg="Maximum target_all_for value is 34560000")
-            else:
-                target_all_for = module.params["target_all_for"]
-        if not module.params["blackout_end"]:
-            blackout_end = current_repl["blackout_start"]
-        else:
-            blackout_end = _convert_to_minutes(module.params["blackout_end"].upper())
-        if not module.params["blackout_start"]:
-            blackout_start = current_repl["blackout_start"]
-        else:
-            blackout_start = _convert_to_minutes(
-                module.params["blackout_start"].upper()
+            res = array.patch_protection_groups(
+                **kwargs,
+                protection_group=ProtectionGroup(
+                    snapshot_schedule=SnapshotSchedule(enabled=snap_enabled)
+                ),
             )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg=f"Failed to update snap_enabled for pgroup {module.params['name']}. Error: {res.errors[0].message}"
+                )
 
-        new_repl = {
-            "replicate_frequency": replicate_frequency,
-            "replicate_enabled": replicate_enabled,
-            "target_days": target_days,
-            "replicate_at": replicate_at,
-            "target_per_day": target_per_day,
-            "target_all_for": target_all_for,
-            "blackout_start": blackout_start,
-            "blackout_end": blackout_end,
-        }
-        if current_repl != new_repl:
+        # Patch frequency and at together
+        if (
+            snap_frequency != current_snap["snap_frequency"]
+            or snap_at != current_snap["snap_at"]
+        ):
             changed = True
-            if not module.check_mode:
-                try:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        array.patch_protection_groups(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                            protection_group=ProtectionGroup(
-                                replication_schedule=ReplicationSchedule(
-                                    enabled=new_repl["replicate_enabled"],
-                                )
-                            ),
-                        )
-                        array.patch_protection_groups(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                            protection_group=ProtectionGroup(
-                                replication_schedule=ReplicationSchedule(
-                                    frequency=new_repl["replicate_frequency"],
-                                )
-                            ),
-                        )
-                    else:
-                        array.patch_protection_groups(
-                            names=[module.params["name"]],
-                            protection_group=ProtectionGroup(
-                                replication_schedule=ReplicationSchedule(
-                                    enabled=new_repl["replicate_enabled"],
-                                )
-                            ),
-                        )
-                        array.patch_protection_groups(
-                            names=[module.params["name"]],
-                            protection_group=ProtectionGroup(
-                                replication_schedule=ReplicationSchedule(
-                                    frequency=new_repl["replicate_frequency"],
-                                )
-                            ),
-                        )
-                    if repl_time:
-                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                            api_version
-                        ):
-                            array.patch_protection_groups(
-                                names=[module.params["name"]],
-                                context_names=[module.params["context"]],
-                                protection_group=ProtectionGroup(
-                                    replication_schedule=ReplicationSchedule(
-                                        at=new_repl["replicate_at"],
-                                    )
-                                ),
-                            )
-                        else:
-                            array.patch_protection_groups(
-                                names=[module.params["name"]],
-                                protection_group=ProtectionGroup(
-                                    replication_schedule=ReplicationSchedule(
-                                        at=new_repl["replicate_at"],
-                                    )
-                                ),
-                            )
-                    if blackout_start == 0:
-                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                            api_version
-                        ):
-                            array.patch_protection_groups(
-                                names=[module.params["name"]],
-                                context_names=[module.params["context"]],
-                                protection_group=ProtectionGroup(
-                                    replication_schedule=ReplicationSchedule(
-                                        blackout=TimeWindow(start=0, end=0)
-                                    )
-                                ),
-                            )
-                        else:
-                            array.patch_protection_groups(
-                                names=[module.params["name"]],
-                                protection_group=ProtectionGroup(
-                                    replication_schedule=ReplicationSchedule(
-                                        blackout=TimeWindow(start=0, end=0)
-                                    )
-                                ),
-                            )
-                    else:
-                        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
-                            api_version
-                        ):
-                            array.patch_protection_groups(
-                                names=[module.params["name"]],
-                                context_names=[module.params["context"]],
-                                protection_group=ProtectionGroup(
-                                    replication_schedule=ReplicationSchedule(
-                                        blackout=TimeWindow(
-                                            start=new_repl["blackout_start"],
-                                            end=new_repl["blackout_end"],
-                                        )
-                                    )
-                                ),
-                            )
-                        else:
-                            array.patch_protection_groups(
-                                names=[module.params["name"]],
-                                protection_group=ProtectionGroup(
-                                    replication_schedule=ReplicationSchedule(
-                                        blackout=TimeWindow(
-                                            start=new_repl["blackout_start"],
-                                            end=new_repl["blackout_end"],
-                                        )
-                                    )
-                                ),
-                            )
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        array.patch_protection_groups(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                            protection_group=ProtectionGroup(
-                                target_retention=RetentionPolicy(
-                                    all_for_sec=new_repl["target_all_for"],
-                                    per_day=new_repl["target_per_day"],
-                                    days=new_repl["target_days"],
-                                )
-                            ),
-                        )
-                    else:
-                        array.patch_protection_groups(
-                            names=[module.params["name"]],
-                            protection_group=ProtectionGroup(
-                                target_retention=RetentionPolicy(
-                                    all_for_sec=new_repl["target_all_for"],
-                                    per_day=new_repl["target_per_day"],
-                                    days=new_repl["target_days"],
-                                )
-                            ),
-                        )
-                except Exception:
-                    module.fail_json(
-                        msg="Failed to change replication schedule for pgroup {0}.".format(
-                            module.params["name"]
-                        )
+            res = array.patch_protection_groups(
+                **kwargs,
+                protection_group=ProtectionGroup(
+                    snapshot_schedule=SnapshotSchedule(
+                        frequency=snap_frequency, at=snap_at
                     )
+                ),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg=f"Failed to update snap_frequency/at for pgroup {module.params['name']}. Error: {res.errors[0].message}"
+                )
+
+        # Patch retention separately
+        if (
+            days != current_snap["days"]
+            or per_day != current_snap["per_day"]
+            or all_for != current_snap["all_for"]
+        ):
+            changed = True
+            res = array.patch_protection_groups(
+                **kwargs,
+                protection_group=ProtectionGroup(
+                    source_retention=RetentionPolicy(
+                        days=days, per_day=per_day, all_for_sec=all_for
+                    )
+                ),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg=f"Failed to update snapshot retention for pgroup {module.params['name']}. Error: {res.errors[0].message}"
+                )
+
+    # Replication schedule
+    else:
+        replicate_enabled = (
+            current_repl["replicate_enabled"]
+            if module.params.get("enabled") is None
+            else module.params["enabled"]
+        )
+        replicate_frequency = (
+            module.params["replicate_frequency"] * 1000
+            if module.params.get("replicate_frequency") is not None
+            else current_repl["replicate_frequency"]
+        )
+        replicate_at = (
+            _convert_to_minutes(module.params["replicate_at"].upper())
+            if module.params.get("replicate_at")
+            else current_repl["replicate_at"]
+        )
+        target_days = (
+            current_repl["target_days"]
+            if module.params.get("target_days") is None
+            else module.params["target_days"]
+        )
+        target_per_day = (
+            current_repl["target_per_day"]
+            if module.params.get("target_per_day") is None
+            else module.params["target_per_day"]
+        )
+        target_all_for = (
+            current_repl["target_all_for"]
+            if module.params.get("target_all_for") is None
+            else module.params["target_all_for"]
+        )
+        blackout_start = (
+            current_repl["blackout_start"]
+            if module.params.get("blackout_start") is None
+            else _convert_to_minutes(module.params["blackout_start"].upper())
+        )
+        blackout_end = (
+            current_repl["blackout_end"]
+            if module.params.get("blackout_end") is None
+            else _convert_to_minutes(module.params["blackout_end"].upper())
+        )
+
+        # Patch replicate_enabled separately
+        if replicate_enabled != current_repl["replicate_enabled"]:
+            changed = True
+            res = array.patch_protection_groups(
+                **kwargs,
+                protection_group=ProtectionGroup(
+                    replication_schedule=ReplicationSchedule(enabled=replicate_enabled)
+                ),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg=f"Failed to update replicate_enabled for pgroup {module.params['name']}. Error: {res.errors[0].message}"
+                )
+
+        # Patch frequency and at together
+        if (
+            replicate_frequency != current_repl["replicate_frequency"]
+            or replicate_at != current_repl["replicate_at"]
+        ):
+            changed = True
+            res = array.patch_protection_groups(
+                **kwargs,
+                protection_group=ProtectionGroup(
+                    replication_schedule=ReplicationSchedule(
+                        frequency=replicate_frequency, at=replicate_at
+                    )
+                ),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg=f"Failed to update replicate_frequency/at for pgroup {module.params['name']}. Error: {res.errors[0].message}"
+                )
+
+        # Patch blackout separately
+        if (
+            blackout_start != current_repl["blackout_start"]
+            or blackout_end != current_repl["blackout_end"]
+        ):
+            changed = True
+            res = array.patch_protection_groups(
+                **kwargs,
+                protection_group=ProtectionGroup(
+                    replication_schedule=ReplicationSchedule(
+                        blackout=TimeWindow(start=blackout_start, end=blackout_end)
+                    )
+                ),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg=f"Failed to update blackout window for pgroup {module.params['name']}. Error: {res.errors[0].message}"
+                )
+
+        # Patch target retention separately
+        if (
+            target_days != current_repl["target_days"]
+            or target_per_day != current_repl["target_per_day"]
+            or target_all_for != current_repl["target_all_for"]
+        ):
+            changed = True
+            res = array.patch_protection_groups(
+                **kwargs,
+                protection_group=ProtectionGroup(
+                    target_retention=RetentionPolicy(
+                        days=target_days,
+                        per_day=target_per_day,
+                        all_for_sec=target_all_for,
+                    )
+                ),
+            )
+            if res.status_code != 200:
+                module.fail_json(
+                    msg=f"Failed to update replication retention for pgroup {module.params['name']}. Error: {res.errors[0].message}"
+                )
 
     module.exit_json(changed=changed)
 

@@ -276,7 +276,7 @@ def get_arrays(module, array):
     else:
         array_details = list(array.get_array_connections().items)
     for array_detail in array_details:
-        if array_details.status in [
+        if array_detail.status in [
             "connected",
             "partially_connected",
         ]:

@@ -165,7 +165,7 @@ def _check_connected(module, array):
             or remote_mgmt_address in [_lookup(module.params["target_url"].strip("[]"))]
             and "connected" in target.status
         ):
-            return connected_arrays[target]
+            return target
     return None
 
 

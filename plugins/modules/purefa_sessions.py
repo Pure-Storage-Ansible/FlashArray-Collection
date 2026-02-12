@@ -183,21 +183,21 @@ def main():
         if hasattr(session, "start_time"):
             start_time = datetime.datetime.fromtimestamp(
                 session.start_time / 1000, tz=pytz.timezone(timezone)
-            ).strftime("%Y-%m-%d %H:%M:%S %Z")
+            ).strftime("%Y-%m-%d %H:%M:%S")
         else:
-            start_time = "-"
+            start_time = "0"
         if hasattr(session, "end_time"):
             end_time = datetime.datetime.fromtimestamp(
                 session.end_time / 1000, tz=pytz.timezone(timezone)
-            ).strftime("%Y-%m-%d %H:%M:%S %Z")
+            ).strftime("%Y-%m-%d %H:%M:%S")
         else:
-            end_time = "-"
+            end_time = "0"
         session_log[name] = {
             "start_time": start_time,
             "end_time": end_time,
             "interface": session.user_interface,
             "user": getattr(session, "user", ""),
-            "location": session.location,
+            "location": getattr(session, "location", ""),
             "repeat": getattr(session, "event_count", ""),
             "event": session.event,
             "method": getattr(session, "method", ""),

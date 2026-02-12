@@ -164,9 +164,7 @@ def create_default(module, array):
             else:
                 pg_list.append(
                     flasharray.DefaultProtectionReference(
-                        name=module.params["pod"]
-                        + "::"
-                        + module.params["name"][pgroup],
+                        name=module.params["pod"] + "::" + pgroup,
                         type="protection_group",
                     )
                 )
@@ -229,7 +227,6 @@ def update_default(module, array, current_default):
         new_list = sorted(list(set(current).difference(module.params["name"])))
     else:
         new_list = []
-    module.warn("{0}".format(new_list))
     if not new_list:
         delete_default(module, array)
     elif new_list == current:
@@ -389,7 +386,7 @@ def main():
         current_default = list(ret.items)[0].default_protections
     for pgroup in module.params["name"]:
         if module.params["scope"] == "pod":
-            pod_name = module.params["pod"] + pgroup
+            pod_name = module.params["pod"] + "::" + pgroup
         else:
             pod_name = pgroup
         if not _get_pg(module, array, pod_name) and state == "present":
