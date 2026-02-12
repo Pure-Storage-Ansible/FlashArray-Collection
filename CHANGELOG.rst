@@ -4,6 +4,25 @@ Purestorage.Flasharray Release Notes
 
 .. contents:: Topics
 
+v1.42.0
+=======
+
+Bugfixes
+--------
+
+- purefa_certs - Fix the syntax to generate a CSR
+- purefa_connect - Fixed issue where incorrect transport type was passed.
+- purefa_default_protection - Fixed issue adding new default protection group to the array scope
+- purefa_dsrole_old - Fixed incorrect parameter name for old version of functions
+- purefa_host - Fixed AttributeError when deleting WWNs from a host
+- purefa_info - Fixed AttributeError when subnet has no VLAN
+- purefa_info - Fixed error with Resalms-based API clients
+- purefa_info - Fixed issue with shelf controllers not supporting uptime
+- purefa_info - Resolved AttributeErrors in ``default`` info section
+- purefa_network - Fixes issue caused by None meaning change in SDK
+- purefa_pgsched - Fixed schedule deletion idempotency
+- purefa_policy - Fixed AttributeError when modifying a password policy
+
 v1.41.0
 =======
 
