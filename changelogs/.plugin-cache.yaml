@@ -172,7 +172,7 @@ plugins:
       namespace: ''
       version_added: 1.19.0
     purefa_maintenance:
-      description: Configure Pure Storage FlashArray Maintence Windows
+      description: Configure Pure Storage FlashArray Maintenance Windows
       name: purefa_maintenance
       namespace: ''
       version_added: 1.7.0
@@ -352,4 +352,4 @@ plugins:
   strategy: {}
   test: {}
   vars: {}
-version: 1.41.0
+version: 1.42.0
