@@ -128,6 +128,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 HAS_PURESTORAGE = True
 try:
@@ -175,14 +178,12 @@ def update_manager(module, array):
     """Update SNMP Manager"""
     changed = False
     res = array.get_snmp_managers(names=module.params["name"])
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Failed to get configuration for SNMP manager {0}.".format(
-                module.params["name"]
-            )
-        )
-    else:
-        mgr = list(res.items)[0]
+    check_response(
+        res,
+        module,
+        f"Failed to get configuration for SNMP manager {module.params['name']}",
+    )
+    mgr = list(res.items)[0]
     if mgr.version != module.params["version"]:
         module.fail_json(msg="Changing an SNMP managers version is not supported.")
     elif module.params["version"] == "v2c":
@@ -197,12 +198,11 @@ def update_manager(module, array):
                     host=module.params["host"],
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to update SNMP manager {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to update SNMP manager {module.params['name']}",
+            )
     else:
         if module.params["auth_protocol"] and module.params["privacy_protocol"]:
             changed = True
@@ -222,12 +222,11 @@ def update_manager(module, array):
                         host=module.params["host"],
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to update SNMP manager {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to update SNMP manager {module.params['name']}",
+                )
         elif module.params["auth_protocol"] and not module.params["privacy_protocol"]:
             changed = True
             if not module.check_mode:
@@ -244,12 +243,11 @@ def update_manager(module, array):
                         ),
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to update SNMP manager {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to update SNMP manager {module.params['name']}",
+                )
         elif not module.params["auth_protocol"] and module.params["privacy_protocol"]:
             changed = True
             if not module.check_mode:
@@ -266,12 +264,11 @@ def update_manager(module, array):
                         ),
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to update SNMP manager {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to update SNMP manager {module.params['name']}",
+                )
         elif (
             not module.params["auth_protocol"] and not module.params["privacy_protocol"]
         ):
@@ -286,12 +283,11 @@ def update_manager(module, array):
                         v3=SnmpV3Patch(user=module.params["user"]),
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to update SNMP manager {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].name
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to update SNMP manager {module.params['name']}",
+                )
         else:
             module.fail_json(
                 msg="Invalid parameters selected in update. Please raise issue in Ansible GitHub"
@@ -305,12 +301,9 @@ def delete_manager(module, array):
     changed = True
     if not module.check_mode:
         res = array.delete_snmp_managers(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Delete SNMP manager {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Delete SNMP manager {module.params['name']} failed"
+        )
     module.exit_json(changed=changed)
 
 
@@ -330,12 +323,9 @@ def create_manager(module, array):
                     ),
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to create SNMP manager {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Failed to create SNMP manager {module.params['name']}"
+            )
         else:
             if module.params["auth_protocol"] and module.params["privacy_protocol"]:
                 res = array.post_snmp_managers(
@@ -353,12 +343,11 @@ def create_manager(module, array):
                         ),
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to create SNMP manager {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to create SNMP manager {module.params['name']}",
+                )
             elif (
                 module.params["auth_protocol"] and not module.params["privacy_protocol"]
             ):
@@ -375,12 +364,11 @@ def create_manager(module, array):
                         ),
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to create SNMP manager {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to create SNMP manager {module.params['name']}",
+                )
             elif (
                 not module.params["auth_protocol"] and module.params["privacy_protocol"]
             ):
@@ -397,12 +385,11 @@ def create_manager(module, array):
                         ),
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to create SNMP manager {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to create SNMP manager {module.params['name']}",
+                )
             elif (
                 not module.params["auth_protocol"]
                 and not module.params["privacy_protocol"]
@@ -418,12 +405,11 @@ def create_manager(module, array):
                         ),
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to create SNMP manager {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to create SNMP manager {module.params['name']}",
+                )
             else:
                 module.fail_json(
                     msg="Invalid parameters selected in create. Please raise issue in Ansible GitHub"

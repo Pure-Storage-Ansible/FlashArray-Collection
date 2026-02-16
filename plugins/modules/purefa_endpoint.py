@@ -139,6 +139,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 CONTEXT_VERSION = "2.38"
 
@@ -229,12 +232,7 @@ def create_endpoint(module, array):
                     ),
                 ),
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Endpoint {0} creation failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Endpoint {module.params['name']} creation failed")
     if module.params["host"]:
         if not module.check_mode:
             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
@@ -248,14 +246,12 @@ def create_endpoint(module, array):
                     host_names=[module.params["host"]],
                     volume_names=[module.params["name"]],
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to attach endpoint {0} to host {1}. Error: {2}".format(
-                        module.params["name"],
-                        module.params["host"],
-                        res.errors[0].message,
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to attach endpoint {module.params['name']} "
+                f"to host {module.params['host']}",
+            )
     if module.params["hgroup"]:
         if not module.check_mode:
             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
@@ -269,14 +265,12 @@ def create_endpoint(module, array):
                     host_group_names=[module.params["hgroup"]],
                     volume_names=[module.params["name"]],
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to attach endpoint {0} to hostgroup {1}. Error: {2}".format(
-                        module.params["name"],
-                        module.params["hgroup"],
-                        res.errors[0].message,
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to attach endpoint {module.params['name']} "
+                f"to hostgroup {module.params['hgroup']}",
+            )
 
     module.exit_json(
         changed=changed, volume=_volfact(module, array, module.params["name"])
@@ -307,11 +301,11 @@ def rename_endpoint(module, array):
             res = array.patch_volumes(
                 names=[module.params["name"]], volume=VolumePatch(name=target_name)
             )
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Rename endpoint {0} to {1} failed. Error: {2}".format(
-                module.params["name"], module.params["rename"], res.errors[0].message
-            )
+        check_response(
+            res,
+            module,
+            f"Rename endpoint {module.params['name']} "
+            f"to {module.params['rename']} failed",
         )
 
     module.exit_json(changed=changed, volume=_volfact(module, array, target_name))
@@ -332,12 +326,9 @@ def delete_endpoint(module, array):
             res = array.patch_volumes(
                 names=[module.params["name"]], volume=VolumePatch(destroyed=True)
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete endpoint {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].name
-                )
-            )
+        check_response(
+            res, module, f"Failed to delete endpoint {module.params['name']}"
+        )
         if module.params["eradicate"]:
             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                 res = array.delete_volumes(
@@ -346,12 +337,9 @@ def delete_endpoint(module, array):
                 )
             else:
                 res = array.delete_volumes(names=[module.params["name"]])
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Eradicate endpoint {0} failed. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Eradicate endpoint {module.params['name']} failed"
+            )
             module.exit_json(changed=changed, volume=[])
     module.exit_json(
         changed=changed, volume=_volfact(module, array, module.params["name"])
@@ -373,12 +361,9 @@ def recover_endpoint(module, array):
             res = array.patch_volumes(
                 names=[module.params["name"]], volume=VolumePatch(destroyed=False)
             )
-        if res.ststus_code != 200:
-            module.fail_json(
-                msg="Recovery of endpoint {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Recovery of endpoint {module.params['name']} failed"
+        )
     module.exit_json(
         changed=changed, volume=_volfact(module, array, module.params["name"])
     )
@@ -397,12 +382,9 @@ def eradicate_endpoint(module, array):
                 )
             else:
                 res = array.delete_volumes(names=[module.params["name"]])
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Eradication of endpoint {0} failed. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Eradication of endpoint {module.params['name']} failed"
+            )
     module.exit_json(changed=changed, volume=[])
 
 

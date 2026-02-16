@@ -174,8 +174,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    check_response,
 )
 
 HAS_PURESTORAGE = True
@@ -196,15 +197,14 @@ CONTEXT_API_VERSION = "2.38"
 
 def get_pending_pgroup(module, array):
     """Get Protection Group"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        res = array.get_protection_groups(
-            names=[module.params["name"]],
-            destroyed=True,
-            context_names=[module.params["name"]],
-        )
-    else:
-        res = array.get_protection_groups(names=[module.params["name"]], destroyed=True)
+    res = get_with_context(
+        array,
+        "get_protection_groups",
+        CONTEXT_API_VERSION,
+        module,
+        names=[module.params["name"]],
+        destroyed=True,
+    )
     if res.status_code == 200:
         return list(res.items)[0]
     return None
@@ -212,13 +212,13 @@ def get_pending_pgroup(module, array):
 
 def get_pgroup(module, array):
     """Get Protection Group"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        res = array.get_protection_groups(
-            names=[module.params["name"]], context_names=[module.params["context"]]
-        )
-    else:
-        res = array.get_protection_groups(names=[module.params["name"]])
+    res = get_with_context(
+        array,
+        "get_protection_groups",
+        CONTEXT_API_VERSION,
+        module,
+        names=[module.params["name"]],
+    )
     if res.status_code == 200:
         return list(res.items)[0]
     return None
@@ -242,18 +242,17 @@ def update_schedule(module, array, snap_time, repl_time):
     Update Protection Group Schedule for snapshots and replication.
     Immediately fail if any patch call returns an error.
     """
-    api_version = array.get_rest_version()
     changed = False
 
     # Fetch protection group
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        groups = list(
-            array.get_protection_groups(
-                names=[module.params["name"]], context_names=[module.params["context"]]
-            ).items
-        )
-    else:
-        groups = list(array.get_protection_groups(names=[module.params["name"]]).items)
+    res = get_with_context(
+        array,
+        "get_protection_groups",
+        CONTEXT_API_VERSION,
+        module,
+        names=[module.params["name"]],
+    )
+    groups = list(res.items) if res.status_code == 200 else []
 
     if not groups:
         module.fail_json(msg=f"Protection group {module.params['name']} not found")
@@ -285,10 +284,6 @@ def update_schedule(module, array, snap_time, repl_time):
         "blackout_start": schedule.replication_schedule.blackout.start,
         "blackout_end": schedule.replication_schedule.blackout.end,
     }
-
-    kwargs = {"names": [module.params["name"]]}
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        kwargs["context_names"] = [module.params["context"]]
 
     # Snapshot schedule
     if module.params["schedule"] == "snapshot":
@@ -326,16 +321,21 @@ def update_schedule(module, array, snap_time, repl_time):
         # Patch snap_enabled separately
         if snap_enabled != current_snap["snap_enabled"]:
             changed = True
-            res = array.patch_protection_groups(
-                **kwargs,
+            res = get_with_context(
+                array,
+                "patch_protection_groups",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["name"]],
                 protection_group=ProtectionGroup(
                     snapshot_schedule=SnapshotSchedule(enabled=snap_enabled)
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg=f"Failed to update snap_enabled for pgroup {module.params['name']}. Error: {res.errors[0].message}"
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to update snap_enabled for pgroup {module.params['name']}",
+            )
 
         # Patch frequency and at together
         if (
@@ -343,18 +343,23 @@ def update_schedule(module, array, snap_time, repl_time):
             or snap_at != current_snap["snap_at"]
         ):
             changed = True
-            res = array.patch_protection_groups(
-                **kwargs,
+            res = get_with_context(
+                array,
+                "patch_protection_groups",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["name"]],
                 protection_group=ProtectionGroup(
                     snapshot_schedule=SnapshotSchedule(
                         frequency=snap_frequency, at=snap_at
                     )
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg=f"Failed to update snap_frequency/at for pgroup {module.params['name']}. Error: {res.errors[0].message}"
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to update snap_frequency/at for pgroup {module.params['name']}",
+            )
 
         # Patch retention separately
         if (
@@ -363,18 +368,23 @@ def update_schedule(module, array, snap_time, repl_time):
             or all_for != current_snap["all_for"]
         ):
             changed = True
-            res = array.patch_protection_groups(
-                **kwargs,
+            res = get_with_context(
+                array,
+                "patch_protection_groups",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["name"]],
                 protection_group=ProtectionGroup(
                     source_retention=RetentionPolicy(
                         days=days, per_day=per_day, all_for_sec=all_for
                     )
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg=f"Failed to update snapshot retention for pgroup {module.params['name']}. Error: {res.errors[0].message}"
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to update snapshot retention for pgroup {module.params['name']}",
+            )
 
     # Replication schedule
     else:
@@ -422,16 +432,21 @@ def update_schedule(module, array, snap_time, repl_time):
         # Patch replicate_enabled separately
         if replicate_enabled != current_repl["replicate_enabled"]:
             changed = True
-            res = array.patch_protection_groups(
-                **kwargs,
+            res = get_with_context(
+                array,
+                "patch_protection_groups",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["name"]],
                 protection_group=ProtectionGroup(
                     replication_schedule=ReplicationSchedule(enabled=replicate_enabled)
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg=f"Failed to update replicate_enabled for pgroup {module.params['name']}. Error: {res.errors[0].message}"
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to update replicate_enabled for pgroup {module.params['name']}",
+            )
 
         # Patch frequency and at together
         if (
@@ -439,18 +454,23 @@ def update_schedule(module, array, snap_time, repl_time):
             or replicate_at != current_repl["replicate_at"]
         ):
             changed = True
-            res = array.patch_protection_groups(
-                **kwargs,
+            res = get_with_context(
+                array,
+                "patch_protection_groups",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["name"]],
                 protection_group=ProtectionGroup(
                     replication_schedule=ReplicationSchedule(
                         frequency=replicate_frequency, at=replicate_at
                     )
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg=f"Failed to update replicate_frequency/at for pgroup {module.params['name']}. Error: {res.errors[0].message}"
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to update replicate_frequency/at for pgroup {module.params['name']}",
+            )
 
         # Patch blackout separately
         if (
@@ -458,18 +478,23 @@ def update_schedule(module, array, snap_time, repl_time):
             or blackout_end != current_repl["blackout_end"]
         ):
             changed = True
-            res = array.patch_protection_groups(
-                **kwargs,
+            res = get_with_context(
+                array,
+                "patch_protection_groups",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["name"]],
                 protection_group=ProtectionGroup(
                     replication_schedule=ReplicationSchedule(
                         blackout=TimeWindow(start=blackout_start, end=blackout_end)
                     )
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg=f"Failed to update blackout window for pgroup {module.params['name']}. Error: {res.errors[0].message}"
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to update blackout window for pgroup {module.params['name']}",
+            )
 
         # Patch target retention separately
         if (
@@ -478,8 +503,12 @@ def update_schedule(module, array, snap_time, repl_time):
             or target_all_for != current_repl["target_all_for"]
         ):
             changed = True
-            res = array.patch_protection_groups(
-                **kwargs,
+            res = get_with_context(
+                array,
+                "patch_protection_groups",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["name"]],
                 protection_group=ProtectionGroup(
                     target_retention=RetentionPolicy(
                         days=target_days,
@@ -488,164 +517,114 @@ def update_schedule(module, array, snap_time, repl_time):
                     )
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg=f"Failed to update replication retention for pgroup {module.params['name']}. Error: {res.errors[0].message}"
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to update replication retention for pgroup {module.params['name']}",
+            )
 
     module.exit_json(changed=changed)
 
 
 def delete_schedule(module, array):
     """Delete, ie. disable, Protection Group Schedules"""
-    api_version = array.get_rest_version()
     changed = False
 
-    class Res:
-        def __init__(self, status_code):
-            self.status_code = status_code
+    res = get_with_context(
+        array,
+        "get_protection_groups",
+        CONTEXT_API_VERSION,
+        module,
+        names=[module.params["name"]],
+    )
+    schedule = list(res.items)[0]
 
-    res = Res(200)
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        schedule = list(
-            array.get_protection_groups(
-                names=[module.params["name"]], context_names=[module.params["context"]]
-            ).items
-        )[0]
-    else:
-        schedule = list(
-            array.get_protection_groups(names=[module.params["name"]]).items
-        )[0]
     if module.params["schedule"] == "replication":
         if schedule.replication_schedule.enabled:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_protection_groups(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                        protection_group=ProtectionGroup(
-                            replication_schedule=ReplicationSchedule(
-                                blackout=TimeWindow(start=0, end=0),
-                                frequency=14400,
-                                enabled=False,
-                            ),
+                # Reset replication schedule
+                res = get_with_context(
+                    array,
+                    "patch_protection_groups",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    protection_group=ProtectionGroup(
+                        replication_schedule=ReplicationSchedule(
+                            blackout=TimeWindow(start=0, end=0),
+                            frequency=14400,
+                            enabled=False,
                         ),
-                    )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Resetting pgroup {0} {1} schedule failed. Error: {2}".format(
-                                module.params["name"],
-                                module.params["schedule"],
-                                res.errors[0].message,
-                            )
-                        )
-                    res = array.patch_protection_groups(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                        protection_group=ProtectionGroup(
-                            target_retention=RetentionPolicy(
-                                all_for_sec=1,
-                                per_day=0,
-                                days=0,
-                            ),
+                    ),
+                )
+                check_response(
+                    res,
+                    module,
+                    f"Resetting pgroup {module.params['name']} {module.params['schedule']} schedule failed",
+                )
+                # Reset target retention
+                res = get_with_context(
+                    array,
+                    "patch_protection_groups",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    protection_group=ProtectionGroup(
+                        target_retention=RetentionPolicy(
+                            all_for_sec=1,
+                            per_day=0,
+                            days=0,
                         ),
-                    )
-                else:
-                    res = array.patch_protection_groups(
-                        names=[module.params["name"]],
-                        protection_group=ProtectionGroup(
-                            target_retention=RetentionPolicy(
-                                all_for_sec=1,
-                                per_day=0,
-                                days=0,
-                            ),
-                        ),
-                    )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Resetting pgroup {0} {1} schedule failed. Error: {2}".format(
-                                module.params["name"],
-                                module.params["schedule"],
-                                res.errors[0].message,
-                            )
-                        )
-                    res = array.patch_protection_groups(
-                        names=[module.params["name"]],
-                        protection_group=ProtectionGroup(
-                            replication_schedule=ReplicationSchedule(
-                                blackout=TimeWindow(start=0, end=0),
-                                frequency=14400,
-                                enabled=False,
-                            ),
-                        ),
-                    )
+                    ),
+                )
+                check_response(
+                    res,
+                    module,
+                    f"Deleting pgroup {module.params['name']} {module.params['schedule']} schedule failed",
+                )
     else:
         if schedule.snapshot_schedule.enabled:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_protection_groups(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                        protection_group=ProtectionGroup(
-                            snapshot_schedule=SnapshotSchedule(
-                                frequency=300, enabled=False
-                            ),
+                # Reset snapshot schedule
+                res = get_with_context(
+                    array,
+                    "patch_protection_groups",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    protection_group=ProtectionGroup(
+                        snapshot_schedule=SnapshotSchedule(
+                            frequency=300, enabled=False
                         ),
-                    )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Resetting pgroup {0} {1} schedule failed. Error: {2}".format(
-                                module.params["name"],
-                                module.params["schedule"],
-                                res.errors[0].message,
-                            )
-                        )
-                    res = array.patch_protection_groups(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                        protection_group=ProtectionGroup(
-                            source_retention=RetentionPolicy(
-                                all_for_sec=1,
-                                per_day=0,
-                                days=0,
-                            ),
+                    ),
+                )
+                check_response(
+                    res,
+                    module,
+                    f"Resetting pgroup {module.params['name']} {module.params['schedule']} schedule failed",
+                )
+                # Reset source retention
+                res = get_with_context(
+                    array,
+                    "patch_protection_groups",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    protection_group=ProtectionGroup(
+                        source_retention=RetentionPolicy(
+                            all_for_sec=1,
+                            per_day=0,
+                            days=0,
                         ),
-                    )
-                else:
-                    res = array.patch_protection_groups(
-                        names=[module.params["name"]],
-                        protection_group=ProtectionGroup(
-                            snapshot_schedule=SnapshotSchedule(
-                                frequency=300, enabled=False
-                            ),
-                        ),
-                    )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Resetting pgroup {0} {1} schedule failed. Error: {2}".format(
-                                module.params["name"],
-                                module.params["schedule"],
-                                res.errors[0].message,
-                            )
-                        )
-                    res = array.patch_protection_groups(
-                        names=[module.params["name"]],
-                        protection_group=ProtectionGroup(
-                            source_retention=RetentionPolicy(
-                                all_for_sec=1,
-                                per_day=0,
-                                days=0,
-                            ),
-                        ),
-                    )
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Deleting pgroup {0} {1} schedule failed. Error: {2}".format(
-                module.params["name"], module.params["schedule"], res.errors[0].message
-            )
-        )
+                    ),
+                )
+                check_response(
+                    res,
+                    module,
+                    f"Deleting pgroup {module.params['name']} {module.params['schedule']} schedule failed",
+                )
     module.exit_json(changed=changed)
 
 

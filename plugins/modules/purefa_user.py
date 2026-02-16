@@ -168,6 +168,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
     convert_time_to_millisecs,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 
 def get_user(module, array):
@@ -193,35 +196,22 @@ def create_local_user(module, array, user):
                     password=module.params["password"],
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to create user {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Failed to create user {module.params['name']}"
+            )
             if module.params["api"]:
                 ttl = convert_time_to_millisecs(module.params["timeout"])
                 res = array.post_admins_api_tokens(
                     names=[module.params["name"]], timeout=ttl
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to create API token. Error: {0}".format(
-                            res.errors[0].message
-                        )
-                    )
+                check_response(res, module, "Failed to create API token")
                 api_token = list(res.items)[0].api_token.token
             if module.params["public_key"]:
                 res = array.patch_admins(
                     names=[module.params["name"]],
                     admin=AdminPatch(public_key=module.params["public_key"]),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to add SSH key. Error: {0}".format(
-                            res.errors[0].message
-                        )
-                    )
+                check_response(res, module, "Failed to add SSH key")
     else:
         if module.params["password"] and not module.params["old_password"]:
             module.exit_json(changed=changed)
@@ -239,32 +229,20 @@ def create_local_user(module, array, user):
                         old_password=module.params["old_password"],
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Local User {0} password reset failed. Error: {1}"
-                        "Check old password.".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Local User {module.params['name']} password reset failed. Check old password",
+                )
         if module.params["api"]:
             api_changed = True
             ttl = convert_time_to_millisecs(module.params["timeout"])
             res = array.delete_admins_api_tokens(names=[module.params["name"]])
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to delete original API token. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Failed to delete original API token")
             res = array.post_admins_api_tokens(
                 names=[module.params["name"]], timeout=ttl
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to recreate API token. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Failed to recreate API token")
             api_token = list(res.items)[0].api_token.token
         if module.params["role"] and module.params["role"] != getattr(
             user.role, "name", None
@@ -276,12 +254,11 @@ def create_local_user(module, array, user):
                         names=[module.params["name"]],
                         admin=AdminPatch(role=AdminRole(name=module.params["role"])),
                     )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Local User {0} role changed failed. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    check_response(
+                        res,
+                        module,
+                        f"Local User {module.params['name']} role change failed",
+                    )
             else:
                 module.warn("Role for 'pureuser' cannot be modified.")
         if module.params["public_key"] is not None and module.params[
@@ -292,12 +269,7 @@ def create_local_user(module, array, user):
                 names=[module.params["name"]],
                 admin=AdminPatch(public_key=module.params["public_key"]),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to change SSH key. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Failed to change SSH key")
         changed = bool(passwd_changed or role_changed or api_changed or key_changed)
     module.exit_json(changed=changed, user_info=api_token)
 
@@ -311,21 +283,11 @@ def update_ad_user(module, array, user):
             api_changed = True
             ttl = convert_time_to_millisecs(module.params["timeout"])
             res = array.delete_admins_api_tokens(names=[module.params["name"]])
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to delete original API token. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Failed to delete original API token")
             res = array.post_admins_api_tokens(
                 names=[module.params["name"]], timeout=ttl
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to recreate API token. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Failed to recreate API token")
             api_token = list(res.items)[0].api_token.token
         else:
             api_changed = True
@@ -333,12 +295,7 @@ def update_ad_user(module, array, user):
             res = array.post_admins_api_tokens(
                 names=[module.params["name"]], timeout=ttl
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to create API token. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Failed to create API token")
             api_token = list(res.items)[0].api_token.token
     if module.params["public_key"]:
         ssh_changed = True
@@ -346,10 +303,7 @@ def update_ad_user(module, array, user):
             names=[module.params["name"]],
             admin=AdminPatch(public_key=module.params["public_key"]),
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to add SSH key. Error: {0}".format(res.errors[0].message)
-            )
+        check_response(res, module, "Failed to add SSH key")
     changed = bool(api_changed or ssh_changed)
     module.exit_json(changed=changed, user_info=api_token)
 
@@ -359,12 +313,9 @@ def delete_local_user(module, array):
     changed = True
     if not module.check_mode:
         res = array.delete_admins(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="User Account {0} deletion failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"User Account {module.params['name']} deletion failed"
+        )
     module.exit_json(changed=changed)
 
 
@@ -375,23 +326,21 @@ def delete_ad_user(module, array, user):
         if user:
             changed = True
             res = array.delete_admins_api_tokens(names=[module.params["name"]])
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="AD Account {0} API token deletion failed. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"AD Account {module.params['name']} API token deletion failed",
+            )
             if hasattr(user, "public_key"):
                 res = array.patch_admins(
                     names=[module.params["name"]],
                     admin=AdminPatch(public_key=""),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="AD Account {0} public key deletion failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"AD Account {module.params['name']} public key deletion failed",
+                )
     module.exit_json(changed=changed)
 
 

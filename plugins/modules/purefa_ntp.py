@@ -91,6 +91,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    check_response,
+)
 
 HAS_PURESTORAGE = True
 try:
@@ -167,63 +171,42 @@ def test_ntp(module, array):
 
 def delete_ntp(module, array):
     """Delete NTP Servers"""
-    api_version = array.get_rest_version()
     changed = False
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        array_list = array.get_arrays(context_names=[module.params["context"]])
-    else:
-        array_list = array.get_arrays()
+    array_list = get_with_context(array, "get_arrays", CONTEXT_API_VERSION, module)
     if list(array_list.items)[0].ntp_servers != []:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.patch_arrays(
-                    array=Arrays(ntp_servers=[]),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_arrays(array=Arrays(ntp_servers=[]))
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Deletion of NTP servers failed. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            res = get_with_context(
+                array,
+                "patch_arrays",
+                CONTEXT_API_VERSION,
+                module,
+                array=Arrays(ntp_servers=[]),
+            )
+            check_response(res, module, "Deletion of NTP servers failed")
     module.exit_json(changed=changed)
 
 
 def create_ntp(module, array):
     """Set NTP Servers"""
-    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
         if not module.params["ntp_servers"]:
             module.params["ntp_servers"] = ["0.pool.ntp.org"]
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.patch_arrays(
-                array=Arrays(ntp_servers=module.params["ntp_servers"][0:4]),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.patch_arrays(
-                array=Arrays(ntp_servers=module.params["ntp_servers"][0:4])
-            )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Update of NTP servers failed. Error: {0}".format(
-                    res.errors[0].message
-                )
-            )
+        res = get_with_context(
+            array,
+            "patch_arrays",
+            CONTEXT_API_VERSION,
+            module,
+            array=Arrays(ntp_servers=module.params["ntp_servers"][0:4]),
+        )
+        check_response(res, module, "Update of NTP servers failed")
     module.exit_json(changed=changed)
 
 
 def update_ntp_key(module, array):
     """Update NTP Symmetric Key"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        array_list = array.get_arrays(context_names=[module.params["context"]])
-    else:
-        array_list = array.get_arrays()
+    array_list = get_with_context(array, "get_arrays", CONTEXT_API_VERSION, module)
     if module.params["ntp_key"] == "" and not getattr(
         list(array_list.items)[0], "ntp_symmetric_key", None
     ):
@@ -241,21 +224,14 @@ def update_ntp_key(module, array):
             if not all(ord(c) < 128 for c in module.params["ntp_key"]):
                 module.fail_json(msg="NTP key is non-ASCII")
         changed = True
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.patch_arrays(
-                array=Arrays(ntp_symmetric_key=module.params["ntp_key"]),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.patch_arrays(
-                array=Arrays(ntp_symmetric_key=module.params["ntp_key"])
-            )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to update NTP Symmetric Key. Error: {0}".format(
-                    res.errors[0].message
-                )
-            )
+        res = get_with_context(
+            array,
+            "patch_arrays",
+            CONTEXT_API_VERSION,
+            module,
+            array=Arrays(ntp_symmetric_key=module.params["ntp_key"]),
+        )
+        check_response(res, module, "Failed to update NTP Symmetric Key")
     module.exit_json(changed=changed)
 
     if len(module.params["ntp_key"]) > 20:
@@ -298,10 +274,7 @@ def main():
         test_ntp(module, array)
     elif module.params["ntp_servers"]:
         module.params["ntp_servers"] = remove(module.params["ntp_servers"])
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            array_list = array.get_arrays(context_names=[module.params["context"]])
-        else:
-            array_list = array.get_arrays()
+        array_list = get_with_context(array, "get_arrays", CONTEXT_API_VERSION, module)
         if sorted(list(array_list.items)[0].ntp_servers) != sorted(
             module.params["ntp_servers"][0:4]
         ):
