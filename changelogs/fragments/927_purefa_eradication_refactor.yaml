@@ -1,0 +1,4 @@
+minor_changes:
+  - purefa_eradication - Refactored to use centralized api_helpers for context-aware API calls
+  - purefa_eradication - Simplified error handling using check_response() helper
+
