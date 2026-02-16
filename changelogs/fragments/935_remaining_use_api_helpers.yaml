@@ -17,4 +17,3 @@ minor_changes:
   - purefa_pod_replica - Refactored to use centralized `check_response()` API helper.
   - purefa_saml - Refactored to use centralized `check_response()` API helper.
   - purefa_subnet - Refactored to use centralized `check_response()` API helper.
-
