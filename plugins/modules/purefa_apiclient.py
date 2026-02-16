@@ -115,6 +115,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 MIN_REQUIRED_API_VERSION = "2.1"
 
@@ -123,12 +126,9 @@ def delete_client(module, array):
     changed = True
     if not module.check_mode:
         res = array.delete_api_clients(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete API Client {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to delete API Client {module.params['name']}"
+        )
     module.exit_json(changed=changed)
 
 
@@ -142,12 +142,9 @@ def update_client(module, array, client):
                 names=[module.params["name"]],
                 api_clients=flasharray.ApiClientPatch(enabled=module.params["enabled"]),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to update API Client {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Failed to update API Client {module.params['name']}"
+            )
     module.exit_json(changed=changed)
 
 
@@ -168,12 +165,9 @@ def create_client(module, array):
     )
     if not module.check_mode:
         res = array.post_api_clients(names=[module.params["name"]], api_clients=client)
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to create API CLient {0}. Error message: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to create API Client {module.params['name']}"
+        )
         if module.params["enabled"]:
             res = array.patch_api_clients(
                 names=[module.params["name"]],

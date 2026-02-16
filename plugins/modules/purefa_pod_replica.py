@@ -107,6 +107,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 CONTEXT_VERSION = "2.38"
 
@@ -164,12 +167,11 @@ def update_rl(module, array, local_rl):
                         remote_pod_names=local_rl["remote_pod"]["name"],
                         pod_replica_link=PodReplicaLinkPatch(paused=True),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to pause replica link {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to pause replica link {module.params['name']}",
+                )
         elif local_rl.status == "paused" and not module.params["pause"]:
             changed = True
             if not module.check_mode:
@@ -186,12 +188,11 @@ def update_rl(module, array, local_rl):
                         remote_pod_names=local_rl["remote_pod"]["name"],
                         pod_replica_link=PodReplicaLinkPatch(paused=False),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to resume replica link {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to resume replica link {module.params['name']}",
+                )
     module.exit_json(changed=changed)
 
 
@@ -212,12 +213,11 @@ def create_rl(module, array):
         )
     else:
         res = array.get_array_connections(names=[module.params["target_array"]])
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Target array {0} is not connected to the source array.".format(
-                module.params["target_array"]
-            )
-        )
+    check_response(
+        res,
+        module,
+        f"Target array {module.params['target_array']} is not connected to the source array",
+    )
     connection = list(res.items)[0]
     if connection.status in [
         "connected",
@@ -238,14 +238,12 @@ def create_rl(module, array):
                     remote_names=[module.params["target_array"]],
                     remote_pod_names=[module.params["target_pod"]],
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to create replica link {0} to target array {1}. Error: {2}".format(
-                        module.params["name"],
-                        module.params["target_array"],
-                        res.errors[0].message,
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to create replica link {module.params['name']} "
+                f"to target array {module.params['target_array']}",
+            )
     else:
         module.fail_json(
             msg="Failed to create replica link for pod {0}. Bad status: {1}".format(
@@ -271,12 +269,11 @@ def delete_rl(module, array, local_rl):
                 local_pod_names=[module.params["name"]],
                 remote_pod_names=[local_rl["remote_pod"]["name"]],
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete replica link for pod {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res,
+            module,
+            f"Failed to delete replica link for pod {module.params['name']}",
+        )
     module.exit_json(changed=changed)
 
 

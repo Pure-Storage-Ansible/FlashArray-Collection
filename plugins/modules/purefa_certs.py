@@ -199,6 +199,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 MIN_REQUIRED_API_VERSION = "2.4"
 
@@ -276,12 +279,11 @@ def update_cert(module, array):
                 certificate=certificate,
                 generate_new_key=module.params["generate"],
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Updating existing SSL certificate {0} failed. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Updating existing SSL certificate {module.params['name']} failed",
+            )
 
     module.exit_json(changed=changed)
 
@@ -304,12 +306,11 @@ def create_cert(module, array):
         res = array.post_certificates(
             names=[module.params["name"]], certificate=certificate
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Creating SSL certificate {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res,
+            module,
+            f"Creating SSL certificate {module.params['name']} failed",
+        )
 
     module.exit_json(changed=changed)
 
@@ -320,12 +321,11 @@ def delete_cert(module, array):
         module.fail_json(msg="management SSL cannot be deleted")
     if not module.check_mode:
         res = array.delete_certificates(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete {0} SSL certificate. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res,
+            module,
+            f"Failed to delete {module.params['name']} SSL certificate",
+        )
     module.exit_json(changed=changed)
 
 
@@ -348,12 +348,7 @@ def import_cert(module, array, reimport=False):
             res = array.post_certificates(
                 names=[module.params["name"]], certificate=certificate
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Importing Certificate failed. Error: {0}".format(
-                    res.errors[0].message
-                )
-            )
+        check_response(res, module, "Importing Certificate failed")
     module.exit_json(changed=changed)
 
 
@@ -362,12 +357,7 @@ def export_cert(module, array):
     changed = True
     if not module.check_mode:
         ssl = array.get_certificates(names=[module.params["name"]])
-        if ssl.status_code != 200:
-            module.fail_json(
-                msg="Exporting Certificate failed. Error: {0}".format(
-                    ssl.errors[0].message
-                )
-            )
+        check_response(ssl, module, "Exporting Certificate failed")
         with open(module.params["export_file"], "w", encoding="utf-8") as ssl_file:
             ssl_file.write(list(ssl.items)[0].certificate)
     module.exit_json(changed=changed)

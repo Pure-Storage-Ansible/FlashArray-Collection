@@ -103,6 +103,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 MAX_API_VERSION = "2.30"
 
@@ -126,12 +129,11 @@ def update_role(module, array):
                     group=module.params["group"],
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Update Directory Service Role {0} failed. Error: {1}".format(
-                        module.params["role"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Update Directory Service Role {module.params['role']} failed",
+            )
     module.exit_json(changed=changed)
 
 
@@ -143,12 +145,11 @@ def delete_role(module, array):
             role_names=[module.params["role"]],
             directory_service_roles=DirectoryServiceRole(group_base="", group=""),
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Delete Directory Service Role {0} failed. Error: {1}".format(
-                    module.params["role"], res.errors[0].message
-                )
-            )
+        check_response(
+            res,
+            module,
+            f"Delete Directory Service Role {module.params['role']} failed",
+        )
     module.exit_json(changed=changed)
 
 
@@ -165,12 +166,11 @@ def create_role(module, array):
                     group=module.params["group"],
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Create Directory Service Role {0} failed. Error: {1}".format(
-                        module.params["role"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Create Directory Service Role {module.params['role']} failed",
+            )
     module.exit_json(changed=changed)
 
 

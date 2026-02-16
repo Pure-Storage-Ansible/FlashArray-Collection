@@ -1,0 +1,20 @@
+minor_changes:
+  - purefa_ad - Refactored to use centralized `check_response()` API helper.
+  - purefa_alert - Refactored to use centralized `check_response()` API helper.
+  - purefa_apiclient - Refactored to use centralized `check_response()` API helper.
+  - purefa_certs - Refactored to use centralized `check_response()` API helper.
+  - purefa_connect - Refactored to use centralized `check_response()` API helper.
+  - purefa_directory - Refactored to use centralized `check_response()` API helper.
+  - purefa_dirsnap - Refactored to use centralized `check_response()` API helper.
+  - purefa_dsrole - Refactored to use centralized `check_response()` API helper.
+  - purefa_dsrole_old - Refactored to use centralized `check_response()` API helper.
+  - purefa_export - Refactored to use centralized `check_response()` API helper.
+  - purefa_file - Refactored to use centralized `check_response()` API helper.
+  - purefa_fleet - Refactored to use centralized `check_response()` API helper.
+  - purefa_fs - Refactored to use centralized `check_response()` API helper.
+  - purefa_kmip - Refactored to use centralized `check_response()` API helper.
+  - purefa_phonehome - Refactored to use centralized `check_response()` API helper.
+  - purefa_pod_replica - Refactored to use centralized `check_response()` API helper.
+  - purefa_saml - Refactored to use centralized `check_response()` API helper.
+  - purefa_subnet - Refactored to use centralized `check_response()` API helper.
+
