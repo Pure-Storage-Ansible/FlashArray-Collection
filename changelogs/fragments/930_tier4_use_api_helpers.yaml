@@ -10,4 +10,3 @@ minor_changes:
   - purefa_user - Use centralized api_helpers for error handling.
   - purefa_vlan - Use centralized api_helpers for error handling.
   - purefa_workload - Use centralized api_helpers for error handling.
-
