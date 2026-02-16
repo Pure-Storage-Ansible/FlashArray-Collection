@@ -374,6 +374,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    check_response,
+)
 
 VLAN_API_VERSION = "2.16"
 CONTEXT_API_VERSION = "2.38"
@@ -399,161 +403,123 @@ def _is_cbs(array, is_cbs=False):
 
 def _set_host_initiators(module, array):
     """Set host initiators."""
-    api_version = array.get_rest_version()
     if module.params["nqn"]:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                host=HostPatch(nqns=module.params["nqn"]),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                host=HostPatch(nqns=module.params["nqn"]),
-            )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Setting of NVMe NQN failed for host {0}. Error: {1}.".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        res = get_with_context(
+            array,
+            "patch_hosts",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+            host=HostPatch(nqns=module.params["nqn"]),
+        )
+        check_response(
+            res, module, f"Setting of NVMe NQN failed for host {module.params['name']}"
+        )
     if module.params["iqn"]:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                host=HostPatch(iqns=module.params["iqn"]),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                host=HostPatch(iqns=module.params["iqn"]),
-            )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Setting of iSCSI IQN failed for host {0}. Error: {1}.".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        res = get_with_context(
+            array,
+            "patch_hosts",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+            host=HostPatch(iqns=module.params["iqn"]),
+        )
+        check_response(
+            res, module, f"Setting of iSCSI IQN failed for host {module.params['name']}"
+        )
     if module.params["wwns"]:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                host=HostPatch(wwns=module.params["wwns"]),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                host=HostPatch(wwns=module.params["wwns"]),
-            )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Setting of FC WWNs failed for host {0}. Error: {1}.".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        res = get_with_context(
+            array,
+            "patch_hosts",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+            host=HostPatch(wwns=module.params["wwns"]),
+        )
+        check_response(
+            res, module, f"Setting of FC WWNs failed for host {module.params['name']}"
+        )
 
 
 def _update_host_initiators(module, array, answer=False):
     """Change host initiator if iscsi or nvme or add new FC WWNs"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        current_connectors = list(
-            array.get_hosts(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-            ).items
-        )[0]
-    else:
-        current_connectors = list(array.get_hosts(names=[module.params["name"]]).items)[
-            0
-        ]
+    current_connectors = list(
+        get_with_context(
+            array,
+            "get_hosts",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+        ).items
+    )[0]
     if module.params["nqn"]:
         if module.params["nqn"] != [""]:
             if sorted(current_connectors.nqns) != sorted(module.params["nqn"]):
                 answer = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        res = array.patch_hosts(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                            host=HostPatch(nqns=module.params["nqn"]),
-                        )
-                    else:
-                        res = array.patch_hosts(
-                            names=[module.params["name"]],
-                            host=HostPatch(nqns=module.params["nqn"]),
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Change of NVMe NQNs failed on host {0}. Error: {1}.".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = get_with_context(
+                        array,
+                        "patch_hosts",
+                        CONTEXT_API_VERSION,
+                        module,
+                        names=[module.params["name"]],
+                        host=HostPatch(nqns=module.params["nqn"]),
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Change of NVMe NQNs failed on host {module.params['name']}",
+                    )
         elif current_connectors.nqns:
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                        host=HostPatch(remove_nqns=current_connectors.nqns),
-                    )
-                else:
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        host=HostPatch(remove_nqns=current_connectors.nqns),
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Removal of NVMe NQNs failed on host {0}. Error: {1}.".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                res = get_with_context(
+                    array,
+                    "patch_hosts",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    host=HostPatch(remove_nqns=current_connectors.nqns),
+                )
+                check_response(
+                    res,
+                    module,
+                    f"Removal of NVMe NQNs failed on host {module.params['name']}",
+                )
     if module.params["iqn"]:
         if module.params["iqn"] != [""]:
             if sorted(current_connectors.iqns) != sorted(module.params["iqn"]):
                 answer = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        res = array.patch_hosts(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                            host=HostPatch(iqns=module.params["iqn"]),
-                        )
-                    else:
-                        res = array.patch_hosts(
-                            names=[module.params["name"]],
-                            host=HostPatch(iqns=module.params["iqn"]),
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Change of iSCSI IQNs failed on host {0}. Error: {1}.".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = get_with_context(
+                        array,
+                        "patch_hosts",
+                        CONTEXT_API_VERSION,
+                        module,
+                        names=[module.params["name"]],
+                        host=HostPatch(iqns=module.params["iqn"]),
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Change of iSCSI IQNs failed on host {module.params['name']}",
+                    )
         elif current_connectors.iqns:
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                        host=HostPatch(remove_iqns=current_connectors.iqns),
-                    )
-                else:
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        host=HostPatch(remove_iqns=current_connectors.iqns),
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Removal of iSCSI IQNs failed on host {0}. Error: {1}.".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                res = get_with_context(
+                    array,
+                    "patch_hosts",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    host=HostPatch(remove_iqns=current_connectors.iqns),
+                )
+                check_response(
+                    res,
+                    module,
+                    f"Removal of iSCSI IQNs failed on host {module.params['name']}",
+                )
     if module.params["wwns"]:
         module.params["wwns"] = [wwn.replace(":", "") for wwn in module.params["wwns"]]
         module.params["wwns"] = [wwn.upper() for wwn in module.params["wwns"]]
@@ -561,289 +527,187 @@ def _update_host_initiators(module, array, answer=False):
             if sorted(current_connectors.wwns) != sorted(module.params["wwns"]):
                 answer = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        res = array.patch_hosts(
-                            names=module.params["name"],
-                            context_names=[module.params["context"]],
-                            host=HostPatch(wwns=module.params["wwns"]),
-                        )
-                    else:
-                        res = array.patch_hosts(
-                            names=module.params["name"],
-                            host=HostPatch(wwns=module.params["wwns"]),
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Change of FC WWNs failed on host {0}. Error: {1}.".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = get_with_context(
+                        array,
+                        "patch_hosts",
+                        CONTEXT_API_VERSION,
+                        module,
+                        names=module.params["name"],
+                        host=HostPatch(wwns=module.params["wwns"]),
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Change of FC WWNs failed on host {module.params['name']}",
+                    )
         elif current_connectors.wwns:
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                        host=HostPatch(remove_wwns=current_connectors.wwns),
-                    )
-                else:
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        host=HostPatch(remove_wwns=current_connectors.wwns),
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Removal of FC WWNs failed on host {0}. Error: {1}.".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                res = get_with_context(
+                    array,
+                    "patch_hosts",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    host=HostPatch(remove_wwns=current_connectors.wwns),
+                )
+                check_response(
+                    res,
+                    module,
+                    f"Removal of FC WWNs failed on host {module.params['name']}",
+                )
     return answer
 
 
 def _connect_new_volume(module, array):
     """Connect volume to host"""
-    api_version = array.get_rest_version()
     if not module.check_mode:
+        kwargs = {
+            "host_names": [module.params["name"]],
+            "volume_names": [module.params["volume"]],
+        }
         if module.params["lun"]:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.post_connections(
-                    host_names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                    volume_names=[module.params["volume"]],
-                    connection=ConnectionPost(lun=module.params["lun"]),
-                )
-            else:
-                res = array.post_connections(
-                    host_names=[module.params["name"]],
-                    volume_names=[module.params["volume"]],
-                    connection=ConnectionPost(lun=module.params["lun"]),
-                )
-        else:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.post_connections(
-                    host_names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                    volume_names=[module.params["volume"]],
-                )
-            else:
-                res = array.post_connections(
-                    host_names=[module.params["name"]],
-                    volume_names=[module.params["volume"]],
-                )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to connect volume {0} to host {1}. Error: {2}".format(
-                    module.params["volume"],
-                    module.params["name"],
-                    res.errors[0].message,
-                )
-            )
+            kwargs["connection"] = ConnectionPost(lun=module.params["lun"])
+        res = get_with_context(
+            array, "post_connections", CONTEXT_API_VERSION, module, **kwargs
+        )
+        check_response(
+            res,
+            module,
+            f"Failed to connect volume {module.params['volume']} to host {module.params['name']}",
+        )
     return True
 
 
 def _disconnect_volume(module, array):
     """Disconnect volume from host"""
-    api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.delete_connections(
-                host_names=[module.params["name"]],
-                context_names=[module.params["context"]],
-                volume_names=[module.params["volume"]],
-            )
-        else:
-            res = array.delete_connections(
-                host_names=[module.params["name"]],
-                volume_names=[module.params["volume"]],
-            )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to disconnect volume {0} from host {1}. Error: {2}".format(
-                    module.params["volume"],
-                    module.params["name"],
-                    res.errors[0].message,
-                )
-            )
+        res = get_with_context(
+            array,
+            "delete_connections",
+            CONTEXT_API_VERSION,
+            module,
+            host_names=[module.params["name"]],
+            volume_names=[module.params["volume"]],
+        )
+        check_response(
+            res,
+            module,
+            f"Failed to disconnect volume {module.params['volume']} from host {module.params['name']}",
+        )
     return True
 
 
 def _set_host_personality(module, array):
     """Set host personality"""
-    api_version = array.get_rest_version()
-    if module.params["personality"] != "delete":
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-                host=HostPatch(personality=module.params["personality"]),
-            )
-        else:
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                host=HostPatch(personality=module.params["personality"]),
-            )
-    else:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-                host=HostPatch(personality=""),
-            )
-        else:
-            res = array.patch_hosts(
-                names=[module.params["name"]], host=HostPatch(personality="")
-            )
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Failed to set personality on host {0}. Error: {1}".format(
-                module.params["name"], res.errors[0].message
-            )
-        )
+    personality = (
+        "" if module.params["personality"] == "delete" else module.params["personality"]
+    )
+    res = get_with_context(
+        array,
+        "patch_hosts",
+        CONTEXT_API_VERSION,
+        module,
+        names=[module.params["name"]],
+        host=HostPatch(personality=personality),
+    )
+    check_response(
+        res, module, f"Failed to set personality on host {module.params['name']}"
+    )
 
 
 def _set_preferred_array(module, array):
     """Set preferred array list"""
-    api_version = array.get_rest_version()
     if module.params["preferred_array"] != ["delete"]:
         preferred_array_list = []
         for preferred_array in module.params["preferred_array"]:
             preferred_array_list.append(Reference(name=preferred_array))
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-                host=HostPatch(preferred_arrays=preferred_array_list),
-            )
-        else:
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                host=HostPatch(preferred_arrays=preferred_array_list),
-            )
     else:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-                host=HostPatch(preferred_arrays=[]),
-            )
-        else:
-            res = array.patch_hosts(
-                names=[module.params["name"]], host=HostPatch(preferred_arrays=[])
-            )
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Failed to set preferred arrays on host {0}. Error: {1}".format(
-                module.params["name"], res.errors[0].message
-            )
-        )
+        preferred_array_list = []
+    res = get_with_context(
+        array,
+        "patch_hosts",
+        CONTEXT_API_VERSION,
+        module,
+        names=[module.params["name"]],
+        host=HostPatch(preferred_arrays=preferred_array_list),
+    )
+    check_response(
+        res, module, f"Failed to set preferred arrays on host {module.params['name']}"
+    )
 
 
 def _set_chap_security(module, array):
     """Set CHAP usernames and passwords"""
-    api_version = array.get_rest_version()
     pattern = re.compile("[^ ]{12,255}")
     if module.params["host_user"]:
         if not pattern.match(module.params["host_password"]):
             module.fail_json(
                 msg="host_password must contain a minimum of 12 and a maximum of 255 characters"
             )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-                host=HostPatch(
-                    chap=Chap(
-                        host_user=module.params["host_user"],
-                        host_password=module.params["host_password"],
-                    )
-                ),
-            )
-        else:
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                host=HostPatch(
-                    chap=Chap(
-                        host_user=module.params["host_user"],
-                        host_password=module.params["host_password"],
-                    )
-                ),
-            )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to set CHAP host username and password. Error: {0}".format(
-                    res.errors[0].message
+        res = get_with_context(
+            array,
+            "patch_hosts",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+            host=HostPatch(
+                chap=Chap(
+                    host_user=module.params["host_user"],
+                    host_password=module.params["host_password"],
                 )
-            )
+            ),
+        )
+        check_response(res, module, "Failed to set CHAP host username and password")
     if module.params["target_user"]:
         if not pattern.match(module.params["target_password"]):
             module.fail_json(
                 msg="target_password must contain a minimum of 12 and a maximum of 255 characters"
             )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-                host=HostPatch(
-                    chap=Chap(
-                        target_user=module.params["target_user"],
-                        target_password=module.params["target_password"],
-                    )
-                ),
-            )
-        else:
-            res = array.patch_hosts(
-                names=[module.params["name"]],
-                host=HostPatch(
-                    chap=Chap(
-                        target_user=module.params["target_user"],
-                        target_password=module.params["target_password"],
-                    )
-                ),
-            )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to set CHAP target username and password. Error: {0}".format(
-                    res.errors[0].message
+        res = get_with_context(
+            array,
+            "patch_hosts",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+            host=HostPatch(
+                chap=Chap(
+                    target_user=module.params["target_user"],
+                    target_password=module.params["target_password"],
                 )
-            )
+            ),
+        )
+        check_response(res, module, "Failed to set CHAP target username and password")
 
 
 def _update_chap_security(module, array, answer=False):
     """Change CHAP usernames and passwords"""
-    api_version = array.get_rest_version()
     pattern = re.compile("[^ ]{12,255}")
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        chap = list(
-            array.get_hosts(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-            ).items
-        )[0].chap
-    else:
-        chap = list(array.get_hosts(names=[module.params["name"]]).items)[0].chap
+    chap = list(
+        get_with_context(
+            array,
+            "get_hosts",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+        ).items
+    )[0].chap
     if module.params["host_user"]:
         if module.params["host_password"] == "clear":
             if hasattr(chap, "host_user"):
                 answer = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        res = array.patch_hosts(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                            host=HostPatch(chap=Chap(host_user="", host_password="")),
-                        )
-                    else:
-                        res = array.patch_hosts(
-                            names=[module.params["name"]],
-                            host=HostPatch(chap=Chap(host_user="", host_password="")),
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to clear CHAP host username and password. Error: {0}".format(
-                                res.errors[0].message
-                            )
-                        )
+                    res = get_with_context(
+                        array,
+                        "patch_hosts",
+                        CONTEXT_API_VERSION,
+                        module,
+                        names=[module.params["name"]],
+                        host=HostPatch(chap=Chap(host_user="", host_password="")),
+                    )
+                    check_response(
+                        res, module, "Failed to clear CHAP host username and password"
+                    )
         else:
             if not pattern.match(module.params["host_password"]):
                 module.fail_json(
@@ -851,59 +715,38 @@ def _update_chap_security(module, array, answer=False):
                 )
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                        host=HostPatch(
-                            chap=Chap(
-                                host_user=module.params["host_user"],
-                                host_password=module.params["host_password"],
-                            )
-                        ),
-                    )
-                else:
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        host=HostPatch(
-                            chap=Chap(
-                                host_user=module.params["host_user"],
-                                host_password=module.params["host_password"],
-                            )
-                        ),
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to update CHAP host username and password. Error: {0}".format(
-                            res.errors[0].message
+                res = get_with_context(
+                    array,
+                    "patch_hosts",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    host=HostPatch(
+                        chap=Chap(
+                            host_user=module.params["host_user"],
+                            host_password=module.params["host_password"],
                         )
-                    )
+                    ),
+                )
+                check_response(
+                    res, module, "Failed to update CHAP host username and password"
+                )
     if module.params["target_user"]:
         if module.params["target_password"] == "clear":
             if hasattr(chap, "target_user"):
                 answer = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        res = array.patch_hosts(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                            host=HostPatch(
-                                chap=Chap(target_user="", target_password="")
-                            ),
-                        )
-                    else:
-                        res = array.patch_hosts(
-                            names=[module.params["name"]],
-                            host=HostPatch(
-                                chap=Chap(target_user="", target_password="")
-                            ),
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to clear CHAP target username and password. Error: {0}".format(
-                                res.errors[0].message
-                            )
-                        )
+                    res = get_with_context(
+                        array,
+                        "patch_hosts",
+                        CONTEXT_API_VERSION,
+                        module,
+                        names=[module.params["name"]],
+                        host=HostPatch(chap=Chap(target_user="", target_password="")),
+                    )
+                    check_response(
+                        res, module, "Failed to clear CHAP target username and password"
+                    )
         else:
             if not pattern.match(module.params["target_password"]):
                 module.fail_json(
@@ -911,169 +754,123 @@ def _update_chap_security(module, array, answer=False):
                 )
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                        host=HostPatch(
-                            chap=Chap(
-                                target_user=module.params["target_user"],
-                                target_password=module.params["target_password"],
-                            )
-                        ),
-                    )
-                else:
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        host=HostPatch(
-                            chap=Chap(
-                                target_user=module.params["target_user"],
-                                target_password=module.params["target_password"],
-                            )
-                        ),
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to update CHAP target username and password. Error: {0}".format(
-                            res.errors[0].message
+                res = get_with_context(
+                    array,
+                    "patch_hosts",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    host=HostPatch(
+                        chap=Chap(
+                            target_user=module.params["target_user"],
+                            target_password=module.params["target_password"],
                         )
-                    )
+                    ),
+                )
+                check_response(
+                    res, module, "Failed to update CHAP target username and password"
+                )
     return answer
 
 
 def _update_host_personality(module, array, answer=False):
     """Change host personality"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        host = list(
-            array.get_hosts(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-            ).items
-        )[0]
-    else:
-        host = list(array.get_hosts(names=[module.params["name"]]).items)[0]
+    host = list(
+        get_with_context(
+            array,
+            "get_hosts",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+        ).items
+    )[0]
     if not hasattr(host, "personality") and module.params["personality"] != "delete":
         answer = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.patch_hosts(
-                    names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                    host=HostPatch(personality=module.params["personality"]),
-                )
-            else:
-                res = array.patch_hosts(
-                    names=[module.params["name"]],
-                    host=HostPatch(personality=module.params["personality"]),
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Update host personality failed. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            res = get_with_context(
+                array,
+                "patch_hosts",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["name"]],
+                host=HostPatch(personality=module.params["personality"]),
+            )
+            check_response(res, module, "Update host personality failed")
     if hasattr(host, "personality"):
         if module.params["personality"] == "delete":
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        host=HostPatch(personality=""),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_hosts(
-                        names=[module.params["name"]], host=HostPatch(personality="")
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Host personality deletion failed. Error: {0}".format(
-                            res.errors[0].message
-                        )
-                    )
+                res = get_with_context(
+                    array,
+                    "patch_hosts",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    host=HostPatch(personality=""),
+                )
+                check_response(res, module, "Host personality deletion failed")
         elif host.personality != module.params["personality"]:
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                        host=HostPatch(personality=module.params["personality"]),
-                    )
-                else:
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        host=HostPatch(personality=module.params["personality"]),
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Host personality change failed. Error: {0}".format(
-                            res.errors[0].message
-                        )
-                    )
+                res = get_with_context(
+                    array,
+                    "patch_hosts",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    host=HostPatch(personality=module.params["personality"]),
+                )
+                check_response(res, module, "Host personality change failed")
     return answer
 
 
 def _update_preferred_array(module, array, answer=False):
     """Update existing preferred array list"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        preferred_array = list(
-            array.get_hosts(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-            ).items
-        )[0].preferred_arrays
-    else:
-        preferred_array = list(array.get_hosts(names=[module.params["name"]]).items)[
-            0
-        ].preferred_arrays
+    preferred_array = list(
+        get_with_context(
+            array,
+            "get_hosts",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+        ).items
+    )[0].preferred_arrays
     if preferred_array == [] and module.params["preferred_array"] != ["delete"]:
         answer = True
         preferred_array_list = []
         for preferred_array in module.params["preferred_array"]:
             preferred_array_list.append(Reference(name=preferred_array))
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.patch_hosts(
-                    names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                    host=HostPatch(preferred_arrays=preferred_array_list),
-                )
-            else:
-                res = array.patch_hosts(
-                    names=[module.params["name"]],
-                    host=HostPatch(preferred_arrays=preferred_array_list),
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Preferred array list creation failed for host {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            res = get_with_context(
+                array,
+                "patch_hosts",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["name"]],
+                host=HostPatch(preferred_arrays=preferred_array_list),
+            )
+            check_response(
+                res,
+                module,
+                f"Preferred array list creation failed for host {module.params['name']}",
+            )
     elif preferred_array != []:
         if module.params["preferred_array"] == ["delete"]:
             answer = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        host=HostPatch(preferred_arrays=[]),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_hosts(
-                        names=[module.params["name"]],
-                        host=HostPatch(preferred_arrays=[]),
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Preferred array list deletion failed for {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                res = get_with_context(
+                    array,
+                    "patch_hosts",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    host=HostPatch(preferred_arrays=[]),
+                )
+                check_response(
+                    res,
+                    module,
+                    f"Preferred array list deletion failed for {module.params['name']}",
+                )
         else:
             current_preferred_array_list = []
             for array_name in preferred_array:
@@ -1086,39 +883,31 @@ def _update_preferred_array(module, array, answer=False):
                     preferred_array_list = []
                     for array_name in module.params["preferred_array"]:
                         preferred_array_list.append(Reference(name=array_name))
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        res = array.patch_hosts(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                            host=HostPatch(preferred_arrays=preferred_array_list),
-                        )
-                    else:
-                        res = array.patch_hosts(
-                            names=[module.params["name"]],
-                            host=HostPatch(preferred_arrays=preferred_array_list),
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Preferred array list change failed for {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = get_with_context(
+                        array,
+                        "patch_hosts",
+                        CONTEXT_API_VERSION,
+                        module,
+                        names=[module.params["name"]],
+                        host=HostPatch(preferred_arrays=preferred_array_list),
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Preferred array list change failed for {module.params['name']}",
+                    )
     return answer
 
 
 def _set_vlan(module, array):
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        res = array.patch_hosts(
-            names=[module.params["name"]],
-            context_names=[module.params["context"]],
-            host=HostPatch(vlan=module.params["vlan"]),
-        )
-    else:
-        res = array.patch_hosts(
-            names=[module.params["name"]],
-            host=HostPatch(vlan=module.params["vlan"]),
-        )
+    res = get_with_context(
+        array,
+        "patch_hosts",
+        CONTEXT_API_VERSION,
+        module,
+        names=[module.params["name"]],
+        host=HostPatch(vlan=module.params["vlan"]),
+    )
     if res.status_code != 200:
         module.warn(
             "Failed to set host VLAN ID. Error: {0}".format(res.errors[0].message)
@@ -1126,49 +915,37 @@ def _set_vlan(module, array):
 
 
 def _update_vlan(module, array):
-    api_version = array.get_rest_version()
     changed = False
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        host_vlan = getattr(
-            list(
-                array.get_hosts(
-                    names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                ).items
-            )[0],
-            "vlan",
-            None,
-        )
-    else:
-        host_vlan = getattr(
-            list(array.get_hosts(names=[module.params["name"]]).items)[0], "vlan", None
-        )
+    host_vlan = getattr(
+        list(
+            get_with_context(
+                array,
+                "get_hosts",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["name"]],
+            ).items
+        )[0],
+        "vlan",
+        None,
+    )
     if module.params["vlan"] != host_vlan:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.patch_hosts(
-                    names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                    host=HostPatch(vlan=module.params["vlan"]),
-                )
-            else:
-                res = array.patch_hosts(
-                    names=[module.params["name"]],
-                    host=HostPatch(vlan=module.params["vlan"]),
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to update host VLAN ID. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            res = get_with_context(
+                array,
+                "patch_hosts",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["name"]],
+                host=HostPatch(vlan=module.params["vlan"]),
+            )
+            check_response(res, module, "Failed to update host VLAN ID")
     return changed
 
 
 def get_multi_hosts(module, array):
     """Return True is all hosts exist"""
-    api_version = array.get_rest_version()
     hosts = []
     for host_num in range(
         module.params["start"], module.params["count"] + module.params["start"]
@@ -1183,26 +960,20 @@ def get_multi_hosts(module, array):
             hosts.append(
                 module.params["name"] + str(host_num).zfill(module.params["digits"])
             )
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        return bool(
-            array.get_hosts(
-                names=hosts, context_names=[module.params["context"]]
-            ).status_code
-            == 200
-        )
-    return bool(array.get_hosts(names=hosts).status_code == 200)
+    res = get_with_context(array, "get_hosts", CONTEXT_API_VERSION, module, names=hosts)
+    return bool(res.status_code == 200)
 
 
 def get_host(module, array):
     """Return host or None"""
-    api_version = array.get_rest_version()
     host = None
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        res = array.get_hosts(
-            names=[module.params["name"]], context_names=[module.params["context"]]
-        )
-    else:
-        res = array.get_hosts(names=[module.params["name"]])
+    res = get_with_context(
+        array,
+        "get_hosts",
+        CONTEXT_API_VERSION,
+        module,
+        names=[module.params["name"]],
+    )
     if res.status_code == 200:
         host = list(res.items)[0]
     return host
@@ -1210,15 +981,14 @@ def get_host(module, array):
 
 def rename_exists(module, array):
     """Determine if rename target already exists"""
-    api_version = array.get_rest_version()
     exists = False
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        res = array.get_hosts(
-            names=[module.params["rename"]],
-            context_names=[module.params["context"]],
-        )
-    else:
-        res = array.get_hosts(names=[module.params["rename"]])
+    res = get_with_context(
+        array,
+        "get_hosts",
+        CONTEXT_API_VERSION,
+        module,
+        names=[module.params["rename"]],
+    )
     if res.status_code == 200:
         exists = True
     return exists
@@ -1226,7 +996,6 @@ def rename_exists(module, array):
 
 def make_multi_hosts(module, array):
     """Create multiple hosts"""
-    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
         hosts = []
@@ -1247,42 +1016,30 @@ def make_multi_hosts(module, array):
             host = HostPost(personality=module.params["personality"])
         else:
             host = HostPost()
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.post_hosts(
-                names=hosts, host=host, context_names=[module.params["context"]]
-            )
-        else:
-            res = array.post_hosts(names=hosts, host=host)
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Multi-Host {0}#{1} creation failed: {2}".format(
-                    module.params["name"],
-                    module.params["suffix"],
-                    res.errors[0].message,
-                )
-            )
+        res = get_with_context(
+            array, "post_hosts", CONTEXT_API_VERSION, module, names=hosts, host=host
+        )
+        check_response(
+            res,
+            module,
+            f"Multi-Host {module.params['name']}#{module.params['suffix']} creation failed",
+        )
     module.exit_json(changed=changed)
 
 
 def make_host(module, array):
     """Create a new host"""
-    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.post_hosts(
-                names=[module.params["name"]],
-                host=HostPost(),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.post_hosts(names=[module.params["name"]], host=HostPost())
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Host {0} creation failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        res = get_with_context(
+            array,
+            "post_hosts",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+            host=HostPost(),
+        )
+        check_response(res, module, f"Host {module.params['name']} creation failed")
         if module.params["vlan"]:
             _set_vlan(module, array)
         _set_host_initiators(module, array)
@@ -1294,43 +1051,25 @@ def make_host(module, array):
             _set_chap_security(module, array)
         if module.params["volume"]:
             if module.params["lun"]:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.post_connections(
-                        host_names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                        volume_names=[module.params["volume"]],
-                        connection=ConnectionPost(lun=module.params["lun"]),
-                    )
-                else:
-                    res = array.post_connections(
-                        host_names=[module.params["name"]],
-                        volume_names=[module.params["volume"]],
-                        connection=ConnectionPost(lun=module.params["lun"]),
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Volume connection failed. Error: {0}".format(
-                            res.errors[0].message
-                        )
-                    )
+                res = get_with_context(
+                    array,
+                    "post_connections",
+                    CONTEXT_API_VERSION,
+                    module,
+                    host_names=[module.params["name"]],
+                    volume_names=[module.params["volume"]],
+                    connection=ConnectionPost(lun=module.params["lun"]),
+                )
             else:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.post_connections(
-                        host_names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                        volume_names=[module.params["volume"]],
-                    )
-                else:
-                    res = array.post_connections(
-                        host_names=[module.params["name"]],
-                        volume_names=[module.params["volume"]],
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Volume connection failed. Error: {0}".format(
-                            res.errors[0].message
-                        )
-                    )
+                res = get_with_context(
+                    array,
+                    "post_connections",
+                    CONTEXT_API_VERSION,
+                    module,
+                    host_names=[module.params["name"]],
+                    volume_names=[module.params["volume"]],
+                )
+            check_response(res, module, "Volume connection failed")
     module.exit_json(changed=changed)
 
 
@@ -1340,7 +1079,12 @@ def update_host(module, array):
     renamed = False
     vol_changed = False
     vlan_changed = False
-    api_version = array.get_rest_version()
+    # Need api_version for VLAN_API_VERSION check
+    from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+        get_cached_api_version,
+    )
+
+    api_version = get_cached_api_version(array)
     if module.params["state"] == "present":
         if (
             LooseVersion(VLAN_API_VERSION) <= LooseVersion(api_version)
@@ -1350,25 +1094,19 @@ def update_host(module, array):
         if module.params["rename"]:
             if not rename_exists(module, array):
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                        res = array.patch_hosts(
-                            names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                            host=HostPatch(name=module.params["rename"]),
-                        )
-                    else:
-                        res = array.patch_hosts(
-                            names=[module.params["name"]],
-                            host=HostPatch(name=module.params["rename"]),
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Rename host {0} to {1} failed. Error: {2}".format(
-                                module.params["name"],
-                                module.params["rename"],
-                                res.errors[0].message,
-                            )
-                        )
+                    res = get_with_context(
+                        array,
+                        "patch_hosts",
+                        CONTEXT_API_VERSION,
+                        module,
+                        names=[module.params["name"]],
+                        host=HostPatch(name=module.params["rename"]),
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Rename host {module.params['name']} to {module.params['rename']} failed",
+                    )
                     module.params["name"] = module.params["rename"]
                     renamed = True
             else:
@@ -1379,17 +1117,15 @@ def update_host(module, array):
                     )
                 )
         init_changed = pers_changed = pref_changed = chap_changed = False
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            volumes = list(
-                array.get_connections(
-                    host_names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                ).items
-            )
-        else:
-            volumes = list(
-                array.get_connections(host_names=[module.params["name"]]).items
-            )
+        volumes = list(
+            get_with_context(
+                array,
+                "get_connections",
+                CONTEXT_API_VERSION,
+                module,
+                host_names=[module.params["name"]],
+            ).items
+        )
         if module.params["iqn"] or module.params["wwns"] or module.params["nqn"]:
             init_changed = _update_host_initiators(module, array)
         if module.params["volume"]:
@@ -1413,17 +1149,15 @@ def update_host(module, array):
         )
     else:
         if module.params["volume"]:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                volumes = list(
-                    array.get_connections(
-                        host_names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )
-            else:
-                volumes = list(
-                    array.get_connections(host_names=[module.params["name"]]).items
-                )
+            volumes = list(
+                get_with_context(
+                    array,
+                    "get_connections",
+                    CONTEXT_API_VERSION,
+                    module,
+                    host_names=[module.params["name"]],
+                ).items
+            )
             current_vols = [vol.volume.name for vol in volumes]
             if module.params["volume"] in current_vols:
                 vol_changed = _disconnect_volume(module, array)
@@ -1433,94 +1167,61 @@ def update_host(module, array):
 
 def delete_host(module, array):
     """Delete a host"""
-    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            has_hg = hasattr(
-                list(
-                    array.get_hosts(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )[0].host_group,
-                "name",
-            )
-        else:
-            has_hg = hasattr(
-                list(array.get_hosts(names=[module.params["name"]]).items)[
-                    0
-                ].host_group,
-                "name",
-            )
+        host_res = get_with_context(
+            array,
+            "get_hosts",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+        )
+        has_hg = hasattr(list(host_res.items)[0].host_group, "name")
         if has_hg:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.delete_host_groups_hosts(
-                    group_names=[
-                        list(array.get_hosts(names=[module.params["name"]]).items)[
-                            0
-                        ].host_group.name
-                    ],
-                    member_names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.delete_host_groups_hosts(
-                    group_names=[
-                        list(array.get_hosts(names=[module.params["name"]]).items)[
-                            0
-                        ].host_group.name
-                    ],
-                    member_names=[module.params["name"]],
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Host {0} failed to remove from hostgroup. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            volumes = list(
-                array.get_connections(
-                    host_names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                ).items
+            host_group_name = list(host_res.items)[0].host_group.name
+            res = get_with_context(
+                array,
+                "delete_host_groups_hosts",
+                CONTEXT_API_VERSION,
+                module,
+                group_names=[host_group_name],
+                member_names=[module.params["name"]],
             )
-        else:
-            volumes = list(
-                array.get_connections(host_names=[module.params["name"]]).items
+            check_response(
+                res,
+                module,
+                f"Host {module.params['name']} failed to remove from hostgroup",
             )
+        volumes = list(
+            get_with_context(
+                array,
+                "get_connections",
+                CONTEXT_API_VERSION,
+                module,
+                host_names=[module.params["name"]],
+            ).items
+        )
         current_vols = [vol.volume.name for vol in volumes]
         if current_vols:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.delete_connections(
-                    host_names=[module.params["name"]],
-                    volume_names=current_vols,
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.delete_connections(
-                    host_names=[module.params["name"]], volume_names=current_vols
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Host {0} volume detach failed. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.delete_hosts(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
+            res = get_with_context(
+                array,
+                "delete_connections",
+                CONTEXT_API_VERSION,
+                module,
+                host_names=[module.params["name"]],
+                volume_names=current_vols,
             )
-        else:
-            res = array.delete_hosts(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Host {0} deletion failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
+            check_response(
+                res, module, f"Host {module.params['name']} volume detach failed"
             )
+        res = get_with_context(
+            array,
+            "delete_hosts",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+        )
+        check_response(res, module, f"Host {module.params['name']} deletion failed")
     module.exit_json(changed=changed)
 
 
@@ -1528,7 +1229,6 @@ def move_host(module, array):
     """Move host between realms and the local array"""
     if module.params["context"] != "":
         module.fail_json(msg="context is not yet supported for host move function")
-    api_version = array.get_rest_version()
     local_array = list(array.get_arrays().items)[0].name
     # current_realm = ""
     if len(module.params["move"]) > 1 and len(module.params["move"]) != module.params[
@@ -1539,53 +1239,44 @@ def move_host(module, array):
         module.fail_json(msg="host must be provided with current realm name")
     # if "::" in module.params["name"]:
     #    current_realm = module.params["name"].split("::")[0]
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        current_connections = list(
-            array.get_hosts(
-                names=[module.params["name"]], context_names=[module.params["context"]]
-            ).items
-        )[0].connection_count
-    else:
-        current_connections = list(
-            array.get_hosts(names=[module.params["name"]]).items
-        )[0].connection_count
+    current_connections = list(
+        get_with_context(
+            array,
+            "get_hosts",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+        ).items
+    )[0].connection_count
     if current_connections > 0:
         module.fail_json(msg="Hosts cannot be moved with existing volume connections.")
     changed = True
     if not module.check_mode:
         if "local" in module.params["move"]:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.patch_hosts(
-                    names=[module.params["name"]],
-                    from_member_names=[module.params["name"].split("::")[0]],
-                    to_member_names=[local_array],
-                    modify_resource_access=module.params["modify_resource_access"],
-                    host=HostPatch(),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_hosts(
-                    names=[module.params["name"]],
-                    from_member_names=[module.params["name"].split("::")[0]],
-                    to_member_names=[local_array],
-                    modify_resource_access=module.params["modify_resource_access"],
-                    host=HostPatch(),
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to move host {0} to local array. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            res = get_with_context(
+                array,
+                "patch_hosts",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["name"]],
+                from_member_names=[module.params["name"].split("::")[0]],
+                to_member_names=[local_array],
+                modify_resource_access=module.params["modify_resource_access"],
+                host=HostPatch(),
+            )
+            check_response(
+                res,
+                module,
+                f"Failed to move host {module.params['name']} to local array",
+            )
         else:
-            realm_exists = False
-            if LooseVersion(REALMS_CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.get_realms(
-                    names=module.params["move"],
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.get_realms(names=module.params["move"])
+            res = get_with_context(
+                array,
+                "get_realms",
+                REALMS_CONTEXT_VERSION,
+                module,
+                names=module.params["move"],
+            )
             if res.status_code != 200:
                 module.fail_json(
                     msg="Move target(s) error: {0}".format(res.errors[0].message)
@@ -1594,31 +1285,22 @@ def move_host(module, array):
                 source_realm = local_array
             else:
                 source_realm = module.params["name"].split("::")[0]
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.patch_hosts(
-                    names=[module.params["name"]],
-                    from_member_names=[source_realm],
-                    to_member_names=module.params["move"],
-                    modify_resource_access=module.params["modify_resource_access"],
-                    host=HostPatch(),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_hosts(
-                    names=[module.params["name"]],
-                    from_member_names=[source_realm],
-                    to_member_names=module.params["move"],
-                    modify_resource_access=module.params["modify_resource_access"],
-                    host=HostPatch(),
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to move host {0} to realm {1}. Error: {2}".format(
-                        module.params["name"],
-                        module.params["move"],
-                        res.errors[0].message,
-                    )
-                )
+            res = get_with_context(
+                array,
+                "patch_hosts",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["name"]],
+                from_member_names=[source_realm],
+                to_member_names=module.params["move"],
+                modify_resource_access=module.params["modify_resource_access"],
+                host=HostPatch(),
+            )
+            check_response(
+                res,
+                module,
+                f"Failed to move host {module.params['name']} to realm {module.params['move']}",
+            )
     module.exit_json(changed=changed)
 
 
@@ -1694,7 +1376,12 @@ def main():
             msg="py-pure-client sdk is required to support 'vlan' parameter"
         )
     array = get_array(module)
-    api_version = array.get_rest_version()
+    # Need api_version for VLAN_API_VERSION check
+    from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+        get_cached_api_version,
+    )
+
+    api_version = get_cached_api_version(array)
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
     if module.params["rename"]:
         rename = module.params["rename"]
@@ -1780,24 +1467,25 @@ def main():
                 )
             )
         if module.params["volume"]:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.get_volumes(
-                    names=[module.params["volume"]],
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.get_volumes(names=[module.params["volume"]])
+            res = get_with_context(
+                array,
+                "get_volumes",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["volume"]],
+            )
             if res.status_code != 200:
                 module.exit_json(changed=False)
         if module.params["preferred_array"] and module.params["preferred_array"] != [
             "delete"
         ]:
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                connections = array.get_array_connections(
-                    context_names=[module.params["context"]], total_item_count=True
-                )
-            else:
-                connections = array.get_array_connections(total_item_count=True)
+            connections = get_with_context(
+                array,
+                "get_array_connections",
+                CONTEXT_API_VERSION,
+                module,
+                total_item_count=True,
+            )
             if connections.status_code != 200:
                 module.fail_json(
                     msg="Failed to get existing array connections. Error: {0}".format(
@@ -1809,24 +1497,18 @@ def main():
                     msg="No target arrays connected to source array - preferred arrays not possible."
                 )
             else:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    all_connected_arrays = list(
-                        array.get_array_connections(
-                            context_names=[module.params["context"]]
+                all_connected_arrays = list(
+                    get_with_context(
+                        array, "get_array_connections", CONTEXT_API_VERSION, module
+                    ).items
+                )
+                current_arrays = [
+                    list(
+                        get_with_context(
+                            array, "get_arrays", CONTEXT_API_VERSION, module
                         ).items
-                    )
-                else:
-                    all_connected_arrays = list(array.get_array_connections().items)
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    current_arrays = [
-                        list(
-                            array.get_arrays(
-                                context_names=[module.params["context"]]
-                            ).items
-                        )[0].name
-                    ]
-                else:
-                    current_arrays = [list(array.get_arrays().items)[0].name]
+                    )[0].name
+                ]
                 for current_array in all_connected_arrays:
                     if current_array.type == "sync-replication":
                         current_arrays.append(current_array.name)
