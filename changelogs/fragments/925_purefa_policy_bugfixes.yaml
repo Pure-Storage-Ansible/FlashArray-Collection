@@ -1,0 +1,9 @@
+bugfixes:
+  - purefa_policy - Fixed critical runtime error in quota policy rule deletion (line 942) where rules[rule].notifications incorrectly used object as dictionary key
+  - purefa_policy - Fixed duplicate variable initialization in update_policy() function (line 1509) where changed_rule was assigned twice
+  - purefa_policy - Fixed duplicate condition check (line 2784) where changed_rule was checked twice in the same if statement
+  - purefa_policy - Added missing min_password_age parameter to DOCUMENTATION, argument_spec, and password policy update logic
+  - purefa_policy - Added missing max_password_age parameter to DOCUMENTATION, argument_spec, and password policy update logic
+  - purefa_policy - Fixed KeyError when accessing min_password_age and max_password_age parameters that were used in code but not defined in argument_spec
+  - purefa_policy - Added max_password_age to current_pwd_policy dictionary and PolicyPassword API calls
+
