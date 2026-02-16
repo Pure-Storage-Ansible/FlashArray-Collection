@@ -242,6 +242,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.common impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 DEFAULT_API_VERSION = "2.16"
 POD_QUOTA_VERSION = "2.23"
@@ -425,12 +428,7 @@ def create_pod(module, array):
                         pod=PodPost(),
                         allow_throttle=module.params["throttle"],
                     )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Pod {0} creation failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Pod {module.params['name']} creation failed")
         if module.params["mediator"] != "purestorage":
             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                 res = array.patch_pods(
@@ -474,14 +472,11 @@ def create_pod(module, array):
                         group_names=[module.params["name"]],
                         member_names=[module.params["stretch"]],
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to stretch pod {0} to array {1}. Error: {2}".format(
-                            module.params["name"],
-                            module.params["stretch"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to stretch pod {module.params['name']} to array {module.params['stretch']}",
+                )
         if module.params["quota"] and LooseVersion(POD_QUOTA_VERSION) <= LooseVersion(
             api_version
         ):
@@ -496,12 +491,9 @@ def create_pod(module, array):
                     names=[module.params["name"]],
                     pod=PodPatch(quota_limit=human_to_bytes(module.params["quota"])),
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to apply quota to pod {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Failed to apply quota to pod {module.params['name']}"
+            )
         if LooseVersion(DEFAULT_API_VERSION) <= LooseVersion(api_version):
             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                 res = array.get_container_default_protections(
@@ -512,12 +504,11 @@ def create_pod(module, array):
                 res = array.get_container_default_protections(
                     names=[module.params["name"]]
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to get container default protection for pod {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to get container default protection for pod {module.params['name']}",
+            )
             safemode_pg = list(res.items)[0].default_protections
             if safemode_pg:
                 pgname = safemode_pg[0].name
@@ -539,12 +530,11 @@ def create_pod(module, array):
                             ContainerDefaultProtection(default_protections=[])
                         ),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to remove default protection for pod {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to remove default protection for pod {module.params['name']}",
+                )
                 if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                     res = array.patch_protection_groups(
                         names=[pgname],
@@ -556,24 +546,22 @@ def create_pod(module, array):
                         names=[pgname],
                         protection_group=ProtectionGroup(destroyed=True),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Deleting safemode default pgroup {0} failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Deleting safemode default pgroup {module.params['name']} failed",
+                )
                 if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                     res = array.delete_protection_groups(
                         names=[pgname], context_names=[module.params["context"]]
                     )
                 else:
                     res = array.delete_protection_groups(names=[pgname])
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Eradicating safemode default pgroup {0} failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Eradicating safemode default pgroup {module.params['name']} failed",
+                )
             if (
                 safemode_pg
                 and not module.params["with_default_protection"]
@@ -603,12 +591,11 @@ def create_pod(module, array):
                         pg_res = array.post_protection_groups(
                             names=[module.params["default_protection_pg"]]
                         )
-                    if pg_res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to create default protection group {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    check_response(
+                        pg_res,
+                        module,
+                        f"Failed to create default protection group {module.params['name']}",
+                    )
                 if (
                     module.params["retention_lock"]
                     and module.params["default_protection_pg"] != []
@@ -628,13 +615,11 @@ def create_pod(module, array):
                                 retention_lock="ratcheted"
                             ),
                         )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to set retention lock for protection group {0}. Error: {1}".format(
-                                module.params["default_protection_pg"],
-                                res.errors[0].message,
-                            )
-                        )
+                    check_response(
+                        res,
+                        module,
+                        f"Failed to set retention lock for protection group {module.params['default_protection_pg']}",
+                    )
                 if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                     array.patch_container_default_protections(
                         context_names=[module.params["context"]],
@@ -679,12 +664,11 @@ def create_pod(module, array):
                             )
                         ),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to set default protection for pod {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to set default protection for pod {module.params['name']}",
+                )
     module.exit_json(changed=changed)
 
 
@@ -715,14 +699,11 @@ def clone_pod(module, array):
                             names=[module.params["target"]],
                             allow_throttle=module.params["throttle"],
                         )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Clone pod {0} to pod {1} failed. Error: {2}".format(
-                        module.params["name"],
-                        module.params["target"],
-                        res.errors[0].message,
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Clone pod {module.params['name']} to pod {module.params['target']} failed",
+            )
         else:
             module.fail_json(
                 msg="Target pod {0} already exists but deleted.".format(
@@ -765,13 +746,11 @@ def update_pod(module, array):
                                 names=[module.params["name"]],
                                 pod=PodPatch(failover_preferences=[]),
                             )
-                        if res.status_code != 200:
-                            module.fail_json(
-                                msg="Failed to clear failover preference for pod {0}. Error: {1}".format(
-                                    module.params["name"],
-                                    res.errors[0].message,
-                                )
-                            )
+                        check_response(
+                            res,
+                            module,
+                            f"Failed to clear failover preference for pod {module.params['name']}",
+                        )
                 else:
                     failovers = []
                     for fo_array in module.params["failover"]:
@@ -787,13 +766,11 @@ def update_pod(module, array):
                             names=[module.params["name"]],
                             pod=PodPatch(failover_preferences=failovers),
                         )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to set failover preference for pod {0}. Error: {1}".format(
-                            module.params["name"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to set failover preference for pod {module.params['name']}",
+                )
     if current_config.mediator != module.params["mediator"]:
         changed = True
         if not module.check_mode:
@@ -904,12 +881,9 @@ def update_pod(module, array):
                                 names=[module.params["name"]],
                                 pod=PodPatch(requested_promotion_state="promoted"),
                             )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to promote pod {0}. Error: {1}".format(
-                                module.params["name"], res.erroros[0].message
-                            )
-                        )
+                    check_response(
+                        res, module, f"Failed to promote pod {module.params['name']}"
+                    )
                 elif (
                     current_config.promotion_status != "demoted"
                     and not module.params["promote"]
@@ -961,12 +935,9 @@ def update_pod(module, array):
                                 pod=PodPatch(requested_promotion_state="demoted"),
                                 quiesce=True,
                             )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to demote pod {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    check_response(
+                        res, module, f"Failed to demote pod {module.params['name']}"
+                    )
     if module.params["quota"] and LooseVersion(POD_QUOTA_VERSION) <= LooseVersion(
         api_version
     ):
@@ -991,12 +962,11 @@ def update_pod(module, array):
                             ignore_usage=module.params["ignore_usage"],
                         ),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to update quota on pod {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to update quota on pod {module.params['name']}",
+                )
     if module.params["default_protection_pg"] and LooseVersion(
         DEFAULT_API_VERSION
     ) <= LooseVersion(api_version):
@@ -1038,12 +1008,11 @@ def update_pod(module, array):
                     pg_res = array.post_protection_groups(
                         names=[module.params["default_protection_pg"]]
                     )
-                if pg_res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to create default protection group {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    pg_res,
+                    module,
+                    f"Failed to create default protection group {module.params['name']}",
+                )
             if (
                 module.params["retention_lock"]
                 and module.params["default_protection_pg"] != []
@@ -1059,13 +1028,11 @@ def update_pod(module, array):
                         names=[module.params["default_protection_pg"]],
                         protection_group=ProtectionGroup(retention_lock="ratcheted"),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to set retention lock for protection group {0}. Error: {1}".format(
-                            module.params["default_protection_pg"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to set retention lock for protection group {module.params['default_protection_pg']}",
+                )
             if safemode_pg:
                 if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                     array.patch_container_default_protections(
@@ -1111,12 +1078,11 @@ def update_pod(module, array):
                     )
                 ),
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to update default protection for pod {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res,
+            module,
+            f"Failed to update default protection for pod {module.params['name']}",
+        )
     module.exit_json(changed=changed)
 
 
@@ -1159,14 +1125,11 @@ def stretch_pod(module, array):
                         group_names=[module.params["name"]],
                         member_names=[module.params["stretch"]],
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to stretch pod {0} to array {1}. Error: {2}".format(
-                            module.params["name"],
-                            module.params["stretch"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to stretch pod {module.params['name']} to array {module.params['stretch']}",
+                )
 
         if (
             module.params["stretch"] in current_arrays
@@ -1191,14 +1154,11 @@ def stretch_pod(module, array):
                         group_names=[module.params["name"]],
                         member_names=[module.params["stretch"]],
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to unstretch pod {0} from array {1}. Error: {2}".format(
-                            module.params["name"],
-                            module.params["stretch"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to unstretch pod {module.params['name']} from array {module.params['stretch']}",
+                )
 
     module.exit_json(changed=changed)
 
@@ -1221,12 +1181,7 @@ def delete_pod(module, array):
                 pod=PodPatch(destroyed=True),
                 destroy_contents=module.params["delete_contents"],
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Delete pod {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Delete pod {module.params['name']} failed")
         if module.params["eradicate"]:
             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                 res = array.delete_pods(
@@ -1239,12 +1194,7 @@ def delete_pod(module, array):
                     names=[module.params["name"]],
                     eradicate_contents=module.params["delete_contents"],
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Eradicate pod {0} failed. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(res, module, f"Eradicate pod {module.params['name']} failed")
     module.exit_json(changed=changed)
 
 
@@ -1265,12 +1215,9 @@ def eradicate_pod(module, array):
                     names=[module.params["name"]],
                     eradicate_contents=module.params["delete_contents"],
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Eradication of pod {0} failed. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Eradication of pod {module.params['name']} failed"
+            )
     module.exit_json(changed=changed)
 
 
@@ -1289,12 +1236,7 @@ def recover_pod(module, array):
             res = array.patch_pods(
                 names=[module.params["name"]], pod=PodPatch(destroyed=False)
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Recovery of pod {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Recovery of pod {module.params['name']} failed")
     module.exit_json(changed=changed)
 
 
