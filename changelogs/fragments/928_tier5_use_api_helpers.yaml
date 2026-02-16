@@ -1,0 +1,14 @@
+minor_changes:
+  - All Tier 5 modules refactored to use centralized api_helpers for context-aware API calls.
+  - purefa_syslog - Use get_with_context() and check_response() helpers.
+  - purefa_volume_tags - Use get_with_context() and check_response() helpers.
+  - purefa_ds - Use get_with_context() and check_response() helpers.
+  - purefa_offload - Use get_with_context() and check_response() helpers.
+  - purefa_timeout - Use get_with_context() and check_response() helpers.
+  - purefa_banner - Use get_with_context() and check_response() helpers.
+  - purefa_audits - Use get_with_context() helper and fix duplicate code bug.
+  - purefa_syslog_settings - Use get_with_context() and check_response() helpers.
+  - purefa_console - Use get_with_context() and check_response() helpers.
+  - purefa_arrayname - Use get_with_context() and check_response() helpers.
+  - purefa_messages - Use get_with_context() helper.
+

@@ -84,6 +84,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
     get_local_tz,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+)
 
 TZ_VERSION = "2.26"
 CONTEXT_VERSION = "2.38"
@@ -125,12 +128,8 @@ def main():
     if not module.params["timezone"] and LooseVersion(TZ_VERSION) <= LooseVersion(
         api_version
     ):
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            timezone = list(
-                array.get_arrays(context_names=[module.params["context"]]).items
-            )[0].time_zone
-        else:
-            timezone = list(array.get_arrays().items)[0].time_zone
+        res = get_with_context(array, "get_arrays", CONTEXT_VERSION, module)
+        timezone = list(res.items)[0].time_zone
     elif not module.params["timezone"]:
         timezone = get_local_tz(module)
     elif module.params["timezone"] not in pytz.all_timezones_set:
@@ -142,20 +141,10 @@ def main():
     tzoffset = datetime.datetime.now(pytz.timezone(timezone)).strftime("%z")
     filter_string = _get_filter_string(module, tzoffset)
     audit_log = {}
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        if filter_string:
-            res = array.get_audits(
-                context_names=[module.params["context"]], filter=filter_string
-            )
-        else:
-            res = array.get_audits(context_names=[module.params["context"]])
-    else:
-        if filter_string:
-            res = array.get_audits(
-                context_names=[module.params["context"]], filter=filter_string
-            )
-        else:
-            res = array.get_audits(context_names=[module.params["context"]])
+    kwargs = {}
+    if filter_string:
+        kwargs["filter"] = filter_string
+    res = get_with_context(array, "get_audits", CONTEXT_VERSION, module, **kwargs)
     if res.status_code == 200:
         audits = list(res.items)
     else:

@@ -77,8 +77,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    check_response,
 )
 
 CONTEXT_VERSION = "2.38"
@@ -87,23 +88,15 @@ CONTEXT_VERSION = "2.38"
 def set_timeout(module, array):
     """Set GUI idle timeout"""
     changed = True
-    api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.patch_arrays(
-                array=Arrays(idle_timeout=module.params["timeout"]),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.patch_arrays(
-                array=Arrays(idle_timeout=module.params["timeout"])
-            )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to set GUI idle timeout. Error: {0}".format(
-                    res.errors[0].message
-                )
-            )
+        res = get_with_context(
+            array,
+            "patch_arrays",
+            CONTEXT_VERSION,
+            module,
+            array=Arrays(idle_timeout=module.params["timeout"]),
+        )
+        check_response(res, module, "Failed to set GUI idle timeout")
 
     module.exit_json(changed=changed)
 
@@ -111,16 +104,15 @@ def set_timeout(module, array):
 def disable_timeout(module, array):
     """Disable idle timeout"""
     changed = True
-    api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.patch_arrays(
-                array=Arrays(idle_timeout=0), context_names=[module.params["context"]]
-            )
-        else:
-            res = array.patch_arrays(array=Arrays(idle_timeout=0))
-        if res.status_code != 200:
-            module.fail_json(msg="Failed to disable GUI idle timeout")
+        res = get_with_context(
+            array,
+            "patch_arrays",
+            CONTEXT_VERSION,
+            module,
+            array=Arrays(idle_timeout=0),
+        )
+        check_response(res, module, "Failed to disable GUI idle timeout")
     module.exit_json(changed=changed)
 
 
@@ -143,13 +135,8 @@ def main():
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
     array = get_array(module)
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        current_timeout = list(
-            array.get_arrays(context_names=[module.params["context"]]).items
-        )[0].idle_timeout
-    else:
-        current_timeout = list(array.get_arrays().items)[0].idle_timeout
+    res = get_with_context(array, "get_arrays", CONTEXT_VERSION, module)
+    current_timeout = list(res.items)[0].idle_timeout
     if state == "present" and current_timeout != module.params["timeout"]:
         set_timeout(module, array)
     elif state == "absent" and current_timeout != 0:

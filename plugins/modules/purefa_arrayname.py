@@ -73,8 +73,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    check_response,
 )
 
 CONTEXT_VERSION = "2.38"
@@ -83,21 +84,17 @@ CONTEXT_VERSION = "2.38"
 def update_name(module, array):
     """Change array name"""
     changed = True
-    api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.patch_arrays(
-                array=Arrays(name=module.params["name"]),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.patch_arrays(array=Arrays(name=module.params["name"]))
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to change array name to {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        res = get_with_context(
+            array,
+            "patch_arrays",
+            CONTEXT_VERSION,
+            module,
+            array=Arrays(name=module.params["name"]),
+        )
+        check_response(
+            res, module, f"Failed to change array name to {module.params['name']}"
+        )
 
     module.exit_json(changed=changed)
 
@@ -118,7 +115,6 @@ def main():
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
     array = get_array(module)
-    api_version = array.get_rest_version()
     pattern = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,54}[a-zA-Z0-9])?$")
     if not pattern.match(module.params["name"]):
         module.fail_json(
@@ -126,12 +122,8 @@ def main():
                 module.params["name"]
             )
         )
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        current_name = list(
-            array.get_arrays(context_names=[module.params["context"]]).items
-        )[0].name
-    else:
-        current_name = list(array.get_arrays().items)[0].name
+    res = get_with_context(array, "get_arrays", CONTEXT_VERSION, module)
+    current_name = list(res.items)[0].name
     if module.params["name"] != current_name:
         update_name(module, array)
 

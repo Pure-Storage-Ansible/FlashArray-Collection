@@ -82,6 +82,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+)
 
 MIN_REQUIRED_API_VERSION = "2.2"
 ALLOWED_PERIODS = ["h", "d", "w", "y"]
@@ -144,12 +147,9 @@ def main():
     severity = " and severity='" + module.params["severity"] + "'"
     state = " and state='" + module.params["state"] + "'"
     filter_string = "notified>" + since_time + state + flagged + severity
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        res = array.get_alerts(
-            filter=filter_string, context_names=[module.params["context"]]
-        )
-    else:
-        res = array.get_alerts(filter=filter_string)
+    res = get_with_context(
+        array, "get_alerts", CONTEXT_VERSION, module, filter=filter_string
+    )
     if res.status_code == 200:
         alerts = list(res.items)
     else:

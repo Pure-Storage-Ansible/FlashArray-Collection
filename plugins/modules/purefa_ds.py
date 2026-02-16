@@ -192,8 +192,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    check_response,
 )
 
 CONTEXT_VERSION = "2.42"
@@ -202,7 +203,6 @@ CONTEXT_VERSION = "2.42"
 def delete_ds(module, array):
     """Delete Directory Service"""
     changed = True
-    api_version = array.get_rest_version()
     if module.params["dstype"] == "management":
         management = DirectoryServiceManagement(
             user_login_attribute="", user_object_class=""
@@ -226,38 +226,28 @@ def delete_ds(module, array):
             services=[module.params["dstype"]],
         )
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.patch_directory_services(
-                names=[module.params["dstype"]],
-                directory_service=directory_service,
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.patch_directory_services(
-                names=[module.params["dstype"]], directory_service=directory_service
-            )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Delete {0} Directory Service failed. Error message: {1}".format(
-                    module.params["dstype"], res.errors[0].message
-                )
-            )
+        res = get_with_context(
+            array,
+            "patch_directory_services",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["dstype"]],
+            directory_service=directory_service,
+        )
+        check_response(
+            res, module, f"Delete {module.params['dstype']} Directory Service failed"
+        )
     module.exit_json(changed=changed)
 
 
 def update_ds(module, array):
     """Update Directory Service"""
     changed = False
-    api_version = array.get_rest_version()
     ds_change = False
     password_required = False
     current_ds = []
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        dirservlist = list(
-            array.get_directory_services(context_names=[module.params["context"]]).items
-        )
-    else:
-        dirservlist = list(array.get_directory_services().items)
+    res = get_with_context(array, "get_directory_services", CONTEXT_VERSION, module)
+    dirservlist = list(res.items)
     for dirs in dirservlist:
         if dirs.name == module.params["dstype"]:
             current_ds = dirs
@@ -370,40 +360,33 @@ def update_ds(module, array):
     if ds_change:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.patch_directory_services(
-                    names=[module.params["dstype"]],
-                    directory_service=directory_service,
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_directory_services(
-                    names=[module.params["dstype"]], directory_service=directory_service
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="{0} Directory Service failed. Error message: {1}".format(
-                        module.params["dstype"].capitalize(), res.errors[0].message
-                    )
-                )
+            res = get_with_context(
+                array,
+                "patch_directory_services",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["dstype"]],
+                directory_service=directory_service,
+            )
+            check_response(
+                res,
+                module,
+                f"{module.params['dstype'].capitalize()} Directory Service failed",
+            )
     module.exit_json(changed=changed)
 
 
 def test_ds(module, array):
     """Test directory services configuration"""
     test_response = []
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        response = list(
-            array.get_directory_services_test(
-                names=[module.params["dstype"]],
-                context_names=[module.params["context"]],
-            ).items
-        )
-    else:
-        response = list(
-            array.get_directory_services_test(names=[module.params["dstype"]]).items
-        )
+    res = get_with_context(
+        array,
+        "get_directory_services_test",
+        CONTEXT_VERSION,
+        module,
+        names=[module.params["dstype"]],
+    )
+    response = list(res.items)
     for component in response:
         if component.enabled:
             enabled = "true"

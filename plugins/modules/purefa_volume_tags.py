@@ -119,8 +119,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    check_response,
 )
 
 CONTEXT_API_VERSION = "2.38"
@@ -128,13 +129,9 @@ CONTEXT_API_VERSION = "2.38"
 
 def get_volume(module, array):
     """Return Volume or None"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        res = array.get_volumes(
-            names=[module.params["name"]], context_names=[module.params["context"]]
-        )
-    else:
-        res = array.get_volumes(names=[module.params["name"]])
+    res = get_with_context(
+        array, "get_volumes", CONTEXT_API_VERSION, module, names=[module.params["name"]]
+    )
     if res.status_code == 200:
         return list(res.items)[0]
     return None
@@ -142,13 +139,9 @@ def get_volume(module, array):
 
 def get_endpoint(module, array):
     """Return Endpoint or None"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        res = array.get_volumes(
-            names=[module.params["name"]], context_names=[module.params["context"]]
-        )
-    else:
-        res = array.get_volumes(names=[module.params["name"]])
+    res = get_with_context(
+        array, "get_volumes", CONTEXT_API_VERSION, module, names=[module.params["name"]]
+    )
     if res.status_code == 200 and getattr(
         list(res.items)[0].protocol_endpoint, "container_version", None
     ):
@@ -159,7 +152,6 @@ def get_endpoint(module, array):
 def create_tag(module, array):
     """Create Volume Tag"""
     changed = True
-    api_version = array.get_rest_version()
     if not module.check_mode:
         pairs = []
         for tag in module.params["kvp"]:
@@ -178,22 +170,17 @@ def create_tag(module, array):
             )
             for key, value in pairs
         ]
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.put_volumes_tags_batch(
-                tag=tags,
-                resource_names=[module.params["name"]],
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.put_volumes_tags_batch(
-                tag=tags, resource_names=[module.params["name"]]
-            )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to add tag KVPs to volume {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        res = get_with_context(
+            array,
+            "put_volumes_tags_batch",
+            CONTEXT_API_VERSION,
+            module,
+            tag=tags,
+            resource_names=[module.params["name"]],
+        )
+        check_response(
+            res, module, f"Failed to add tag KVPs to volume {module.params['name']}"
+        )
 
     module.exit_json(changed=changed)
 
@@ -201,7 +188,6 @@ def create_tag(module, array):
 def update_tags(module, array, current_tags):
     """Update tags"""
     changed = False
-    api_version = array.get_rest_version()
     current_pairs = []
     new_pairs = []
     for tag in current_tags:
@@ -226,29 +212,23 @@ def update_tags(module, array, current_tags):
                 )
                 for key, value in add_pairs
             ]
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.put_volumes_tags_batch(
-                    tag=tags,
-                    resource_names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.put_volumes_tags_batch(
-                    tag=tags, resource_names=[module.params["name"]]
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to add tag KVPs to volume {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            res = get_with_context(
+                array,
+                "put_volumes_tags_batch",
+                CONTEXT_API_VERSION,
+                module,
+                tag=tags,
+                resource_names=[module.params["name"]],
+            )
+            check_response(
+                res, module, f"Failed to add tag KVPs to volume {module.params['name']}"
+            )
     module.exit_json(changed=changed)
 
 
 def delete_tags(module, array, current_tags):
     """Delete Tags"""
     changed = False
-    api_version = array.get_rest_version()
     now_tags = []
     old_tags = []
     for tag in current_tags:
@@ -260,27 +240,20 @@ def delete_tags(module, array, current_tags):
         changed = True
         if not module.check_mode:
             for tag in del_tags:
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.delete_volumes_tags(
-                        resource_names=[module.params["name"]],
-                        keys=[tag],
-                        namespaces=[module.params["namespace"]],
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.delete_volumes_tags(
-                        resource_names=[module.params["name"]],
-                        keys=[tag],
-                        namespaces=[module.params["namespace"]],
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to remove tag {0} from volume {1}. Error: {2}".format(
-                            tag,
-                            module.params["name"],
-                            res.errors[0].message,
-                        )
-                    )
+                res = get_with_context(
+                    array,
+                    "delete_volumes_tags",
+                    CONTEXT_API_VERSION,
+                    module,
+                    resource_names=[module.params["name"]],
+                    keys=[tag],
+                    namespaces=[module.params["namespace"]],
+                )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to remove tag {tag} from volume {module.params['name']}",
+                )
     module.exit_json(changed=changed)
 
 
@@ -302,7 +275,6 @@ def main():
 
     state = module.params["state"]
     array = get_array(module)
-    api_version = array.get_rest_version()
 
     volume = get_volume(module, array)
     endpoint = get_endpoint(module, array)
@@ -315,21 +287,15 @@ def main():
                 module.params["name"]
             )
         )
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        current_tags = list(
-            array.get_volumes_tags(
-                namespaces=[module.params["namespace"]],
-                resource_names=[module.params["name"]],
-                context_names=[module.params["context"]],
-            ).items
-        )
-    else:
-        current_tags = list(
-            array.get_volumes_tags(
-                namespaces=[module.params["namespace"]],
-                resource_names=[module.params["name"]],
-            ).items
-        )
+    res = get_with_context(
+        array,
+        "get_volumes_tags",
+        CONTEXT_API_VERSION,
+        module,
+        namespaces=[module.params["namespace"]],
+        resource_names=[module.params["name"]],
+    )
+    current_tags = list(res.items)
 
     if state == "present" and not current_tags:
         create_tag(module, array)

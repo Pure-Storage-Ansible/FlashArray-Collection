@@ -190,6 +190,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    check_response,
+)
 
 REGEX_TARGET_NAME = re.compile(r"^[a-zA-Z0-9\-]*$")
 MULTIOFFLOAD_LIMIT = 1
@@ -200,13 +204,9 @@ CONTEXT_VERSION = "2.38"
 
 def get_target(module, array):
     """Return target or None"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        res = array.get_offloads(
-            names=[module.params["name"]], context_names=[module.params["context"]]
-        )
-    else:
-        res = array.get_offloads(names=[module.params["name"]])
+    res = get_with_context(
+        array, "get_offloads", CONTEXT_VERSION, module, names=[module.params["name"]]
+    )
     if res.status_code == 200:
         return list(res.items)[0]
     return None
@@ -289,28 +289,21 @@ def create_offload(module, array):
                     mount_options=module.params["options"],
                 )
             offload = OffloadPost(nfs=bucket)
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.post_offloads(
-                offload=offload,
-                initialize=module.params["initialize"],
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.post_offloads(
-                offload=offload,
-                initialize=module.params["initialize"],
-                names=[module.params["name"]],
-            )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to create {0} offload {1}. Error: {2}"
-                "Please perform diagnostic checks.".format(
-                    module.params["protocol"].upper(),
-                    module.params["name"],
-                    res.errors[0].message,
-                )
-            )
+        res = get_with_context(
+            array,
+            "post_offloads",
+            CONTEXT_VERSION,
+            module,
+            offload=offload,
+            initialize=module.params["initialize"],
+            names=[module.params["name"]],
+        )
+        check_response(
+            res,
+            module,
+            f"Failed to create {module.params['protocol'].upper()} offload "
+            f"{module.params['name']}. Please perform diagnostic checks",
+        )
     module.exit_json(changed=changed)
 
 
@@ -323,20 +316,15 @@ def update_offload(module, array):
 def delete_offload(module, array):
     """Delete offload target"""
     changed = True
-    api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.delete_offloads(
-                names=[module.params["name"]], context_names=[module.params["context"]]
-            )
-        else:
-            res = array.delete_offloads(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete offload {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        res = get_with_context(
+            array,
+            "delete_offloads",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["name"]],
+        )
+        check_response(res, module, f"Failed to delete offload {module.params['name']}")
     module.exit_json(changed=changed)
 
 
