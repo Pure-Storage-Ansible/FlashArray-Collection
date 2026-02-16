@@ -73,6 +73,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 HAS_PURESTORAGE = True
 try:
@@ -89,12 +92,7 @@ def delete_proxy(module, array):
         changed = True
         if not module.check_mode:
             res = array.patch_support(support=SupportPatch(proxy=""))
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Delete proxy settings failed. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Delete proxy settings failed")
     module.exit_json(changed=changed)
 
 
@@ -113,12 +111,7 @@ def create_proxy(module, array):
         changed = True
         if not module.check_mode:
             res = array.patch_support(support=SupportPatch(proxy=new_proxy))
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Set phone home proxy failed. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Set phone home proxy failed")
 
     module.exit_json(changed=changed)
 

@@ -94,6 +94,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 MAX_API_VERSION = "2.36"
 
@@ -137,12 +140,9 @@ def disable_vnc(module, array, app):
             res = array.patch_apps(
                 names=[module.params["name"]], app=App(vnc_enabled=False)
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Disabling VNC for {0} failed. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Disabling VNC for {module.params['name']} failed"
+            )
     module.exit_json(changed=changed)
 
 
@@ -166,10 +166,9 @@ def main():
         module.warn("VNC feature deprecated from Purity//FA 6.8.0 and higher")
         module.exit_json(changed=False)
     res = array.get_apps(names=[module.params["name"]])
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Selected application {0} does not exist".format(module.params["name"])
-        )
+    check_response(
+        res, module, f"Selected application {module.params['name']} does not exist"
+    )
     app = list(res.items)[0]
     if not app.enabled:
         module.fail_json(

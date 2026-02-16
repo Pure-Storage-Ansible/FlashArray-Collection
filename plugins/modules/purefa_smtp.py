@@ -113,6 +113,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 
 def delete_smtp(module, array):
@@ -131,12 +134,7 @@ def delete_smtp(module, array):
                 body_prefix="",
             )
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Delete SMTP settings failed. Error: {0}".format(
-                    res.errors[0].message
-                )
-            )
+        check_response(res, module, "Delete SMTP settings failed")
     module.exit_json(changed=changed)
 
 
@@ -226,12 +224,7 @@ def create_smtp(module, array):
                         body_prefix=new_server["body_prefix"],
                     )
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to change SMTP server details. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Failed to change SMTP server details")
     module.exit_json(changed=changed)
 
 

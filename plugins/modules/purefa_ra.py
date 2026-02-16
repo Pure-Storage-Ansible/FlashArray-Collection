@@ -72,6 +72,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 HAS_PURESTORAGE = True
 try:
@@ -178,12 +181,7 @@ def disable_ra(module, array):
         changed = True
         if not module.check_mode:
             res = array.patch_support(support=SupportPatch(remote_assist_active=False))
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Disabling Remote Assist failed. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Disabling Remote Assist failed")
     module.exit_json(changed=changed)
 
 
