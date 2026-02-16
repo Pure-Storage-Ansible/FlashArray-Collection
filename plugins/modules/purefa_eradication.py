@@ -93,6 +93,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    check_response,
+)
 
 SEC_PER_DAY = 86400000
 ERADICATION_API_VERSION = "2.6"
@@ -127,14 +131,11 @@ def main():
     changed = False
     current_disabled = None
     current_enabled = None
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        current_eradication_config = list(
-            array.get_arrays(context_names=[module.params["context"]]).items
-        )[0].eradication_config
-    else:
-        current_eradication_config = list(array.get_arrays().items)[
-            0
-        ].eradication_config
+
+    # Get current eradication config using context-aware helper
+    res = get_with_context(array, "get_arrays", CONTEXT_VERSION, module)
+    current_eradication_config = list(res.items)[0].eradication_config
+
     if LooseVersion(ERADICATION_API_VERSION) <= LooseVersion(api_version):
         base_eradication_timer = getattr(
             current_eradication_config, "eradication_delay", None
@@ -162,21 +163,14 @@ def main():
             if not module.check_mode:
                 new_timer = SEC_PER_DAY * target_timer
                 eradication_config = EradicationConfig(eradication_delay=new_timer)
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_arrays(
-                        context_names=[module.params["context"]],
-                        array=Arrays(eradication_config=eradication_config),
-                    )
-                else:
-                    res = array.patch_arrays(
-                        array=Arrays(eradication_config=eradication_config)
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to change Eradication Timer. Error: {0}".format(
-                            res.errors[0].message
-                        )
-                    )
+                res = get_with_context(
+                    array,
+                    "patch_arrays",
+                    CONTEXT_VERSION,
+                    module,
+                    array=Arrays(eradication_config=eradication_config),
+                )
+                check_response(res, module, "Failed to change Eradication Timer")
         if current_disabled and (
             module.params["enabled_delay"] != current_enabled
             or module.params["disabled_delay"] != current_disabled
@@ -188,21 +182,14 @@ def main():
                 eradication_config = EradicationConfig(
                     enabled_delay=new_enabled, disabled_delay=new_disabled
                 )
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_arrays(
-                        context_names=[module.params["context"]],
-                        array=Arrays(eradication_config=eradication_config),
-                    )
-                else:
-                    res = array.patch_arrays(
-                        array=Arrays(eradication_config=eradication_config)
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to change Eradication Timers. Error: {0}".format(
-                            res.errors[0].message
-                        )
-                    )
+                res = get_with_context(
+                    array,
+                    "patch_arrays",
+                    CONTEXT_VERSION,
+                    module,
+                    array=Arrays(eradication_config=eradication_config),
+                )
+                check_response(res, module, "Failed to change Eradication Timers")
     else:
         module.fail_json(
             msg="Purity version does not support changing Eradication Timer"

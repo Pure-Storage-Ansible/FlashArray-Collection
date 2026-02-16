@@ -19,25 +19,25 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 )
 
 
-def get_cached_api_version(array):
+def get_cached_api_version(client):
     """Get API version with caching to avoid repeated calls.
 
     Args:
-        array: FlashArray client instance
+        client: FlashArray client instance
 
     Returns:
         str: API version string (e.g., "2.38")
     """
-    if not hasattr(array, "_cached_api_version"):
-        array._cached_api_version = array.get_rest_version()
-    return array._cached_api_version
+    if not hasattr(client, "_cached_api_version"):
+        client._cached_api_version = client.get_rest_version()
+    return client._cached_api_version
 
 
-def check_api_version(array, min_version, module, feature_name=None):
+def check_api_version(client, min_version, module, feature_name=None):
     """Check if array API version meets minimum requirement.
 
     Args:
-        array: FlashArray client instance
+        client: FlashArray client instance
         min_version: Minimum required API version string
         module: AnsibleModule instance
         feature_name: Optional name of feature for error message
@@ -48,7 +48,7 @@ def check_api_version(array, min_version, module, feature_name=None):
     Raises:
         Fails module if API version is insufficient and feature_name is provided
     """
-    api_version = get_cached_api_version(array)
+    api_version = get_cached_api_version(client)
     version_ok = LooseVersion(min_version) <= LooseVersion(api_version)
 
     if not version_ok and feature_name:
@@ -60,7 +60,7 @@ def check_api_version(array, min_version, module, feature_name=None):
     return version_ok
 
 
-def get_with_context(array, method_name, context_version, module, **kwargs):
+def get_with_context(client, method_name, context_version, module, **kwargs):
     """Call array API method with context support if API version allows.
 
     This is the primary helper to eliminate duplicated context-aware API calls.
@@ -70,11 +70,11 @@ def get_with_context(array, method_name, context_version, module, **kwargs):
     3. Context parameter is not None/empty
 
     Args:
-        array: FlashArray client instance
+        client: FlashArray client instance
         method_name: Name of method to call (e.g., 'get_protection_groups')
         context_version: Minimum API version for context support (e.g., "2.38")
         module: AnsibleModule instance
-        **kwargs: Arguments to pass to the method
+        **kwargs: Arguments to pass to the method (can include 'array' for SDK calls)
 
     Returns:
         API response object
@@ -96,8 +96,8 @@ def get_with_context(array, method_name, context_version, module, **kwargs):
             names=[name]
         )
     """
-    api_version = get_cached_api_version(array)
-    method = getattr(array, method_name)
+    api_version = get_cached_api_version(client)
+    method = getattr(client, method_name)
 
     # Add context if API version supports it and context is provided
     if LooseVersion(context_version) <= LooseVersion(api_version) and module.params.get(
@@ -108,28 +108,28 @@ def get_with_context(array, method_name, context_version, module, **kwargs):
     return method(**kwargs)
 
 
-def post_with_context(array, method_name, context_version, module, **kwargs):
+def post_with_context(client, method_name, context_version, module, **kwargs):
     """Alias for get_with_context for POST operations.
 
     Identical to get_with_context but named for clarity when doing POST operations.
     """
-    return get_with_context(array, method_name, context_version, module, **kwargs)
+    return get_with_context(client, method_name, context_version, module, **kwargs)
 
 
-def patch_with_context(array, method_name, context_version, module, **kwargs):
+def patch_with_context(client, method_name, context_version, module, **kwargs):
     """Alias for get_with_context for PATCH operations.
 
     Identical to get_with_context but named for clarity when doing PATCH operations.
     """
-    return get_with_context(array, method_name, context_version, module, **kwargs)
+    return get_with_context(client, method_name, context_version, module, **kwargs)
 
 
-def delete_with_context(array, method_name, context_version, module, **kwargs):
+def delete_with_context(client, method_name, context_version, module, **kwargs):
     """Alias for get_with_context for DELETE operations.
 
     Identical to get_with_context but named for clarity when doing DELETE operations.
     """
-    return get_with_context(array, method_name, context_version, module, **kwargs)
+    return get_with_context(client, method_name, context_version, module, **kwargs)
 
 
 def check_response(response, module, operation="Operation"):
