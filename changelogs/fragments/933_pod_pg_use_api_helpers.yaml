@@ -1,0 +1,4 @@
+---
+minor_changes:
+  - purefa_pod - Refactored to use centralized check_response() helper for API error handling.
+  - purefa_pg - Refactored to use centralized check_response() helper for API error handling.
