@@ -6,4 +6,3 @@ minor_changes:
   - module_utils/error_handlers - Added standardized error handling framework with FlashArray exception hierarchy
   - module_utils/error_handlers - Added safe_api_call() for comprehensive error handling wrapper
   - module_utils/error_handlers - Added handle_auth_error() for improved authentication error messages
-
