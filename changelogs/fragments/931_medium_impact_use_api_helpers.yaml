@@ -4,4 +4,3 @@ minor_changes:
   - purefa_hg - Refactored to use centralized api_helpers for error handling
   - purefa_vg - Refactored to use centralized api_helpers for error handling
   - purefa_pgsnap - Refactored to use centralized api_helpers for error handling
-
