@@ -11,4 +11,3 @@ minor_changes:
   - purefa_console - Use get_with_context() and check_response() helpers.
   - purefa_arrayname - Use get_with_context() and check_response() helpers.
   - purefa_messages - Use get_with_context() helper.
-
