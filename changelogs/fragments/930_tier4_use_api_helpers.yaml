@@ -1,0 +1,12 @@
+minor_changes:
+  - purefa_default_protection - Use centralized api_helpers for context-aware API calls and error handling.
+  - purefa_dns - Use centralized api_helpers for context-aware API calls and error handling.
+  - purefa_endpoint - Use centralized api_helpers for error handling.
+  - purefa_network - Use centralized api_helpers for error handling.
+  - purefa_ntp - Use centralized api_helpers for context-aware API calls and error handling.
+  - purefa_pgsched - Use centralized api_helpers for context-aware API calls and error handling.
+  - purefa_realm - Use centralized api_helpers for error handling.
+  - purefa_snmp - Use centralized api_helpers for error handling.
+  - purefa_user - Use centralized api_helpers for error handling.
+  - purefa_vlan - Use centralized api_helpers for error handling.
+  - purefa_workload - Use centralized api_helpers for error handling.

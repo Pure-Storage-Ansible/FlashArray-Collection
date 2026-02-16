@@ -174,6 +174,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 
 def update_fc_interface(module, array, interface):
@@ -186,10 +189,9 @@ def update_fc_interface(module, array, interface):
             res = array.patch_network_interfaces(
                 names=[module.params["name"]], network=network
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to enable interface {0}.".format(module.params["name"])
-                )
+            check_response(
+                res, module, f"Failed to enable interface {module.params['name']}"
+            )
     if interface.enabled and module.params["state"] == "absent":
         changed = True
         if not module.check_mode:
@@ -197,10 +199,9 @@ def update_fc_interface(module, array, interface):
             res = array.patch_network_interfaces(
                 names=[module.params["name"]], network=network
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to disable interface {0}.".format(module.params["name"])
-                )
+            check_response(
+                res, module, f"Failed to disable interface {module.params['name']}"
+            )
     if module.params["servicelist"] and sorted(module.params["servicelist"]) != sorted(
         interface.services
     ):
@@ -210,12 +211,11 @@ def update_fc_interface(module, array, interface):
             res = array.patch_network_interfaces(
                 names=[module.params["name"]], network=network
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to update interface service list {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to update interface service list {module.params['name']}",
+            )
 
     module.exit_json(changed=changed)
 
@@ -307,12 +307,9 @@ def update_interface(module, array):
                 res = array.patch_network_interfaces(
                     names=[module.params["name"]], network=network
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to enable interface {0}.".format(
-                            module.params["name"]
-                        )
-                    )
+                check_response(
+                    res, module, f"Failed to enable interface {module.params['name']}"
+                )
         if interface.enabled and module.params["state"] == "absent":
             changed = True
             if not module.check_mode:
@@ -320,12 +317,9 @@ def update_interface(module, array):
                 res = array.patch_network_interfaces(
                     names=[module.params["name"]], network=network
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to disable interface {0}.".format(
-                            module.params["name"]
-                        )
-                    )
+                check_response(
+                    res, module, f"Failed to disable interface {module.params['name']}"
+                )
         if module.params["servicelist"] and sorted(
             module.params["servicelist"]
         ) != sorted(interface.services):
@@ -335,12 +329,11 @@ def update_interface(module, array):
                 res = array.patch_network_interfaces(
                     names=[module.params["name"]], network=network
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to update interface service list {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to update interface service list {module.params['name']}",
+                )
         module.exit_json(changed=changed)
     # Modify ETH Interface settings
     current_state = {
@@ -448,12 +441,11 @@ def update_interface(module, array):
                 res = array.patch_network_interfaces(
                     names=[module.params["name"]], network=network
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to update interface service list {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to update interface service list {module.params['name']}",
+                )
         if (
             "management" in interface["services"] or "app" in interface["services"]
         ) and new_state["address"] in ["0.0.0.0/0", "::/0"]:
@@ -465,12 +457,11 @@ def update_interface(module, array):
                 names=[interface.name],
                 network=NetworkInterfacePatch(enabled=new_state["enabled"]),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to enable or disable interface {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to enable or disable interface {module.params['name']}",
+            )
             if new_state["gateway"] is not None:
                 res = array.patch_network_interfaces(
                     names=[interface.name],
@@ -483,12 +474,9 @@ def update_interface(module, array):
                         )
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to update IP settings for {0}. Error: {1}".format(
-                            interface.name, res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res, module, f"Failed to update IP settings for {interface.name}"
+                )
                 if (
                     current_state["subinterfaces"] != new_state["subinterfaces"]
                     and new_state["subinterfaces"] != []
@@ -504,12 +492,11 @@ def update_interface(module, array):
                             )
                         ),
                     )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to update subinterfaces for {0}. Error: {1}".format(
-                                interface.name, res.errors[0].message
-                            )
-                        )
+                    check_response(
+                        res,
+                        module,
+                        f"Failed to update subinterfaces for {interface.name}",
+                    )
             else:
                 try:
                     if valid_ipv4(new_state["address"]):
@@ -529,12 +516,9 @@ def update_interface(module, array):
                         )
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to update IP settings for {0}. Error: {1}".format(
-                            interface.name, res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res, module, f"Failed to update IP settings for {interface.name}"
+                )
                 if (
                     current_state["subinterfaces"] != new_state["subinterfaces"]
                     and new_state["subinterfaces"] != []
@@ -542,12 +526,11 @@ def update_interface(module, array):
                     res = array.delete_network_interfacess(
                         names=[module.params["name"]]
                     )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to delete network interface {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    check_response(
+                        res,
+                        module,
+                        f"Failed to delete network interface {module.params['name']}",
+                    )
                     create_interface(module, array)
     module.exit_json(changed=changed)
 
@@ -601,12 +584,9 @@ def create_interface(module, array):
                 ),
             )
 
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to create interface {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to create interface {module.params['name']}"
+        )
 
         if module.params["subinterfaces"] and module.params["subnet"]:
             res = array.patch_network_interfaces(
@@ -626,9 +606,8 @@ def create_interface(module, array):
             if res.status_code != 200:
                 array.delete_network_interfaces(names=[module.params["name"]])
                 module.fail_json(
-                    msg="Failed to create interface {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
+                    msg=f"Failed to create interface {module.params['name']}. "
+                    f"Error: {res.errors[0].message}"
                 )
         elif module.params["subinterfaces"] and not module.params["subnet"]:
             res = array.patch_network_interfaces(
@@ -647,9 +626,8 @@ def create_interface(module, array):
             if res.status_code != 200:
                 array.delete_network_interfaces(names=[module.params["name"]])
                 module.fail_json(
-                    msg="Failed to create interface {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
+                    msg=f"Failed to create interface {module.params['name']}. "
+                    f"Error: {res.errors[0].message}"
                 )
         elif not module.params["subinterfaces"] and module.params["subnet"]:
             res = array.patch_network_interfaces(
@@ -668,9 +646,8 @@ def create_interface(module, array):
             if res.status_code != 200:
                 array.delete_network_interfaces(names=[module.params["name"]])
                 module.fail_json(
-                    msg="Failed to create interface {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
+                    msg=f"Failed to create interface {module.params['name']}. "
+                    f"Error: {res.errors[0].message}"
                 )
         else:
             res = array.patch_network_interfaces(
@@ -688,9 +665,8 @@ def create_interface(module, array):
             if res.status_code != 200:
                 array.delete_network_interfaces(names=[module.params["name"]])
                 module.fail_json(
-                    msg="Failed to create interface {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
+                    msg=f"Failed to create interface {module.params['name']}. "
+                    f"Error: {res.errors[0].message}"
                 )
 
     module.exit_json(changed=changed)
@@ -700,12 +676,9 @@ def delete_interface(module, array):
     changed = True
     if not module.check_mode:
         res = array.delete_network_interfaces(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete network interface {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to delete network interface {module.params['name']}"
+        )
     module.exit_json(changed=changed)
 
 

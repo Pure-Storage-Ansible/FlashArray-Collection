@@ -153,6 +153,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.common impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 MINIMUM_API_VERSION = "2.36"
 
@@ -183,12 +186,7 @@ def rename_realm(module, array):
             names=[module.params["name"]],
             realm=RealmPatch(name=module.params["rename"]),
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Rename to {0} failed. Error: {1}".format(
-                    module.params["rename"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Rename to {module.params['rename']} failed")
     module.exit_json(changed=changed)
 
 
@@ -206,20 +204,10 @@ def make_realm(module, array):
         res = array.post_realms(
             names=[module.params["name"]], realm=RealmPost(quota_limit=quota)
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Creation of realm {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Creation of realm {module.params['name']} failed")
     else:
         res = array.post_realms(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Creation of realm {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Creation of realm {module.params['name']} failed")
     if module.params["bw_qos"] and not module.params["iops_qos"]:
         if int(human_to_bytes(module.params["bw_qos"])) in range(1048576, 549755813888):
             changed = True
@@ -232,13 +220,9 @@ def make_realm(module, array):
                         )
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Setting of realm {0} QoS failed. Error {1}".format(
-                            module.params["name"],
-                            res.errors[0].name,
-                        )
-                    )
+                check_response(
+                    res, module, f"Setting of realm {module.params['name']} QoS failed"
+                )
         else:
             module.fail_json(
                 msg="Bandwidth QoS value {0} out of range.".format(
@@ -257,13 +241,9 @@ def make_realm(module, array):
                         )
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Setting of realm {0} QoS failed. Error {1}".format(
-                            module.params["name"],
-                            res.errors[0].name,
-                        )
-                    )
+                check_response(
+                    res, module, f"Setting of realm {module.params['name']} QoS failed"
+                )
         else:
             module.fail_json(
                 msg="IOPs QoS value {0} out of range.".format(module.params["iops_qos"])
@@ -286,13 +266,9 @@ def make_realm(module, array):
                         ),
                     ),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Setting of realm {0} QoS failed. Error {1}".format(
-                            module.params["name"],
-                            res.errors[0].name,
-                        )
-                    )
+                check_response(
+                    res, module, f"Setting of realm {module.params['name']} QoS failed"
+                )
         else:
             module.fail_json(msg="IOPs or Bandwidth QoS value out of range.")
 
@@ -325,13 +301,11 @@ def update_realm(module, array):
                             )
                         ),
                     )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Realm {0} Bandwidth QoS change failed. Error: {1}".format(
-                                module.params["name"],
-                                res.errors[0].message,
-                            )
-                        )
+                    check_response(
+                        res,
+                        module,
+                        f"Realm {module.params['name']} Bandwidth QoS change failed",
+                    )
             else:
                 module.fail_json(
                     msg="Bandwidth QoS value {0} out of range.".format(
@@ -351,12 +325,11 @@ def update_realm(module, array):
                             )
                         ),
                     )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Realm {0} IOPs QoS change failed. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    check_response(
+                        res,
+                        module,
+                        f"Realm {module.params['name']} IOPs QoS change failed",
+                    )
             else:
                 module.fail_json(
                     msg="Bandwidth QoS value {0} out of range.".format(
@@ -374,12 +347,11 @@ def update_realm(module, array):
                             quota_limit=int(human_to_bytes(module.params["quota"]))
                         ),
                     )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Realm {0} quota change failed. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    check_response(
+                        res,
+                        module,
+                        f"Realm {module.params['name']} quota change failed",
+                    )
             else:
                 module.fail_json(
                     msg="Realm value {0} not a multiple of 512.".format(
@@ -397,12 +369,7 @@ def recover_realm(module, array):
         res = array.patch_realms(
             names=[module.params["name"]], realm=RealmPatch(destroyed=False)
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Recovery of realm {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Recovery of realm {module.params['name']} failed")
 
     module.exit_json(changed=changed)
 
@@ -415,12 +382,7 @@ def eradicate_realm(module, array):
             names=[module.params["name"]],
             eradicate_contents=module.params["delete_contents"],
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Eradicating realm {0} failed.Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Eradicating realm {module.params['name']} failed")
     module.exit_json(changed=changed)
 
 
@@ -434,12 +396,7 @@ def delete_realm(module, array):
             ignore_usage=module.params["ignore_usage"],
             realm=RealmPatch(destroyed=True),
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Deleting realm {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Deleting realm {module.params['name']} failed")
     if module.params["eradicate"]:
         eradicate_realm(module, array)
 

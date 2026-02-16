@@ -113,6 +113,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    check_response,
+)
 
 DEFAULT_API_VERSION = "2.16"
 CONTEXT_API_VERSION = "2.38"
@@ -120,14 +124,13 @@ CONTEXT_API_VERSION = "2.38"
 
 def _get_pod(module, array):
     """Return Pod or None"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        res = array.get_pods(
-            names=[module.params["pod"]],
-            context_names=[module.params["context"]],
-        )
-    else:
-        res = array.get_pods(names=[module.params["pod"]])
+    res = get_with_context(
+        array,
+        "get_pods",
+        CONTEXT_API_VERSION,
+        module,
+        names=[module.params["pod"]],
+    )
     if res.status_code == 200:
         return list(res.items)[0]
     return None
@@ -135,14 +138,9 @@ def _get_pod(module, array):
 
 def _get_pg(module, array, pod):
     """Return Protection Group or None"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        res = array.get_protection_groups(
-            names=[pod],
-            context_names=[module.params["context"]],
-        )
-    else:
-        res = array.get_protection_groups(names=[pod])
+    res = get_with_context(
+        array, "get_protection_groups", CONTEXT_API_VERSION, module, names=[pod]
+    )
     if res.status_code == 200:
         return list(res.items)[0]
     return None
@@ -150,7 +148,6 @@ def _get_pg(module, array, pod):
 
 def create_default(module, array):
     """Create Default Protection"""
-    api_version = array.get_rest_version()
     changed = True
     pg_list = []
     if not module.check_mode:
@@ -172,44 +169,33 @@ def create_default(module, array):
             protection = flasharray.ContainerDefaultProtection(
                 name="", type="", default_protections=pg_list
             )
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.patch_container_default_protections(
-                    names=[""],
-                    container_default_protection=protection,
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_container_default_protections(
-                    names=[""], container_default_protection=protection
-                )
+            res = get_with_context(
+                array,
+                "patch_container_default_protections",
+                CONTEXT_API_VERSION,
+                module,
+                names=[""],
+                container_default_protection=protection,
+            )
         else:
             protection = flasharray.ContainerDefaultProtection(
                 name=module.params["pod"], type="pod", default_protections=pg_list
             )
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.patch_container_default_protections(
-                    names=[module.params["pod"]],
-                    container_default_protection=protection,
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_container_default_protections(
-                    names=[module.params["pod"]],
-                    container_default_protection=protection,
-                )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to set default protection. Error: {0}".format(
-                    res.errors[0].message
-                )
+            res = get_with_context(
+                array,
+                "patch_container_default_protections",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["pod"]],
+                container_default_protection=protection,
             )
+        check_response(res, module, "Failed to set default protection")
 
     module.exit_json(changed=changed)
 
 
 def update_default(module, array, current_default):
     """Update Default Protection"""
-    api_version = array.get_rest_version()
     changed = False
     current = []
     for default in current_default:
@@ -252,75 +238,60 @@ def update_default(module, array, current_default):
                 protection = flasharray.ContainerDefaultProtection(
                     name="", type="", default_protections=pg_list
                 )
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_container_default_protections(
-                        names=[""],
-                        container_default_protection=protection,
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_container_default_protections(
-                        names=[""], container_default_protection=protection
-                    )
+                res = get_with_context(
+                    array,
+                    "patch_container_default_protections",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[""],
+                    container_default_protection=protection,
+                )
             else:
                 protection = flasharray.ContainerDefaultProtection(
                     name=module.params["pod"],
                     type="pod",
                     default_protections=pg_list,
                 )
-                if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_container_default_protections(
-                        names=[module.params["pod"]],
-                        container_default_protection=protection,
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_container_default_protections(
-                        names=[module.params["pod"]],
-                        container_default_protection=protection,
-                    )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to update default protection. Error: {0}".format(
-                        res.errors[0].message
-                    )
+                res = get_with_context(
+                    array,
+                    "patch_container_default_protections",
+                    CONTEXT_API_VERSION,
+                    module,
+                    names=[module.params["pod"]],
+                    container_default_protection=protection,
                 )
+            check_response(res, module, "Failed to update default protection")
     module.exit_json(changed=changed)
 
 
 def delete_default(module, array):
     """Delete Default Protection"""
-    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
         if module.params["scope"] == "array":
             protection = flasharray.ContainerDefaultProtection(
                 name="", type="", default_protections=[]
             )
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.patch_container_default_protections(
-                    names=[""],
-                    container_default_protection=protection,
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_container_default_protections(
-                    names=[""], container_default_protection=protection
-                )
+            res = get_with_context(
+                array,
+                "patch_container_default_protections",
+                CONTEXT_API_VERSION,
+                module,
+                names=[""],
+                container_default_protection=protection,
+            )
         else:
             protection = flasharray.ContainerDefaultProtection(
                 name=module.params["pod"], type="pod", default_protections=[]
             )
-            if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-                res = array.patch_container_default_protections(
-                    names=[module.params["pod"]],
-                    container_default_protection=[],
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_container_default_protections(
-                    names=[module.params["pod"]], container_default_protection=[]
-                )
+            res = get_with_context(
+                array,
+                "patch_container_default_protections",
+                CONTEXT_API_VERSION,
+                module,
+                names=[module.params["pod"]],
+                container_default_protection=[],
+            )
         if res.status_code != 200:
             if res.status_code == 403:
                 module.fail_json(
@@ -368,21 +339,18 @@ def main():
             module.fail_json(
                 msg="Invalid pod {0} specified.".format(module.params["pod"])
             )
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            ret = array.get_container_default_protections(
-                names=[module.params["pod"]],
-                context_names=[module.params["context"]],
-            )
-        else:
-            ret = array.get_container_default_protections(names=[module.params["pod"]])
+        ret = get_with_context(
+            array,
+            "get_container_default_protections",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["pod"]],
+        )
         current_default = list(ret.items)[0].default_protections
     else:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            ret = array.get_container_default_protections(
-                context_names=[module.params["context"]]
-            )
-        else:
-            ret = array.get_container_default_protections()
+        ret = get_with_context(
+            array, "get_container_default_protections", CONTEXT_API_VERSION, module
+        )
         current_default = list(ret.items)[0].default_protections
     for pgroup in module.params["name"]:
         if module.params["scope"] == "pod":

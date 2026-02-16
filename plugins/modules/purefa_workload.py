@@ -188,6 +188,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 VERSION = 1.5
 USER_AGENT_BASE = "Ansible"
@@ -205,12 +208,7 @@ def _create_volume(module, array):
         ),
         context_names=[module.params["context"]],
     )
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Workload volume creation failed. Error: {0}".format(
-                res.errors[0].message
-            )
-        )
+    check_response(res, module, "Workload volume creation failed")
 
 
 def _disconnect_volumes(module, array):
@@ -228,12 +226,7 @@ def _disconnect_volumes(module, array):
         context_names=[module.params["context"]],
         volume_names=volNames,
     )
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Failed to disconnect volumes from host. Error: {0}:{1}".format(
-                res.errors[0].message, res.errors[0].context
-            )
-        )
+    check_response(res, module, "Failed to disconnect volumes from host")
 
 
 def _connect_volumes(module, array):
@@ -252,12 +245,7 @@ def _connect_volumes(module, array):
         volume_names=volNames,
         connection=ConnectionPost(),
     )
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Failed to connect volumes to host. Error: {0}:{1}".format(
-                res.errors[0].message, res.errors[0].context
-            )
-        )
+    check_response(res, module, "Failed to connect volumes to host")
 
 
 def create_workload(module, array, fleet, preset_config):
@@ -277,12 +265,7 @@ def create_workload(module, array, fleet, preset_config):
             preset_names=[module.params["preset"]],
             context_names=[module.params["context"]],
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Recommendation calculation failure. Error: {0}".format(
-                    res.errors[0].message
-                )
-            )
+        check_response(res, module, "Recommendation calculation failure")
         workload_calc = list(res.items)[0].name
         # Wait for the workload calculation to complete
         result = list(
@@ -307,12 +290,9 @@ def create_workload(module, array, fleet, preset_config):
             workload=WorkloadPost(),
             context_names=[module.params["context"]],
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to create workload {0}. Error: {1}:{2}".format(
-                    module.params["name"], res.errors[0].message, res.errors[0].context
-                )
-            )
+        check_response(
+            res, module, f"Failed to create workload {module.params['name']}"
+        )
         if module.params["host"] != "":
             _connect_volumes(module, array)
 
@@ -349,10 +329,7 @@ def delete_workload(module, array):
             workload=WorkloadPatch(destroyed=True),
             context_names=[module.params["context"]],
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Workload deletion failed. Error: {0}".format(res.errors[0].message)
-            )
+        check_response(res, module, "Workload deletion failed")
         if module.params["eradicate"]:
             eradicate_workload(module, array)
     module.exit_json(changed=changed)
@@ -366,12 +343,7 @@ def eradicate_workload(module, array):
             names=[module.params["name"]],
             context_names=[module.params["context"]],
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Workload eradication failed. Error: {0}".format(
-                    res.errors[0].message
-                )
-            )
+        check_response(res, module, "Workload eradication failed")
     module.exit_json(changed=changed)
 
 
@@ -384,10 +356,7 @@ def recover_workload(module, array):
             workload=WorkloadPatch(destroyed=False),
             context_names=[module.params["context"]],
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Workload recovery failed. Error: {0}".format(res.errors[0].message)
-            )
+        check_response(res, module, "Workload recovery failed")
         if module.params["host"] != "":
             _connect_volumes(module, array)
 
@@ -403,10 +372,7 @@ def rename_workload(module, array):
             workload=WorkloadPatch(name=module.params["rename"]),
             context_names=[module.params["context"]],
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Workload rename failed. Error: {0}".format(res.errors[0].message)
-            )
+        check_response(res, module, "Workload rename failed")
     module.exit_json(changed=changed)
 
 
@@ -418,24 +384,18 @@ def connect_or_disconnect_volumes(module, array, mode):
         host_names=[module.params["host"]],
         context_names=[module.params["context"]],
     )
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Failed to get volume connection for host {0}. Error: {1}".format(
-                module.params["host"], res.errors[0].message
-            )
-        )
+    check_response(
+        res, module, f"Failed to get volume connection for host {module.params['host']}"
+    )
     volume_connections = [conn.volume.name for conn in list(res.items)]
 
     res = array.get_volumes(
         filter="workload.name='{0}'".format(module.params["name"]),
         context_names=[module.params["context"]],
     )
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Failed to get volumes for workload {0}. Error: {1}".format(
-                module.params["name"], res.errors[0].message
-            )
-        )
+    check_response(
+        res, module, f"Failed to get volumes for workload {module.params['name']}"
+    )
     volumes = list(res.items)
 
     if mode == "connect":
@@ -498,11 +458,11 @@ def main():
     if module.params["volume_count"] and module.params["volume_count"] <= 0:
         module.fail_json(msg="volume_count must be a positive integer.")
     fleet_res = array.get_fleets()
-    if fleet_res.status_code != 200:
-        module.fail_json(
-            msg="Fusion is not enabled on this system "
-            "or the array is not a member of a fleet."
-        )
+    check_response(
+        fleet_res,
+        module,
+        "Fusion is not enabled on this system or the array is not a member of a fleet",
+    )
     fleet = list(fleet_res.items)[0].name
 
     workload_destroyed = False
@@ -523,12 +483,11 @@ def main():
         res = array.get_presets_workload(
             names=[module.params["preset"]],
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Preset {0} does not exist in fleet {1}".format(
-                    module.params["preset"], fleet
-                )
-            )
+        check_response(
+            res,
+            module,
+            f"Preset {module.params['preset']} does not exist in fleet {fleet}",
+        )
         preset_config = list(res.items)[0]
     if (
         state == "present"
