@@ -242,6 +242,20 @@ options:
     - Maximum is limited by the minimum password length divided by the number of character groups
     type: int
     version_added: 1.33.0
+  min_password_age:
+    description:
+    - Minimum password age in seconds before a password can be changed.
+    - Range between 0 seconds (no minimum) and 90 days (7776000 seconds)
+    - A value of 0 means passwords can be changed immediately
+    type: int
+    version_added: 1.33.0
+  max_password_age:
+    description:
+    - Maximum password age in seconds before a password must be changed.
+    - Range between 1 second and 3650 days (315360000 seconds)
+    - If not set, passwords do not expire
+    type: int
+    version_added: 1.33.0
   rule_name:
     description:
     - Name of rule to update for a quota policy
@@ -925,7 +939,7 @@ def delete_policy(module, array):
                             if (
                                 module.params["quota_enforced"] == rule.enforced
                                 and ",".join(module.params["quota_notifications"])
-                                == rules[rule].notifications
+                                == rule.notifications
                             ):
                                 if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
                                     api_version
@@ -1492,7 +1506,7 @@ def update_policy(module, array, api_version, all_squash):
     """Update an existing policy including add/remove rules"""
     changed = changed_dir = changed_rule = changed_enable = changed_quota = (
         changed_member
-    ) = changed_user_map = changed_abe = changed_ca = changed_nfs = changed_rule = False
+    ) = changed_user_map = changed_abe = changed_ca = changed_nfs = False
     if module.params["policy"] == "nfs":
         if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
             current_policy = list(
@@ -2299,6 +2313,7 @@ def update_policy(module, array, api_version, all_squash):
             "min_characters_per_group": pwd_policy.min_characters_per_group,
             "min_password_length": pwd_policy.min_password_length,
             "min_password_age": getattr(pwd_policy, "min_password_age", 0),
+            "max_password_age": getattr(pwd_policy, "max_password_age", 0),
             "max_login_attempts": getattr(pwd_policy, "max_login_attempts", 0),
             "password_history": getattr(pwd_policy, "password_history", 0),
         }
@@ -2341,8 +2356,11 @@ def update_policy(module, array, api_version, all_squash):
         ):
             new_pwd_policy["min_password_length"] = module.params["min_password_length"]
             changed = True
-        if module.params["min_password_age"] != current_pwd_policy["min_password_age"]:
+        if module.params["min_password_age"] and module.params["min_password_age"] != current_pwd_policy["min_password_age"]:
             new_pwd_policy["min_password_age"] = module.params["min_password_age"]
+            changed = True
+        if module.params["max_password_age"] and module.params["max_password_age"] != current_pwd_policy.get("max_password_age", 0):
+            new_pwd_policy["max_password_age"] = module.params["max_password_age"]
             changed = True
         if (
             module.params["password_history"]
@@ -2377,6 +2395,7 @@ def update_policy(module, array, api_version, all_squash):
                         min_password_length=new_pwd_policy.min_password_length,
                         password_history=new_pwd_policy.password_history,
                         min_password_age=new_pwd_policy.min_password_age,
+                        max_password_age=new_pwd_policy.get("max_password_age"),
                         min_character_groups=new_pwd_policy.min_character_groups,
                         min_characters_per_group=new_pwd_policy.min_characters_per_group,
                         enforce_username_check=new_pwd_policy.enforce_username_check,
@@ -2392,6 +2411,7 @@ def update_policy(module, array, api_version, all_squash):
                         min_password_length=new_pwd_policy.min_password_length,
                         password_history=new_pwd_policy.password_history,
                         min_password_age=new_pwd_policy.min_password_age,
+                        max_password_age=new_pwd_policy.get("max_password_age"),
                         min_character_groups=new_pwd_policy.min_character_groups,
                         min_characters_per_group=new_pwd_policy.min_characters_per_group,
                         enforce_username_check=new_pwd_policy.enforce_username_check,
@@ -2761,7 +2781,6 @@ def update_policy(module, array, api_version, all_squash):
         or changed_abe
         or changed_ca
         or changed_nfs
-        or changed_rule
     ):
         changed = True
     module.exit_json(changed=changed)
@@ -2822,6 +2841,8 @@ def main():
             min_character_groups=dict(type="int"),
             min_characters_per_group=dict(type="int"),
             min_password_length=dict(type="int", no_log=False),
+            min_password_age=dict(type="int"),
+            max_password_age=dict(type="int"),
             password_history=dict(type="int", no_log=False),
             max_login_attempts=dict(type="int"),
             rule_name=dict(type="str"),
