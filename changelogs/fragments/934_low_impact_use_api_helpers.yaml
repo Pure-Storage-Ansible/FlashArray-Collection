@@ -1,4 +1,3 @@
----
 minor_changes:
   - purefa_admin - Refactored to use centralized check_response() helper for API error handling.
   - purefa_cbsexpand - Refactored to use centralized check_response() helper for API error handling.
@@ -13,4 +12,3 @@ minor_changes:
   - purefa_sso - Refactored to use centralized check_response() helper for API error handling.
   - purefa_token - Refactored to use centralized check_response() helper for API error handling.
   - purefa_vnc - Refactored to use centralized check_response() helper for API error handling.
-
