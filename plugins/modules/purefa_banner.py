@@ -72,8 +72,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    check_response,
 )
 
 HAS_PURESTORAGE = True
@@ -88,19 +89,17 @@ CONTEXT_VERSION = "2.38"
 def set_banner(module, array):
     """Set MOTD banner text"""
     changed = True
-    api_version = array.get_rest_version()
     if not module.params["banner"]:
         module.fail_json(msg="Invalid MOTD banner given")
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.patch_arrays(
-                array=Arrays(banner=module.params["banner"]),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.patch_arrays(array=Arrays(banner=module.params["banner"]))
-        if res.status_code != 200:
-            module.fail_json(msg="Failed to set MOTD banner text")
+        res = get_with_context(
+            array,
+            "patch_arrays",
+            CONTEXT_VERSION,
+            module,
+            array=Arrays(banner=module.params["banner"]),
+        )
+        check_response(res, module, "Failed to set MOTD banner text")
 
     module.exit_json(changed=changed)
 
@@ -108,16 +107,15 @@ def set_banner(module, array):
 def delete_banner(module, array):
     """Delete MOTD banner text"""
     changed = True
-    api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.patch_arrays(
-                array=Arrays(banner=""), context_names=[module.params["context"]]
-            )
-        else:
-            res = array.patch_arrays(array=Arrays(banner=""))
-        if res.status_code != 200:
-            module.fail_json(msg="Failed to delete current MOTD banner text")
+        res = get_with_context(
+            array,
+            "patch_arrays",
+            CONTEXT_VERSION,
+            module,
+            array=Arrays(banner=""),
+        )
+        check_response(res, module, "Failed to delete current MOTD banner text")
     module.exit_json(changed=changed)
 
 
@@ -142,13 +140,8 @@ def main():
 
     state = module.params["state"]
     array = get_array(module)
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        current_banner = list(
-            array.get_arrays(context_names=[module.params["context"]]).items
-        )[0].banner
-    else:
-        current_banner = list(array.get_arrays().items)[0].banner
+    res = get_with_context(array, "get_arrays", CONTEXT_VERSION, module)
+    current_banner = list(res.items)[0].banner
     # set banner if empty value or value differs
     if state == "present" and (
         not current_banner or current_banner != module.params["banner"]

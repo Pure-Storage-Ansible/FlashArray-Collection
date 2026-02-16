@@ -89,6 +89,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    check_response,
+)
 
 MIN_REQUIRED_API_VERSION = "2.9"
 CONTEXT_VERSION = "2.38"
@@ -128,14 +132,10 @@ def main():
     changed = cert_change = False
     if module.params["ca_certificate"] and len(module.params["ca_certificate"]) > 3000:
         module.fail_json(msg="Certificate exceeds 3000 characters")
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        current = list(
-            array.get_syslog_servers_settings(
-                context_names=[module.params["context"]]
-            ).items
-        )[0]
-    else:
-        current = list(array.get_syslog_servers_settings().items)[0]
+    res = get_with_context(
+        array, "get_syslog_servers_settings", CONTEXT_VERSION, module
+    )
+    current = list(res.items)[0]
     try:
         if hasattr(current, "ca_certificate"):
             pass
@@ -165,43 +165,28 @@ def main():
             new_cert = module.params["ca_certificate"]
     if changed and not module.check_mode:
         if cert_change:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.patch_syslog_servers_settings(
-                    syslog_server_settings=flasharray.SyslogServerSettings(
-                        ca_certificate=new_cert,
-                        tls_audit_enabled=new_tls,
-                        logging_severity=new_sev,
-                    ),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_syslog_servers_settings(
-                    syslog_server_settings=flasharray.SyslogServerSettings(
-                        ca_certificate=new_cert,
-                        tls_audit_enabled=new_tls,
-                        logging_severity=new_sev,
-                    )
-                )
-        else:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.patch_syslog_servers_settings(
-                    context_names=[module.params["context"]],
-                    syslog_server_settings=flasharray.SyslogServerSettings(
-                        tls_audit_enabled=new_tls, logging_severity=new_sev
-                    ),
-                )
-            else:
-                res = array.patch_syslog_servers_settings(
-                    syslog_server_settings=flasharray.SyslogServerSettings(
-                        tls_audit_enabled=new_tls, logging_severity=new_sev
-                    )
-                )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Changing syslog settings failed. Error: {0}".format(
-                    res.errors[0].message
-                )
+            res = get_with_context(
+                array,
+                "patch_syslog_servers_settings",
+                CONTEXT_VERSION,
+                module,
+                syslog_server_settings=flasharray.SyslogServerSettings(
+                    ca_certificate=new_cert,
+                    tls_audit_enabled=new_tls,
+                    logging_severity=new_sev,
+                ),
             )
+        else:
+            res = get_with_context(
+                array,
+                "patch_syslog_servers_settings",
+                CONTEXT_VERSION,
+                module,
+                syslog_server_settings=flasharray.SyslogServerSettings(
+                    tls_audit_enabled=new_tls, logging_severity=new_sev
+                ),
+            )
+        check_response(res, module, "Changing syslog settings failed")
 
     module.exit_json(changed=changed)
 

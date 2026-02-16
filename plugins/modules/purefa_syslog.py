@@ -113,8 +113,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    check_response,
 )
 
 CONTEXT_API_VERSION = "2.38"
@@ -122,16 +123,11 @@ CONTEXT_API_VERSION = "2.38"
 
 def test_syslog(module, array):
     """Test syslog configuration"""
-    api_version = array.get_rest_version()
     test_response = []
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        response = list(
-            array.get_syslog_servers_test(
-                context_names=[module.params["context"]]
-            ).items
-        )
-    else:
-        response = list(array.get_syslog_servers_test().items)
+    res = get_with_context(
+        array, "get_syslog_servers_test", CONTEXT_API_VERSION, module
+    )
+    response = list(res.items)
     for component in response:
         if component.enabled:
             enabled = "true"
@@ -159,28 +155,23 @@ def test_syslog(module, array):
 
 def delete_syslog(module, array):
     """Delete Syslog Server"""
-    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.delete_syslog_servers(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.delete_syslog_servers(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to remove syslog server {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        res = get_with_context(
+            array,
+            "delete_syslog_servers",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+        )
+        check_response(
+            res, module, f"Failed to remove syslog server {module.params['name']}"
+        )
     module.exit_json(changed=changed)
 
 
 def add_syslog(module, array):
     """Add Syslog Server"""
-    api_version = array.get_rest_version()
     changed = True
     noport_address = module.params["protocol"] + "://" + module.params["address"]
 
@@ -189,41 +180,30 @@ def add_syslog(module, array):
     else:
         full_address = noport_address
     if not module.check_mode:
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.post_syslog_servers(
-                names=[module.params["name"]],
-                syslog_server=SyslogServer(
-                    name=module.params["name"], uri=full_address
-                ),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.post_syslog_servers(
-                names=[module.params["name"]],
-                syslog_server=SyslogServer(
-                    name=module.params["name"], uri=full_address
-                ),
-            )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Adding syslog server {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        res = get_with_context(
+            array,
+            "post_syslog_servers",
+            CONTEXT_API_VERSION,
+            module,
+            names=[module.params["name"]],
+            syslog_server=SyslogServer(name=module.params["name"], uri=full_address),
+        )
+        check_response(
+            res, module, f"Adding syslog server {module.params['name']} failed"
+        )
     module.exit_json(changed=changed)
 
 
 def update_syslog(module, array):
     """Update Syslog Server"""
-    api_version = array.get_rest_version()
     changed = False
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        syslog_server_list = array.get_syslog_servers(
-            names=[module.params["name"]],
-            context_names=[module.params["context"]],
-        )
-    else:
-        syslog_server_list = array.get_syslog_servers(names=[module.params["name"]])
+    syslog_server_list = get_with_context(
+        array,
+        "get_syslog_servers",
+        CONTEXT_API_VERSION,
+        module,
+        names=[module.params["name"]],
+    )
     syslog_config = list(syslog_server_list.items)[0]
     noport_address = module.params["protocol"] + "://" + module.params["address"]
 
@@ -233,22 +213,17 @@ def update_syslog(module, array):
         full_address = noport_address
     if full_address != syslog_config.uri:
         changed = True
-        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-            res = array.patch_syslog_servers(
-                names=[module.params["name"]],
-                syslog_server=SyslogServer(uri=full_address),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.patch_syslog_servers(
+        if not module.check_mode:
+            res = get_with_context(
+                array,
+                "patch_syslog_servers",
+                CONTEXT_API_VERSION,
+                module,
                 names=[module.params["name"]],
                 syslog_server=SyslogServer(uri=full_address),
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Updating syslog server {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
+            check_response(
+                res, module, f"Updating syslog server {module.params['name']} failed"
             )
     module.exit_json(changed=changed)
 
@@ -275,14 +250,13 @@ def main():
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
 
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
-        res = array.get_syslog_servers(
-            names=[module.params["name"]],
-            context_names=[module.params["context"]],
-        )
-    else:
-        res = array.get_syslog_servers(names=[module.params["name"]])
+    res = get_with_context(
+        array,
+        "get_syslog_servers",
+        CONTEXT_API_VERSION,
+        module,
+        names=[module.params["name"]],
+    )
     exists = bool(res.status_code == 200)
 
     if module.params["state"] == "absent" and exists:
