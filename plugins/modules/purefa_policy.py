@@ -244,17 +244,23 @@ options:
     version_added: 1.33.0
   min_password_age:
     description:
-    - Minimum password age in seconds before a password can be changed.
-    - Range between 0 seconds (no minimum) and 90 days (7776000 seconds)
-    - A value of 0 means passwords can be changed immediately
-    type: int
+    - Minimum password age before a password can be changed.
+    - Value can be specified as a human-readable time period (e.g., C(1d), C(2h), C(30m), C(60s))
+      or as an integer representing seconds.
+    - Supported time units are C(w) (weeks), C(d) (days), C(h) (hours), C(m) (minutes), C(s) (seconds).
+    - Range between 0 seconds (no minimum) and 7 days.
+    - A value of 0 or C(0s) means passwords can be changed immediately.
+    type: str
     version_added: 1.33.0
   max_password_age:
     description:
-    - Maximum password age in seconds before a password must be changed.
-    - Range between 1 second and 3650 days (315360000 seconds)
-    - If not set, passwords do not expire
-    type: int
+    - Maximum password age before a password must be changed.
+    - Value can be specified as a human-readable time period (e.g., C(90d), C(1w), C(24h))
+      or as an integer representing seconds.
+    - Supported time units are C(w) (weeks), C(d) (days), C(h) (hours), C(m) (minutes), C(s) (seconds).
+    - Range between 1 day and 99999 days.
+    - A value of 0 or C(0s) disables password expiration.
+    type: str
     version_added: 1.33.0
   rule_name:
     description:
@@ -426,7 +432,7 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Update password police management
+- name: Update password policy management
   purestorage.flasharray.purefa_policy:
     name: management
     policy: password
@@ -435,6 +441,24 @@ EXAMPLES = r"""
     enforce_dictionary_check: true
     min_password_length: 5
     password_history: 2
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Update password policy with password age requirements
+  purestorage.flasharray.purefa_policy:
+    name: management
+    policy: password
+    min_password_age: 1d
+    max_password_age: 90d
+    lockout_duration: 300
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Disable password expiration
+  purestorage.flasharray.purefa_policy:
+    name: management
+    policy: password
+    max_password_age: 0
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
@@ -481,6 +505,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
     human_to_bytes,
     convert_to_millisecs,
+    convert_time_to_millisecs,
 )
 
 MIN_REQUIRED_API_VERSION = "2.3"
@@ -2841,8 +2866,8 @@ def main():
             min_character_groups=dict(type="int"),
             min_characters_per_group=dict(type="int"),
             min_password_length=dict(type="int", no_log=False),
-            min_password_age=dict(type="int"),
-            max_password_age=dict(type="int"),
+            min_password_age=dict(type="str"),
+            max_password_age=dict(type="str"),
             password_history=dict(type="int", no_log=False),
             max_login_attempts=dict(type="int"),
             rule_name=dict(type="str"),
@@ -2892,6 +2917,62 @@ def main():
         and not 1 <= module.params["lockout_duration"] <= 7776000
     ):
         module.fail_json(msg="Lockout duration must be between 1 and 7776000 seconds")
+
+    # Convert and validate min_password_age
+    if module.params["policy"] == "password" and module.params["min_password_age"]:
+        min_age_value = module.params["min_password_age"]
+        # Try to convert from human-readable format
+        if min_age_value[-1:].lower() in ["w", "d", "h", "m", "s"]:
+            min_age_ms = convert_time_to_millisecs(min_age_value)
+            if min_age_ms == 0 and min_age_value not in ["0s", "0m", "0h", "0d", "0w"]:
+                module.fail_json(
+                    msg="Invalid min_password_age format. Use format like '1d', '2h', '30m', '60s'"
+                )
+        else:
+            # Assume it's already in seconds (for backward compatibility)
+            try:
+                min_age_seconds = int(min_age_value)
+                min_age_ms = min_age_seconds * 1000
+            except ValueError:
+                module.fail_json(
+                    msg="Invalid min_password_age value. Must be an integer or time period like '1d', '2h'"
+                )
+
+        # Validate range: 0ms to 7 days (604800000 milliseconds)
+        if not 0 <= min_age_ms <= 604800000:
+            module.fail_json(
+                msg="min_password_age must be between 0 and 7 days (604800 seconds)"
+            )
+        module.params["min_password_age"] = min_age_ms
+
+    # Convert and validate max_password_age
+    if module.params["policy"] == "password" and module.params["max_password_age"]:
+        max_age_value = module.params["max_password_age"]
+        # Try to convert from human-readable format
+        if max_age_value[-1:].lower() in ["w", "d", "h", "m", "s"]:
+            max_age_ms = convert_time_to_millisecs(max_age_value)
+            # Allow 0 to disable password expiration
+            if max_age_ms == 0 and max_age_value not in ["0s", "0m", "0h", "0d", "0w"]:
+                module.fail_json(
+                    msg="Invalid max_password_age format. Use format like '90d', '1w', '24h', or '0' to disable"
+                )
+        else:
+            # Assume it's already in seconds (for backward compatibility)
+            try:
+                max_age_seconds = int(max_age_value)
+                max_age_ms = max_age_seconds * 1000
+            except ValueError:
+                module.fail_json(
+                    msg="Invalid max_password_age value. Must be an integer or time period like '90d', '1w'"
+                )
+
+        # Validate range: 0 (disabled) or 1 day to 99999 days (86400000ms to 8639913600000ms)
+        if max_age_ms != 0 and not 86400000 <= max_age_ms <= 8639913600000:
+            module.fail_json(
+                msg="max_password_age must be 0 (disabled) or between 1 day and 99999 days"
+            )
+        module.params["max_password_age"] = max_age_ms
+
     state = module.params["state"]
     if module.params["quota_notifications"]:
         module.params["quota_notifications"].sort(reverse=True)
