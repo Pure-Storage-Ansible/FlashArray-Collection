@@ -1,3 +1,2 @@
 minor_changes:
   - purefa_volume - Refactored error handling to use centralized check_response() helper (https://github.com/Pure-Storage-Ansible/FlashArray-Collection/pull/932)
-
