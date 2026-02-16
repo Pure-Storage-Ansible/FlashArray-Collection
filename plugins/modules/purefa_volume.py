@@ -348,6 +348,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.common impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 PURE_OUI = "naa.624a9370"
 PRIORITY_API_VERSION = "2.11"
@@ -627,13 +630,9 @@ def create_volume(module, array):
                             ),
                         ),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Volume {0} creation failed. Error: {1}".format(
-                            module.params["name"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res, module, f"Volume {module.params['name']} creation failed"
+                )
         elif module.params["iops_qos"] and not module.params["bw_qos"]:
             changed = True
             if not module.check_mode:
@@ -654,13 +653,9 @@ def create_volume(module, array):
                             qos=Qos(iops_limit=int(module.params["iops_qos"])),
                         ),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Volume {0} creation failed. Error: {1}".format(
-                            module.params["name"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res, module, f"Volume {module.params['name']} creation failed"
+                )
         else:
             changed = True
             if not module.check_mode:
@@ -695,13 +690,9 @@ def create_volume(module, array):
                             ),
                         ),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Volume {0} creation failed. Error: {1}".format(
-                            module.params["name"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res, module, f"Volume {module.params['name']} creation failed"
+                )
     else:
         changed = True
         if not module.check_mode:
@@ -720,13 +711,9 @@ def create_volume(module, array):
                         provisioned=int(human_to_bytes(module.params["size"]))
                     ),
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Volume {0} creation failed. Error: {1}".format(
-                        module.params["name"],
-                        res.errors[0].message,
-                    )
-                )
+            check_response(
+                res, module, f"Volume {module.params['name']} creation failed"
+            )
     if module.params["promotion_state"]:
         volume = VolumePatch(requested_promotion_state=module.params["promotion_state"])
         changed = True
@@ -987,14 +974,11 @@ def create_multi_volume(module, array, single=False):
                             "with_default_protection"
                         ],
                     )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Multi-Volume {0}#{1} creation failed. Error: {2}".format(
-                    module.params["name"],
-                    module.params["suffix"],
-                    res.errors[0].message,
-                )
-            )
+        check_response(
+            res,
+            module,
+            f"Multi-Volume {module.params['name']}#{module.params['suffix']} creation failed",
+        )
         if module.params["promotion_state"]:
             volume = VolumePatch(
                 requested_promotion_state=module.params["promotion_state"]
@@ -1154,27 +1138,21 @@ def copy_from_volume(module, array):
                             ),
                         )
 
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to copy volume {0} to {1}. Error: {2}".format(
-                            module.params["name"],
-                            module.params["target"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to copy volume {module.params['name']} to {module.params['target']}",
+                )
             else:
                 res = array.post_volumes(
                     names=[module.params["target"]],
                     volume=VolumePost(source=Reference(name=module.params["name"])),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Copy volume {0} to volume {1} failed. Error: {2}".format(
-                            module.params["name"],
-                            module.params["target"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Copy volume {module.params['name']} to volume {module.params['target']} failed",
+                )
     elif tgt is not None and module.params["overwrite"]:
         changed = True
         if not module.check_mode:
@@ -1191,14 +1169,11 @@ def copy_from_volume(module, array):
                     volume=VolumePost(source=Reference(name=module.params["name"])),
                     overwrite=module.params["overwrite"],
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Copy volume {0} to volume {1} failed. Error: {2}".format(
-                        module.params["name"],
-                        module.params["target"],
-                        res.errors[0].message,
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Copy volume {module.params['name']} to volume {module.params['target']} failed",
+            )
     module.exit_json(
         changed=changed, volume=_volfact(module, array, module.params["target"])
     )
@@ -1251,13 +1226,9 @@ def update_volume(module, array):
                                 provisioned=int(human_to_bytes(module.params["size"]))
                             ),
                         )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Volume {0} resize failed. Error: {1}".format(
-                                module.params["name"],
-                                res.errors[0].message,
-                            )
-                        )
+                    check_response(
+                        res, module, f"Volume {module.params['name']} resize failed"
+                    )
     if module.params["bw_qos"] and int(human_to_bytes(module.params["bw_qos"])) != int(
         vol_qos.bandwidth_limit
     ):
@@ -1275,13 +1246,11 @@ def update_volume(module, array):
                         names=[module.params["name"]],
                         volume=VolumePatch(qos=Qos(bandwidth_limit=549755813888)),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Volume {0} Bandwidth QoS removal failed. Error: {1}".format(
-                            module.params["name"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Volume {module.params['name']} Bandwidth QoS removal failed",
+                )
         else:
             changed = True
             if not module.check_mode:
@@ -1308,13 +1277,11 @@ def update_volume(module, array):
                             )
                         ),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Volume {0} Bandwidth QoS change failed. Error: {1}".format(
-                            module.params["name"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Volume {module.params['name']} Bandwidth QoS change failed",
+                )
     if module.params["iops_qos"] and int(
         human_to_real(module.params["iops_qos"])
     ) != int(vol_qos["iops_limit"]):
@@ -1332,12 +1299,11 @@ def update_volume(module, array):
                         names=[module.params["name"]],
                         volume=VolumePatch(qos=Qos(iops_limit=100000000)),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Volume {0} IOPs QoS removal failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Volume {module.params['name']} IOPs QoS removal failed",
+                )
         else:
             changed = True
             if not module.check_mode:
@@ -1360,12 +1326,11 @@ def update_volume(module, array):
                             )
                         ),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Volume {0} IOPs QoS change failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Volume {module.params['name']} IOPs QoS change failed",
+                )
     if module.params["promotion_state"]:
         if module.params["promotion_state"] != vol.promotion_status:
             volume_patch = VolumePatch(
@@ -1383,13 +1348,11 @@ def update_volume(module, array):
                     res = array.patch_volumes(
                         names=[module.params["name"]], volume=volume_patch
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to change promotion status for volume {0}. Error: {1}".format(
-                            module.params["name"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to change promotion status for volume {module.params['name']}",
+                )
     if module.params["priority_operator"]:
         change_prio = False
         if (
@@ -1434,12 +1397,11 @@ def update_volume(module, array):
                     prio_res = array.patch_volumes(
                         names=[module.params["name"]], volume=volumepatch
                     )
-                if prio_res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to change DMM Priority Adjustment for {0}. Error: {1}".format(
-                            module.params["name"], prio_res.errors[0].message
-                        )
-                    )
+                check_response(
+                    prio_res,
+                    module,
+                    f"Failed to change DMM Priority Adjustment for {module.params['name']}",
+                )
     if module.params["add_to_pgs"]:
         pgs_now = []
         if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
@@ -1471,14 +1433,11 @@ def update_volume(module, array):
                     member_names=[module.params["name"]],
                     group_names=new_pgs,
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to add volume {0} to new PGs {1}: Error: {2}".format(
-                        module.params["name"],
-                        new_pgs,
-                        res.errors[0].message,
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to add volume {module.params['name']} to new PGs {new_pgs}",
+            )
     module.exit_json(
         changed=changed, volume=_volfact(module, array, module.params["name"])
     )
@@ -1524,14 +1483,11 @@ def rename_volume(module, array):
                     names=[module.params["name"]],
                     volume=VolumePatch(name=module.params["rename"]),
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Rename volume {0} to {1} failed. Error: {2}".format(
-                        module.params["name"],
-                        module.params["rename"],
-                        res.errors[0].message,
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Rename volume {module.params['name']} to {module.params['rename']} failed",
+            )
 
     module.exit_json(
         changed=changed, volume=_volfact(module, array, module.params["rename"])
@@ -1739,15 +1695,12 @@ def move_volume(module, array):
                         names=[module.params["name"]],
                         volume=VolumePatch(pod=Reference(name="")),
                     )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Move of volume {0} to {1} failed. Error: {2}".format(
-                    module.params["name"],
-                    module.params["move"],
-                    res.errors[0].message,
-                )
-            )
-        else:
+        check_response(
+            res,
+            module,
+            f"Move of volume {module.params['name']} to {module.params['move']} failed",
+        )
+        if res.status_code == 200:
             volume_name = list(res.items)[0].name
     else:
         volume_name = ""
@@ -1790,12 +1743,11 @@ def delete_volume(module, array):
                         member_names=[module.params["name"]],
                         group_names=old_pgs,
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to remove volume {0} from PGs {1}: Error: {2}".format(
-                            module.params["name"], old_pgs, res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to remove volume {module.params['name']} from PGs {old_pgs}",
+                )
     else:
         changed = True
         if not module.check_mode:
@@ -1817,20 +1769,15 @@ def delete_volume(module, array):
                     )
                 else:
                     res = array.delete_volumes(names=[module.params["name"]])
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Eradicate volume {0} failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res, module, f"Eradicate volume {module.params['name']} failed"
+                )
                 module.exit_json(
                     changed=changed,
                 )
             elif res.status_code != 200:
-                module.fail_json(
-                    msg="Delete volume {0} failed. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
+                check_response(
+                    res, module, f"Delete volume {module.params['name']} failed"
                 )
     module.exit_json(
         changed=changed, volume=_volfact(module, array, module.params["name"])
@@ -1853,12 +1800,9 @@ def eradicate_volume(module, array):
                 )
             else:
                 res = array.delete_volumes(names=[module.params["name"]])
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Eradication of volume {0} failed. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Eradication of volume {module.params['name']} failed"
+            )
     module.exit_json(changed=changed, volume=volfact)
 
 
@@ -1877,12 +1821,9 @@ def recover_volume(module, array):
             res = array.patch_volumes(
                 names=[module.params["name"]], volume=VolumePatch(destroyed=False)
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Recovery of volume {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Recovery of volume {module.params['name']} failed"
+        )
     module.exit_json(
         changed=changed, volume=_volfact(module, array, module.params["name"])
     )
