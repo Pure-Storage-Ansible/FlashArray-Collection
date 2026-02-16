@@ -1,0 +1,2 @@
+minor_changes:
+  - purefa_host - Refactored to use centralized ``api_helpers`` functions (get_with_context, check_response) reducing code by 317 lines
