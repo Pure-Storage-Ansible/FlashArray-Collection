@@ -189,6 +189,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 from datetime import datetime
 
 THROTTLE_API = "2.25"
@@ -386,13 +389,12 @@ def create_snapshot(module, array):
                         source_names=[module.params["name"]],
                         on=module.params["offload"],
                     )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to create remote snapshot for volume {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
-            else:
+            check_response(
+                res,
+                module,
+                f"Failed to create remote snapshot for volume {module.params['name']}",
+            )
+            if res.status_code == 200:
                 if LooseVersion(SNAPSHOT_SUFFIX_API) > LooseVersion(api_version):
                     remote_snap = list(res.items)[0].name
                     module.params["suffix"] = remote_snap.split(".")[1]
@@ -417,23 +419,21 @@ def create_snapshot(module, array):
                         ),
                         source_names=[module.params["name"]],
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to create snapshot for volume {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to create snapshot for volume {module.params['name']}",
+                )
             else:
                 res = array.post_volume_snapshots(
                     source_names=[module.params["name"]],
                     volume_snapshot=VolumeSnapshotPost(suffix=module.params["suffix"]),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to create snapshot for volume {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to create snapshot for volume {module.params['name']}",
+                )
     module.exit_json(changed=changed, suffix=module.params["suffix"])
 
 
@@ -456,12 +456,11 @@ def create_from_snapshot(module, array):
                     volume=VolumePost(source=Reference(name=source)),
                     names=[module.params["target"]],
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to create volume {0} from snapshot {1}. Error: {2}".format(
-                        module.params["target"], source, res.errors[9].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to create volume {module.params['target']} from snapshot {source}",
+            )
     elif tgt is not None and module.params["overwrite"]:
         changed = True
         if not module.check_mode:
@@ -511,10 +510,7 @@ def recover_snapshot(module, array):
                     on=module.params["offload"],
                     remote_volume_snapshot=DestroyedPatchPost(destroyed=False),
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to recover remote snapshot {0}".format(snapname)
-                )
+            check_response(res, module, f"Failed to recover remote snapshot {snapname}")
     else:
         changed = True
         if not module.check_mode:
@@ -556,12 +552,7 @@ def update_snapshot(module, array):
                 names=[current_name],
                 volume_snapshot=VolumeSnapshotPatch(name=new_name),
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to rename {0} to {1}. Error: {2}".format(
-                    current_name, new_name, res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Failed to rename {current_name} to {new_name}")
     module.exit_json(changed=changed)
 
 
@@ -590,12 +581,7 @@ def delete_snapshot(module, array):
                     volume_snapshot=VolumeSnapshotPatch(destroyed=True),
                     replication_snapshot=module.params["ignore_repl"],
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to delete remote snapshot {0}. Error: {1}".format(
-                        snapname, res.errors[0].message
-                    )
-                )
+            check_response(res, module, f"Failed to delete remote snapshot {snapname}")
             if module.params["eradicate"]:
                 if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                     res = array.delete_remote_volume_snapshots(
@@ -610,12 +596,9 @@ def delete_snapshot(module, array):
                         on=module.params["offload"],
                         replication_snapshot=module.params["ignore_repl"],
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
-                            snapname, res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res, module, f"Failed to eradicate remote snapshot {snapname}"
+                )
     elif module.params["offload"] and _check_target(module, array):
         changed = True
         if not module.check_mode:
@@ -632,12 +615,7 @@ def delete_snapshot(module, array):
                     volume_snapshot=DestroyedPatchPost(destroyed=True),
                     replication_snapshot=module.params["ignore_repl"],
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to delete remote snapshot {0}. Error: {1}".format(
-                        snapname, res.errors[0].message
-                    )
-                )
+            check_response(res, module, f"Failed to delete remote snapshot {snapname}")
             if module.params["eradicate"]:
                 if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                     res = array.delete_volume_snapshots(
@@ -649,12 +627,9 @@ def delete_snapshot(module, array):
                         names=[snapname],
                         replication_snapshot=module.params["ignore_repl"],
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
-                            snapname, res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res, module, f"Failed to eradicate remote snapshot {snapname}"
+                )
     else:
         changed = True
         if not module.check_mode:
@@ -671,12 +646,7 @@ def delete_snapshot(module, array):
                     volume_snapshot=DestroyedPatchPost(destroyed=True),
                     replication_snapshot=module.params["ignore_repl"],
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to delete remote snapshot {0}. Error: {1}".format(
-                        snapname, res.errors[0].message
-                    )
-                )
+            check_response(res, module, f"Failed to delete remote snapshot {snapname}")
             if module.params["eradicate"]:
                 if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                     res = array.delete_volume_snapshots(
@@ -689,12 +659,9 @@ def delete_snapshot(module, array):
                         names=[snapname],
                         replication_snapshot=module.params["ignore_repl"],
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
-                            snapname, res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res, module, f"Failed to eradicate remote snapshot {snapname}"
+                )
     module.exit_json(changed=changed)
 
 
@@ -725,12 +692,9 @@ def eradicate_snapshot(module, array):
                     on=module.params["offload"],
                     replication_snapshot=module.params["ignore_repl"],
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
-                        snapname, res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Failed to eradicate remote snapshot {snapname}"
+            )
         elif module.params["offload"] and _check_target(module, array):
             if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                 res = array.delete_volume_snapshots(
@@ -742,12 +706,9 @@ def eradicate_snapshot(module, array):
                 res = array.delete_volume_snapshots(
                     names=[snapname], replication_snapshot=module.params["ignore_repl"]
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
-                        snapname, res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Failed to eradicate remote snapshot {snapname}"
+            )
         else:
             if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                 res = array.delete_volume_snapshots(
@@ -755,12 +716,9 @@ def eradicate_snapshot(module, array):
                 )
             else:
                 res = array.delete_volume_snapshots(names=[snapname])
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to eradicate remote snapshot {0}. Error: {1}".format(
-                        snapname, res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Failed to eradicate remote snapshot {snapname}"
+            )
     module.exit_json(changed=changed)
 
 

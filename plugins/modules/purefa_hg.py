@@ -163,6 +163,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 CONTEXT_API_VERSION = "2.38"
 
@@ -228,12 +231,9 @@ def make_hostgroup(module, array):
             )
         else:
             res = array.post_host_groups(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to create hostgroup {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to create hostgroup {module.params['name']}"
+        )
         if module.params["host"]:
             if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                 res = array.post_host_groups_hosts(
@@ -246,12 +246,7 @@ def make_hostgroup(module, array):
                     group_names=[module.params["name"]],
                     member_names=module.params["host"],
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to add host to hostgroup. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Failed to add host to hostgroup")
         if module.params["volume"]:
             if len(module.params["volume"]) == 1 and module.params["lun"]:
                 if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
@@ -267,14 +262,11 @@ def make_hostgroup(module, array):
                         volume_names=[module.params["volume"][0]],
                         connection=ConnectionPost(lun=module.params["lun"]),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to add volume {0} with LUN ID {1}. Error: {2}".format(
-                            module.params["volume"][0],
-                            module.params["lun"],
-                            res.errors[0].message,
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to add volume {module.params['volume'][0]} with LUN ID {module.params['lun']}",
+                )
             else:
                 if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                     res = array.post_connections(
@@ -287,12 +279,7 @@ def make_hostgroup(module, array):
                         host_group_names=[module.params["name"]],
                         volume_names=module.params["volume"],
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to add volumes to hostgroup. Error: {0}".format(
-                            res.errors[0].message
-                        )
-                    )
+                check_response(res, module, "Failed to add volumes to hostgroup")
     module.exit_json(changed=changed)
 
 
@@ -328,12 +315,9 @@ def update_hostgroup(module, array):
                             names=[module.params["name"]],
                             host_group=HostGroupPatch(name=module.params["rename"]),
                         )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Rename to {0} failed. Error: {1}".format(
-                                module.params["rename"], res.errors[0].message
-                            )
-                        )
+                    check_response(
+                        res, module, f"Rename to {module.params['rename']} failed"
+                    )
                     current_hostgroup = module.params["rename"]
                     renamed = True
             else:
@@ -365,12 +349,7 @@ def update_hostgroup(module, array):
                             ),
                             names=new_hosts,
                         )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to add host(s) to hostgroup. Error: {0}".format(
-                                res.errors[0].message
-                            )
-                        )
+                    check_response(res, module, "Failed to add host(s) to hostgroup")
                 changed = True
         if module.params["volume"]:
             if volumes:
@@ -394,14 +373,11 @@ def update_hostgroup(module, array):
                                 volume_names=[new_volumes[0]],
                                 connection=ConnectionPost(lun=module.params["lun"]),
                             )
-                        if res.status_code != 200:
-                            module.fail_json(
-                                msg="Failed to add volume {0} with LUN ID {1}. Error: {2}".format(
-                                    new_volumes[0],
-                                    module.params["lun"],
-                                    res.errors[0].message,
-                                )
-                            )
+                        check_response(
+                            res,
+                            module,
+                            f"Failed to add volume {new_volumes[0]} with LUN ID {module.params['lun']}",
+                        )
                     changed = True
                 else:
                     for cvol in new_volumes:
@@ -419,12 +395,11 @@ def update_hostgroup(module, array):
                                     host_group_names=[current_hostgroup],
                                     volume_names=[cvol],
                                 )
-                            if res.status_code != 200:
-                                module.fail_json(
-                                    msg="Failed to connect volume {0} to hostgroup {1}. Error: {2}".format(
-                                        cvol, current_hostgroup, res.errors[0].message
-                                    )
-                                )
+                            check_response(
+                                res,
+                                module,
+                                f"Failed to connect volume {cvol} to hostgroup {current_hostgroup}",
+                            )
                         changed = True
             else:
                 if len(module.params["volume"]) == 1 and module.params["lun"]:
@@ -444,14 +419,11 @@ def update_hostgroup(module, array):
                                 volume_names=[module.params["volume"][0]],
                                 connection=ConnectionPost(lun=module.params["lun"]),
                             )
-                        if res.status_code != 200:
-                            module.fail_json(
-                                msg="Failed to add volume {0} with LUN ID {1}. Error: {2}".format(
-                                    module.params["volume"],
-                                    module.params["lun"],
-                                    res.errors[0].message,
-                                )
-                            )
+                        check_response(
+                            res,
+                            module,
+                            f"Failed to add volume {module.params['volume']} with LUN ID {module.params['lun']}",
+                        )
                     changed = True
                 else:
                     for cvol in module.params["volume"]:
@@ -469,12 +441,11 @@ def update_hostgroup(module, array):
                                     host_group_names=[current_hostgroup],
                                     volume_names=[cvol],
                                 )
-                            if res.status_code != 200:
-                                module.fail_json(
-                                    msg="Failed to connect volume {0} to hostgroup {1}. Error: {2}".format(
-                                        cvol, current_hostgroup, res.errors[0].message
-                                    )
-                                )
+                            check_response(
+                                res,
+                                module,
+                                f"Failed to connect volume {cvol} to hostgroup {current_hostgroup}",
+                            )
                         changed = True
     else:
         if module.params["host"]:
@@ -495,12 +466,11 @@ def update_hostgroup(module, array):
                         res = array.delete_host_groups_hosts(
                             group_names=[current_hostgroup], member_names=old_hosts
                         )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to remove hosts {0} from hostgroup {1}. Error: {2}".format(
-                                old_hosts, current_hostgroup, res.errors[0].message
-                            )
-                        )
+                    check_response(
+                        res,
+                        module,
+                        f"Failed to remove hosts {old_hosts} from hostgroup {current_hostgroup}",
+                    )
                 changed = True
         if module.params["volume"]:
             old_vols = list(module.params["volume"])
@@ -521,12 +491,11 @@ def update_hostgroup(module, array):
                             host_group_names=[current_hostgroup],
                             volume_names=old_volumes,
                         )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to disconnect volume {0} from hostgroup {1}. Error: {2}".format(
-                                cvol, current_hostgroup, res.errors[0].message
-                            )
-                        )
+                    check_response(
+                        res,
+                        module,
+                        f"Failed to disconnect volumes from hostgroup {current_hostgroup}",
+                    )
     changed = changed or renamed
     module.exit_json(changed=changed)
 
@@ -544,10 +513,10 @@ def delete_hostgroup(module, array):
     if res.status_code == 200:
         vols = list(res.items)
     else:
-        module.fail_json(
-            msg="Failed to get volume connection for hostgroup {0}. Error: {1}".format(
-                module.params["hostgroup"], res.errors[0].message
-            )
+        check_response(
+            res,
+            module,
+            f"Failed to get volume connection for hostgroup {module.params['name']}",
         )
     remove_vols = [vol.volume.name for vol in vols]
     if remove_vols:
@@ -563,12 +532,11 @@ def delete_hostgroup(module, array):
                 res = array.delete_connections(
                     host_group_names=[module.params["name"]], volume_names=remove_vols
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to disconnect volumes {0} from hostgroup {1} Error: {2}".format(
-                        vols, module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to disconnect volumes from hostgroup {module.params['name']}",
+            )
     hgroup = get_hostgroup_hosts(module, array)
     hghosts = []
     for host in hgroup:
@@ -586,24 +554,14 @@ def delete_hostgroup(module, array):
                 res = array.delete_host_groups_hosts(
                     group_names=[hgroup[0].group.name], member_names=hghosts
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to remove hosts from hostgroup. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Failed to remove hosts from hostgroup")
     if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
         res = array.delete_host_groups(
             names=[module.params["name"]], context_names=[module.params["context"]]
         )
     else:
         res = array.delete_host_groups(names=[module.params["name"]])
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Failed to delete hostgroup {0}. Error: {1}".format(
-                module.params["name"], res.errors[0].message
-            )
-        )
+    check_response(res, module, f"Failed to delete hostgroup {module.params['name']}")
     module.exit_json(changed=changed)
 
 

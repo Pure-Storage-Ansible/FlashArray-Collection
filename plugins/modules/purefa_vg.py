@@ -208,6 +208,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.common impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 PRIORITY_API_VERSION = "2.11"
 CONTEXT_API_VERSION = "2.38"
@@ -295,12 +298,7 @@ def rename_vgroup(module, array):
                     names=[module.params["name"]],
                     volume_group=VolumeGroupPatch(name=module.params["rename"]),
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Rename to {0} failed. Error: {1}".format(
-                        module.params["rename"], res.errors[0].message
-                    )
-                )
+            check_response(res, module, f"Rename to {module.params['rename']} failed")
     module.exit_json(changed=changed)
 
 
@@ -335,12 +333,9 @@ def make_vgroup(module, array):
                             )
                         ),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Vgroup {0} creation failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res, module, f"Vgroup {module.params['name']} creation failed"
+                )
         else:
             module.fail_json(
                 msg="Bandwidth QoS value {0} out of range.".format(
@@ -370,12 +365,9 @@ def make_vgroup(module, array):
                             )
                         ),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Vgroup {0} creation failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res, module, f"Vgroup {module.params['name']} creation failed"
+                )
         else:
             module.fail_json(
                 msg="IOPs QoS value {0} out of range.".format(module.params["iops_qos"])
@@ -416,12 +408,9 @@ def make_vgroup(module, array):
                             )
                         ),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Vgroup {0} creation failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res, module, f"Vgroup {module.params['name']} creation failed"
+                )
         else:
             module.fail_json(msg="IOPs or Bandwidth QoS value out of range.")
     else:
@@ -438,12 +427,9 @@ def make_vgroup(module, array):
                     names=[module.params["name"]],
                     volume_group=VolumeGroupPost(),
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Vgroup {0} creation failed. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Vgroup {module.params['name']} creation failed"
+            )
     if LooseVersion(PRIORITY_API_VERSION) <= LooseVersion(api_version):
         volume_group = VolumeGroupPatch(
             priority_adjustment=PriorityAdjustment(
@@ -462,12 +448,11 @@ def make_vgroup(module, array):
                 res = array.patch_volume_groups(
                     names=[module.params["name"]], volume_group=volume_group
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to set priority adjustment for volume group {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to set priority adjustment for volume group {module.params['name']}",
+            )
 
     module.exit_json(changed=changed)
 
@@ -517,14 +502,11 @@ def make_multi_vgroups(module, array):
             )
         else:
             res = array.post_volume_groups(names=names, volume_group=volume_group)
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Multi-Vgroup {0}#{1} creation failed: {2}".format(
-                    module.params["name"],
-                    module.params["suffix"],
-                    res.errors[0].message,
-                )
-            )
+        check_response(
+            res,
+            module,
+            f"Multi-Vgroup {module.params['name']}#{module.params['suffix']} creation failed",
+        )
         if LooseVersion(PRIORITY_API_VERSION) <= LooseVersion(api_version):
             volume_group = VolumeGroupPatch(
                 priority_adjustment=PriorityAdjustment(
@@ -540,14 +522,11 @@ def make_multi_vgroups(module, array):
                 )
             else:
                 res = array.patch_volume_groups(names=names, volume_group=volume_group)
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to set priority adjustments for multi-vgroup {0}#{1}. Error: {2}".format(
-                        module.params["name"],
-                        module.params["suffix"],
-                        res.errors[0].message,
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to set priority adjustments for multi-vgroup {module.params['name']}#{module.params['suffix']}",
+            )
     module.exit_json(changed=changed)
 
 
@@ -599,12 +578,11 @@ def update_vgroup(module, array):
                 )
             )
             res = array.patch_volume_groups(**kwargs, volume_group=volume_group)
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to change DMM Priority for volume group {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to change DMM Priority for volume group {module.params['name']}",
+            )
 
     # ---------- QoS ----------
     vg_qos = vg_all.qos
@@ -627,10 +605,11 @@ def update_vgroup(module, array):
                     **kwargs,
                     volume_group=VolumeGroupPatch(qos=Qos(bandwidth_limit=bw_val)),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg=f"Vgroup {module.params['name']} Bandwidth QoS update failed. Error: {res.errors[0].message}"
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Vgroup {module.params['name']} Bandwidth QoS update failed",
+                )
 
     if module.params.get("iops_qos") is not None:
         iops_input = module.params["iops_qos"]
@@ -646,10 +625,11 @@ def update_vgroup(module, array):
                     **kwargs,
                     volume_group=VolumeGroupPatch(qos=Qos(iops_limit=iops_val)),
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg=f"Vgroup {module.params['name']} IOPS QoS update failed. Error: {res.errors[0].message}"
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Vgroup {module.params['name']} IOPS QoS update failed",
+                )
     module.exit_json(changed=changed)
 
 
@@ -669,12 +649,9 @@ def recover_vgroup(module, array):
                 names=[module.params["name"]],
                 volume_group=VolumeGroupPatch(destroyed=False),
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Recovery of volume group {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Recovery of volume group {module.params['name']} failed"
+        )
 
     module.exit_json(changed=changed)
 
@@ -690,12 +667,9 @@ def eradicate_vgroup(module, array):
             )
         else:
             res = array.delete_volume_groups(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Eradicating vgroup {0} failed. Errors: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Eradicating vgroup {module.params['name']} failed"
+        )
     module.exit_json(changed=changed)
 
 
@@ -715,12 +689,9 @@ def delete_vgroup(module, array):
                 names=[module.params["name"]],
                 volume_group=VolumeGroupPatch(destroyed=True),
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Deletion of volume group {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Deletion of volume group {module.params['name']} failed"
+        )
     if module.params["eradicate"]:
         eradicate_vgroup(module, array)
 

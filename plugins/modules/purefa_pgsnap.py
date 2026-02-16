@@ -227,6 +227,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 from datetime import datetime
 
@@ -541,14 +544,10 @@ def create_pgsnapshot(module, array):
                         protection_group_snapshot=suffix,
                     )
 
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Snapshot of pgroup {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
-        else:
-            snap_data = list(res.items)[0]
+        check_response(
+            res, module, f"Snapshot of pgroup {module.params['name']} failed"
+        )
+        snap_data = list(res.items)[0]
     module.exit_json(
         changed=changed,
         suffix=snap_data.suffix,
@@ -680,14 +679,11 @@ def restore_pgsnapvolume(module, array):
                 overwrite=module.params["overwrite"],
                 volume=VolumePost(source=Reference(name=source_volume)),
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to restore {0} from pgroup {1}. Error: {2}".format(
-                    module.params["restore"],
-                    module.params["name"],
-                    res.errors[0].message,
-                )
-            )
+        check_response(
+            res,
+            module,
+            f"Failed to restore {module.params['restore']} from pgroup {module.params['name']}",
+        )
     module.exit_json(changed=changed)
 
 
@@ -708,12 +704,11 @@ def delete_offload_snapshot(module, array):
                 res = array.get_remote_protection_group_snapshots(
                     names=[snapname], on=module.params["offload"]
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Offload snapshot {0} does not exist on {1}".format(
-                        snapname, module.params["offload"]
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Offload snapshot {snapname} does not exist on {module.params['offload']}",
+            )
 
             rpg_destroyed = list(res.items)[0].destroyed
             if not module.check_mode:
@@ -736,14 +731,11 @@ def delete_offload_snapshot(module, array):
                                 destroyed=True
                             ),
                         )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to delete offloaded snapshot {0} on target {1}. Error: {2}".format(
-                                snapname,
-                                module.params["offload"],
-                                res.errors[0].message,
-                            )
-                        )
+                    check_response(
+                        res,
+                        module,
+                        f"Failed to delete offloaded snapshot {snapname} on target {module.params['offload']}",
+                    )
                     if module.params["eradicate"]:
                         if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(
                             api_version
@@ -757,14 +749,11 @@ def delete_offload_snapshot(module, array):
                             res = array.delete_remote_protection_group_snapshots(
                                 names=[snapname], on=module.params["offload"]
                             )
-                        if res.status_code != 200:
-                            module.fail_json(
-                                msg="Failed to eradicate offloaded snapshot {0} on target {1}. Error: {2}".format(
-                                    snapname,
-                                    module.params["offload"],
-                                    res.errors[0].message,
-                                )
-                            )
+                        check_response(
+                            res,
+                            module,
+                            f"Failed to eradicate offloaded snapshot {snapname} on target {module.params['offload']}",
+                        )
                 else:
                     if module.params["eradicate"]:
                         changed = True
@@ -780,14 +769,11 @@ def delete_offload_snapshot(module, array):
                             res = array.delete_remote_protection_group_snapshots(
                                 names=[snapname], on=module.params["offload"]
                             )
-                        if res.status_code != 200:
-                            module.fail_json(
-                                msg="Failed to eradicate offloaded snapshot {0} on target {1}. Error: {2}".format(
-                                    snapname,
-                                    module.params["offload"],
-                                    res.errors[0].message,
-                                )
-                            )
+                        check_response(
+                            res,
+                            module,
+                            f"Failed to eradicate offloaded snapshot {snapname} on target {module.params['offload']}",
+                        )
         else:
             module.fail_json(
                 msg="Offload target {0} does not exist or not connected".format(
@@ -817,12 +803,7 @@ def delete_pgsnapshot(module, array):
                 names=[snapname],
                 protection_group_snapshot=ProtectionGroupSnapshotPatch(destroyed=True),
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete pgroup {0}. Error {1}".format(
-                    snapname, res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Failed to delete pgroup {snapname}")
         if module.params["eradicate"]:
             if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                 res = array.delete_protection_group_snapshots(
@@ -830,12 +811,7 @@ def delete_pgsnapshot(module, array):
                 )
             else:
                 res = array.delete_protection_group_snapshots(names=[snapname])
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to delete pgroup {0}. Error {1}".format(
-                        snapname, res.errors[0].message
-                    )
-                )
+            check_response(res, module, f"Failed to delete pgroup {snapname}")
     module.exit_json(changed=changed)
 
 
@@ -851,12 +827,7 @@ def eradicate_pgsnapshot(module, array):
             )
         else:
             res = array.delete_protection_group_snapshots(names=[snapname])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete pgroup {0}. Error {1}".format(
-                    snapname, res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Failed to delete pgroup {snapname}")
     module.exit_json(changed=changed)
 
 
@@ -878,12 +849,7 @@ def update_pgsnapshot(module, array):
                 names=[current_name],
                 protection_group_snapshot=ProtectionGroupSnapshotPatch(name=new_name),
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to rename {0} to {1}. Error: {2}".format(
-                    current_name, new_name, res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Failed to rename {current_name} to {new_name}")
     module.exit_json(changed=changed)
 
 
