@@ -1,0 +1,16 @@
+---
+minor_changes:
+  - purefa_admin - Refactored to use centralized check_response() helper for API error handling.
+  - purefa_cbsexpand - Refactored to use centralized check_response() helper for API error handling.
+  - purefa_eula - Refactored to use centralized check_response() helper for API error handling.
+  - purefa_hardware - Refactored to use centralized check_response() helper for API error handling.
+  - purefa_maintenance - Refactored to use centralized check_response() helper for API error handling.
+  - purefa_proxy - Refactored to use centralized check_response() helper for API error handling.
+  - purefa_ra - Refactored to use centralized check_response() helper for API error handling.
+  - purefa_smis - Refactored to use centralized check_response() helper for API error handling.
+  - purefa_smtp - Refactored to use centralized check_response() helper for API error handling.
+  - purefa_snmp_agent - Refactored to use centralized check_response() helper for API error handling.
+  - purefa_sso - Refactored to use centralized check_response() helper for API error handling.
+  - purefa_token - Refactored to use centralized check_response() helper for API error handling.
+  - purefa_vnc - Refactored to use centralized check_response() helper for API error handling.
+

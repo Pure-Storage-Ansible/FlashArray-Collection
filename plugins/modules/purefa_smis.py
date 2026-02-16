@@ -71,6 +71,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 MIN_REQUIRED_API_VERSION = "2.2"
 
@@ -94,12 +97,7 @@ def update_smis(module, array):
         changed = True
         if not module.check_mode:
             res = array.patch_smi_s(smi_s=smi_s)
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to change SMI-S settings. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Failed to change SMI-S settings")
     module.exit_json(changed=changed)
 
 

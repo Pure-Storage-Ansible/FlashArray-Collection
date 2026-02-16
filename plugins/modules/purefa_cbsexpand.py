@@ -70,6 +70,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 EXPAND_API_VERSION = "2.29"
 
@@ -106,12 +109,7 @@ def update_capacity(module, array):
             requested_capacity=module.params["capacity"]
         )
     )
-    if expanded.status_code != 200:
-        module.fail_json(
-            msg="Expansion request failed. Error: {0}".format(
-                expanded.errors[0].message
-            )
-        )
+    check_response(expanded, module, "Expansion request failed")
 
 
 def main():
