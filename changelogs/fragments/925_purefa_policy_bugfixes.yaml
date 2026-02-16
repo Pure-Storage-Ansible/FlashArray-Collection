@@ -9,4 +9,3 @@ bugfixes:
   - purefa_policy - Fixed min_password_age and max_password_age to properly convert from human-readable time periods to milliseconds for SDK compatibility
   - purefa_policy - Enhanced min_password_age and max_password_age to accept human-readable time periods (e.g., '1d', '90d', '2h') in addition to integer seconds
   - purefa_policy - Corrected min_password_age range to 0-7 days and max_password_age range to 0 (disabled) or 1-99999 days per SDK specifications
-
