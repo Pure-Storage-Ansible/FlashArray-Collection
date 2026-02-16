@@ -2381,10 +2381,16 @@ def update_policy(module, array, api_version, all_squash):
         ):
             new_pwd_policy["min_password_length"] = module.params["min_password_length"]
             changed = True
-        if module.params["min_password_age"] and module.params["min_password_age"] != current_pwd_policy["min_password_age"]:
+        if (
+            module.params["min_password_age"]
+            and module.params["min_password_age"]
+            != current_pwd_policy["min_password_age"]
+        ):
             new_pwd_policy["min_password_age"] = module.params["min_password_age"]
             changed = True
-        if module.params["max_password_age"] and module.params["max_password_age"] != current_pwd_policy.get("max_password_age", 0):
+        if module.params["max_password_age"] and module.params[
+            "max_password_age"
+        ] != current_pwd_policy.get("max_password_age", 0):
             new_pwd_policy["max_password_age"] = module.params["max_password_age"]
             changed = True
         if (
