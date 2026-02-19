@@ -1,0 +1,113 @@
+"""
+Unit tests for purefa_offload module
+
+Tests for Offload Target management functions
+"""
+
+import sys
+from unittest.mock import Mock, patch, MagicMock
+
+# Mock external dependencies before importing module
+sys.modules["grp"] = MagicMock()
+sys.modules["pwd"] = MagicMock()
+sys.modules["fcntl"] = MagicMock()
+sys.modules["ansible"] = MagicMock()
+sys.modules["ansible.module_utils"] = MagicMock()
+sys.modules["ansible.module_utils.basic"] = MagicMock()
+sys.modules["pypureclient"] = MagicMock()
+sys.modules["pypureclient.flasharray"] = MagicMock()
+sys.modules["ansible_collections"] = MagicMock()
+sys.modules["ansible_collections.purestorage"] = MagicMock()
+sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
+sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
+sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
+    MagicMock()
+)
+sys.modules[
+    "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
+] = MagicMock()
+sys.modules[
+    "ansible_collections.purestorage.flasharray.plugins.module_utils.common"
+] = MagicMock()
+sys.modules[
+    "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers"
+] = MagicMock()
+sys.modules[
+    "ansible_collections.purestorage.flasharray.plugins.module_utils.error_handlers"
+] = MagicMock()
+
+# Create a mock version module with real LooseVersion
+mock_version_module = MagicMock()
+from packaging.version import Version as LooseVersion
+
+mock_version_module.LooseVersion = LooseVersion
+sys.modules[
+    "ansible_collections.purestorage.flasharray.plugins.module_utils.version"
+] = mock_version_module
+
+from plugins.modules.purefa_offload import (
+    get_target,
+    delete_offload,
+)
+
+
+class TestGetTarget:
+    """Tests for get_target function"""
+
+    @patch("plugins.modules.purefa_offload.get_with_context")
+    def test_get_target_exists(self, mock_get_with_context):
+        """Test get_target returns target when it exists"""
+        mock_module = Mock()
+        mock_module.params = {"name": "offload1", "context": ""}
+        mock_array = Mock()
+        mock_target = Mock()
+        mock_target.name = "offload1"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_target])
+
+        result = get_target(mock_module, mock_array)
+
+        assert result == mock_target
+
+    @patch("plugins.modules.purefa_offload.get_with_context")
+    def test_get_target_not_exists(self, mock_get_with_context):
+        """Test get_target returns None when target doesn't exist"""
+        mock_module = Mock()
+        mock_module.params = {"name": "nonexistent", "context": ""}
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=400, items=[])
+
+        result = get_target(mock_module, mock_array)
+
+        assert result is None
+
+
+class TestDeleteOffload:
+    """Tests for delete_offload function"""
+
+    @patch("plugins.modules.purefa_offload.get_with_context")
+    def test_delete_offload_check_mode(self, mock_get_with_context):
+        """Test delete_offload in check mode"""
+        mock_module = Mock()
+        mock_module.params = {"name": "offload1", "context": ""}
+        mock_module.check_mode = True
+        mock_array = Mock()
+
+        delete_offload(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        mock_get_with_context.assert_not_called()
+
+    @patch("plugins.modules.purefa_offload.check_response")
+    @patch("plugins.modules.purefa_offload.get_with_context")
+    def test_delete_offload_success(self, mock_get_with_context, mock_check_response):
+        """Test delete_offload successfully deletes"""
+        mock_module = Mock()
+        mock_module.params = {"name": "offload1", "context": ""}
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        delete_offload(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_with(changed=True)

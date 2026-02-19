@@ -1,0 +1,99 @@
+"""
+Unit tests for purefa_cbsexpand module
+
+Tests for Cloud Block Store capacity expansion functions
+"""
+
+import sys
+from unittest.mock import Mock, MagicMock
+
+# Mock external dependencies before importing module
+sys.modules["grp"] = MagicMock()
+sys.modules["pwd"] = MagicMock()
+sys.modules["fcntl"] = MagicMock()
+sys.modules["ansible"] = MagicMock()
+sys.modules["ansible.module_utils"] = MagicMock()
+sys.modules["ansible.module_utils.basic"] = MagicMock()
+sys.modules["pypureclient"] = MagicMock()
+sys.modules["pypureclient.flasharray"] = MagicMock()
+sys.modules["ansible_collections"] = MagicMock()
+sys.modules["ansible_collections.purestorage"] = MagicMock()
+sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
+sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
+sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
+    MagicMock()
+)
+sys.modules[
+    "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
+] = MagicMock()
+sys.modules[
+    "ansible_collections.purestorage.flasharray.plugins.module_utils.common"
+] = MagicMock()
+sys.modules[
+    "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers"
+] = MagicMock()
+sys.modules[
+    "ansible_collections.purestorage.flasharray.plugins.module_utils.error_handlers"
+] = MagicMock()
+
+# Create a mock version module with real LooseVersion
+mock_version_module = MagicMock()
+from packaging.version import Version as LooseVersion
+
+mock_version_module.LooseVersion = LooseVersion
+sys.modules[
+    "ansible_collections.purestorage.flasharray.plugins.module_utils.version"
+] = mock_version_module
+
+from plugins.modules.purefa_cbsexpand import (
+    _is_cbs,
+    list_capacity,
+)
+
+
+class TestIsCbs:
+    """Tests for _is_cbs function"""
+
+    def test_is_cbs_true(self):
+        """Test _is_cbs returns True for CBS model"""
+        mock_array = Mock()
+        mock_hw = Mock()
+        mock_hw.model = "CBS-FA-X50"
+        mock_array.get_hardware.return_value = Mock(items=[mock_hw])
+
+        result = _is_cbs(mock_array)
+
+        assert result is True
+
+    def test_is_cbs_false(self):
+        """Test _is_cbs returns False for non-CBS model"""
+        mock_array = Mock()
+        mock_hw = Mock()
+        mock_hw.model = "FA-X70"
+        mock_array.get_hardware.return_value = Mock(items=[mock_hw])
+
+        result = _is_cbs(mock_array)
+
+        assert result is False
+
+
+class TestListCapacity:
+    """Tests for list_capacity function"""
+
+    def test_list_capacity(self):
+        """Test list_capacity returns available capacity steps"""
+        mock_module = Mock()
+        mock_array = Mock()
+        mock_step1 = Mock()
+        mock_step1.supported_capacity = 1024
+        mock_step2 = Mock()
+        mock_step2.supported_capacity = 2048
+        mock_array.get_arrays_cloud_capacity_supported_steps.return_value = Mock(
+            items=[mock_step1, mock_step2]
+        )
+
+        list_capacity(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(
+            changed=True, available=[1024, 2048]
+        )
