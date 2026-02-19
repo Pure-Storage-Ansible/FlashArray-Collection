@@ -22,8 +22,6 @@ jobs:
           - stable-2.19
           - devel
         python-version:
-          - "3.10"
-          - "3.11"
           - "3.12"
           - "3.13"
           - "3.14"
@@ -40,14 +38,6 @@ jobs:
             ansible: stable-2.16
           - python-version: "3.13"
             ansible: stable-2.17
-          - python-version: "3.10"
-            ansible: stable-2.18
-          - python-version: "3.10"
-            ansible: stable-2.19
-          - python-version: "3.10"
-            ansible: devel
-          - python-version: "3.11"
-            ansible: devel
     steps:
     - name: Check out code
       uses: actions/checkout@v3
@@ -59,8 +49,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python${{ matrix.python }} -m pip install --upgrade pip
-        python${{ matrix.python }} -m pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
+        python -m pip install --upgrade pip
+        python -m pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
 
     - name: Run sanity tests
       run: |
@@ -76,8 +66,6 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - "3.10"
-          - "3.11"
           - "3.12"
           - "3.13"
     steps:
