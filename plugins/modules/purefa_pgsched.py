@@ -338,22 +338,23 @@ def update_schedule(module, array, snap_time, repl_time):
             )
 
         # Patch frequency and at together
-        if (
-            snap_frequency != current_snap["snap_frequency"]
-            or snap_at != current_snap["snap_at"]
+        # Only include 'at' if frequency is a multiple of days (86400000ms) and at is set
+        freq_in_days = snap_frequency % 86400000 == 0
+        if snap_frequency != current_snap["snap_frequency"] or (
+            freq_in_days and snap_at != current_snap["snap_at"]
         ):
             changed = True
+            if freq_in_days and snap_at is not None:
+                schedule = SnapshotSchedule(frequency=snap_frequency, at=snap_at)
+            else:
+                schedule = SnapshotSchedule(frequency=snap_frequency)
             res = get_with_context(
                 array,
                 "patch_protection_groups",
                 CONTEXT_API_VERSION,
                 module,
                 names=[module.params["name"]],
-                protection_group=ProtectionGroup(
-                    snapshot_schedule=SnapshotSchedule(
-                        frequency=snap_frequency, at=snap_at
-                    )
-                ),
+                protection_group=ProtectionGroup(snapshot_schedule=schedule),
             )
             check_response(
                 res,
@@ -449,22 +450,25 @@ def update_schedule(module, array, snap_time, repl_time):
             )
 
         # Patch frequency and at together
-        if (
-            replicate_frequency != current_repl["replicate_frequency"]
-            or replicate_at != current_repl["replicate_at"]
+        # Only include 'at' if frequency is a multiple of days (86400000ms) and at is set
+        freq_in_days = replicate_frequency % 86400000 == 0
+        if replicate_frequency != current_repl["replicate_frequency"] or (
+            freq_in_days and replicate_at != current_repl["replicate_at"]
         ):
             changed = True
+            if freq_in_days and replicate_at is not None:
+                schedule = ReplicationSchedule(
+                    frequency=replicate_frequency, at=replicate_at
+                )
+            else:
+                schedule = ReplicationSchedule(frequency=replicate_frequency)
             res = get_with_context(
                 array,
                 "patch_protection_groups",
                 CONTEXT_API_VERSION,
                 module,
                 names=[module.params["name"]],
-                protection_group=ProtectionGroup(
-                    replication_schedule=ReplicationSchedule(
-                        frequency=replicate_frequency, at=replicate_at
-                    )
-                ),
+                protection_group=ProtectionGroup(replication_schedule=schedule),
             )
             check_response(
                 res,

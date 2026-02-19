@@ -1,0 +1,3 @@
+bugfixes:
+  - purefa_pgsched - Fixed issue where `snap_at` and `replicate_at` parameters were sent to the API even when frequency was not a multiple of days, causing API errors.
+
