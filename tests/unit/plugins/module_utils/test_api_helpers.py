@@ -73,9 +73,7 @@ class TestCheckResponse:
         # Verify fail_json was NOT called
         mock_module.fail_json.assert_not_called()
 
-    def test_error_response_with_message(
-        self, mock_module, mock_error_response
-    ):
+    def test_error_response_with_message(self, mock_module, mock_error_response):
         """Test that error response calls fail_json with error message."""
         try:
             check_response(mock_error_response, mock_module, "Test operation")
@@ -89,14 +87,10 @@ class TestCheckResponse:
         assert call_kwargs["status_code"] == 400
         assert call_kwargs["changed"] is False
 
-    def test_error_response_empty_errors(
-        self, mock_module, mock_empty_error_response
-    ):
+    def test_error_response_empty_errors(self, mock_module, mock_empty_error_response):
         """Test that error response with no errors uses 'Unknown error'."""
         try:
-            check_response(
-                mock_empty_error_response, mock_module, "Test operation"
-            )
+            check_response(mock_empty_error_response, mock_module, "Test operation")
         except Exception:
             pass
 
@@ -114,9 +108,7 @@ class TestCheckResponse:
     def test_custom_operation_message(self, mock_module, mock_error_response):
         """Test that custom operation message is included in error."""
         try:
-            check_response(
-                mock_error_response, mock_module, "Create volume 'test-vol'"
-            )
+            check_response(mock_error_response, mock_module, "Create volume 'test-vol'")
         except Exception:
             pass
 
@@ -201,9 +193,7 @@ class TestCheckApiVersion:
         array.get_rest_version.return_value = "2.38"
 
         try:
-            check_api_version(
-                array, "2.40", mock_module, feature_name="SafeMode"
-            )
+            check_api_version(array, "2.40", mock_module, feature_name="SafeMode")
         except Exception:
             pass
 
@@ -248,9 +238,7 @@ class TestGetWithContext:
             names=["test-vol"], context_names=["pod1"]
         )
 
-    def test_no_context_when_api_version_insufficient(
-        self, mock_module, mock_array
-    ):
+    def test_no_context_when_api_version_insufficient(self, mock_module, mock_array):
         """Test that context is not added when API version is too old."""
         mock_module.params["context"] = "pod1"
         mock_array.get_rest_version.return_value = "2.30"
