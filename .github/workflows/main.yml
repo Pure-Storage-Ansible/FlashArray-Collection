@@ -6,6 +6,9 @@ name: Pure Storage Ansible CI
   schedule:
     - cron: '25 10 * * *'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build flasharray on Ansible ${{ matrix.ansible }} (Python ${{ matrix.python-version }})
