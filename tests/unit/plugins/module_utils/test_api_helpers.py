@@ -17,9 +17,9 @@ sys.modules["ansible_collections"] = MagicMock()
 sys.modules["ansible_collections.purestorage"] = MagicMock()
 sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
 sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules[
-    "ansible_collections.purestorage.flasharray.plugins.module_utils"
-] = MagicMock()
+sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
+    MagicMock()
+)
 
 # Mock the LooseVersion class needed by api_helpers
 mock_version = MagicMock()

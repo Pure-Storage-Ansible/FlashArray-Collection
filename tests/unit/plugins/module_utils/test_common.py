@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock
 
 # Mock external dependencies before importing common
 # Note: common.py imports from ansible.module_utils which has platform-specific code
