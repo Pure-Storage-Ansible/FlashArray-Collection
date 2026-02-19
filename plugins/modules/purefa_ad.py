@@ -159,6 +159,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 MIN_REQUIRED_API_VERSION = "2.2"
 SERVER_API_VERSION = "2.6"
@@ -173,12 +176,9 @@ def delete_account(module, array):
         res = array.delete_active_directory(
             names=[module.params["name"]], local_only=module.params["local_only"]
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete AD Account {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to delete AD Account {module.params['name']}"
+        )
     module.exit_json(changed=changed)
 
 
@@ -195,12 +195,11 @@ def update_account(module, array):
                 names=[module.params["name"]],
                 active_directory=ActiveDirectoryPatch(tls=module.params["tls"]),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to update AD Account {0} TLS setting. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to update AD Account {module.params['name']} TLS setting",
+            )
     module.exit_json(changed=changed)
 
 
@@ -249,12 +248,11 @@ def create_account(module, array, api_version):
                 names=[module.params["name"]],
                 active_directory=ad_config,
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to add Active Directory Account {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res,
+            module,
+            f"Failed to add Active Directory Account {module.params['name']}",
+        )
     module.exit_json(changed=changed)
 
 

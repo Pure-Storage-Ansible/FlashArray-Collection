@@ -100,6 +100,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 
 def test_kmip(module, array):
@@ -175,24 +178,23 @@ def update_kmip(module, array):
                 certificate=flasharray.ReferenceNoId(name=certificate),
             )
             res = array.patch_kmip(names=[module.params["name"]], kmip=kmip)
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Updating existing KMIP object {0} failed. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Updating existing KMIP object {module.params['name']} failed",
+            )
 
     module.exit_json(changed=changed)
 
 
 def create_kmip(module, array):
     """Create KMIP object"""
-    if array.get_certificates(names=[module.params["certificate"]]).status_code != 200:
-        module.fail_json(
-            msg="Array certificate {0} does not exist.".format(
-                module.params["certificate"]
-            )
-        )
+    cert_res = array.get_certificates(names=[module.params["certificate"]])
+    check_response(
+        cert_res,
+        module,
+        f"Array certificate {module.params['certificate']} does not exist",
+    )
     changed = True
     kmip = flasharray.KmipPost(
         uris=sorted(module.params["uris"]),
@@ -201,12 +203,9 @@ def create_kmip(module, array):
     )
     if not module.check_mode:
         res = array.post_kmip(names=[module.params["name"]], kmip=kmip)
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Creating KMIP object {0} failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Creating KMIP object {module.params['name']} failed"
+        )
     module.exit_json(changed=changed)
 
 
@@ -215,12 +214,9 @@ def delete_kmip(module, array):
     changed = True
     if not module.check_mode:
         res = array.delete_kmip(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete {0} KMIP object. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to delete {module.params['name']} KMIP object"
+        )
     module.exit_json(changed=changed)
 
 

@@ -71,6 +71,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 EXCLUDES_API_VERSION = "2.47"
 
@@ -101,12 +104,7 @@ def main():
         changed = True
         if not module.check_mode:
             res = array.patch_support(support=SupportPatch(phonehome_enabled=True))
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Enabling Phonehome failed. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Enabling Phonehome failed")
             if (
                 LooseVersion(EXCLUDES_API_VERSION) <= LooseVersion(api_version)
                 and module.params["excludes"]
@@ -114,12 +112,7 @@ def main():
                 res = array.patch_support(
                     support=SupportPatch(phonehome_excludes=module.params["excludes"])
                 )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Updating Phonehome failed. Error: {0}".format(
-                            res.errors[0].message
-                        )
-                    )
+                check_response(res, module, "Updating Phonehome failed")
     elif module.params["state"] == "present" and phonehome:
         if LooseVersion(EXCLUDES_API_VERSION) <= LooseVersion(api_version):
             if module.params["excludes"] != excludes:
@@ -130,22 +123,12 @@ def main():
                             phonehome_excludes=module.params["excludes"]
                         )
                     )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Updating Phonehome failed. Error: {0}".format(
-                                res.errors[0].message
-                            )
-                        )
+                    check_response(res, module, "Updating Phonehome failed")
     elif module.params["state"] == "absent" and phonehome:
         changed = True
         if not module.check_mode:
             res = array.patch_support(support=SupportPatch(phonehome_enabled=False))
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Disabling Phonehome failed. Error: {0}".format(
-                        res.errors[0].message
-                    )
-                )
+            check_response(res, module, "Disabling Phonehome failed")
     module.exit_json(changed=changed)
 
 

@@ -107,6 +107,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 MIN_REQUIRED_API_VERSION = "2.2"
 REPL_SUPPORT_API = "2.13"
@@ -129,12 +132,9 @@ def delete_fs(module, array):
             res = array.patch_file_systems(
                 names=[module.params["name"]], file_system=file_system
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete file system {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to delete file system {module.params['name']}"
+        )
         if module.params["eradicate"]:
             if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
                 res = array.delete_file_systems(
@@ -143,12 +143,11 @@ def delete_fs(module, array):
                 )
             else:
                 res = array.delete_file_systems(names=[module.params["name"]])
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Eradication of file system {0} failed. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Eradication of file system {module.params['name']} failed",
+            )
     module.exit_json(changed=changed)
 
 
@@ -168,12 +167,9 @@ def recover_fs(module, array):
             res = array.patch_file_systems(
                 names=[module.params["name"]], file_system=file_system
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to recover file system {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to recover file system {module.params['name']}"
+        )
     module.exit_json(changed=changed)
 
 
@@ -188,12 +184,9 @@ def eradicate_fs(module, array):
             )
         else:
             res = array.delete_file_systems(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to eradicate file system {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to eradicate file system {module.params['name']}"
+        )
     module.exit_json(changed=changed)
 
 
@@ -228,12 +221,9 @@ def rename_fs(module, array):
                 res = array.patch_file_systems(
                     names=[module.params["name"]], file_system=file_system
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to rename file system {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Failed to rename file system {module.params['name']}"
+            )
     else:
         module.fail_json(
             msg="Target file system {0} already exists".format(module.params["rename"])
@@ -270,12 +260,9 @@ def create_fs(module, array):
             )
         else:
             res = array.post_file_systems(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to create file system {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to create file system {module.params['name']}"
+        )
     module.exit_json(changed=changed)
 
 
@@ -363,12 +350,9 @@ def move_fs(module, array):
             move_res = array.patch_file_systems(
                 names=[module.params["name"]], file_system=file_system
             )
-        if move_res.status_code != 200:
-            module.fail_json(
-                msg="Move of filesystem {0} failed. Error: {1}".format(
-                    module.params["name"], move_res.errors[0].message
-                )
-            )
+        check_response(
+            move_res, module, f"Move of filesystem {module.params['name']} failed"
+        )
     module.exit_json(changed=changed)
 
 

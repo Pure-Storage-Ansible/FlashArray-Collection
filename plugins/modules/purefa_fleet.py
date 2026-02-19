@@ -124,6 +124,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 import platform
 
 VERSION = 1.5
@@ -138,12 +141,7 @@ def create_fleet(module, array):
     changed = True
     if not module.check_mode:
         res = array.post_fleets(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to create fleet {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Failed to create fleet {module.params['name']}")
     module.exit_json(changed=changed)
 
 
@@ -157,12 +155,7 @@ def delete_fleet(module, array):
     api_version = array.get_rest_version()
     if LooseVersion(DELETE_FLEET_API_VERSION) <= LooseVersion(api_version):
         res = array.delete_fleets(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Fleet {0} deletion failed. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Fleet {module.params['name']} deletion failed")
     else:
         module.fail_json(
             msg="Purity//FA version not supported. Minimum version required: 6.8.2"
@@ -240,12 +233,11 @@ def add_fleet_members(module, array):
                     ]
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    "Array {0} failed to join fleet {1}. Error: {2}".format(
-                        local_name, module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Array {local_name} failed to join fleet {module.params['name']}",
+            )
     module.exit_json(changed=changed)
 
 
@@ -298,12 +290,11 @@ def delete_fleet_members(module, array):
                     )
                 else:
                     res = array.delete_fleets_members(member_names=[local_name])
-                if res.status_code != 200:
-                    module.fail_json(
-                        "Array {0} failed to be removed from fleet. Error: {1}".format(
-                            module.params["member_url"], res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Array {module.params['member_url']} failed to be removed from fleet",
+                )
     module.exit_json(changed=changed)
 
 
@@ -318,10 +309,7 @@ def rename_fleet(module, array):
                 names=[module.params["name"]],
                 fleet=FleetPatch(name=module.params["rename"]),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Fleet rename failed. Error: {0}".format(res.errors[0].message)
-                )
+            check_response(res, module, "Fleet rename failed")
     module.exit_json(changed=changed)
 
 

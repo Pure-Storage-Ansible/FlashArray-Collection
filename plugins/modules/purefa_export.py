@@ -105,6 +105,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 MIN_REQUIRED_API_VERSION = "2.3"
 CONTEXT_VERSION = "2.42"
@@ -175,12 +178,11 @@ def delete_export(module, array):
                 res = array.delete_directory_exports(
                     export_names=[module.params["name"]], policy_names=all_policies
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to delete file system export {0}. {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to delete file system export {module.params['name']}",
+            )
     module.exit_json(changed=changed)
 
 
@@ -199,10 +201,9 @@ def create_export(module, array):
             )
         else:
             res = array.get_policies_nfs(names=[module.params["nfs_policy"]])
-        if bool(res.status_code != 200):
-            module.fail_json(
-                msg="NFS Policy {0} does not exist.".format(module.params["nfs_policy"])
-            )
+        check_response(
+            res, module, f"NFS Policy {module.params['nfs_policy']} does not exist"
+        )
         if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
             res = array.get_directory_exports(
                 export_names=[module.params["name"]],
@@ -224,10 +225,9 @@ def create_export(module, array):
             )
         else:
             res = array.get_policies_smb(names=[module.params["smb_policy"]])
-        if bool(res.status_code != 200):
-            module.fail_json(
-                msg="SMB Policy {0} does not exist.".format(module.params["smb_policy"])
-            )
+        check_response(
+            res, module, f"SMB Policy {module.params['smb_policy']} does not exist"
+        )
         if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
             res = array.get_directory_exports(
                 export_names=[module.params["name"]],
@@ -262,14 +262,12 @@ def create_export(module, array):
                     exports=export,
                     policy_names=all_policies,
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to create file system exports for {0}:{1}. Error: {2}".format(
-                        module.params["filesystem"],
-                        module.params["directory"],
-                        res.errors[0].message,
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to create file system exports for "
+                f"{module.params['filesystem']}:{module.params['directory']}",
+            )
     module.exit_json(changed=changed)
 
 

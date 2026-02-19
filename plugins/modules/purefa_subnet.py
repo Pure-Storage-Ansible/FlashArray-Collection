@@ -117,6 +117,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 
 def _get_subnet(module, array):
@@ -204,12 +207,11 @@ def update_subnet(module, array, subnet):
                     gateway=new_state["gateway"],
                 ),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to change settings for subnet {0}. Error: {1}".format(
-                        subnet.name, res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to change settings for subnet {subnet.name}",
+            )
     if subnet.enabled != module.params["enabled"]:
         changed = True
         if not module.check_mode:
@@ -217,12 +219,9 @@ def update_subnet(module, array, subnet):
                 names=[subnet.name],
                 subnet=SubnetPatch(enabled=module.params["enabled"]),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to enable/disable subnet {0}. Error: {1}".format(
-                        subnet.name, res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Failed to enable/disable subnet {subnet.name}"
+            )
     module.exit_json(changed=changed)
 
 
@@ -274,12 +273,7 @@ def create_subnet(module, array):
                 enabled=module.params["enabled"],
             ),
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to create subnet {0}.Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Failed to create subnet {module.params['name']}")
     module.exit_json(changed=changed)
 
 
@@ -288,12 +282,7 @@ def delete_subnet(module, array):
     changed = True
     if not module.check_mode:
         res = array.delete_subnets(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete subnet {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Failed to delete subnet {module.params['name']}")
     module.exit_json(changed=changed)
 
 
