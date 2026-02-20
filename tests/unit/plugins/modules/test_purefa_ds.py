@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -50,6 +50,8 @@ sys.modules[
 
 from plugins.modules.purefa_ds import (
     delete_ds,
+    test_ds as ds_test_func,
+    update_ds,
 )
 
 
@@ -66,3 +68,40 @@ class TestDeleteDs:
         delete_ds(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDsTest:
+    """Tests for test_ds function"""
+
+    @patch("plugins.modules.purefa_ds.get_with_context")
+    def test_ds_test_returns_response(self, mock_get_with_context):
+        """Test test_ds returns test response"""
+        mock_module = Mock()
+        mock_module.params = {"dstype": "management", "context": ""}
+        mock_array = Mock()
+
+        # Create mock test result
+        mock_result = Mock()
+        mock_result.enabled = True
+        mock_result.success = True
+        mock_result.component_address = "10.0.0.1"
+        mock_result.component_name = "ds1"
+        mock_result.description = "Directory service test"
+        mock_result.destination = "ldap.example.com"
+        mock_result.result_details = "OK"
+        mock_result.test_type = "connectivity"
+        mock_result.resource = Mock()
+        mock_result.resource.name = "array1"
+        mock_get_with_context.return_value = Mock(items=[mock_result])
+
+        ds_test_func(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is False
+        assert len(call_args["test_response"]) == 1
+        assert call_args["test_response"][0]["enabled"] == "true"
+        assert call_args["test_response"][0]["success"] == "true"
+
+
+
