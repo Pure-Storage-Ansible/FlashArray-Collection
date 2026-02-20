@@ -48,6 +48,7 @@ from plugins.modules.purefa_hg import (
     get_hostgroup_hosts,
     make_hostgroup,
     update_hostgroup,
+    delete_hostgroup,
 )
 
 
@@ -204,4 +205,157 @@ class TestUpdateHostgroup:
         mock_module.exit_json.assert_called_once_with(changed=False)
 
 
+class TestDeleteHostgroup:
+    """Test cases for delete_hostgroup function"""
 
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.LooseVersion")
+    def test_delete_hostgroup_no_volumes_or_hosts(
+        self, mock_loose_version, mock_get_hostgroup_hosts, mock_check_response
+    ):
+        """Test delete_hostgroup with no volumes or hosts"""
+        from packaging.version import Version as LooseVersion
+
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_connections.return_value = Mock(status_code=200, items=[])
+        mock_array.delete_host_groups.return_value = Mock(status_code=200)
+        mock_get_hostgroup_hosts.return_value = []
+
+        delete_hostgroup(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.LooseVersion")
+    def test_delete_hostgroup_with_volumes(
+        self, mock_loose_version, mock_get_hostgroup_hosts, mock_check_response
+    ):
+        """Test delete_hostgroup with volumes attached"""
+        from packaging.version import Version as LooseVersion
+
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock volume connection
+        mock_vol = Mock()
+        mock_vol.volume = Mock()
+        mock_vol.volume.name = "test-vol"
+        mock_array.get_connections.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_array.delete_connections.return_value = Mock(status_code=200)
+        mock_array.delete_host_groups.return_value = Mock(status_code=200)
+        mock_get_hostgroup_hosts.return_value = []
+
+        delete_hostgroup(mock_module, mock_array)
+
+        mock_array.delete_connections.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.LooseVersion")
+    def test_delete_hostgroup_with_hosts(
+        self, mock_loose_version, mock_get_hostgroup_hosts, mock_check_response
+    ):
+        """Test delete_hostgroup with hosts attached"""
+        from packaging.version import Version as LooseVersion
+
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_connections.return_value = Mock(status_code=200, items=[])
+        mock_array.delete_host_groups_hosts.return_value = Mock(status_code=200)
+        mock_array.delete_host_groups.return_value = Mock(status_code=200)
+
+        # Mock hosts in hostgroup
+        mock_host = Mock()
+        mock_host.member = Mock()
+        mock_host.member.name = "test-host"
+        mock_host.group = Mock()
+        mock_host.group.name = "test-hg"
+        mock_get_hostgroup_hosts.return_value = [mock_host]
+
+        delete_hostgroup(mock_module, mock_array)
+
+        mock_array.delete_host_groups_hosts.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestMakeHostgroupSuccess:
+    """Test cases for make_hostgroup success paths"""
+
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion")
+    def test_make_hostgroup_success(self, mock_loose_version, mock_check_response):
+        """Test make_hostgroup successfully creates hostgroup"""
+        from packaging.version import Version as LooseVersion
+
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "host": None,
+            "volume": None,
+            "lun": None,
+            "context": "",
+            "rename": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_host_groups.return_value = Mock(status_code=200)
+
+        make_hostgroup(mock_module, mock_array)
+
+        mock_array.post_host_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion")
+    def test_make_hostgroup_with_hosts(self, mock_loose_version, mock_check_response):
+        """Test make_hostgroup successfully creates hostgroup with hosts"""
+        from packaging.version import Version as LooseVersion
+
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "host": ["host1", "host2"],
+            "volume": None,
+            "lun": None,
+            "context": "",
+            "rename": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_host_groups.return_value = Mock(status_code=200)
+        mock_array.post_host_groups_hosts.return_value = Mock(status_code=200)
+
+        make_hostgroup(mock_module, mock_array)
+
+        mock_array.post_host_groups.assert_called_once()
+        mock_array.post_host_groups_hosts.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
