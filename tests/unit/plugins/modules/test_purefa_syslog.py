@@ -225,7 +225,9 @@ class TestUpdateSyslog:
 
     @patch("plugins.modules.purefa_syslog.check_response")
     @patch("plugins.modules.purefa_syslog.get_with_context")
-    def test_update_syslog_with_changes(self, mock_get_with_context, mock_check_response):
+    def test_update_syslog_with_changes(
+        self, mock_get_with_context, mock_check_response
+    ):
         """Test update_syslog when URI changes"""
         mock_module = Mock()
         mock_module.params = {

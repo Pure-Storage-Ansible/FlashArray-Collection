@@ -107,7 +107,9 @@ class TestRenameDir:
         mock_module.check_mode = False
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
-        mock_array.get_directories.return_value = Mock(status_code=400)  # Target not exists
+        mock_array.get_directories.return_value = Mock(
+            status_code=400
+        )  # Target not exists
         mock_array.patch_directories.return_value = Mock(status_code=200)
 
         rename_dir(mock_module, mock_array)

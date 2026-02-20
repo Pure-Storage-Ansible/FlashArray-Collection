@@ -145,7 +145,9 @@ class TestUpdateRole:
 
     @patch("plugins.modules.purefa_dsrole.check_response")
     @patch("plugins.modules.purefa_dsrole.LooseVersion")
-    def test_update_role_delete_system_defined(self, mock_loose_version, mock_check_response):
+    def test_update_role_delete_system_defined(
+        self, mock_loose_version, mock_check_response
+    ):
         """Test update_role deletes system-defined role"""
         import pytest
 
@@ -221,7 +223,9 @@ class TestUpdateRole:
 
     @patch("plugins.modules.purefa_dsrole.check_response")
     @patch("plugins.modules.purefa_dsrole.LooseVersion")
-    def test_update_role_custom_role_with_changes(self, mock_loose_version, mock_check_response):
+    def test_update_role_custom_role_with_changes(
+        self, mock_loose_version, mock_check_response
+    ):
         """Test update_role for custom role when changes needed"""
         mock_module = Mock()
         mock_module.params = {

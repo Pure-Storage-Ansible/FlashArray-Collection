@@ -534,8 +534,12 @@ class TestMakePgroupSuccess:
     @patch("plugins.modules.purefa_pg.check_response")
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_make_pgroup_with_targets(
-        self, mock_lv, mock_check_response, mock_get_arrays,
-        mock_get_targets, mock_check_pg_offload
+        self,
+        mock_lv,
+        mock_check_response,
+        mock_get_arrays,
+        mock_get_targets,
+        mock_check_pg_offload,
     ):
         """Test creating protection group with targets"""
         mock_module = Mock()
@@ -701,6 +705,3 @@ class TestUpdatePgroupSuccess:
 
         mock_array.patch_protection_groups.assert_called()
         mock_module.exit_json.assert_called()
-
-
-

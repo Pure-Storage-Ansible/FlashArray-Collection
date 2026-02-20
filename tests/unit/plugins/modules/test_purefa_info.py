@@ -1609,8 +1609,11 @@ class TestGenerateConfigDict:
         mock_snmp_manager.host = "192.168.1.100"
         mock_snmp_manager.version = "v3"
         mock_snmp_manager.v3 = Mock(
-            user="snmpuser", auth_password="***", auth_protocol="SHA",
-            privacy_password="***", privacy_protocol="AES"
+            user="snmpuser",
+            auth_password="***",
+            auth_protocol="SHA",
+            privacy_password="***",
+            privacy_protocol="AES",
         )
         mock_snmp_manager.v2c = Mock(community=None)
         mock_snmp_manager.notification = "trap"
@@ -1621,8 +1624,13 @@ class TestGenerateConfigDict:
         mock_snmp_agent.name = "snmp-agent"
         mock_snmp_agent.version = "v3"
         mock_snmp_agent.engine_id = "engine123"
-        mock_snmp_agent.v3 = Mock(user="agent-user", auth_password=None, auth_protocol=None,
-                                   privacy_password=None, privacy_protocol=None)
+        mock_snmp_agent.v3 = Mock(
+            user="agent-user",
+            auth_password=None,
+            auth_protocol=None,
+            privacy_password=None,
+            privacy_protocol=None,
+        )
         mock_snmp_agent.v2c = Mock(community=None)
         mock_snmp_agent.notification = None
         mock_array.get_snmp_agents.return_value = Mock(items=[mock_snmp_agent])
@@ -1744,7 +1752,7 @@ class TestGenerateFilesystemsDict:
             total_used=1500,
             unique=1200,
             virtual=4000,
-            used_provisioned=3000
+            used_provisioned=3000,
         )
         mock_dir.limited_by = None
         mock_array.get_directories.return_value = Mock(items=[mock_dir])
@@ -1815,7 +1823,7 @@ class TestGenerateDirSnapsDict:
             total_physical=2000,
             unique=1500,
             used_provisioned=1800,
-            total_used=1600
+            total_used=1600,
         )
         mock_policy = Mock()
         mock_policy.name = "snap-policy1"
@@ -1861,7 +1869,7 @@ class TestGeneratePoliciesDict:
             mock_array,
             quota_available=False,
             autodir_available=False,
-            nfs_user_mapping=False
+            nfs_user_mapping=False,
         )
 
         assert "snap-policy1" in result

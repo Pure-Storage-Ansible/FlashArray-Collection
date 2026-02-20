@@ -1578,7 +1578,9 @@ class TestMoveVolumeSuccess:
         mock_array.get_volume_groups.return_value = Mock(
             items=[Mock(destroyed=False)], status_code=200
         )
-        mock_array.get_volumes.return_value = Mock(status_code=400)  # Target doesn't exist
+        mock_array.get_volumes.return_value = Mock(
+            status_code=400
+        )  # Target doesn't exist
         # Mock patch_volumes response with items
         mock_new_vol = Mock()
         mock_new_vol.name = "vgroup1/test-vol"
@@ -1611,7 +1613,9 @@ class TestMoveVolumeSuccess:
         mock_pod.link_target_count = 0
         mock_pod.promotion_status = "promoted"
         mock_array.get_pods.return_value = Mock(items=[mock_pod], status_code=200)
-        mock_array.get_volumes.return_value = Mock(status_code=400)  # Target doesn't exist
+        mock_array.get_volumes.return_value = Mock(
+            status_code=400
+        )  # Target doesn't exist
         # Mock patch_volumes response with items
         mock_new_vol = Mock()
         mock_new_vol.name = "pod1::test-vol"
@@ -1632,7 +1636,9 @@ class TestDeleteVolumeSuccess:
     @patch("plugins.modules.purefa_volume.check_response")
     @patch("plugins.modules.purefa_volume._volfact")
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
-    def test_delete_volume_with_eradicate(self, mock_lv, mock_volfact, mock_check_response):
+    def test_delete_volume_with_eradicate(
+        self, mock_lv, mock_volfact, mock_check_response
+    ):
         """Test deleting a volume with eradicate flag"""
         import pytest
 
@@ -1804,6 +1810,3 @@ class TestUpdateVolumeSuccess:
         mock_module.exit_json.assert_called_once_with(
             changed=False, volume={"test-vol": {}}
         )
-
-
-

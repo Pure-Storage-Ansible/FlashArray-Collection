@@ -414,7 +414,9 @@ class TestCreateSubinterfaces:
         mock_module.params = {"subinterfaces": ["eth0"]}
         mock_array = Mock()
         mock_array.get_network_interfaces.return_value = Mock(status_code=200)
-        mock_array.get_controllers.return_value = Mock(items=[Mock()])  # Single controller
+        mock_array.get_controllers.return_value = Mock(
+            items=[Mock()]
+        )  # Single controller
 
         v1, v2 = _create_subinterfaces(mock_module, mock_array)
 

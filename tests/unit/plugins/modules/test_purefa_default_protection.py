@@ -155,7 +155,12 @@ class TestDeleteDefault:
         """Test delete_default with pod scope"""
         mock_module = Mock()
         mock_module.check_mode = False
-        mock_module.params = {"scope": "pod", "name": ["pg1"], "pod": "test-pod", "context": ""}
+        mock_module.params = {
+            "scope": "pod",
+            "name": ["pg1"],
+            "pod": "test-pod",
+            "context": "",
+        }
         mock_array = Mock()
         mock_get_with_context.return_value = Mock(status_code=200)
 
@@ -204,7 +209,12 @@ class TestCreateDefault:
         """Test create_default with pod scope"""
         mock_module = Mock()
         mock_module.check_mode = False
-        mock_module.params = {"scope": "pod", "name": ["pg1"], "pod": "test-pod", "context": ""}
+        mock_module.params = {
+            "scope": "pod",
+            "name": ["pg1"],
+            "pod": "test-pod",
+            "context": "",
+        }
         mock_array = Mock()
         mock_get_with_context.return_value = Mock(status_code=200)
 

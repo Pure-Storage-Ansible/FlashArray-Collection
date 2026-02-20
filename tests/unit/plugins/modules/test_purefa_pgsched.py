@@ -418,12 +418,18 @@ class TestDeleteSchedule:
         """Test delete_schedule when replication schedule is already disabled"""
         mock_module = Mock()
         mock_module.check_mode = False
-        mock_module.params = {"name": "test-pg", "schedule": "replication", "context": ""}
+        mock_module.params = {
+            "name": "test-pg",
+            "schedule": "replication",
+            "context": "",
+        }
         mock_array = Mock()
         # Replication schedule already disabled
         mock_schedule = Mock()
         mock_schedule.replication_schedule.enabled = False
-        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_schedule])
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_schedule]
+        )
 
         delete_schedule(mock_module, mock_array)
 
@@ -439,7 +445,9 @@ class TestDeleteSchedule:
         # Snapshot schedule already disabled
         mock_schedule = Mock()
         mock_schedule.snapshot_schedule.enabled = False
-        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_schedule])
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_schedule]
+        )
 
         delete_schedule(mock_module, mock_array)
 
@@ -450,12 +458,18 @@ class TestDeleteSchedule:
         """Test delete_schedule replication in check mode"""
         mock_module = Mock()
         mock_module.check_mode = True
-        mock_module.params = {"name": "test-pg", "schedule": "replication", "context": ""}
+        mock_module.params = {
+            "name": "test-pg",
+            "schedule": "replication",
+            "context": "",
+        }
         mock_array = Mock()
         # Replication schedule enabled
         mock_schedule = Mock()
         mock_schedule.replication_schedule.enabled = True
-        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_schedule])
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_schedule]
+        )
 
         delete_schedule(mock_module, mock_array)
 
@@ -521,7 +535,9 @@ class TestUpdateSchedule:
         mock_schedule.target_retention.days = 7
         mock_schedule.target_retention.per_day = 4
         mock_schedule.target_retention.all_for_sec = 86400
-        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_schedule])
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_schedule]
+        )
 
         from plugins.modules.purefa_pgsched import update_schedule
 

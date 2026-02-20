@@ -509,7 +509,9 @@ class TestCreatePgsnapshotSuccess:
     @patch("plugins.modules.purefa_pgsnap.check_response")
     @patch("plugins.modules.purefa_pgsnap.ProtectionGroupSnapshot")
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
-    def test_create_pgsnapshot_with_target(self, mock_lv, mock_pgs, mock_check_response):
+    def test_create_pgsnapshot_with_target(
+        self, mock_lv, mock_pgs, mock_check_response
+    ):
         """Test create_pgsnapshot with remote target"""
         mock_module = Mock()
         mock_module.check_mode = False

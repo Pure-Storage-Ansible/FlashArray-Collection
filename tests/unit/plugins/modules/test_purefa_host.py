@@ -694,7 +694,9 @@ class TestConnectNewVolume:
 
     @patch("plugins.modules.purefa_host.check_response")
     @patch("plugins.modules.purefa_host.get_with_context")
-    def test_connect_new_volume_success(self, mock_get_with_context, mock_check_response):
+    def test_connect_new_volume_success(
+        self, mock_get_with_context, mock_check_response
+    ):
         """Test connecting a new volume to a host"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -715,7 +717,9 @@ class TestConnectNewVolume:
 
     @patch("plugins.modules.purefa_host.check_response")
     @patch("plugins.modules.purefa_host.get_with_context")
-    def test_connect_new_volume_with_lun(self, mock_get_with_context, mock_check_response):
+    def test_connect_new_volume_with_lun(
+        self, mock_get_with_context, mock_check_response
+    ):
         """Test connecting a volume with specific LUN"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -764,7 +768,9 @@ class TestDisconnectVolume:
 
     @patch("plugins.modules.purefa_host.check_response")
     @patch("plugins.modules.purefa_host.get_with_context")
-    def test_disconnect_volume_success(self, mock_get_with_context, mock_check_response):
+    def test_disconnect_volume_success(
+        self, mock_get_with_context, mock_check_response
+    ):
         """Test disconnecting a volume from a host"""
         mock_module = Mock()
         mock_module.check_mode = False

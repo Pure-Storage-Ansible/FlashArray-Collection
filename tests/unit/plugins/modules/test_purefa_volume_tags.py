@@ -192,7 +192,9 @@ class TestUpdateTags:
 
     @patch("plugins.modules.purefa_volume_tags.check_response")
     @patch("plugins.modules.purefa_volume_tags.get_with_context")
-    def test_update_tags_with_new_tags(self, mock_get_with_context, mock_check_response):
+    def test_update_tags_with_new_tags(
+        self, mock_get_with_context, mock_check_response
+    ):
         """Test update_tags when adding new tags"""
         mock_module = Mock()
         mock_module.params = {
