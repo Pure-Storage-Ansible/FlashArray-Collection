@@ -47,6 +47,7 @@ from plugins.modules.purefa_hg import (
     get_hostgroup,
     get_hostgroup_hosts,
     make_hostgroup,
+    update_hostgroup,
 )
 
 
@@ -171,6 +172,36 @@ class TestMakeHostgroup:
         make_hostgroup(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateHostgroup:
+    """Test cases for update_hostgroup function"""
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.LooseVersion")
+    def test_update_hostgroup_no_changes(
+        self, mock_loose_version, mock_get_hostgroup_hosts
+    ):
+        """Test update_hostgroup when no changes are needed"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "state": "present",
+            "rename": None,
+            "host": None,
+            "volume": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_connections.return_value = Mock(items=[])
+        mock_get_hostgroup_hosts.return_value = []
+
+        update_hostgroup(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
 
 
 

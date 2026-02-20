@@ -50,6 +50,9 @@ from plugins.modules.purefa_host import (
     update_host,
     _set_host_personality,
     _set_preferred_array,
+    _set_chap_security,
+    _set_vlan,
+    _update_vlan,
 )
 
 
@@ -421,3 +424,114 @@ class TestSetPreferredArray:
 
         # When preferred_array is ["delete"], the function sets an empty list
         mock_get_with_context.assert_called()
+
+
+class TestSetChapSecurity:
+    """Test cases for _set_chap_security function"""
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.check_response")
+    def test_set_chap_host_user(self, mock_check_response, mock_get_with_context):
+        """Test setting CHAP host user"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "host_user": "hostuser",
+            "host_password": "supersecretpassword123",  # 12+ chars
+            "target_user": None,
+            "target_password": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+        mock_check_response.return_value = None
+
+        _set_chap_security(mock_module, mock_array)
+
+        mock_get_with_context.assert_called()
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.check_response")
+    def test_set_chap_target_user(self, mock_check_response, mock_get_with_context):
+        """Test setting CHAP target user"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "host_user": None,
+            "host_password": None,
+            "target_user": "targetuser",
+            "target_password": "anothersecretpassword123",  # 12+ chars
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+        mock_check_response.return_value = None
+
+        _set_chap_security(mock_module, mock_array)
+
+        mock_get_with_context.assert_called()
+
+
+class TestSetVlan:
+    """Test cases for _set_vlan function"""
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_set_vlan_success(self, mock_get_with_context):
+        """Test setting VLAN successfully"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "vlan": "100",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        _set_vlan(mock_module, mock_array)
+
+        mock_get_with_context.assert_called()
+
+
+class TestUpdateVlan:
+    """Test cases for _update_vlan function"""
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_vlan_no_change(self, mock_get_with_context):
+        """Test update_vlan when VLAN matches"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "vlan": "100",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_host = Mock()
+        mock_host.vlan = "100"
+        mock_get_with_context.return_value = Mock(items=[mock_host])
+
+        result = _update_vlan(mock_module, mock_array)
+
+        assert result is False
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_vlan_change_check_mode(self, mock_get_with_context):
+        """Test update_vlan in check mode when VLAN differs"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-host",
+            "vlan": "200",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_host = Mock()
+        mock_host.vlan = "100"
+        mock_get_with_context.return_value = Mock(items=[mock_host])
+
+        result = _update_vlan(mock_module, mock_array)
+
+        assert result is True
