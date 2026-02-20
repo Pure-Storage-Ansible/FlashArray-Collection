@@ -970,3 +970,174 @@ class TestSetPreferredArrayExtended:
         _set_preferred_array(mock_module, mock_array)
 
         mock_get_with_context.assert_called_once()
+
+
+class TestUpdateChapSecurity:
+    """Test cases for _update_chap_security function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_chap_host_user_clear(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test clearing CHAP host username"""
+        from plugins.modules.purefa_host import _update_chap_security
+
+        mock_chap = Mock()
+        mock_chap.host_user = "existing_user"
+        mock_host = Mock()
+        mock_host.chap = mock_chap
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "host_user": "test_user",
+            "host_password": "clear",
+            "target_user": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _update_chap_security(mock_module, mock_array)
+
+        assert result is True
+        assert mock_get_with_context.call_count >= 2
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_chap_host_password_invalid(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test CHAP update with invalid password"""
+        import pytest
+        from plugins.modules.purefa_host import _update_chap_security
+
+        mock_chap = Mock()
+        mock_host = Mock()
+        mock_host.chap = mock_chap
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "host_user": "test_user",
+            "host_password": "short",  # Less than 12 chars
+            "target_user": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+
+        with pytest.raises(SystemExit):
+            _update_chap_security(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_chap_target_user_clear(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test clearing CHAP target username"""
+        from plugins.modules.purefa_host import _update_chap_security
+
+        mock_chap = Mock()
+        mock_chap.target_user = "existing_target"
+        mock_host = Mock()
+        mock_host.chap = mock_chap
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "host_user": None,
+            "target_user": "target_test",
+            "target_password": "clear",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _update_chap_security(mock_module, mock_array)
+
+        assert result is True
+
+
+class TestUpdateHostPersonality:
+    """Test cases for _update_host_personality function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_host_personality_change(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test updating host personality"""
+        from plugins.modules.purefa_host import _update_host_personality
+
+        mock_host = Mock()
+        mock_host.personality = "linux"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "personality": "windows",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _update_host_personality(mock_module, mock_array)
+
+        assert result is True
+        assert mock_get_with_context.call_count >= 2
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_host_personality_no_change(self, mock_get_with_context):
+        """Test updating host personality when no change needed"""
+        from plugins.modules.purefa_host import _update_host_personality
+
+        mock_host = Mock()
+        mock_host.personality = "linux"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "personality": "linux",  # Same as current
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _update_host_personality(mock_module, mock_array)
+
+        assert result is False
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_host_personality_delete(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test deleting host personality"""
+        from plugins.modules.purefa_host import _update_host_personality
+
+        mock_host = Mock()
+        mock_host.personality = "linux"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "personality": "delete",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _update_host_personality(mock_module, mock_array)
+
+        assert result is True
