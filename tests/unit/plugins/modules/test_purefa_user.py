@@ -125,6 +125,7 @@ class TestCreateLocalUser:
         mock_module.exit_json.assert_called_once()
         mock_array.post_admins.assert_not_called()
 
+
 class TestDeleteAdUser:
     """Test cases for delete_ad_user function"""
 

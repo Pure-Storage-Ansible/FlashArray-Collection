@@ -298,7 +298,9 @@ class TestCheckOffloadSnapshot:
 
     @patch("plugins.modules.purefa_snap._check_offload")
     @patch("plugins.modules.purefa_snap.LooseVersion")
-    def test_check_offload_snapshot_exists(self, mock_loose_version, mock_check_offload):
+    def test_check_offload_snapshot_exists(
+        self, mock_loose_version, mock_check_offload
+    ):
         """Test _check_offload_snapshot returns snapshot when it exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_check_offload.return_value = True

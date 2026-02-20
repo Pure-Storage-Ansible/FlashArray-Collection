@@ -147,9 +147,7 @@ class TestGetHostgroupHosts:
         mock_module.params = {"name": "test-hg", "context": ""}
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.0"
-        mock_array.get_host_groups_hosts.return_value = Mock(
-            status_code=404, items=[]
-        )
+        mock_array.get_host_groups_hosts.return_value = Mock(status_code=404, items=[])
 
         result = get_hostgroup_hosts(mock_module, mock_array)
 
@@ -257,7 +255,9 @@ class TestDeleteHostgroup:
         mock_vol = Mock()
         mock_vol.volume = Mock()
         mock_vol.volume.name = "test-vol"
-        mock_array.get_connections.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_array.get_connections.return_value = Mock(
+            status_code=200, items=[mock_vol]
+        )
         mock_array.delete_connections.return_value = Mock(status_code=200)
         mock_array.delete_host_groups.return_value = Mock(status_code=200)
         mock_get_hostgroup_hosts.return_value = []

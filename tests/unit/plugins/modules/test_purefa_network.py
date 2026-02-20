@@ -76,7 +76,11 @@ class TestUpdateFcInterface:
         """Test enabling FC interface in check mode"""
         mock_module = Mock()
         mock_module.check_mode = True
-        mock_module.params = {"name": "ct0.fc0", "state": "present", "servicelist": None}
+        mock_module.params = {
+            "name": "ct0.fc0",
+            "state": "present",
+            "servicelist": None,
+        }
         mock_array = Mock()
         mock_interface = Mock(enabled=False, services=[])
 
@@ -102,7 +106,11 @@ class TestUpdateFcInterface:
         """Test FC interface with no changes needed"""
         mock_module = Mock()
         mock_module.check_mode = False
-        mock_module.params = {"name": "ct0.fc0", "state": "present", "servicelist": None}
+        mock_module.params = {
+            "name": "ct0.fc0",
+            "state": "present",
+            "servicelist": None,
+        }
         mock_array = Mock()
         mock_interface = Mock(enabled=True, services=[])
 
@@ -312,4 +320,3 @@ class TestUpdateInterface:
 
         mock_array.patch_network_interfaces.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
-

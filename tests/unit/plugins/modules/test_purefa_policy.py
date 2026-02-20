@@ -278,7 +278,6 @@ class TestDeletePolicy:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
-
 class TestRenamePolicy:
     """Tests for rename_policy function"""
 
@@ -435,7 +434,6 @@ class TestRenamePolicy:
 
         # May be called multiple times in error handling
         mock_module.fail_json.assert_called()
-
 
 
 class TestCreatePolicy:

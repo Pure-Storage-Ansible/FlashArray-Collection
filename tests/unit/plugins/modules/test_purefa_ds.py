@@ -102,6 +102,3 @@ class TestDsTest:
         assert len(call_args["test_response"]) == 1
         assert call_args["test_response"][0]["enabled"] == "true"
         assert call_args["test_response"][0]["success"] == "true"
-
-
-
