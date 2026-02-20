@@ -566,4 +566,141 @@ class TestMakePgroupSuccess:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
+class TestUpdatePgroupSuccess:
+    """Test cases for update_pgroup function success scenarios"""
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_update_pgroup_add_volumes(
+        self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
+    ):
+        """Test update_pgroup adding volumes to empty protection group"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": ["vol1", "vol2"],
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "priority": None,
+            "priority_adjustment": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock pgroup with no hosts/hostgroups/volumes
+        mock_pg = Mock()
+        mock_pg.host_count = 0
+        mock_pg.host_group_count = 0
+        mock_pg.volume_count = 0
+        mock_pg.retention_lock = "unlocked"
+        mock_get_pgroup.return_value = mock_pg
+        mock_get_pgroup_sched.return_value = Mock()
+        mock_array.post_protection_groups_volumes.return_value = Mock(status_code=200)
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups_volumes.assert_called_once()
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_update_pgroup_add_hosts(
+        self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
+    ):
+        """Test update_pgroup adding hosts to empty protection group"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": None,
+            "host": ["host1", "host2"],
+            "hostgroup": None,
+            "target": None,
+            "priority": None,
+            "priority_adjustment": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock pgroup with no volumes/hosts/hostgroups
+        mock_pg = Mock()
+        mock_pg.volume_count = 0
+        mock_pg.host_count = 0
+        mock_pg.host_group_count = 0
+        mock_pg.retention_lock = "unlocked"
+        mock_get_pgroup.return_value = mock_pg
+        mock_get_pgroup_sched.return_value = Mock()
+        mock_array.post_protection_groups_hosts.return_value = Mock(status_code=200)
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups_hosts.assert_called_once()
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_update_pgroup_enable_snapshot_schedule(
+        self, mock_lv, mock_check_response, mock_get_pgroup_sched
+    ):
+        """Test update_pgroup enabling snapshot schedule"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "priority": None,
+            "priority_adjustment": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": True,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock schedule with snapshot disabled
+        mock_sched = Mock()
+        mock_sched.snapshot_schedule.enabled = False
+        mock_get_pgroup_sched.return_value = mock_sched
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+        # Mock get_protection_groups for retention_lock check
+        mock_pg = Mock()
+        mock_pg.retention_lock = "unlocked"
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.patch_protection_groups.assert_called()
+        mock_module.exit_json.assert_called()
+
+
 
