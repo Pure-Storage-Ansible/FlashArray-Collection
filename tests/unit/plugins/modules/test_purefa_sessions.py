@@ -64,3 +64,55 @@ class TestGetFilterString:
         result = _get_filter_string(mock_module, "+00:00")
 
         assert result == ""
+
+    def test_get_filter_string_start_only(self):
+        """Test _get_filter_string with start time only"""
+        mock_module = Mock()
+        mock_module.params = {"start": "2024-01-01 00:00:00", "end": None}
+
+        result = _get_filter_string(mock_module, "+00:00")
+
+        assert "start_time>=" in result
+        assert "end_time" not in result
+
+    def test_get_filter_string_end_only(self):
+        """Test _get_filter_string with end time only"""
+        mock_module = Mock()
+        mock_module.params = {"start": None, "end": "2024-01-01 23:59:59"}
+
+        result = _get_filter_string(mock_module, "+00:00")
+
+        assert "end_time<=" in result
+        assert "start_time" not in result
+
+    def test_get_filter_string_both_params(self):
+        """Test _get_filter_string with both start and end times"""
+        mock_module = Mock()
+        mock_module.params = {
+            "start": "2024-01-01 00:00:00",
+            "end": "2024-01-01 23:59:59",
+        }
+
+        result = _get_filter_string(mock_module, "+00:00")
+
+        assert "start_time>=" in result
+        assert "end_time<=" in result
+        assert " and " in result
+
+    def test_get_filter_string_start_zero(self):
+        """Test _get_filter_string with start time of 0"""
+        mock_module = Mock()
+        mock_module.params = {"start": "0", "end": None}
+
+        result = _get_filter_string(mock_module, "+00:00")
+
+        assert "start_time>=0" in result
+
+    def test_get_filter_string_end_zero(self):
+        """Test _get_filter_string with end time of 0"""
+        mock_module = Mock()
+        mock_module.params = {"start": None, "end": "0"}
+
+        result = _get_filter_string(mock_module, "+00:00")
+
+        assert "end_time<=0" in result
