@@ -65,7 +65,9 @@ class TestCheckOffload:
         mock_array.get_rest_version.return_value = "2.0"
         mock_offload = Mock()
         mock_offload.status = "connected"
-        mock_array.get_offloads.return_value = Mock(status_code=200, items=[mock_offload])
+        mock_array.get_offloads.return_value = Mock(
+            status_code=200, items=[mock_offload]
+        )
 
         result = _check_offload(mock_module, mock_array)
 

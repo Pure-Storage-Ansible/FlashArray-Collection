@@ -57,18 +57,14 @@ class TestIsCbs:
     def test_is_cbs_true(self):
         """Test CBS detection returns True for CBS model"""
         mock_array = Mock()
-        mock_array.get_controllers.return_value = Mock(
-            items=[Mock(model="CBS-V10")]
-        )
+        mock_array.get_controllers.return_value = Mock(items=[Mock(model="CBS-V10")])
         result = _is_cbs(mock_array)
         assert result is True
 
     def test_is_cbs_false(self):
         """Test CBS detection returns False for non-CBS model"""
         mock_array = Mock()
-        mock_array.get_controllers.return_value = Mock(
-            items=[Mock(model="FA-X70R3")]
-        )
+        mock_array.get_controllers.return_value = Mock(items=[Mock(model="FA-X70R3")])
         result = _is_cbs(mock_array)
         assert result is False
 
