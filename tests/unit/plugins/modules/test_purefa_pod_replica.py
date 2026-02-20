@@ -52,6 +52,8 @@ from plugins.modules.purefa_pod_replica import (
     get_local_pod,
     get_local_rl,
     delete_rl,
+    update_rl,
+    create_rl,
 )
 
 
@@ -126,3 +128,113 @@ class TestDeleteRl:
         delete_rl(mock_module, mock_array, mock_rl)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateRl:
+    """Test cases for update_rl function"""
+
+    @patch("plugins.modules.purefa_pod_replica.LooseVersion", side_effect=LooseVersion)
+    def test_update_rl_no_pause_param(self, mock_lv):
+        """Test update_rl when pause is None - no change"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-pod", "pause": None, "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_rl = Mock()
+        mock_rl.status = "replicating"
+
+        update_rl(mock_module, mock_array, mock_rl)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_pod_replica.check_response")
+    @patch("plugins.modules.purefa_pod_replica.PodReplicaLinkPatch")
+    @patch("plugins.modules.purefa_pod_replica.LooseVersion", side_effect=LooseVersion)
+    def test_update_rl_pause_success(self, mock_lv, mock_patch, mock_check_response):
+        """Test update_rl pausing a replica link"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-pod", "pause": True, "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_pod_replica_links.return_value = Mock(status_code=200)
+        mock_rl = Mock()
+        mock_rl.status = "replicating"
+        mock_rl.__getitem__ = Mock(return_value={"name": "remote-pod"})
+
+        update_rl(mock_module, mock_array, mock_rl)
+
+        mock_array.patch_pod_replica_links.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateRl:
+    """Test cases for create_rl function"""
+
+    @patch("plugins.modules.purefa_pod_replica.LooseVersion", side_effect=LooseVersion)
+    def test_create_rl_missing_target_pod(self, mock_lv):
+        """Test create_rl fails without target_pod"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "target_pod": None,
+            "target_array": "array2",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        with pytest.raises(SystemExit):
+            create_rl(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_pod_replica.LooseVersion", side_effect=LooseVersion)
+    def test_create_rl_missing_target_array(self, mock_lv):
+        """Test create_rl fails without target_array"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "target_pod": "remote-pod",
+            "target_array": None,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        with pytest.raises(SystemExit):
+            create_rl(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_pod_replica.LooseVersion", side_effect=LooseVersion)
+    def test_create_rl_no_connected_arrays(self, mock_lv):
+        """Test create_rl fails when no arrays are connected"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "target_pod": "remote-pod",
+            "target_array": "array2",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_array_connections.return_value = Mock(total_item_count=0)
+
+        with pytest.raises(SystemExit):
+            create_rl(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
