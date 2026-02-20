@@ -526,3 +526,99 @@ class TestMakeVgroupSuccess:
 
         mock_array.post_volume_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateVgroupSuccess:
+    """Test cases for update_vgroup function success scenarios"""
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    def test_update_vgroup_priority_change(self, mock_lv, mock_check_response):
+        """Test update_vgroup changing priority"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "bw_qos": None,
+            "iops_qos": None,
+            "priority_operator": "+",
+            "priority_value": 5,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock current vgroup with different priority
+        mock_vg = Mock()
+        mock_vg.priority_adjustment = Mock()
+        mock_vg.priority_adjustment.priority_adjustment_operator = "+"
+        mock_vg.priority_adjustment.priority_adjustment_value = 0
+        mock_vg.qos = Mock()
+        mock_array.get_volume_groups.return_value = Mock(items=[mock_vg])
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        update_vgroup(mock_module, mock_array)
+
+        mock_array.patch_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    def test_update_vgroup_bw_qos_change(
+        self, mock_human_to_bytes, mock_lv, mock_check_response
+    ):
+        """Test update_vgroup changing bandwidth QoS"""
+        mock_human_to_bytes.return_value = 1073741824  # 1GB
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "bw_qos": "1G",
+            "iops_qos": None,
+            "priority_operator": None,
+            "priority_value": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock current vgroup
+        mock_vg = Mock()
+        mock_vg.priority_adjustment = Mock()
+        mock_vg.priority_adjustment.priority_adjustment_operator = "+"
+        mock_vg.priority_adjustment.priority_adjustment_value = 0
+        mock_vg.qos = Mock()
+        mock_vg.qos.bandwidth_limit = 549755813888  # Default
+        mock_array.get_volume_groups.return_value = Mock(items=[mock_vg])
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        update_vgroup(mock_module, mock_array)
+
+        mock_array.patch_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    def test_update_vgroup_no_changes(self, mock_lv):
+        """Test update_vgroup when no changes needed"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "bw_qos": None,
+            "iops_qos": None,
+            "priority_operator": None,
+            "priority_value": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock current vgroup
+        mock_vg = Mock()
+        mock_vg.priority_adjustment = Mock()
+        mock_vg.priority_adjustment.priority_adjustment_operator = "+"
+        mock_vg.priority_adjustment.priority_adjustment_value = 0
+        mock_vg.qos = Mock()
+        mock_array.get_volume_groups.return_value = Mock(items=[mock_vg])
+
+        update_vgroup(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
