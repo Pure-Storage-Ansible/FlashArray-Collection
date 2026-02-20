@@ -697,3 +697,103 @@ class TestStretchPodSuccess:
 
         mock_array.delete_pods_members.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestUpdatePodSuccess:
+    """Test cases for update_pod function success scenarios"""
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_update_pod_change_failover(self, mock_lv, mock_check_response):
+        """Test update_pod changing failover preferences"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": ["array1", "array2"],
+            "mediator": "mediator.example.com",
+            "promote": None,
+            "quiesce": None,
+            "undo": None,
+            "priority_adjustment": None,
+            "rename": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock current config with different failover
+        mock_config = Mock()
+        mock_config.failover_preferences = ["old-array"]
+        mock_config.mediator = "mediator.example.com"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_config])
+        mock_array.patch_pods.return_value = Mock(status_code=200)
+
+        update_pod(mock_module, mock_array)
+
+        mock_array.patch_pods.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_update_pod_clear_failover_auto(self, mock_lv, mock_check_response):
+        """Test update_pod clearing failover with auto"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": ["auto"],
+            "mediator": "mediator.example.com",
+            "promote": None,
+            "quiesce": None,
+            "undo": None,
+            "priority_adjustment": None,
+            "rename": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock current config with failover set
+        mock_config = Mock()
+        mock_config.failover_preferences = ["array1"]
+        mock_config.mediator = "mediator.example.com"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_config])
+        mock_array.patch_pods.return_value = Mock(status_code=200)
+
+        update_pod(mock_module, mock_array)
+
+        mock_array.patch_pods.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_update_pod_no_changes(self, mock_lv):
+        """Test update_pod when no changes needed"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "mediator.example.com",
+            "promote": None,
+            "quiesce": None,
+            "undo": None,
+            "priority_adjustment": None,
+            "rename": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock current config matching params
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "mediator.example.com"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_config])
+
+        update_pod(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
