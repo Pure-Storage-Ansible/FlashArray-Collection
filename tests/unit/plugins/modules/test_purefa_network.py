@@ -546,3 +546,83 @@ class TestUpdateFcInterfaceExtended:
 
         mock_array.patch_network_interfaces.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestUpdateInterfaceSuccess:
+    """Test cases for update_interface success paths"""
+
+    @patch("plugins.modules.purefa_network.check_response")
+    def test_update_fc_interface_change_services(self, mock_check_response):
+        """Test update_interface changes FC interface services"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.exit_json.side_effect = SystemExit(0)
+        mock_module.params = {
+            "name": "ct0.fc0",
+            "state": "present",
+            "servicelist": ["replication"],
+        }
+        mock_array = Mock()
+        mock_interface = Mock()
+        mock_interface.enabled = True
+        mock_interface.services = ["management"]
+        mock_array.get_network_interfaces.return_value = Mock(items=[mock_interface])
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+
+        with pytest.raises(SystemExit):
+            update_interface(mock_module, mock_array)
+
+        mock_array.patch_network_interfaces.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_network.check_response")
+    def test_update_fc_interface_enable_and_services(self, mock_check_response):
+        """Test update_interface enables FC interface and updates services"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.exit_json.side_effect = SystemExit(0)
+        mock_module.params = {
+            "name": "ct0.fc0",
+            "state": "present",
+            "servicelist": ["replication", "nvme-tcp"],
+        }
+        mock_array = Mock()
+        mock_interface = Mock()
+        mock_interface.enabled = False
+        mock_interface.services = []
+        mock_array.get_network_interfaces.return_value = Mock(items=[mock_interface])
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+
+        with pytest.raises(SystemExit):
+            update_interface(mock_module, mock_array)
+
+        # Should be called twice - once to enable, once to change services
+        assert mock_array.patch_network_interfaces.call_count == 2
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_update_fc_interface_check_mode_enable(self):
+        """Test update_interface FC interface check mode for enable"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.exit_json.side_effect = SystemExit(0)
+        mock_module.params = {
+            "name": "ct0.fc0",
+            "state": "present",
+            "servicelist": None,
+        }
+        mock_array = Mock()
+        mock_interface = Mock()
+        mock_interface.enabled = False
+        mock_array.get_network_interfaces.return_value = Mock(items=[mock_interface])
+
+        with pytest.raises(SystemExit):
+            update_interface(mock_module, mock_array)
+
+        mock_array.patch_network_interfaces.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
