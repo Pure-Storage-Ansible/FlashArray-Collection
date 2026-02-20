@@ -49,6 +49,7 @@ from plugins.modules.purefa_fs import (
     eradicate_fs,
     rename_fs,
     create_fs,
+    move_fs,
 )
 
 
@@ -66,6 +67,40 @@ class TestDeleteFs:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
+    @patch("plugins.modules.purefa_fs.check_response")
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_delete_fs_success(self, mock_lv, mock_check_response):
+        """Test delete_fs successfully deletes file system"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-fs", "eradicate": False, "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.patch_file_systems.return_value = Mock(status_code=200)
+
+        delete_fs(mock_module, mock_array)
+
+        mock_array.patch_file_systems.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_fs.check_response")
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_delete_fs_with_eradicate(self, mock_lv, mock_check_response):
+        """Test delete_fs with eradicate flag"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-fs", "eradicate": True, "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.patch_file_systems.return_value = Mock(status_code=200)
+        mock_array.delete_file_systems.return_value = Mock(status_code=200)
+
+        delete_fs(mock_module, mock_array)
+
+        mock_array.patch_file_systems.assert_called_once()
+        mock_array.delete_file_systems.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
 
 class TestRecoverFs:
     """Test cases for recover_fs function"""
@@ -81,6 +116,22 @@ class TestRecoverFs:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
+    @patch("plugins.modules.purefa_fs.check_response")
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_recover_fs_success(self, mock_lv, mock_check_response):
+        """Test recover_fs successfully recovers file system"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "deleted-fs", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.patch_file_systems.return_value = Mock(status_code=200)
+
+        recover_fs(mock_module, mock_array)
+
+        mock_array.patch_file_systems.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
 
 class TestEradicateFs:
     """Test cases for eradicate_fs function"""
@@ -94,6 +145,22 @@ class TestEradicateFs:
 
         eradicate_fs(mock_module, mock_array)
 
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_fs.check_response")
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_fs_success(self, mock_lv, mock_check_response):
+        """Test eradicate_fs successfully eradicates file system"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "deleted-fs", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.delete_file_systems.return_value = Mock(status_code=200)
+
+        eradicate_fs(mock_module, mock_array)
+
+        mock_array.delete_file_systems.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -120,6 +187,27 @@ class TestRenameFs:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
+    @patch("plugins.modules.purefa_fs.check_response")
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_rename_fs_success(self, mock_lv, mock_check_response):
+        """Test rename_fs successfully renames file system"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "old-fs",
+            "rename": "new-fs",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_file_systems.return_value = Mock(status_code=404)
+        mock_array.patch_file_systems.return_value = Mock(status_code=200)
+
+        rename_fs(mock_module, mock_array)
+
+        mock_array.patch_file_systems.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
 
 class TestCreateFs:
     """Test cases for create_fs function"""
@@ -136,4 +224,20 @@ class TestCreateFs:
 
         create_fs(mock_module, mock_array)
 
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_fs.check_response")
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_create_fs_success(self, mock_lv, mock_check_response):
+        """Test create_fs successfully creates file system"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "new-fs", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.post_file_systems.return_value = Mock(status_code=200)
+
+        create_fs(mock_module, mock_array)
+
+        mock_array.post_file_systems.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
