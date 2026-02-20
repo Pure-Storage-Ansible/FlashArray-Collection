@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -47,6 +47,8 @@ from plugins.modules.purefa_certs import (
     export_cert,
     import_cert,
     create_csr,
+    create_cert,
+    update_cert,
 )
 
 
@@ -63,6 +65,36 @@ class TestDeleteCert:
         delete_cert(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_certs.check_response")
+    def test_delete_cert_success(self, mock_check_response):
+        """Test delete_cert successfully deletes certificate"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-cert"}
+        mock_array = Mock()
+        mock_array.delete_certificates.return_value = Mock(status_code=200)
+
+        delete_cert(mock_module, mock_array)
+
+        mock_array.delete_certificates.assert_called_once_with(names=["test-cert"])
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_delete_cert_management_fails(self):
+        """Test delete_cert fails for management certificate"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "management"}
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+
+        with pytest.raises(SystemExit):
+            delete_cert(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        mock_array.delete_certificates.assert_not_called()
 
 
 class TestExportCert:
@@ -106,6 +138,49 @@ class TestImportCert:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
+    @patch("plugins.modules.purefa_certs.flasharray")
+    @patch("plugins.modules.purefa_certs.check_response")
+    def test_import_cert_success(self, mock_check_response, mock_flasharray):
+        """Test import_cert successfully imports certificate"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-cert",
+            "certificate": "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----",
+            "intermeadiate_cert": None,
+            "key": "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----",
+            "passphrase": "secret",
+        }
+        mock_array = Mock()
+        mock_array.post_certificates.return_value = Mock(status_code=200)
+
+        import_cert(mock_module, mock_array, reimport=False)
+
+        mock_array.post_certificates.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_certs.flasharray")
+    @patch("plugins.modules.purefa_certs.check_response")
+    def test_import_cert_reimport(self, mock_check_response, mock_flasharray):
+        """Test import_cert with reimport flag"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-cert",
+            "certificate": "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----",
+            "intermeadiate_cert": "-----BEGIN CERTIFICATE-----\ninter\n-----END CERTIFICATE-----",
+            "key": "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----",
+            "passphrase": None,
+        }
+        mock_array = Mock()
+        mock_array.patch_certificates.return_value = Mock(status_code=200)
+
+        import_cert(mock_module, mock_array, reimport=True)
+
+        mock_array.patch_certificates.assert_called_once()
+        mock_array.post_certificates.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
 
 class TestCreateCsr:
     """Test cases for create_csr function"""
@@ -139,4 +214,172 @@ class TestCreateCsr:
 
         create_csr(mock_module, mock_array)
 
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateCert:
+    """Test cases for create_cert function"""
+
+    @patch("plugins.modules.purefa_certs.flasharray")
+    def test_create_cert_check_mode(self, mock_flasharray):
+        """Test create_cert in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "new-cert",
+            "common_name": "test.example.com",
+            "country": "US",
+            "email": "test@example.com",
+            "key_size": 2048,
+            "locality": "Test City",
+            "organization": "Test Org",
+            "org_unit": "Test Unit",
+            "province": "Test State",
+            "days": 365,
+        }
+        mock_array = Mock()
+
+        create_cert(mock_module, mock_array)
+
+        mock_array.post_certificates.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_certs.flasharray")
+    @patch("plugins.modules.purefa_certs.check_response")
+    def test_create_cert_success(self, mock_check_response, mock_flasharray):
+        """Test create_cert successfully creates certificate"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "new-cert",
+            "common_name": "test.example.com",
+            "country": "US",
+            "email": "test@example.com",
+            "key_size": 4096,
+            "locality": "Test City",
+            "organization": "Test Org",
+            "org_unit": "Test Unit",
+            "province": "Test State",
+            "days": 730,
+        }
+        mock_array = Mock()
+        mock_array.post_certificates.return_value = Mock(status_code=200)
+
+        create_cert(mock_module, mock_array)
+
+        mock_array.post_certificates.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateCert:
+    """Test cases for update_cert function"""
+
+    @patch("plugins.modules.purefa_certs.flasharray")
+    def test_update_cert_no_changes(self, mock_flasharray):
+        """Test update_cert when no changes needed"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-cert",
+            "common_name": "test.example.com",
+            "country": "US",
+            "email": "test@example.com",
+            "key_size": 2048,
+            "locality": "Test City",
+            "organization": "Test Org",
+            "org_unit": "Test Unit",
+            "province": "Test State",
+            "generate": False,
+        }
+        mock_array = Mock()
+
+        # Current cert has same values
+        mock_cert = Mock()
+        mock_cert.common_name = "test.example.com"
+        mock_cert.country = "US"
+        mock_cert.email = "test@example.com"
+        mock_cert.key_size = 2048
+        mock_cert.locality = "Test City"
+        mock_cert.organization = "Test Org"
+        mock_cert.organizational_unit = "Test Unit"
+        mock_cert.state = "Test State"
+        mock_array.get_certificates.return_value = Mock(items=[mock_cert])
+
+        update_cert(mock_module, mock_array)
+
+        mock_array.patch_certificates.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_certs.flasharray")
+    @patch("plugins.modules.purefa_certs.check_response")
+    def test_update_cert_common_name_change(self, mock_check_response, mock_flasharray):
+        """Test update_cert when common_name changes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-cert",
+            "common_name": "new.example.com",
+            "country": None,
+            "email": None,
+            "key_size": None,
+            "locality": None,
+            "organization": None,
+            "org_unit": None,
+            "province": None,
+            "generate": True,
+        }
+        mock_array = Mock()
+
+        # Current cert has different common_name
+        mock_cert = Mock()
+        mock_cert.common_name = "old.example.com"
+        mock_cert.country = "US"
+        mock_cert.email = "test@example.com"
+        mock_cert.key_size = 2048
+        mock_cert.locality = "Test City"
+        mock_cert.organization = "Test Org"
+        mock_cert.organizational_unit = "Test Unit"
+        mock_cert.state = "Test State"
+        mock_array.get_certificates.return_value = Mock(items=[mock_cert])
+        mock_array.patch_certificates.return_value = Mock(status_code=200)
+
+        update_cert(mock_module, mock_array)
+
+        mock_array.patch_certificates.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_certs.flasharray")
+    def test_update_cert_check_mode(self, mock_flasharray):
+        """Test update_cert in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-cert",
+            "common_name": "new.example.com",
+            "country": None,
+            "email": None,
+            "key_size": None,
+            "locality": None,
+            "organization": None,
+            "org_unit": None,
+            "province": None,
+            "generate": False,
+        }
+        mock_array = Mock()
+
+        # Current cert has different common_name
+        mock_cert = Mock()
+        mock_cert.common_name = "old.example.com"
+        mock_cert.country = "US"
+        mock_cert.email = "test@example.com"
+        mock_cert.key_size = 2048
+        mock_cert.locality = "Test City"
+        mock_cert.organization = "Test Org"
+        mock_cert.organizational_unit = "Test Unit"
+        mock_cert.state = "Test State"
+        mock_array.get_certificates.return_value = Mock(items=[mock_cert])
+
+        update_cert(mock_module, mock_array)
+
+        mock_array.patch_certificates.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
