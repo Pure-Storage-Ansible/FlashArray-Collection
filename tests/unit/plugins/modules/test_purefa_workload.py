@@ -432,3 +432,139 @@ class TestExpandWorkloadSuccess:
 
         mock_create_vol.assert_not_called()
         mock_module.fail_json.assert_called_once()
+
+
+class TestDeleteWorkloadWithEradicate:
+    """Test cases for delete_workload with eradicate option"""
+
+    @patch("plugins.modules.purefa_workload.eradicate_workload")
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_delete_workload_with_eradicate(
+        self, mock_check_response, mock_eradicate_workload
+    ):
+        """Test delete_workload with eradicate flag"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-workload",
+            "context": "pod1",
+            "eradicate": True,
+        }
+        mock_array = Mock()
+        mock_array.patch_workloads.return_value = Mock(status_code=200)
+
+        delete_workload(mock_module, mock_array)
+
+        mock_array.patch_workloads.assert_called_once()
+        mock_eradicate_workload.assert_called_once_with(mock_module, mock_array)
+
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_delete_workload_without_eradicate(self, mock_check_response):
+        """Test delete_workload without eradicate flag"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-workload",
+            "context": "pod1",
+            "eradicate": False,
+        }
+        mock_array = Mock()
+        mock_array.patch_workloads.return_value = Mock(status_code=200)
+
+        delete_workload(mock_module, mock_array)
+
+        mock_array.patch_workloads.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRecoverWorkloadWithHost:
+    """Test cases for recover_workload with host option"""
+
+    @patch("plugins.modules.purefa_workload._connect_volumes")
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_recover_workload_with_host(
+        self, mock_check_response, mock_connect_volumes
+    ):
+        """Test recover_workload with host connection"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-workload",
+            "context": "pod1",
+            "host": "host1",
+        }
+        mock_array = Mock()
+        mock_array.patch_workloads.return_value = Mock(status_code=200)
+
+        recover_workload(mock_module, mock_array)
+
+        mock_array.patch_workloads.assert_called_once()
+        mock_connect_volumes.assert_called_once_with(mock_module, mock_array)
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestConnectOrDisconnectVolumesSuccess:
+    """Test cases for connect_or_disconnect_volumes success paths"""
+
+    @patch("plugins.modules.purefa_workload._connect_volumes")
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_connect_volumes_success(self, mock_check_response, mock_connect_volumes):
+        """Test connect_or_disconnect_volumes connects volumes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-workload",
+            "host": "host1",
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        # Mock no existing connections
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.items = []
+        mock_array.get_connections.return_value = mock_response
+        # Mock workload volumes exist
+        mock_vol_response = Mock()
+        mock_vol_response.status_code = 200
+        mock_vol_response.items = [Mock(name="vol1")]
+        mock_array.get_volumes.return_value = mock_vol_response
+
+        connect_or_disconnect_volumes(mock_module, mock_array, "connect")
+
+        mock_connect_volumes.assert_called_once_with(mock_module, mock_array)
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_workload._disconnect_volumes")
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_disconnect_volumes_success(
+        self, mock_check_response, mock_disconnect_volumes
+    ):
+        """Test connect_or_disconnect_volumes disconnects volumes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-workload",
+            "host": "host1",
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        # Mock existing connections - volume name must be accessible via conn.volume.name
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_conn = Mock()
+        mock_conn.volume = Mock()
+        mock_conn.volume.name = "vol1"  # Set as attribute, not constructor arg
+        mock_response.items = [mock_conn]
+        mock_array.get_connections.return_value = mock_response
+        # Mock workload volumes exist - must match connection volume name
+        mock_vol_response = Mock()
+        mock_vol_response.status_code = 200
+        mock_vol = Mock()
+        mock_vol.name = "vol1"  # Must match the connection volume name
+        mock_vol_response.items = [mock_vol]
+        mock_array.get_volumes.return_value = mock_vol_response
+
+        connect_or_disconnect_volumes(mock_module, mock_array, "disconnect")
+
+        mock_disconnect_volumes.assert_called_once_with(mock_module, mock_array)
+        mock_module.exit_json.assert_called_once_with(changed=True)
