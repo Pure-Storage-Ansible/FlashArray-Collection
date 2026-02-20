@@ -9,6 +9,7 @@ __metaclass__ = type
 
 import sys
 from unittest.mock import Mock, patch, MagicMock
+from packaging.version import Version as LooseVersion
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -1554,3 +1555,136 @@ class TestVolfact:
 
         assert "test-vol" in result
         assert result["test-vol"]["serial"] == "12345ABCDEF0123456"
+
+
+class TestMoveVolumeSuccess:
+    """Test cases for move_volume function success scenarios"""
+
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_move_volume_to_vgroup(self, mock_lv, mock_volfact, mock_check_response):
+        """Test moving volume to a volume group"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "move": "vgroup1",
+            "context": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_pods.return_value = Mock(status_code=400)  # Not a pod
+        mock_array.get_volume_groups.return_value = Mock(
+            items=[Mock(destroyed=False)], status_code=200
+        )
+        mock_array.get_volumes.return_value = Mock(status_code=400)  # Target doesn't exist
+        # Mock patch_volumes response with items
+        mock_new_vol = Mock()
+        mock_new_vol.name = "vgroup1/test-vol"
+        mock_array.patch_volumes.return_value = Mock(
+            status_code=200, items=[mock_new_vol]
+        )
+        mock_volfact.return_value = {"vgroup1/test-vol": {}}
+
+        move_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_move_volume_to_pod(self, mock_lv, mock_volfact, mock_check_response):
+        """Test moving volume to a pod"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "move": "pod1",
+            "context": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_pod = Mock()
+        mock_pod.array_count = 1
+        mock_pod.link_target_count = 0
+        mock_pod.promotion_status = "promoted"
+        mock_array.get_pods.return_value = Mock(items=[mock_pod], status_code=200)
+        mock_array.get_volumes.return_value = Mock(status_code=400)  # Target doesn't exist
+        # Mock patch_volumes response with items
+        mock_new_vol = Mock()
+        mock_new_vol.name = "pod1::test-vol"
+        mock_array.patch_volumes.return_value = Mock(
+            status_code=200, items=[mock_new_vol]
+        )
+        mock_volfact.return_value = {"pod1::test-vol": {}}
+
+        move_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+
+class TestDeleteVolumeSuccess:
+    """Test cases for delete_volume function success scenarios"""
+
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_delete_volume_with_eradicate(self, mock_lv, mock_volfact, mock_check_response):
+        """Test deleting a volume with eradicate flag"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "add_to_pgs": None,
+            "eradicate": True,
+            "context": None,
+        }
+        mock_module.exit_json.side_effect = SystemExit(0)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+        mock_array.delete_volumes.return_value = Mock(status_code=200)
+
+        with pytest.raises(SystemExit):
+            delete_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        mock_array.delete_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_delete_volume_remove_from_pgs(
+        self, mock_lv, mock_volfact, mock_check_response
+    ):
+        """Test deleting a volume from protection groups"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "add_to_pgs": ["pg1", "pg2"],
+            "eradicate": False,
+            "context": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_pg1 = Mock()
+        mock_pg1.group = Mock()
+        mock_pg1.group.name = "pg1"
+        mock_array.get_protection_groups_volumes.return_value = Mock(items=[mock_pg1])
+        mock_array.delete_volumes_protection_groups.return_value = Mock(status_code=200)
+        mock_volfact.return_value = {"test-vol": {}}
+
+        delete_volume(mock_module, mock_array)
+
+        mock_array.delete_volumes_protection_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+
+
