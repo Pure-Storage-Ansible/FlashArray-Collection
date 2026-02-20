@@ -1284,7 +1284,7 @@ def update_volume(module, array):
                 )
     if module.params["iops_qos"] and int(
         human_to_real(module.params["iops_qos"])
-    ) != int(vol_qos["iops_limit"]):
+    ) != int(vol_qos.iops_limit):
         if module.params["iops_qos"] == "0":
             changed = True
             if not module.check_mode:
