@@ -45,7 +45,6 @@ sys.modules[
 from plugins.modules.purefa_pgsnap import (
     _check_offload,
     get_pgroup,
-    get_pgroupvolume,
     get_pgsnapshot,
     get_rpgsnapshot,
     create_pgsnapshot,

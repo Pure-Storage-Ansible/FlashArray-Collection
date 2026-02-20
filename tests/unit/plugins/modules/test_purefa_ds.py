@@ -51,7 +51,6 @@ sys.modules[
 from plugins.modules.purefa_ds import (
     delete_ds,
     test_ds as ds_test_func,
-    update_ds,
 )
 
 
