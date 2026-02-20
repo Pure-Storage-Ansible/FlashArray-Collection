@@ -1511,3 +1511,158 @@ class TestUpdatePolicyNfs:
 
         mock_array.patch_policies_nfs.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreatePolicyPassword:
+    """Test cases for create_policy with password policy type"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_create_password_policy_fails(self, mock_lv):
+        """Test password policy creation fails with proper error"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "password_policy",
+            "policy": "password",
+            "enabled": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        create_policy(mock_module, mock_array, False)
+
+        mock_module.fail_json.assert_called_once()
+        assert "Password policy creation" in str(
+            mock_module.fail_json.call_args[1]["msg"]
+        )
+
+
+class TestUpdatePolicySmbExtended:
+    """Extended test cases for update_policy with SMB policy"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicySmbPatch")
+    def test_update_smb_policy_enable_change(self, mock_smb_patch, mock_lv):
+        """Test updating SMB policy enabled state"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "smb_policy",
+            "policy": "smb",
+            "enabled": False,
+            "client": None,
+            "access_based_enumeration": None,
+            "continuous_availability": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_current = Mock()
+        mock_current.enabled = True
+        mock_current.access_based_enumeration_enabled = False
+        mock_current.continuous_availability_enabled = False
+        mock_array.get_policies_smb.return_value = Mock(
+            status_code=200, items=[mock_current]
+        )
+        mock_array.patch_policies_smb.return_value = Mock(status_code=200)
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        mock_array.patch_policies_smb.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_update_smb_policy_no_change(self, mock_lv):
+        """Test SMB policy with no changes needed"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "smb_policy",
+            "policy": "smb",
+            "enabled": True,
+            "client": None,
+            "access_based_enumeration": False,  # Match current state
+            "continuous_availability": False,  # Match current state
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_current = Mock()
+        mock_current.enabled = True
+        mock_current.access_based_enumeration_enabled = False
+        mock_current.continuous_availability_enabled = False
+        mock_array.get_policies_smb.return_value = Mock(
+            status_code=200, items=[mock_current]
+        )
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestUpdatePolicySnapshotExtended:
+    """Extended test cases for update_policy with snapshot policy"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    def test_update_snapshot_policy_enable_change(self, mock_policy_patch, mock_lv):
+        """Test updating snapshot policy enabled state"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snap_policy",
+            "policy": "snapshot",
+            "enabled": False,
+            "snap_client_name": None,
+            "snap_every": None,
+            "snap_keep_for": None,
+            "snap_at": None,
+            "directory": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_current = Mock()
+        mock_current.enabled = True
+        mock_array.get_policies_snapshot.return_value = Mock(
+            status_code=200, items=[mock_current]
+        )
+        mock_array.patch_policies_snapshot.return_value = Mock(status_code=200)
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        mock_array.patch_policies_snapshot.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdatePolicyQuotaExtended:
+    """Extended test cases for update_policy with quota policy"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    def test_update_quota_policy_enable_change(self, mock_policy_patch, mock_lv):
+        """Test updating quota policy enabled state"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "quota_policy",
+            "policy": "quota",
+            "enabled": False,
+            "quota_limit": None,
+            "directory": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_current = Mock()
+        mock_current.enabled = True
+        mock_array.get_policies_quota.return_value = Mock(
+            status_code=200, items=[mock_current]
+        )
+        mock_array.patch_policies_quota.return_value = Mock(status_code=200)
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        mock_array.patch_policies_quota.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
