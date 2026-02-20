@@ -51,6 +51,8 @@ from plugins.modules.purefa_pod import (
     check_arrays,
     create_pod,
     clone_pod,
+    update_pod,
+    stretch_pod,
     delete_pod,
     eradicate_pod,
     recover_pod,
@@ -294,5 +296,127 @@ class TestClonePod:
         mock_array.get_rest_version.return_value = "2.0"
 
         clone_pod(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestUpdatePod:
+    """Test cases for update_pod function"""
+
+    @patch("plugins.modules.purefa_pod.LooseVersion")
+    def test_update_pod_no_changes(self, mock_loose_version):
+        """Test update_pod when no changes are needed"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purearray1",
+            "stretch": None,
+            "quota": None,
+            "ignore_usage": False,
+            "promote": None,
+            "undo": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        # Mock current config
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purearray1"
+        mock_config.quota_limit = None
+        mock_array.get_pods.return_value.items = [mock_config]
+
+        update_pod(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_pod.LooseVersion")
+    def test_update_pod_check_mode_failover_change(self, mock_loose_version):
+        """Test update_pod in check mode when failover preference changes"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": ["array2"],
+            "mediator": "purearray1",
+            "stretch": None,
+            "quota": None,
+            "ignore_usage": False,
+            "promote": None,
+            "undo": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        # Mock current config with different failover
+        mock_config = Mock()
+        mock_config.failover_preferences = ["array1"]
+        mock_config.mediator = "purearray1"
+        mock_config.quota_limit = None
+        mock_array.get_pods.return_value.items = [mock_config]
+
+        update_pod(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestStretchPod:
+    """Test cases for stretch_pod function"""
+
+    @patch("plugins.modules.purefa_pod.LooseVersion")
+    def test_stretch_pod_check_mode(self, mock_loose_version):
+        """Test stretch_pod in check mode"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "stretch": "remote-array",
+            "quota": None,
+            "state": "present",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        # Mock current config
+        mock_config = Mock()
+        mock_config.arrays = [{"name": "local-array"}]
+        mock_array.get_pods.return_value.items = [mock_config]
+
+        stretch_pod(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.LooseVersion")
+    def test_stretch_pod_no_change_already_stretched(self, mock_loose_version):
+        """Test stretch_pod when pod is already stretched to target"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "stretch": "remote-array",
+            "quota": None,
+            "state": "present",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        # Mock current config - already stretched to remote-array
+        mock_config = Mock()
+        mock_config.arrays = [{"name": "local-array"}, {"name": "remote-array"}]
+        mock_array.get_pods.return_value.items = [mock_config]
+
+        stretch_pod(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=False)

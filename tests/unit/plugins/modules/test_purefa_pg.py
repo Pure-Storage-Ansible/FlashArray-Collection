@@ -48,6 +48,7 @@ from plugins.modules.purefa_pg import (
     get_arrays,
     get_pending_pgroup,
     get_pgroup,
+    get_pgroup_sched,
     make_pgroup,
     delete_pgroup,
     eradicate_pgroup,
@@ -386,3 +387,40 @@ class TestUpdatePgroup:
         update_pgroup(mock_module, mock_array)
 
         mock_module.exit_json.assert_called()
+
+
+class TestGetPgroupSched:
+    """Test cases for get_pgroup_sched function"""
+
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_get_pgroup_sched_exists(self, mock_loose_version):
+        """Test get_pgroup_sched returns schedule when exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "test-pg", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        mock_sched = Mock()
+        mock_sched.schedule = "daily"
+        mock_array.get_protection_groups.return_value.status_code = 200
+        mock_array.get_protection_groups.return_value.items = [mock_sched]
+
+        result = get_pgroup_sched(mock_module, mock_array)
+
+        assert result == mock_sched
+
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_get_pgroup_sched_not_exists(self, mock_loose_version):
+        """Test get_pgroup_sched returns None when not exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "test-pg", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        mock_array.get_protection_groups.return_value.status_code = 404
+
+        result = get_pgroup_sched(mock_module, mock_array)
+
+        assert result is None

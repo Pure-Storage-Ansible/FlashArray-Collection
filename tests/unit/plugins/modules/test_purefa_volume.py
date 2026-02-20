@@ -59,6 +59,9 @@ from plugins.modules.purefa_volume import (
     check_vgroup,
     get_multi_volumes,
     get_endpoint,
+    get_pending_pgroup,
+    get_pgroup,
+    pg_exists,
 )
 
 
@@ -1336,3 +1339,110 @@ class TestGetMultiVolumes:
         result = get_multi_volumes(mock_module, mock_array)
 
         assert result is None
+
+
+class TestGetPendingPgroup:
+    """Test cases for get_pending_pgroup function"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_get_pending_pgroup_exists_destroyed(self, mock_loose_version):
+        """Test get_pending_pgroup returns pgroup when exists and destroyed"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"pgroup": "test-pg", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        mock_pgroup = Mock()
+        mock_pgroup.destroyed = True
+        mock_array.get_protection_groups.return_value.status_code = 200
+        mock_array.get_protection_groups.return_value.items = [mock_pgroup]
+
+        result = get_pending_pgroup(mock_module, mock_array)
+
+        assert result == mock_pgroup
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_get_pending_pgroup_exists_not_destroyed(self, mock_loose_version):
+        """Test get_pending_pgroup returns None when exists but not destroyed"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"pgroup": "test-pg", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        mock_pgroup = Mock()
+        mock_pgroup.destroyed = False
+        mock_array.get_protection_groups.return_value.status_code = 200
+        mock_array.get_protection_groups.return_value.items = [mock_pgroup]
+
+        result = get_pending_pgroup(mock_module, mock_array)
+
+        assert result is None
+
+
+class TestGetPgroup:
+    """Test cases for get_pgroup function"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_get_pgroup_exists(self, mock_loose_version):
+        """Test get_pgroup returns pgroup when exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"pgroup": "test-pg", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        mock_pgroup = Mock()
+        mock_array.get_protection_groups.return_value.status_code = 200
+        mock_array.get_protection_groups.return_value.items = [mock_pgroup]
+
+        result = get_pgroup(mock_module, mock_array)
+
+        assert result == mock_pgroup
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_get_pgroup_not_exists(self, mock_loose_version):
+        """Test get_pgroup returns None when not exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"pgroup": "test-pg", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_protection_groups.return_value.status_code = 404
+
+        result = get_pgroup(mock_module, mock_array)
+
+        assert result is None
+
+
+class TestPgExists:
+    """Test cases for pg_exists function"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_pg_exists_true(self, mock_loose_version):
+        """Test pg_exists returns True when pgroup exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_protection_groups.return_value.status_code = 200
+
+        result = pg_exists(mock_module, "test-pg", mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_pg_exists_false(self, mock_loose_version):
+        """Test pg_exists returns False when pgroup doesn't exist"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_protection_groups.return_value.status_code = 404
+
+        result = pg_exists(mock_module, "test-pg", mock_array)
+
+        assert result is False
