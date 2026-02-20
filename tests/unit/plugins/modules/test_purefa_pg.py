@@ -498,3 +498,72 @@ class TestEradicatePgroupSuccess:
 
         mock_array.delete_protection_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestMakePgroupSuccess:
+    """Test cases for make_pgroup function success scenarios"""
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_make_pgroup_basic(self, mock_lv, mock_check_response):
+        """Test creating a basic protection group without targets"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pgroup1",
+            "target": None,
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "enabled": True,
+            "context": None,
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_protection_groups.return_value = Mock(status_code=200)
+
+        make_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pg.check_pg_on_offload")
+    @patch("plugins.modules.purefa_pg.get_targets")
+    @patch("plugins.modules.purefa_pg.get_arrays")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_make_pgroup_with_targets(
+        self, mock_lv, mock_check_response, mock_get_arrays,
+        mock_get_targets, mock_check_pg_offload
+    ):
+        """Test creating protection group with targets"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pgroup1",
+            "target": ["array2"],
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "enabled": True,
+            "context": None,
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_protection_groups.return_value = Mock(status_code=200)
+        mock_array.post_protection_groups_targets.return_value = Mock(status_code=200)
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+
+        mock_get_arrays.return_value = ["array2"]
+        mock_get_targets.return_value = []
+        mock_check_pg_offload.return_value = None
+
+        make_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+
