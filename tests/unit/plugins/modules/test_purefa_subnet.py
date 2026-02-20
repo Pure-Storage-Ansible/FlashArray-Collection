@@ -52,6 +52,7 @@ from plugins.modules.purefa_subnet import (
     _get_subnet,
     delete_subnet,
     create_subnet,
+    update_subnet,
 )
 
 
@@ -219,5 +220,132 @@ class TestCreateSubnet:
 
         with pytest.raises(SystemExit):
             create_subnet(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestUpdateSubnet:
+    """Tests for update_subnet function"""
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_no_change(self, mock_check_response):
+        """Test update_subnet when no changes needed"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "prefix": None,
+            "vlan": None,
+            "mtu": None,
+            "gateway": None,
+            "enabled": True,
+        }
+
+        # Use dict for subnet because function accesses subnet["gateway"]
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "10.0.0.0/24"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = 100
+        mock_subnet.gateway = "10.0.0.1"
+        mock_subnet.enabled = True
+        # Make subnet subscriptable for subnet["gateway"]
+        mock_subnet.__getitem__ = Mock(return_value="10.0.0.1")
+
+        mock_array = Mock()
+
+        update_subnet(mock_module, mock_array, mock_subnet)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+        mock_array.patch_subnets.assert_not_called()
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_change_mtu(self, mock_check_response):
+        """Test update_subnet with MTU change"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "prefix": None,
+            "vlan": None,
+            "mtu": 9000,  # Change MTU
+            "gateway": None,
+            "enabled": True,
+        }
+
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "10.0.0.0/24"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = 100
+        mock_subnet.gateway = "10.0.0.1"
+        mock_subnet.enabled = True
+        # Make subnet subscriptable for subnet["gateway"]
+        mock_subnet.__getitem__ = Mock(return_value="10.0.0.1")
+
+        mock_array = Mock()
+        mock_array.patch_subnets.return_value = Mock(status_code=200)
+
+        update_subnet(mock_module, mock_array, mock_subnet)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        mock_array.patch_subnets.assert_called_once()
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_check_mode(self, mock_check_response):
+        """Test update_subnet in check mode with changes"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "prefix": None,
+            "vlan": 200,  # Change VLAN
+            "mtu": None,
+            "gateway": None,
+            "enabled": True,
+        }
+
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "10.0.0.0/24"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = 100
+        mock_subnet.gateway = "10.0.0.1"
+        mock_subnet.enabled = True
+        # Make subnet subscriptable for subnet["gateway"]
+        mock_subnet.__getitem__ = Mock(return_value="10.0.0.1")
+
+        mock_array = Mock()
+
+        update_subnet(mock_module, mock_array, mock_subnet)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        mock_array.patch_subnets.assert_not_called()
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_vlan_out_of_range(self, mock_check_response):
+        """Test update_subnet fails with invalid VLAN"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "prefix": None,
+            "vlan": 5000,  # Out of range
+            "mtu": None,
+            "gateway": None,
+            "enabled": True,
+        }
+
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "10.0.0.0/24"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = 100
+        mock_subnet.gateway = "10.0.0.1"
+        mock_subnet.enabled = True
+
+        mock_array = Mock()
+
+        with pytest.raises(SystemExit):
+            update_subnet(mock_module, mock_array, mock_subnet)
 
         mock_module.fail_json.assert_called_once()

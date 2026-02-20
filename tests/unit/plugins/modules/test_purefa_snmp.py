@@ -266,3 +266,115 @@ class TestUpdateManager:
 
         mock_array.patch_snmp_managers.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snmp.check_response")
+    def test_update_manager_v3_auth_and_privacy(self, mock_check_response):
+        """Test update_manager v3 with both auth and privacy protocols"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "snmp1",
+            "version": "v3",
+            "auth_protocol": "SHA",
+            "auth_passphrase": "authpass123",
+            "privacy_protocol": "AES",
+            "privacy_passphrase": "privpass123",
+            "user": "snmpuser",
+            "notification": "trap",
+            "host": "192.168.1.100",
+        }
+        mock_array = Mock()
+        mock_mgr = Mock()
+        mock_mgr.version = "v3"
+        mock_array.get_snmp_managers.return_value = Mock(
+            status_code=200, items=[mock_mgr]
+        )
+        mock_array.patch_snmp_managers.return_value = Mock(status_code=200)
+
+        update_manager(mock_module, mock_array)
+
+        mock_array.patch_snmp_managers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snmp.check_response")
+    def test_update_manager_v3_auth_only(self, mock_check_response):
+        """Test update_manager v3 with only auth protocol"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "snmp1",
+            "version": "v3",
+            "auth_protocol": "SHA",
+            "auth_passphrase": "authpass123",
+            "privacy_protocol": None,
+            "user": "snmpuser",
+            "notification": "trap",
+            "host": "192.168.1.100",
+        }
+        mock_array = Mock()
+        mock_mgr = Mock()
+        mock_mgr.version = "v3"
+        mock_array.get_snmp_managers.return_value = Mock(
+            status_code=200, items=[mock_mgr]
+        )
+        mock_array.patch_snmp_managers.return_value = Mock(status_code=200)
+
+        update_manager(mock_module, mock_array)
+
+        mock_array.patch_snmp_managers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snmp.check_response")
+    def test_update_manager_v3_privacy_only(self, mock_check_response):
+        """Test update_manager v3 with only privacy protocol"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "snmp1",
+            "version": "v3",
+            "auth_protocol": None,
+            "privacy_protocol": "AES",
+            "privacy_passphrase": "privpass123",
+            "user": "snmpuser",
+            "notification": "trap",
+            "host": "192.168.1.100",
+        }
+        mock_array = Mock()
+        mock_mgr = Mock()
+        mock_mgr.version = "v3"
+        mock_array.get_snmp_managers.return_value = Mock(
+            status_code=200, items=[mock_mgr]
+        )
+        mock_array.patch_snmp_managers.return_value = Mock(status_code=200)
+
+        update_manager(mock_module, mock_array)
+
+        mock_array.patch_snmp_managers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snmp.check_response")
+    def test_update_manager_v3_no_auth_no_privacy(self, mock_check_response):
+        """Test update_manager v3 with neither auth nor privacy protocol"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "snmp1",
+            "version": "v3",
+            "auth_protocol": None,
+            "privacy_protocol": None,
+            "user": "snmpuser",
+            "notification": "trap",
+            "host": "192.168.1.100",
+        }
+        mock_array = Mock()
+        mock_mgr = Mock()
+        mock_mgr.version = "v3"
+        mock_array.get_snmp_managers.return_value = Mock(
+            status_code=200, items=[mock_mgr]
+        )
+        mock_array.patch_snmp_managers.return_value = Mock(status_code=200)
+
+        update_manager(mock_module, mock_array)
+
+        mock_array.patch_snmp_managers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)

@@ -687,3 +687,186 @@ class TestDeleteHostSuccess:
         delete_host(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestConnectNewVolume:
+    """Test cases for _connect_new_volume function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_connect_new_volume_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test connecting a new volume to a host"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+            "lun": None,
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        from plugins.modules.purefa_host import _connect_new_volume
+
+        result = _connect_new_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_get_with_context.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_connect_new_volume_with_lun(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test connecting a volume with specific LUN"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+            "lun": 10,
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        from plugins.modules.purefa_host import _connect_new_volume
+
+        result = _connect_new_volume(mock_module, mock_array)
+
+        assert result is True
+        # Verify ConnectionPost was called with LUN
+        call_kwargs = mock_get_with_context.call_args[1]
+        assert "connection" in call_kwargs
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_connect_new_volume_check_mode(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test connecting volume in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+            "lun": None,
+        }
+        mock_array = Mock()
+
+        from plugins.modules.purefa_host import _connect_new_volume
+
+        result = _connect_new_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_get_with_context.assert_not_called()
+
+
+class TestDisconnectVolume:
+    """Test cases for _disconnect_volume function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_disconnect_volume_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test disconnecting a volume from a host"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        from plugins.modules.purefa_host import _disconnect_volume
+
+        result = _disconnect_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_get_with_context.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_disconnect_volume_check_mode(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test disconnecting volume in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+        }
+        mock_array = Mock()
+
+        from plugins.modules.purefa_host import _disconnect_volume
+
+        result = _disconnect_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_get_with_context.assert_not_called()
+
+
+class TestUpdateHostInitiators:
+    """Test cases for _update_host_initiators function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_host_initiators_add_wwn(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test adding WWN initiators to a host"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "host1",
+            "wwns": ["50:01:02:03:04:05:06:07"],
+            "iqn": None,
+            "nqn": None,
+        }
+        mock_array = Mock()
+
+        # Mock get_hosts response
+        mock_host = Mock()
+        mock_host.wwns = []
+        mock_host.iqns = []
+        mock_host.nqns = []
+        mock_get_with_context.return_value = Mock(items=[mock_host], status_code=200)
+
+        from plugins.modules.purefa_host import _update_host_initiators
+
+        result = _update_host_initiators(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_host_initiators_no_changes(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test updating host when initiators already match"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "host1",
+            "wwns": None,
+            "iqn": None,
+            "nqn": None,
+        }
+        mock_array = Mock()
+
+        # Mock get_hosts response
+        mock_host = Mock()
+        mock_host.wwns = []
+        mock_host.iqns = []
+        mock_host.nqns = []
+        mock_get_with_context.return_value = Mock(items=[mock_host], status_code=200)
+
+        from plugins.modules.purefa_host import _update_host_initiators
+
+        result = _update_host_initiators(mock_module, mock_array)
+
+        assert result is False

@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -52,6 +52,7 @@ from plugins.modules.purefa_saml import (
     delete_saml,
     test_saml as saml_test_func,
     create_saml,
+    update_saml,
 )
 
 
@@ -140,4 +141,154 @@ class TestCreateSaml:
 
         create_saml(mock_module, mock_array)
 
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_saml.check_response")
+    def test_create_saml_success(self, mock_check_response):
+        """Test create_saml successfully creates"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "saml1",
+            "array_url": "https://array.example.com",
+            "url": "https://idp.example.com",
+            "metadata_url": "https://idp.example.com/metadata",
+            "sign_request": True,
+            "encrypt_asserts": True,
+            "x509_cert": "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----",
+            "decryption_credential": "cred1",
+            "signing_credential": "cred2",
+            "enabled": False,
+        }
+        mock_array = Mock()
+        mock_array.post_sso_saml2_idps.return_value = Mock(status_code=200)
+
+        create_saml(mock_module, mock_array)
+
+        mock_array.post_sso_saml2_idps.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateSaml:
+    """Tests for update_saml function"""
+
+    def test_update_saml_no_changes(self):
+        """Test update_saml when no changes needed"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "saml1",
+            "array_url": None,
+            "url": None,
+            "metadata_url": None,
+            "sign_request": True,
+            "encrypt_asserts": False,
+            "x509_cert": None,
+            "decryption_credential": None,
+            "signing_credential": None,
+            "enabled": True,
+        }
+        mock_array = Mock()
+
+        # Create mock current IDP
+        mock_sp = Mock()
+        mock_sp.signing_credential = Mock(name="cred1")
+        mock_sp.decryption_credential = Mock(name="cred2")
+        mock_idp = Mock()
+        mock_idp.metadata_url = "https://idp.example.com/metadata"
+        mock_idp.url = "https://idp.example.com"
+        mock_idp.sign_request_enabled = True
+        mock_idp.encrypt_assertion_enabled = False
+        mock_idp.verification_certificate = "cert"
+        mock_current = Mock()
+        mock_current.array_url = "https://array.example.com"
+        mock_current.enabled = True
+        mock_current.sp = mock_sp
+        mock_current.idp = mock_idp
+        mock_array.get_sso_saml2_idps.return_value = Mock(items=[mock_current])
+
+        update_saml(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_saml.check_response")
+    def test_update_saml_with_changes(self, mock_check_response):
+        """Test update_saml when changes needed"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "saml1",
+            "array_url": "https://new-array.example.com",
+            "url": None,
+            "metadata_url": None,
+            "sign_request": True,
+            "encrypt_asserts": False,
+            "x509_cert": None,
+            "decryption_credential": None,
+            "signing_credential": None,
+            "enabled": True,
+        }
+        mock_array = Mock()
+
+        # Create mock current IDP with different array_url
+        mock_sp = Mock()
+        mock_sp.signing_credential = Mock(name="cred1")
+        mock_sp.decryption_credential = Mock(name="cred2")
+        mock_idp = Mock()
+        mock_idp.metadata_url = "https://idp.example.com/metadata"
+        mock_idp.url = "https://idp.example.com"
+        mock_idp.sign_request_enabled = True
+        mock_idp.encrypt_assertion_enabled = False
+        mock_idp.verification_certificate = "cert"
+        mock_current = Mock()
+        mock_current.array_url = "https://old-array.example.com"  # Different
+        mock_current.enabled = True
+        mock_current.sp = mock_sp
+        mock_current.idp = mock_idp
+        mock_array.get_sso_saml2_idps.return_value = Mock(items=[mock_current])
+        mock_array.patch_sso_saml2_idps.return_value = Mock(status_code=200)
+
+        update_saml(mock_module, mock_array)
+
+        mock_array.patch_sso_saml2_idps.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_update_saml_check_mode_with_changes(self):
+        """Test update_saml in check mode when changes would be made"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "saml1",
+            "array_url": "https://new-array.example.com",
+            "url": None,
+            "metadata_url": None,
+            "sign_request": True,
+            "encrypt_asserts": False,
+            "x509_cert": None,
+            "decryption_credential": None,
+            "signing_credential": None,
+            "enabled": True,
+        }
+        mock_array = Mock()
+
+        # Create mock current IDP with different array_url
+        mock_sp = Mock()
+        mock_sp.signing_credential = Mock(name="cred1")
+        mock_sp.decryption_credential = Mock(name="cred2")
+        mock_idp = Mock()
+        mock_idp.metadata_url = "https://idp.example.com/metadata"
+        mock_idp.url = "https://idp.example.com"
+        mock_idp.sign_request_enabled = True
+        mock_idp.encrypt_assertion_enabled = False
+        mock_idp.verification_certificate = "cert"
+        mock_current = Mock()
+        mock_current.array_url = "https://old-array.example.com"  # Different
+        mock_current.enabled = True
+        mock_current.sp = mock_sp
+        mock_current.idp = mock_idp
+        mock_array.get_sso_saml2_idps.return_value = Mock(items=[mock_current])
+
+        update_saml(mock_module, mock_array)
+
+        mock_array.patch_sso_saml2_idps.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)

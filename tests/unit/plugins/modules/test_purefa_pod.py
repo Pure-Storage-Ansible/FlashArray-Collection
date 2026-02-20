@@ -529,3 +529,271 @@ class TestEradicatePodSuccess:
 
         mock_array.delete_pods.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreatePodSuccess:
+    """Test cases for create_pod function success scenarios"""
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_create_pod_basic(self, mock_lv, mock_check_response):
+        """Test creating a basic pod without options"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "target": None,
+            "failover": None,
+            "stretch": None,
+            "mediator": "purestorage",
+            "throttle": True,
+            "context": None,
+            "quota": None,
+            "quota_notification": None,
+            "namespace": None,
+            "state": "present",
+        }
+        mock_array = Mock()
+        # Use old version to avoid DEFAULT_API_VERSION (2.24) path
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.post_pods.return_value = Mock(status_code=200)
+
+        create_pod(mock_module, mock_array)
+
+        mock_array.post_pods.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_create_pod_with_failover(self, mock_lv, mock_check_response):
+        """Test creating a pod with failover preferences"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "target": None,
+            "failover": ["array2"],
+            "stretch": None,
+            "mediator": "purestorage",
+            "throttle": True,
+            "context": None,
+            "quota": None,
+            "quota_notification": None,
+            "namespace": None,
+            "state": "present",
+        }
+        mock_array = Mock()
+        # Use old version to avoid DEFAULT_API_VERSION (2.24) path
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.post_pods.return_value = Mock(status_code=200)
+
+        create_pod(mock_module, mock_array)
+
+        mock_array.post_pods.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestClonePodSuccess:
+    """Test cases for clone_pod function success scenarios"""
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_clone_pod_basic(self, mock_lv, mock_check_response):
+        """Test cloning a pod"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "target": "new-pod",
+            "context": None,
+            "throttle": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_pods.return_value = Mock(status_code=400)  # Target doesn't exist
+        mock_array.post_pods.return_value = Mock(status_code=200)
+
+        clone_pod(mock_module, mock_array)
+
+        mock_array.post_pods.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestStretchPodSuccess:
+    """Test cases for stretch_pod function success scenarios"""
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_stretch_pod_success(self, mock_lv, mock_check_response):
+        """Test successfully stretching a pod to another array"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "stretch": "remote-array",
+            "state": "present",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock current config - not yet stretched to remote
+        mock_config = Mock()
+        mock_config.arrays = [{"name": "local-array"}]
+        mock_array.get_pods.return_value.items = [mock_config]
+        mock_array.post_pods_members.return_value = Mock(status_code=200)
+
+        stretch_pod(mock_module, mock_array)
+
+        mock_array.post_pods_members.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_unstretch_pod_success(self, mock_lv, mock_check_response):
+        """Test successfully unstretching a pod from an array"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "stretch": "remote-array",
+            "state": "absent",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock current config - stretched to remote-array
+        mock_config = Mock()
+        mock_config.arrays = [{"name": "local-array"}, {"name": "remote-array"}]
+        mock_array.get_pods.return_value.items = [mock_config]
+        mock_array.delete_pods_members.return_value = Mock(status_code=200)
+
+        stretch_pod(mock_module, mock_array)
+
+        mock_array.delete_pods_members.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_unstretch_pod_no_change(self, mock_lv):
+        """Test unstretch when pod is not stretched to target"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "stretch": "nonexistent-array",
+            "state": "absent",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock current config - only local array
+        mock_config = Mock()
+        mock_config.arrays = [{"name": "local-array"}]
+        mock_array.get_pods.return_value.items = [mock_config]
+
+        stretch_pod(mock_module, mock_array)
+
+        mock_array.delete_pods_members.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestUpdatePodSuccess:
+    """Test cases for update_pod function success scenarios"""
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_update_pod_change_failover(self, mock_lv, mock_check_response):
+        """Test update_pod changing failover preferences"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": ["array1", "array2"],
+            "mediator": "mediator.example.com",
+            "promote": None,
+            "quiesce": None,
+            "undo": None,
+            "priority_adjustment": None,
+            "rename": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock current config with different failover
+        mock_config = Mock()
+        mock_config.failover_preferences = ["old-array"]
+        mock_config.mediator = "mediator.example.com"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_config])
+        mock_array.patch_pods.return_value = Mock(status_code=200)
+
+        update_pod(mock_module, mock_array)
+
+        mock_array.patch_pods.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_update_pod_clear_failover_auto(self, mock_lv, mock_check_response):
+        """Test update_pod clearing failover with auto"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": ["auto"],
+            "mediator": "mediator.example.com",
+            "promote": None,
+            "quiesce": None,
+            "undo": None,
+            "priority_adjustment": None,
+            "rename": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock current config with failover set
+        mock_config = Mock()
+        mock_config.failover_preferences = ["array1"]
+        mock_config.mediator = "mediator.example.com"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_config])
+        mock_array.patch_pods.return_value = Mock(status_code=200)
+
+        update_pod(mock_module, mock_array)
+
+        mock_array.patch_pods.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_update_pod_no_changes(self, mock_lv):
+        """Test update_pod when no changes needed"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "mediator.example.com",
+            "promote": None,
+            "quiesce": None,
+            "undo": None,
+            "priority_adjustment": None,
+            "rename": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock current config matching params
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "mediator.example.com"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_config])
+
+        update_pod(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)

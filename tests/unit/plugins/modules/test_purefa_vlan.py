@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -107,8 +107,7 @@ class TestDeleteVif:
         mock_module.check_mode = True
         mock_module.params = {"name": "ct0.eth0", "subnet": "test-subnet"}
         mock_array = Mock()
-        mock_subnet = Mock()
-        mock_subnet.vlan = 100
+        mock_subnet = {"vlan": 100}
 
         delete_vif(mock_module, mock_array, mock_subnet)
 
@@ -164,4 +163,92 @@ class TestCreateVif:
 
         create_vif(mock_module, mock_array, mock_interface, mock_subnet)
 
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vlan.check_response")
+    def test_create_vif_with_address(self, mock_check_response):
+        """Test create_vif with address specified"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "ct0.eth0",
+            "subnet": "test-subnet",
+            "address": "10.0.0.1",
+            "enabled": True,
+        }
+        mock_array = Mock()
+        mock_array.post_network_interfaces.return_value = Mock(status_code=200)
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+        mock_interface = {"name": "ct0.eth0"}
+        mock_subnet = {"vlan": 100}
+
+        create_vif(mock_module, mock_array, mock_interface, mock_subnet)
+
+        mock_array.post_network_interfaces.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vlan.check_response")
+    def test_create_vif_without_address(self, mock_check_response):
+        """Test create_vif without address specified"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "ct0.eth0",
+            "subnet": "test-subnet",
+            "address": None,
+            "enabled": True,
+        }
+        mock_array = Mock()
+        mock_array.post_network_interfaces.return_value = Mock(status_code=200)
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+        mock_interface = {"name": "ct0.eth0"}
+        mock_subnet = {"vlan": 100}
+
+        create_vif(mock_module, mock_array, mock_interface, mock_subnet)
+
+        mock_array.post_network_interfaces.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vlan.check_response")
+    def test_create_vif_disabled(self, mock_check_response):
+        """Test create_vif with disabled interface"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "ct0.eth0",
+            "subnet": "test-subnet",
+            "address": "10.0.0.1",
+            "enabled": False,
+        }
+        mock_array = Mock()
+        mock_array.post_network_interfaces.return_value = Mock(status_code=200)
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+        mock_interface = {"name": "ct0.eth0"}
+        mock_subnet = {"vlan": 100}
+
+        create_vif(mock_module, mock_array, mock_interface, mock_subnet)
+
+        # Should call patch to disable the interface
+        assert mock_array.patch_network_interfaces.call_count == 1
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteVifSuccess:
+    """Additional test cases for delete_vif function"""
+
+    @patch("plugins.modules.purefa_vlan.check_response")
+    def test_delete_vif_success(self, mock_check_response):
+        """Test delete_vif successfully deletes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "ct0.eth0", "subnet": "test-subnet"}
+        mock_array = Mock()
+        mock_array.delete_network_interfaces.return_value = Mock(status_code=200)
+        mock_subnet = {"vlan": 100}
+
+        delete_vif(mock_module, mock_array, mock_subnet)
+
+        mock_array.delete_network_interfaces.assert_called_once_with(
+            names=["ct0.eth0.100"]
+        )
         mock_module.exit_json.assert_called_once_with(changed=True)
