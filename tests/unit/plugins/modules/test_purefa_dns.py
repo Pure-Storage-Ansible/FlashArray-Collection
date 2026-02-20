@@ -142,3 +142,95 @@ class TestGetSource:
         result = _get_source(mock_module, mock_array)
 
         assert result is False
+
+
+class TestDeleteDnsExtended:
+    """Extended test cases for delete_dns function"""
+
+    @patch("plugins.modules.purefa_dns.check_response")
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_delete_dns_success(self, mock_get_with_context, mock_check_response):
+        """Test delete_dns successfully deletes DNS config"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"state": "absent", "context": ""}
+        mock_array = Mock()
+        # DNS has existing config
+        mock_dns = Mock()
+        mock_dns.domain = "example.com"
+        mock_dns.nameservers = ["ns1.example.com"]
+        mock_get_with_context.side_effect = [
+            Mock(status_code=200, items=[mock_dns]),  # get_dns
+            Mock(status_code=200),  # delete_dns
+        ]
+
+        delete_dns(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_with(changed=True)
+
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_delete_dns_check_mode(self, mock_get_with_context):
+        """Test delete_dns in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {"state": "absent", "context": ""}
+        mock_array = Mock()
+        # DNS has existing config
+        mock_dns = Mock()
+        mock_dns.domain = "example.com"
+        mock_dns.nameservers = ["ns1.example.com"]
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_dns])
+
+        delete_dns(mock_module, mock_array)
+
+        # Should not call delete_dns in check mode
+        assert mock_get_with_context.call_count == 1
+        mock_module.exit_json.assert_called_with(changed=True)
+
+
+class TestCreateDnsExtended:
+    """Extended test cases for create_dns function"""
+
+    @patch("plugins.modules.purefa_dns.check_response")
+    def test_create_dns_success(self, mock_check_response):
+        """Test create_dns successfully creates DNS config"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "domain": "example.com",
+            "nameservers": ["ns1.example.com", "ns2.example.com"],
+        }
+        mock_array = Mock()
+        # DNS is different - will trigger change
+        mock_dns = {
+            "domain": "olddomain.com",
+            "nameservers": ["old.example.com"],
+        }
+        mock_array.get_dns.return_value = Mock(items=[mock_dns])
+        mock_array.patch_dns.return_value = Mock(status_code=200)
+
+        create_dns(mock_module, mock_array)
+
+        mock_array.patch_dns.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_create_dns_check_mode(self):
+        """Test create_dns in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "domain": "example.com",
+            "nameservers": ["ns1.example.com", "ns2.example.com"],
+        }
+        mock_array = Mock()
+        # DNS is different - would trigger change
+        mock_dns = {
+            "domain": "olddomain.com",
+            "nameservers": ["old.example.com"],
+        }
+        mock_array.get_dns.return_value = Mock(items=[mock_dns])
+
+        create_dns(mock_module, mock_array)
+
+        mock_array.patch_dns.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)

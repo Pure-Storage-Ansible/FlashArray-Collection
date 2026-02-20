@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -50,6 +50,7 @@ sys.modules[
 
 from plugins.modules.purefa_export import (
     create_export,
+    delete_export,
 )
 
 
@@ -75,3 +76,96 @@ class TestCreateExport:
         mock_module.fail_json.assert_called_once_with(
             msg="At least one policy must be provided"
         )
+
+
+class TestDeleteExport:
+    """Tests for delete_export function"""
+
+    def test_delete_export_no_policy(self):
+        """Test delete_export when no policy is provided"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": None,
+            "smb_policy": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+
+        delete_export(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once_with(
+            msg="At least one policy must be provided"
+        )
+
+    @patch("plugins.modules.purefa_export.check_response")
+    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
+    def test_delete_export_nfs_policy_success(self, mock_lv, mock_check_response):
+        """Test delete_export with NFS policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": "nfs_policy1",
+            "smb_policy": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_directory_exports.return_value = Mock(status_code=200)
+        mock_array.delete_directory_exports.return_value = Mock(status_code=200)
+
+        delete_export(mock_module, mock_array)
+
+        mock_array.delete_directory_exports.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
+    def test_delete_export_check_mode(self, mock_lv):
+        """Test delete_export in check mode"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": "nfs_policy1",
+            "smb_policy": None,
+            "context": "",
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_directory_exports.return_value = Mock(status_code=200)
+
+        delete_export(mock_module, mock_array)
+
+        mock_array.delete_directory_exports.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
+    def test_delete_export_policy_not_exists(self, mock_lv):
+        """Test delete_export when policy doesn't exist"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": "nfs_policy1",
+            "smb_policy": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_directory_exports.return_value = Mock(status_code=400)
+
+        delete_export(mock_module, mock_array)
+
+        mock_array.delete_directory_exports.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=False)
