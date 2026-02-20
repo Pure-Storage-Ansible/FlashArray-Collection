@@ -213,3 +213,69 @@ class TestUpdateConnection:
             update_connection(mock_module, mock_array, mock_target)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_connect.check_response")
+    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
+    def test_update_connection_renew_key_success(self, mock_lv, mock_check_response):
+        """Test update_connection with renew_key successfully renews"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.exit_json.side_effect = SystemExit(0)
+        mock_module.params = {
+            "context": "",
+            "renew_key": True,
+            "refresh": False,
+            "encrypted": False,
+            "connection": "sync-replication",
+            "target_url": "192.168.1.100",
+            "target_api": "api-token",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_array_connections.return_value = Mock(status_code=200)
+        mock_local = Mock()
+        mock_local.name = "local-array"
+        mock_array.get_arrays.return_value = Mock(items=[mock_local])
+        mock_target = Mock()
+        mock_target.name = "target-array"
+
+        with pytest.raises(SystemExit):
+            update_connection(mock_module, mock_array, mock_target)
+
+        mock_array.patch_array_connections.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_connect.check_response")
+    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
+    def test_update_connection_refresh_success(self, mock_lv, mock_check_response):
+        """Test update_connection with refresh successfully refreshes"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.exit_json.side_effect = SystemExit(0)
+        mock_module.params = {
+            "context": "",
+            "renew_key": False,
+            "refresh": True,
+            "encrypted": False,
+            "connection": "sync-replication",
+            "target_url": "192.168.1.100",
+            "target_api": "api-token",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_array_connections.return_value = Mock(status_code=200)
+        mock_local = Mock()
+        mock_local.name = "local-array"
+        mock_array.get_arrays.return_value = Mock(items=[mock_local])
+        mock_target = Mock()
+        mock_target.name = "target-array"
+
+        with pytest.raises(SystemExit):
+            update_connection(mock_module, mock_array, mock_target)
+
+        mock_array.patch_array_connections.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)

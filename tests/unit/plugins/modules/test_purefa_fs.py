@@ -240,3 +240,108 @@ class TestCreateFs:
 
         mock_array.post_file_systems.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_fs.check_response")
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_create_fs_in_pod_success(self, mock_lv, mock_check_response):
+        """Test create_fs successfully creates file system in a pod"""
+        mock_pod = Mock()
+        mock_pod.promotion_status = "promoted"
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "mypod::new-fs", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_pod])
+        mock_array.post_file_systems.return_value = Mock(status_code=200)
+
+        create_fs(mock_module, mock_array)
+
+        mock_array.post_file_systems.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_create_fs_in_pod_not_exists(self, mock_lv):
+        """Test create_fs fails when pod doesn't exist"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {"name": "nonexistent::new-fs", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_pods.return_value = Mock(status_code=404)
+
+        with pytest.raises(SystemExit):
+            create_fs(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_create_fs_in_demoted_pod_fails(self, mock_lv):
+        """Test create_fs fails when pod is demoted"""
+        import pytest
+
+        mock_pod = Mock()
+        mock_pod.promotion_status = "demoted"
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {"name": "demoted-pod::new-fs", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_pod])
+
+        with pytest.raises(SystemExit):
+            create_fs(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestRenameFsExtended:
+    """Extended test cases for rename_fs function"""
+
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_rename_fs_target_exists_fails(self, mock_lv):
+        """Test rename_fs fails when target exists"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "old-fs",
+            "rename": "existing-fs",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        # Target exists
+        mock_array.get_file_systems.return_value = Mock(status_code=200, items=[Mock()])
+
+        with pytest.raises(SystemExit):
+            rename_fs(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_fs.check_response")
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_rename_fs_in_pod_success(self, mock_lv, mock_check_response):
+        """Test rename_fs successfully renames file system in pod"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "mypod::old-fs",
+            "rename": "new-fs",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_file_systems.return_value = Mock(status_code=404)
+        mock_array.patch_file_systems.return_value = Mock(status_code=200)
+
+        rename_fs(mock_module, mock_array)
+
+        mock_array.patch_file_systems.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)

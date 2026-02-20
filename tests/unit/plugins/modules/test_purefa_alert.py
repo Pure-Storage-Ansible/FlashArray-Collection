@@ -124,3 +124,60 @@ class TestUpdateAlert:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.patch_alert_watchers.assert_not_called()
+
+
+from unittest.mock import patch
+
+
+class TestCreateAlertSuccess:
+    """Test cases for create_alert success paths"""
+
+    @patch("plugins.modules.purefa_alert.check_response")
+    def test_create_alert_success(self, mock_check_response):
+        """Test create_alert successfully creates alert"""
+        mock_module = Mock()
+        mock_module.params = {"address": "new@example.com", "enabled": True}
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.post_alert_watchers.return_value = Mock(status_code=200)
+
+        create_alert(mock_module, mock_array)
+
+        mock_array.post_alert_watchers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteAlertSuccess:
+    """Test cases for delete_alert success paths"""
+
+    @patch("plugins.modules.purefa_alert.check_response")
+    def test_delete_alert_success(self, mock_check_response):
+        """Test delete_alert successfully deletes alert"""
+        mock_module = Mock()
+        mock_module.params = {"address": "remove@example.com"}
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.delete_alert_watchers.return_value = Mock(status_code=200)
+
+        delete_alert(mock_module, mock_array)
+
+        mock_array.delete_alert_watchers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateAlertSuccess:
+    """Test cases for update_alert success paths"""
+
+    @patch("plugins.modules.purefa_alert.check_response")
+    def test_update_alert_success(self, mock_check_response):
+        """Test update_alert successfully updates alert"""
+        mock_module = Mock()
+        mock_module.params = {"address": "test@example.com", "enabled": False}
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.patch_alert_watchers.return_value = Mock(status_code=200)
+
+        update_alert(mock_module, mock_array, enabled=True)
+
+        mock_array.patch_alert_watchers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
