@@ -215,3 +215,146 @@ class TestUpdateRealm:
         update_realm(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestMakeRealmSuccess:
+    """Additional test cases for make_realm function"""
+
+    @patch("plugins.modules.purefa_realm.check_response")
+    @patch("plugins.modules.purefa_realm.human_to_bytes")
+    def test_make_realm_with_quota(self, mock_human_to_bytes, mock_check_response):
+        """Test make_realm with valid quota"""
+        mock_human_to_bytes.return_value = 1048576  # 1MB - valid quota
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "new-realm",
+            "quota": "1M",
+            "bw_qos": None,
+            "iops_qos": None,
+        }
+        mock_array = Mock()
+        mock_array.post_realms.return_value = Mock(status_code=200)
+
+        make_realm(mock_module, mock_array)
+
+        mock_array.post_realms.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_realm.check_response")
+    def test_make_realm_no_quota(self, mock_check_response):
+        """Test make_realm without quota"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "new-realm",
+            "quota": None,
+            "bw_qos": None,
+            "iops_qos": None,
+        }
+        mock_array = Mock()
+        mock_array.post_realms.return_value = Mock(status_code=200)
+
+        make_realm(mock_module, mock_array)
+
+        mock_array.post_realms.assert_called_once_with(names=["new-realm"])
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_realm.human_to_bytes")
+    def test_make_realm_invalid_quota_not_512_multiple(self, mock_human_to_bytes):
+        """Test make_realm fails with quota not multiple of 512"""
+        import pytest
+
+        mock_human_to_bytes.return_value = 1048577  # Not multiple of 512
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "new-realm",
+            "quota": "1M",
+            "bw_qos": None,
+            "iops_qos": None,
+        }
+        mock_array = Mock()
+
+        with pytest.raises(SystemExit):
+            make_realm(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestDeleteRealmSuccess:
+    """Additional test cases for delete_realm function"""
+
+    @patch("plugins.modules.purefa_realm.check_response")
+    def test_delete_realm_success(self, mock_check_response):
+        """Test delete_realm successfully deletes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-realm",
+            "eradicate": False,
+            "delete_contents": False,
+            "ignore_usage": False,
+        }
+        mock_array = Mock()
+        mock_array.patch_realms.return_value = Mock(status_code=200)
+
+        delete_realm(mock_module, mock_array)
+
+        mock_array.patch_realms.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRecoverRealmSuccess:
+    """Additional test cases for recover_realm function"""
+
+    @patch("plugins.modules.purefa_realm.check_response")
+    def test_recover_realm_success(self, mock_check_response):
+        """Test recover_realm successfully recovers"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "deleted-realm"}
+        mock_array = Mock()
+        mock_array.patch_realms.return_value = Mock(status_code=200)
+
+        recover_realm(mock_module, mock_array)
+
+        mock_array.patch_realms.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestEradicateRealmSuccess:
+    """Additional test cases for eradicate_realm function"""
+
+    @patch("plugins.modules.purefa_realm.check_response")
+    def test_eradicate_realm_success(self, mock_check_response):
+        """Test eradicate_realm successfully eradicates"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "deleted-realm", "delete_contents": False}
+        mock_array = Mock()
+        mock_array.delete_realms.return_value = Mock(status_code=200)
+
+        eradicate_realm(mock_module, mock_array)
+
+        mock_array.delete_realms.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRenameRealmSuccess:
+    """Additional test cases for rename_realm function"""
+
+    @patch("plugins.modules.purefa_realm.check_response")
+    def test_rename_realm_success(self, mock_check_response):
+        """Test rename_realm successfully renames"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "old-realm", "rename": "new-realm"}
+        mock_array = Mock()
+        mock_array.patch_realm.return_value = Mock(status_code=200)
+
+        rename_realm(mock_module, mock_array)
+
+        mock_array.patch_realm.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)

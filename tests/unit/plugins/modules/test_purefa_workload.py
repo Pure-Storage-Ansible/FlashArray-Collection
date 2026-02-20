@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -231,3 +231,83 @@ class TestConnectOrDisconnectVolumes:
         connect_or_disconnect_volumes(mock_module, mock_array, "connect")
 
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestDeleteWorkloadSuccess:
+    """Additional test cases for delete_workload function"""
+
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_delete_workload_success(self, mock_check_response):
+        """Test delete_workload successfully deletes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-workload",
+            "context": "pod1",
+            "eradicate": False,
+        }
+        mock_array = Mock()
+        mock_array.patch_workloads.return_value = Mock(status_code=200)
+
+        delete_workload(mock_module, mock_array)
+
+        mock_array.patch_workloads.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestEradicateWorkloadSuccess:
+    """Additional test cases for eradicate_workload function"""
+
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_eradicate_workload_success(self, mock_check_response):
+        """Test eradicate_workload successfully eradicates"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-workload", "context": "pod1"}
+        mock_array = Mock()
+        mock_array.delete_workloads.return_value = Mock(status_code=200)
+
+        eradicate_workload(mock_module, mock_array)
+
+        mock_array.delete_workloads.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRecoverWorkloadSuccess:
+    """Additional test cases for recover_workload function"""
+
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_recover_workload_success(self, mock_check_response):
+        """Test recover_workload successfully recovers without host"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-workload", "context": "pod1", "host": ""}
+        mock_array = Mock()
+        mock_array.patch_workloads.return_value = Mock(status_code=200)
+
+        recover_workload(mock_module, mock_array)
+
+        mock_array.patch_workloads.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRenameWorkloadSuccess:
+    """Additional test cases for rename_workload function"""
+
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_rename_workload_success(self, mock_check_response):
+        """Test rename_workload successfully renames"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "old-workload",
+            "rename": "new-workload",
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        mock_array.patch_workloads.return_value = Mock(status_code=200)
+
+        rename_workload(mock_module, mock_array)
+
+        mock_array.patch_workloads.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
