@@ -791,3 +791,152 @@ class TestDeleteOffloadSnapshot:
         mock_array.patch_remote_protection_group_snapshots.assert_called_once()
         mock_array.delete_remote_protection_group_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdatePgSnapshot:
+    """Test cases for update_pgsnapshot function"""
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_update_pgsnapshot_success(self, mock_lv, mock_check_response):
+        """Test updating/renaming a protection group snapshot"""
+        from plugins.modules.purefa_pgsnap import update_pgsnapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "target": "snap2",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_protection_group_snapshots.return_value = Mock(status_code=200)
+
+        update_pgsnapshot(mock_module, mock_array)
+
+        mock_array.patch_protection_group_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_update_pgsnapshot_check_mode(self, mock_lv):
+        """Test updating snapshot in check mode"""
+        from plugins.modules.purefa_pgsnap import update_pgsnapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "target": "snap2",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        update_pgsnapshot(mock_module, mock_array)
+
+        mock_array.patch_protection_group_snapshots.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_update_pgsnapshot_older_api(self, mock_lv, mock_check_response):
+        """Test updating snapshot with older API version"""
+        from plugins.modules.purefa_pgsnap import update_pgsnapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "target": "snap2",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.16"
+        mock_array.patch_protection_group_snapshots.return_value = Mock(status_code=200)
+
+        update_pgsnapshot(mock_module, mock_array)
+
+        mock_array.patch_protection_group_snapshots.assert_called_once()
+        # Verify no context_names kwarg in call
+        call_kwargs = mock_array.patch_protection_group_snapshots.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestEradicatePgSnapshot:
+    """Test cases for eradicate_pgsnapshot function"""
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_pgsnapshot_success(self, mock_lv, mock_check_response):
+        """Test eradicating a protection group snapshot"""
+        from plugins.modules.purefa_pgsnap import eradicate_pgsnapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+
+        eradicate_pgsnapshot(mock_module, mock_array)
+
+        mock_array.delete_protection_group_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_pgsnapshot_check_mode(self, mock_lv):
+        """Test eradicating snapshot in check mode"""
+        from plugins.modules.purefa_pgsnap import eradicate_pgsnapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        eradicate_pgsnapshot(mock_module, mock_array)
+
+        mock_array.delete_protection_group_snapshots.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_pgsnapshot_older_api(self, mock_lv, mock_check_response):
+        """Test eradicating snapshot with older API version"""
+        from plugins.modules.purefa_pgsnap import eradicate_pgsnapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.16"
+        mock_array.delete_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+
+        eradicate_pgsnapshot(mock_module, mock_array)
+
+        mock_array.delete_protection_group_snapshots.assert_called_once()
+        # Verify no context_names kwarg in call
+        call_kwargs = mock_array.delete_protection_group_snapshots.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
