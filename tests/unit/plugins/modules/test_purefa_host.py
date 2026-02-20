@@ -1141,3 +1141,205 @@ class TestUpdateHostPersonality:
         result = _update_host_personality(mock_module, mock_array)
 
         assert result is True
+
+
+class TestConnectVolume:
+    """Test cases for _connect_new_volume function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_connect_volume_success(self, mock_get_with_context, mock_check_response):
+        """Test connecting volume to host"""
+        from plugins.modules.purefa_host import _connect_new_volume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+            "lun": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _connect_new_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_get_with_context.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_connect_volume_with_lun(self, mock_get_with_context, mock_check_response):
+        """Test connecting volume with specific LUN"""
+        from plugins.modules.purefa_host import _connect_new_volume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+            "lun": 10,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _connect_new_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_get_with_context.assert_called_once()
+
+    def test_connect_volume_check_mode(self):
+        """Test connecting volume in check mode"""
+        from plugins.modules.purefa_host import _connect_new_volume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+            "lun": None,
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+
+        result = _connect_new_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_array.post_connections.assert_not_called()
+
+
+class TestDisconnectVolume:
+    """Test cases for _disconnect_volume function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_disconnect_volume_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test disconnecting volume from host"""
+        from plugins.modules.purefa_host import _disconnect_volume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _disconnect_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_get_with_context.assert_called_once()
+
+    def test_disconnect_volume_check_mode(self):
+        """Test disconnecting volume in check mode"""
+        from plugins.modules.purefa_host import _disconnect_volume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+
+        result = _disconnect_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_array.delete_connections.assert_not_called()
+
+
+class TestMoveHost:
+    """Test cases for move_host function"""
+
+    def test_move_host_context_not_supported(self):
+        """Test move_host fails when context is provided"""
+        import pytest
+        from plugins.modules.purefa_host import move_host
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "context": "some-context",
+            "move": ["realm1"],
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        with pytest.raises(SystemExit):
+            move_host(mock_module, Mock())
+
+        mock_module.fail_json.assert_called_once_with(
+            msg="context is not yet supported for host move function"
+        )
+
+    def test_move_host_mixed_local_realm(self):
+        """Test move_host fails when mixing local with realm"""
+        import pytest
+        from plugins.modules.purefa_host import move_host
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "context": "",
+            "move": ["local", "realm1"],
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_arrays.return_value = Mock(items=[Mock(name="array1")])
+
+        with pytest.raises(SystemExit):
+            move_host(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once_with(
+            msg="Cannot mix local with another realm in move target list"
+        )
+
+    def test_move_host_local_without_realm_name(self):
+        """Test move_host fails when moving to local without realm in hostname"""
+        import pytest
+        from plugins.modules.purefa_host import move_host
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",  # No :: in name
+            "context": "",
+            "move": ["local"],
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_arrays.return_value = Mock(items=[Mock(name="array1")])
+
+        with pytest.raises(SystemExit):
+            move_host(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once_with(
+            msg="host must be provided with current realm name"
+        )
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_move_host_with_connections_fails(self, mock_get_with_context):
+        """Test move_host fails when host has existing connections"""
+        import pytest
+        from plugins.modules.purefa_host import move_host
+
+        mock_host = Mock()
+        mock_host.connection_count = 5  # Has connections
+        mock_get_with_context.return_value = Mock(items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "realm1::host1",
+            "context": "",
+            "move": ["local"],
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_arrays.return_value = Mock(items=[Mock(name="array1")])
+
+        with pytest.raises(SystemExit):
+            move_host(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once_with(
+            msg="Hosts cannot be moved with existing volume connections."
+        )
