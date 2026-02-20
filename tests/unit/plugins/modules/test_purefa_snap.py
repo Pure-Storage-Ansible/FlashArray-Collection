@@ -491,3 +491,84 @@ class TestDeleteSnapshotSuccess:
 
         mock_array.patch_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestEradicateSnapshotSuccess:
+    """Test cases for eradicate_snapshot success paths"""
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion")
+    def test_eradicate_snapshot_success(self, mock_loose_version, mock_check_response):
+        """Test eradicate_snapshot successfully eradicates"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": None,
+            "context": "",
+            "ignore_repl": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_volume_snapshots.return_value = Mock(status_code=200)
+
+        eradicate_snapshot(mock_module, mock_array)
+
+        mock_array.delete_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRecoverSnapshotSuccess:
+    """Test cases for recover_snapshot success paths"""
+
+    @patch("plugins.modules.purefa_snap.LooseVersion")
+    def test_recover_snapshot_success(self, mock_loose_version):
+        """Test recover_snapshot successfully recovers"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": None,
+            "target": None,
+            "context": "",
+            "ignore_repl": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Use sttaus_code due to typo in the module
+        mock_array.patch_volume_snapshot.return_value = Mock(sttaus_code=200)
+
+        recover_snapshot(mock_module, mock_array)
+
+        mock_array.patch_volume_snapshot.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateSnapshotSuccess:
+    """Test cases for update_snapshot success paths"""
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion")
+    def test_update_snapshot_success(self, mock_loose_version, mock_check_response):
+        """Test update_snapshot successfully updates"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "old-suffix",
+            "target": "new-suffix",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_volume_snapshots.return_value = Mock(status_code=200)
+
+        update_snapshot(mock_module, mock_array)
+
+        mock_array.patch_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
