@@ -53,6 +53,7 @@ from plugins.modules.purefa_pgsched import (
     get_pgroup,
     _convert_to_minutes,
     update_schedule,
+    delete_schedule,
 )
 
 
@@ -407,3 +408,55 @@ class TestUpdateScheduleClearAtValue:
 
         # Check that the API was called
         assert mock_get_with_context.called
+
+
+class TestDeleteSchedule:
+    """Test cases for delete_schedule function"""
+
+    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    def test_delete_schedule_replication_disabled(self, mock_get_with_context):
+        """Test delete_schedule when replication schedule is already disabled"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-pg", "schedule": "replication", "context": ""}
+        mock_array = Mock()
+        # Replication schedule already disabled
+        mock_schedule = Mock()
+        mock_schedule.replication_schedule.enabled = False
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_schedule])
+
+        delete_schedule(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    def test_delete_schedule_snapshot_disabled(self, mock_get_with_context):
+        """Test delete_schedule when snapshot schedule is already disabled"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-pg", "schedule": "snapshot", "context": ""}
+        mock_array = Mock()
+        # Snapshot schedule already disabled
+        mock_schedule = Mock()
+        mock_schedule.snapshot_schedule.enabled = False
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_schedule])
+
+        delete_schedule(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    def test_delete_schedule_replication_check_mode(self, mock_get_with_context):
+        """Test delete_schedule replication in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {"name": "test-pg", "schedule": "replication", "context": ""}
+        mock_array = Mock()
+        # Replication schedule enabled
+        mock_schedule = Mock()
+        mock_schedule.replication_schedule.enabled = True
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_schedule])
+
+        delete_schedule(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
