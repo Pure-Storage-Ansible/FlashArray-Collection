@@ -2422,32 +2422,40 @@ def update_policy(module, array, api_version, all_squash):
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
                     policy=PolicyPassword(
-                        max_login_attempts=new_pwd_policy.max_login_attempts,
-                        min_password_length=new_pwd_policy.min_password_length,
-                        password_history=new_pwd_policy.password_history,
-                        min_password_age=new_pwd_policy.min_password_age,
+                        max_login_attempts=new_pwd_policy["max_login_attempts"],
+                        min_password_length=new_pwd_policy["min_password_length"],
+                        password_history=new_pwd_policy["password_history"],
+                        min_password_age=new_pwd_policy["min_password_age"],
                         max_password_age=new_pwd_policy.get("max_password_age"),
-                        min_character_groups=new_pwd_policy.min_character_groups,
-                        min_characters_per_group=new_pwd_policy.min_characters_per_group,
-                        enforce_username_check=new_pwd_policy.enforce_username_check,
-                        enforce_dictionary_check=new_pwd_policy.enforce_dictionary_check,
-                        lockout_duration=new_pwd_policy.lockout_duration,
+                        min_character_groups=new_pwd_policy["min_character_groups"],
+                        min_characters_per_group=new_pwd_policy[
+                            "min_characters_per_group"
+                        ],
+                        enforce_username_check=new_pwd_policy["enforce_username_check"],
+                        enforce_dictionary_check=new_pwd_policy[
+                            "enforce_dictionary_check"
+                        ],
+                        lockout_duration=new_pwd_policy["lockout_duration"],
                     ),
                 )
             else:
                 res = array.patch_policies_password(
                     names=[module.params["name"]],
                     policy=PolicyPassword(
-                        max_login_attempts=new_pwd_policy.max_login_attempts,
-                        min_password_length=new_pwd_policy.min_password_length,
-                        password_history=new_pwd_policy.password_history,
-                        min_password_age=new_pwd_policy.min_password_age,
+                        max_login_attempts=new_pwd_policy["max_login_attempts"],
+                        min_password_length=new_pwd_policy["min_password_length"],
+                        password_history=new_pwd_policy["password_history"],
+                        min_password_age=new_pwd_policy["min_password_age"],
                         max_password_age=new_pwd_policy.get("max_password_age"),
-                        min_character_groups=new_pwd_policy.min_character_groups,
-                        min_characters_per_group=new_pwd_policy.min_characters_per_group,
-                        enforce_username_check=new_pwd_policy.enforce_username_check,
-                        enforce_dictionary_check=new_pwd_policy.enforce_dictionary_check,
-                        lockout_duration=new_pwd_policy.lockout_duration,
+                        min_character_groups=new_pwd_policy["min_character_groups"],
+                        min_characters_per_group=new_pwd_policy[
+                            "min_characters_per_group"
+                        ],
+                        enforce_username_check=new_pwd_policy["enforce_username_check"],
+                        enforce_dictionary_check=new_pwd_policy[
+                            "enforce_dictionary_check"
+                        ],
+                        lockout_duration=new_pwd_policy["lockout_duration"],
                     ),
                 )
             if res.status_code != 200:
