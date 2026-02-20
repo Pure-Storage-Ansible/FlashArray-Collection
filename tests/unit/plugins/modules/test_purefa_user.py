@@ -340,3 +340,121 @@ class TestUpdateAdUser:
         mock_module.exit_json.assert_called_once()
         call_kwargs = mock_module.exit_json.call_args[1]
         assert call_kwargs["changed"] is False
+
+
+class TestCreateLocalUserExtended:
+    """Extended test cases for create_local_user function"""
+
+    @patch("plugins.modules.purefa_user.check_response")
+    def test_create_local_user_with_role_change(self, mock_check_response):
+        """Test create_local_user when role changes"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "testuser",
+            "role": "storage_admin",
+            "password": None,
+            "api": False,
+            "public_key": None,
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        # Existing user with different role
+        mock_user = Mock()
+        mock_user.role = Mock()
+        mock_user.role.name = "readonly"
+        mock_array.patch_admins.return_value = Mock(status_code=200)
+
+        create_local_user(mock_module, mock_array, mock_user)
+
+        mock_array.patch_admins.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+        call_kwargs = mock_module.exit_json.call_args[1]
+        assert call_kwargs["changed"] is True
+
+    @patch("plugins.modules.purefa_user.check_response")
+    @patch("plugins.modules.purefa_user.convert_time_to_millisecs")
+    def test_create_local_user_with_api_token(
+        self, mock_convert_time, mock_check_response
+    ):
+        """Test create_local_user creates API token"""
+        mock_convert_time.return_value = 3600000
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "testuser",
+            "role": "storage_admin",
+            "password": "pass123",
+            "api": True,
+            "public_key": None,
+            "timeout": "1h",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        # New user
+        mock_array.post_admins.return_value = Mock(status_code=200)
+        mock_api_response = Mock()
+        mock_api_response.api_token = Mock()
+        mock_api_response.api_token.token = "new-token-123"
+        mock_array.post_admins_api_tokens.return_value = Mock(
+            status_code=200, items=[mock_api_response]
+        )
+
+        create_local_user(mock_module, mock_array, user=None)
+
+        mock_array.post_admins.assert_called_once()
+        mock_array.post_admins_api_tokens.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+        call_kwargs = mock_module.exit_json.call_args[1]
+        assert call_kwargs["changed"] is True
+        assert "new-token-123" in call_kwargs["user_info"]
+
+    @patch("plugins.modules.purefa_user.check_response")
+    def test_create_local_user_with_ssh_key(self, mock_check_response):
+        """Test create_local_user adds SSH public key"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "testuser",
+            "role": "readonly",
+            "password": "pass123",
+            "api": False,
+            "public_key": "ssh-rsa AAAAB...",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        # New user
+        mock_array.post_admins.return_value = Mock(status_code=200)
+        mock_array.patch_admins.return_value = Mock(status_code=200)
+
+        create_local_user(mock_module, mock_array, user=None)
+
+        mock_array.post_admins.assert_called_once()
+        # Should call patch_admins to add SSH key
+        mock_array.patch_admins.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+    def test_create_local_user_no_changes(self):
+        """Test create_local_user when no changes needed"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "testuser",
+            "role": "storage_admin",
+            "password": None,
+            "api": False,
+            "public_key": None,
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        # Existing user with same role
+        mock_user = Mock()
+        mock_user.role = Mock()
+        mock_user.role.name = "storage_admin"
+
+        create_local_user(mock_module, mock_array, mock_user)
+
+        mock_array.patch_admins.assert_not_called()
+        mock_module.exit_json.assert_called_once()
+        call_kwargs = mock_module.exit_json.call_args[1]
+        assert call_kwargs["changed"] is False

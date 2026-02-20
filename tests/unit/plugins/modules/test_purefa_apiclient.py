@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -113,3 +113,86 @@ class TestUpdateClient:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.patch_api_clients.assert_not_called()
+
+    @patch("plugins.modules.purefa_apiclient.check_response")
+    def test_update_client_enable_success(self, mock_check_response):
+        """Test update_client successfully enables client"""
+        mock_module = Mock()
+        mock_module.params = {"name": "client1", "enabled": True}
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.patch_api_clients.return_value = Mock(status_code=200)
+        mock_client = Mock()
+        mock_client.enabled = False
+
+        update_client(mock_module, mock_array, mock_client)
+
+        mock_array.patch_api_clients.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateClient:
+    """Tests for create_client function"""
+
+    def test_create_client_check_mode(self):
+        """Test create_client in check mode"""
+        from plugins.modules.purefa_apiclient import create_client
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "new-client",
+            "token_ttl": 3600,
+            "issuer": "my-issuer",
+            "role": "readonly",
+            "public_key": "ssh-rsa AAAA...",
+            "enabled": True,
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+
+        create_client(mock_module, mock_array)
+
+        mock_array.post_api_clients.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_create_client_ttl_out_of_range(self):
+        """Test create_client fails when token_ttl out of range"""
+        import pytest
+        from plugins.modules.purefa_apiclient import create_client
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "new-client",
+            "token_ttl": 100000,  # Out of range
+        }
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+
+        with pytest.raises(SystemExit):
+            create_client(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_apiclient.check_response")
+    def test_create_client_success(self, mock_check_response):
+        """Test create_client successfully creates client"""
+        from plugins.modules.purefa_apiclient import create_client
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "new-client",
+            "token_ttl": 3600,
+            "issuer": None,  # Will default to name
+            "role": "readonly",
+            "public_key": "ssh-rsa AAAA...",
+            "enabled": False,
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.post_api_clients.return_value = Mock(status_code=200)
+
+        create_client(mock_module, mock_array)
+
+        mock_array.post_api_clients.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)

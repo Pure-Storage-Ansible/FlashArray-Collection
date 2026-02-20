@@ -1810,3 +1810,203 @@ class TestUpdateVolumeSuccess:
         mock_module.exit_json.assert_called_once_with(
             changed=False, volume={"test-vol": {}}
         )
+
+
+class TestCopyFromVolumeExtended:
+    """Extended test cases for copy_from_volume function"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_target")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_copy_from_volume_overwrite_existing(
+        self, mock_lv, mock_get_target, mock_check_response, mock_volfact
+    ):
+        """Test copy_from_volume overwrites existing target"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "source-vol",
+            "target": "target-vol",
+            "overwrite": True,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_target.return_value = Mock(name="target-vol")  # Target exists
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+        mock_volfact.return_value = {"target-vol": {}}
+
+        copy_from_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.get_target")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_copy_from_volume_target_exists_no_overwrite(
+        self, mock_lv, mock_get_target, mock_volfact
+    ):
+        """Test copy_from_volume does nothing when target exists without overwrite"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "source-vol",
+            "target": "target-vol",
+            "overwrite": False,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_target.return_value = Mock(name="target-vol")  # Target exists
+        mock_volfact.return_value = {"target-vol": {}}
+
+        copy_from_volume(mock_module, mock_array)
+
+        # When target exists and overwrite is False, no changes should be made
+        mock_array.post_volumes.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(
+            changed=False, volume={"target-vol": {}}
+        )
+
+
+class TestRenameVolumeExtended:
+    """Extended test cases for rename_volume function"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_rename_volume_in_pod(self, mock_lv, mock_check_response, mock_volfact):
+        """Test rename_volume within a pod"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pod1::source-vol",
+            "rename": "new-vol",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(
+            status_code=404
+        )  # Target doesn't exist
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+        mock_volfact.return_value = {"new-vol": {}}
+
+        rename_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_rename_volume_in_vgroup(self, mock_lv, mock_check_response, mock_volfact):
+        """Test rename_volume within a volume group"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "vgroup1/source-vol",
+            "rename": "new-vol",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(
+            status_code=404
+        )  # Target doesn't exist
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+        mock_volfact.return_value = {"new-vol": {}}
+
+        rename_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+
+class TestUpdateVolumeQos:
+    """Test cases for update_volume QoS changes"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_update_volume_reduce_bandwidth(
+        self, mock_lv, mock_check_response, mock_h2b, mock_volfact
+    ):
+        """Test update_volume reduces bandwidth QoS"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,
+            "bw_qos": "10G",
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "context": "",
+            "with_default_protection": False,
+            "promotion_state": None,
+            "priority_operator": None,
+            "priority_value": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_vol = Mock()
+        mock_vol.provisioned = 10737418240
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 549755813888  # Current is max
+        mock_vol.qos.iops_limit = 100000000
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_h2b.return_value = 10737418240  # 10G
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+        mock_volfact.return_value = {"test-vol": {}}
+
+        update_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called()
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_update_volume_check_mode_no_patch(
+        self, mock_lv, mock_check_response, mock_volfact
+    ):
+        """Test update_volume doesn't call patch in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-vol",
+            "size": "20G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "context": "",
+            "with_default_protection": False,
+            "promotion_state": None,
+            "priority_operator": None,
+            "priority_value": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_vol = Mock()
+        mock_vol.provisioned = 10737418240  # 10G
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 549755813888
+        mock_vol.qos.iops_limit = 100000000
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_volfact.return_value = {"test-vol": {}}
+
+        from plugins.modules.purefa_volume import human_to_bytes
+
+        with patch("plugins.modules.purefa_volume.human_to_bytes") as mock_h2b:
+            mock_h2b.return_value = 21474836480  # 20G - larger than current
+
+            update_volume(mock_module, mock_array)
+
+        # In check mode, patch_volumes should NOT be called
+        mock_array.patch_volumes.assert_not_called()
+        mock_module.exit_json.assert_called()

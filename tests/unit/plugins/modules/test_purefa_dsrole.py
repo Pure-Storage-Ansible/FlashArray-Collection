@@ -255,3 +255,75 @@ class TestUpdateRole:
 
         mock_array.patch_directory_services_roles.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteRoleSuccess:
+    """Tests for delete_role success paths"""
+
+    @patch("plugins.modules.purefa_dsrole.check_response")
+    @patch("plugins.modules.purefa_dsrole.LooseVersion")
+    def test_delete_role_success(self, mock_loose_version, mock_check_response):
+        """Test delete_role successfully deletes"""
+        mock_module = Mock()
+        mock_module.params = {"name": "custom_role", "context": ""}
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_directory_services_roles.return_value = Mock(status_code=200)
+        mock_loose_version.side_effect = LooseVersion
+
+        delete_role(mock_module, mock_array)
+
+        mock_array.delete_directory_services_roles.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_dsrole.check_response")
+    @patch("plugins.modules.purefa_dsrole.LooseVersion")
+    def test_delete_role_older_api(self, mock_loose_version, mock_check_response):
+        """Test delete_role with older API version"""
+        mock_module = Mock()
+        mock_module.params = {"name": "custom_role", "context": ""}
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Older API
+        mock_array.delete_directory_services_roles.return_value = Mock(status_code=200)
+        mock_loose_version.side_effect = LooseVersion
+
+        delete_role(mock_module, mock_array)
+
+        mock_array.delete_directory_services_roles.assert_called_once_with(
+            names=["custom_role"]
+        )
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateRoleSuccess:
+    """Tests for create_role additional paths"""
+
+    @patch("plugins.modules.purefa_dsrole.check_response")
+    @patch("plugins.modules.purefa_dsrole.LooseVersion")
+    @patch("plugins.modules.purefa_dsrole.DirectoryServiceRole")
+    def test_create_role_older_policy_api(
+        self, mock_ds_role, mock_loose_version, mock_check_response
+    ):
+        """Test create_role with older policy API version"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "custom_role",
+            "context": "",
+            "group": "admins",
+            "group_base": "ou=groups,dc=example,dc=com",
+            "role": "array_admin",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = (
+            "2.4"  # Older than POLICY_API_VERSION
+        )
+        mock_array.post_directory_services_roles.return_value = Mock(status_code=200)
+        mock_loose_version.side_effect = LooseVersion
+
+        create_role(mock_module, mock_array)
+
+        mock_array.post_directory_services_roles.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)

@@ -1206,3 +1206,131 @@ class TestRenamePolicySuccess:
 
         mock_array.patch_policies_quota.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeletePolicyAutodir:
+    """Test cases for delete_policy with autodir policy type"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_delete_autodir_policy_success(self, mock_lv):
+        """Test successful deletion of autodir policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "autodir_policy",
+            "policy": "autodir",
+            "client": None,
+            "directory": None,
+            "snap_client_name": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_policies_autodir.return_value = Mock(status_code=200)
+
+        delete_policy(mock_module, mock_array)
+
+        mock_array.delete_policies_autodir.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_delete_autodir_policy_older_api(self, mock_lv):
+        """Test deletion of autodir policy with older API version"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "autodir_policy",
+            "policy": "autodir",
+            "client": None,
+            "directory": None,
+            "snap_client_name": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Older than CONTEXT_VERSION
+        mock_array.delete_policies_autodir.return_value = Mock(status_code=200)
+
+        delete_policy(mock_module, mock_array)
+
+        mock_array.delete_policies_autodir.assert_called_once_with(
+            names=["autodir_policy"]
+        )
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeletePolicySnapshotExtended:
+    """Extended test cases for delete_policy with snapshot policy"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_delete_snapshot_policy_success(self, mock_lv):
+        """Test successful deletion of entire snapshot policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snap_policy",
+            "policy": "snapshot",
+            "client": None,
+            "directory": None,
+            "snap_client_name": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_policies_snapshot.return_value = Mock(status_code=200)
+
+        delete_policy(mock_module, mock_array)
+
+        mock_array.delete_policies_snapshot.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_delete_snapshot_policy_with_rule(self, mock_lv):
+        """Test deletion of snapshot rule from policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snap_policy",
+            "policy": "snapshot",
+            "client": None,
+            "directory": None,
+            "snap_client_name": "daily_snap",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_rule = Mock()
+        mock_rule.client_name = "daily_snap"
+        mock_rule.name = "rule1"
+        mock_array.get_policies_snapshot_rules.return_value = Mock(items=[mock_rule])
+        mock_array.delete_policies_snapshot_rules.return_value = Mock(status_code=200)
+
+        delete_policy(mock_module, mock_array)
+
+        mock_array.delete_policies_snapshot_rules.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreatePolicyAutodir:
+    """Test cases for create_policy with autodir policy type"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPost")
+    def test_create_autodir_policy_success(self, mock_policy_post, mock_lv):
+        """Test successful creation of autodir policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "autodir_policy",
+            "policy": "autodir",
+            "enabled": True,
+            "directory": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_policies_autodir.return_value = Mock(status_code=200)
+
+        create_policy(mock_module, mock_array, False)
+
+        mock_array.post_policies_autodir.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)

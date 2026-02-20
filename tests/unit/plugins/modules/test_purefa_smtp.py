@@ -219,3 +219,169 @@ class TestDeleteSmtpSuccess:
 
         mock_array.patch_smtp_servers.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateSmtpSuccess:
+    """Additional tests for create_smtp success paths"""
+
+    @patch("plugins.modules.purefa_smtp.check_response")
+    def test_create_smtp_with_password(self, mock_check_response):
+        """Test create_smtp with password update"""
+        mock_module = Mock()
+        mock_module.params = {
+            "sender_domain": None,
+            "relay_host": None,
+            "user": None,
+            "user_name": None,
+            "password": "new_password",
+            "sender": None,
+            "body_prefix": None,
+            "subject_prefix": None,
+            "encryption_mode": None,
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_smtp = Mock()
+        mock_smtp.sender_domain = "example.com"
+        mock_smtp.relay_host = "smtp.example.com"
+        mock_smtp.user_name = "smtp_user"
+        mock_smtp.encryption_mode = "starttls"
+        mock_smtp.sender_username = "sender"
+        mock_smtp.subject_prefix = "[PURE]"
+        mock_smtp.body_prefix = "Alert:"
+        mock_array.get_smtp_servers.return_value = Mock(items=[mock_smtp])
+        mock_array.patch_smtp_servers.return_value = Mock(status_code=200)
+
+        create_smtp(mock_module, mock_array)
+
+        mock_array.patch_smtp_servers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_smtp.check_response")
+    def test_create_smtp_change_relay_host(self, mock_check_response):
+        """Test create_smtp when relay_host changes"""
+        mock_module = Mock()
+        mock_module.params = {
+            "sender_domain": None,
+            "relay_host": "new-smtp.example.com",
+            "user": None,
+            "user_name": None,
+            "password": None,
+            "sender": None,
+            "body_prefix": None,
+            "subject_prefix": None,
+            "encryption_mode": None,
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_smtp = Mock()
+        mock_smtp.sender_domain = "example.com"
+        mock_smtp.relay_host = "old-smtp.example.com"
+        mock_smtp.user_name = "smtp_user"
+        mock_smtp.encryption_mode = "starttls"
+        mock_smtp.sender_username = "sender"
+        mock_smtp.subject_prefix = "[PURE]"
+        mock_smtp.body_prefix = "Alert:"
+        mock_array.get_smtp_servers.return_value = Mock(items=[mock_smtp])
+        mock_array.patch_smtp_servers.return_value = Mock(status_code=200)
+
+        create_smtp(mock_module, mock_array)
+
+        mock_array.patch_smtp_servers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_smtp.check_response")
+    def test_create_smtp_change_encryption_mode(self, mock_check_response):
+        """Test create_smtp when encryption_mode changes"""
+        mock_module = Mock()
+        mock_module.params = {
+            "sender_domain": None,
+            "relay_host": None,
+            "user": None,
+            "user_name": None,
+            "password": None,
+            "sender": None,
+            "body_prefix": None,
+            "subject_prefix": None,
+            "encryption_mode": "ssl",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_smtp = Mock()
+        mock_smtp.sender_domain = "example.com"
+        mock_smtp.relay_host = "smtp.example.com"
+        mock_smtp.user_name = "smtp_user"
+        mock_smtp.encryption_mode = "starttls"
+        mock_smtp.sender_username = "sender"
+        mock_smtp.subject_prefix = "[PURE]"
+        mock_smtp.body_prefix = "Alert:"
+        mock_array.get_smtp_servers.return_value = Mock(items=[mock_smtp])
+        mock_array.patch_smtp_servers.return_value = Mock(status_code=200)
+
+        create_smtp(mock_module, mock_array)
+
+        mock_array.patch_smtp_servers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_create_smtp_change_subject_prefix(self):
+        """Test create_smtp when subject_prefix changes"""
+        mock_module = Mock()
+        mock_module.params = {
+            "sender_domain": None,
+            "relay_host": None,
+            "user": None,
+            "user_name": None,
+            "password": None,
+            "sender": None,
+            "body_prefix": None,
+            "subject_prefix": "[NEW PREFIX]",
+            "encryption_mode": None,
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+        mock_smtp = Mock()
+        mock_smtp.sender_domain = "example.com"
+        mock_smtp.relay_host = "smtp.example.com"
+        mock_smtp.user_name = "smtp_user"
+        mock_smtp.encryption_mode = "starttls"
+        mock_smtp.sender_username = "sender"
+        mock_smtp.subject_prefix = "[OLD PREFIX]"
+        mock_smtp.body_prefix = "Alert:"
+        mock_array.get_smtp_servers.return_value = Mock(items=[mock_smtp])
+
+        create_smtp(mock_module, mock_array)
+
+        # Check mode - no API call
+        mock_array.patch_smtp_servers.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_create_smtp_change_body_prefix(self):
+        """Test create_smtp when body_prefix changes"""
+        mock_module = Mock()
+        mock_module.params = {
+            "sender_domain": None,
+            "relay_host": None,
+            "user": None,
+            "user_name": None,
+            "password": None,
+            "sender": None,
+            "body_prefix": "New Body:",
+            "subject_prefix": None,
+            "encryption_mode": None,
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+        mock_smtp = Mock()
+        mock_smtp.sender_domain = "example.com"
+        mock_smtp.relay_host = "smtp.example.com"
+        mock_smtp.user_name = "smtp_user"
+        mock_smtp.encryption_mode = "starttls"
+        mock_smtp.sender_username = "sender"
+        mock_smtp.subject_prefix = "[PURE]"
+        mock_smtp.body_prefix = "Old Body:"
+        mock_array.get_smtp_servers.return_value = Mock(items=[mock_smtp])
+
+        create_smtp(mock_module, mock_array)
+
+        mock_array.patch_smtp_servers.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)

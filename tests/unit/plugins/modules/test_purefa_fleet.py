@@ -131,3 +131,181 @@ class TestRenameFleet:
         rename_fleet(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_fleet.check_response")
+    def test_rename_fleet_success(self, mock_check_response):
+        """Test rename_fleet successfully renames"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "old-fleet", "rename": "new-fleet"}
+        mock_array = Mock()
+        mock_fleet = Mock()
+        mock_fleet.name = "old-fleet"
+        mock_array.get_fleets.return_value = Mock(items=[mock_fleet])
+        mock_array.patch_fleets.return_value = Mock(status_code=200)
+
+        rename_fleet(mock_module, mock_array)
+
+        mock_array.patch_fleets.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteFleetSuccess:
+    """Test cases for delete_fleet success paths"""
+
+    @patch("plugins.modules.purefa_fleet.check_response")
+    def test_delete_fleet_success(self, mock_check_response):
+        """Test delete_fleet successfully deletes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-fleet"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.39"
+        mock_array.delete_fleets.return_value = Mock(status_code=200)
+
+        delete_fleet(mock_module, mock_array)
+
+        mock_array.delete_fleets.assert_called_once_with(names=["test-fleet"])
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_delete_fleet_version_too_low(self):
+        """Test delete_fleet fails with old API version"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-fleet"}
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Too old
+
+        with pytest.raises(SystemExit):
+            delete_fleet(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestAddFleetMembers:
+    """Test cases for add_fleet_members function"""
+
+    def test_add_fleet_members_missing_args(self):
+        """Test add_fleet_members fails when required args missing"""
+        import pytest
+        from plugins.modules.purefa_fleet import add_fleet_members
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-fleet",
+            "member_url": None,
+            "member_api": None,
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        with pytest.raises(SystemExit):
+            add_fleet_members(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "missing required arguments" in mock_module.fail_json.call_args[1]["msg"]
+
+    def test_add_fleet_members_key_generation_failed(self):
+        """Test add_fleet_members fails when fleet key generation fails"""
+        import pytest
+        from plugins.modules.purefa_fleet import add_fleet_members
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-fleet",
+            "member_url": "https://array.example.com",
+            "member_api": "fake-api-token",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_error = Mock()
+        mock_error.message = "Key generation failed"
+        mock_array.post_fleets_fleet_key.return_value = Mock(
+            status_code=400, errors=[mock_error]
+        )
+
+        with pytest.raises(SystemExit):
+            add_fleet_members(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert (
+            "Fleet key generation failed" in mock_module.fail_json.call_args[1]["msg"]
+        )
+
+
+class TestDeleteFleetMembers:
+    """Test cases for delete_fleet_members function"""
+
+    @patch("plugins.modules.purefa_fleet.flasharray")
+    @patch("plugins.modules.purefa_fleet.HAS_DISTRO", False)
+    @patch("plugins.modules.purefa_fleet.HAS_URLLIB3", False)
+    def test_delete_fleet_members_not_found(self, mock_flasharray):
+        """Test delete_fleet_members when member not in fleet"""
+        from plugins.modules.purefa_fleet import delete_fleet_members
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-fleet",
+            "member_url": "https://array.example.com",
+            "member_api": "fake-api-token",
+            "disable_warnings": False,
+        }
+        mock_array = Mock()
+
+        # Mock remote system
+        mock_remote = Mock()
+        mock_remote_array = Mock()
+        mock_remote_array.name = "remote-array"
+        mock_remote.get_arrays.return_value = Mock(items=[mock_remote_array])
+        mock_flasharray.Client.return_value = mock_remote
+
+        # Mock fleet members - member not in list
+        mock_member = Mock()
+        mock_member.member.name = "other-array"
+        mock_array.get_fleets_members.return_value = Mock(items=[mock_member])
+
+        delete_fleet_members(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_fleet.flasharray")
+    @patch("plugins.modules.purefa_fleet.HAS_DISTRO", False)
+    @patch("plugins.modules.purefa_fleet.HAS_URLLIB3", False)
+    def test_delete_fleet_members_check_mode(self, mock_flasharray):
+        """Test delete_fleet_members in check mode"""
+        from plugins.modules.purefa_fleet import delete_fleet_members
+
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-fleet",
+            "member_url": "https://array.example.com",
+            "member_api": "fake-api-token",
+            "disable_warnings": False,
+        }
+        mock_array = Mock()
+
+        # Mock remote system
+        mock_remote = Mock()
+        mock_remote_array = Mock()
+        mock_remote_array.name = "remote-array"
+        mock_remote.get_arrays.return_value = Mock(items=[mock_remote_array])
+        mock_flasharray.Client.return_value = mock_remote
+
+        # Mock fleet members - member in list
+        mock_member = Mock()
+        mock_member.member.name = "remote-array"
+        mock_array.get_fleets_members.return_value = Mock(items=[mock_member])
+
+        delete_fleet_members(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        mock_array.delete_fleets_members.assert_not_called()
