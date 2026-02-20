@@ -535,3 +535,59 @@ class TestUpdateVlan:
         result = _update_vlan(mock_module, mock_array)
 
         assert result is True
+
+
+class TestMoveHost:
+    """Test cases for move_host function"""
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_move_host_fail_with_context(self, mock_get_with_context):
+        """Test move_host fails when context is provided"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "test-host",
+            "context": "realm1",
+        }
+        mock_array = Mock()
+
+        from plugins.modules.purefa_host import move_host
+
+        with pytest.raises(SystemExit):
+            move_host(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_move_host_with_connections_fails(self, mock_get_with_context):
+        """Test move_host fails when host has connections"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "test-host",
+            "context": "",
+            "move": ["realm1"],
+        }
+        mock_array = Mock()
+        # Mock get_arrays
+        mock_local_array = Mock()
+        mock_local_array.name = "local-array"
+        mock_array.get_arrays.return_value.items = [mock_local_array]
+
+        # Mock host with connections
+        mock_host = Mock()
+        mock_host.connection_count = 5
+        mock_get_with_context.return_value = Mock(items=[mock_host])
+
+        from plugins.modules.purefa_host import move_host
+
+        with pytest.raises(SystemExit):
+            move_host(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()

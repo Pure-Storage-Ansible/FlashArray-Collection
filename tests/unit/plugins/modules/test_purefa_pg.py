@@ -9,6 +9,7 @@ __metaclass__ = type
 
 import sys
 from unittest.mock import Mock, patch, MagicMock
+from packaging.version import Version as LooseVersion
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -424,3 +425,76 @@ class TestGetPgroupSched:
         result = get_pgroup_sched(mock_module, mock_array)
 
         assert result is None
+
+
+class TestDeletePgroupSuccess:
+    """Additional test cases for delete_pgroup function"""
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_delete_pgroup_success(self, mock_loose_version, mock_check_response):
+        """Test delete_pgroup successfully deletes"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "context": "",
+            "eradicate": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+
+        delete_pgroup(mock_module, mock_array)
+
+        mock_array.patch_protection_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRecoverPgroupSuccess:
+    """Additional test cases for recover_pgroup function"""
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_recover_pgroup_success(self, mock_loose_version, mock_check_response):
+        """Test recover_pgroup successfully recovers"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+
+        recover_pgroup(mock_module, mock_array)
+
+        mock_array.patch_protection_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestEradicatePgroupSuccess:
+    """Additional test cases for eradicate_pgroup function"""
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_eradicate_pgroup_success(self, mock_loose_version, mock_check_response):
+        """Test eradicate_pgroup successfully eradicates"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_protection_groups.return_value = Mock(status_code=200)
+
+        eradicate_pgroup(mock_module, mock_array)
+
+        mock_array.delete_protection_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)

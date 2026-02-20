@@ -9,6 +9,7 @@ __metaclass__ = type
 
 import sys
 from unittest.mock import Mock, patch, MagicMock
+from packaging.version import Version as LooseVersion
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -420,3 +421,111 @@ class TestStretchPod:
         stretch_pod(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestCreatePodSuccess:
+    """Additional test cases for create_pod function"""
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion")
+    def test_create_pod_fail_with_target(self, mock_loose_version, mock_check_response):
+        """Test create_pod fails when target is specified"""
+        import pytest
+
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "realm1",
+            "target": "source-pod",
+            "failover": None,
+            "mediator": "purestorage",
+            "stretch": None,
+            "throttle": True,
+            "quota": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        with pytest.raises(SystemExit):
+            create_pod(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestDeletePodSuccess:
+    """Additional test cases for delete_pod function"""
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion")
+    def test_delete_pod_success(self, mock_loose_version, mock_check_response):
+        """Test delete_pod successfully deletes a pod"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "eradicate": False,
+            "delete_contents": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_pods.return_value = Mock(status_code=200)
+
+        delete_pod(mock_module, mock_array)
+
+        mock_array.patch_pods.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRecoverPodSuccess:
+    """Additional test cases for recover_pod function"""
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion")
+    def test_recover_pod_success(self, mock_loose_version, mock_check_response):
+        """Test recover_pod successfully recovers a pod"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_pods.return_value = Mock(status_code=200)
+
+        recover_pod(mock_module, mock_array)
+
+        mock_array.patch_pods.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestEradicatePodSuccess:
+    """Additional test cases for eradicate_pod function"""
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion")
+    def test_eradicate_pod_success(self, mock_loose_version, mock_check_response):
+        """Test eradicate_pod successfully eradicates a pod"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "eradicate": True,
+            "delete_contents": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_pods.return_value = Mock(status_code=200)
+
+        eradicate_pod(mock_module, mock_array)
+
+        mock_array.delete_pods.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
