@@ -104,6 +104,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 CONTEXT_VERSION = "2.38"
 
@@ -122,12 +125,9 @@ def delete_dir(module, array):
             res = array.delete_directories(
                 names=[module.params["filesystem"] + ":" + module.params["name"]]
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete file system {0}. {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to delete file system {module.params['name']}"
+        )
     module.exit_json(changed=changed)
 
 
@@ -161,10 +161,9 @@ def rename_dir(module, array):
                     names=[module.params["filesystem"] + ":" + module.params["name"]],
                     directory=directory,
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to delete file system {0}".format(module.params["name"])
-                )
+            check_response(
+                res, module, f"Failed to rename file system {module.params['name']}"
+            )
     else:
         module.fail_json(
             msg="Target file system {0} already exists".format(module.params["rename"])
@@ -211,12 +210,9 @@ def create_dir(module, array):
             res = array.post_directories(
                 file_system_names=[module.params["filesystem"]], directory=directory
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to create file system {0}. {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to create file system {module.params['name']}"
+        )
     module.exit_json(changed=changed)
 
 

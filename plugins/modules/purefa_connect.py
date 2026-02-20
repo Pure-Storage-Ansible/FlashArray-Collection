@@ -135,6 +135,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 import platform
 import socket
 
@@ -190,14 +193,9 @@ def break_connection(module, array, target_array):
             )
         else:
             res = array.delete_array_connections(names=[target_array.name])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to disconnect {0} from {1}.Error: {2}".format(
-                    target_array.name,
-                    source_array,
-                    res.errors[0].mesaage,
-                )
-            )
+        check_response(
+            res, module, f"Failed to disconnect {target_array.name} from {source_array}"
+        )
     module.exit_json(changed=changed)
 
 
@@ -245,12 +243,11 @@ def update_connection(module, array, target_array):
                     renew_encryption_key=True,
                     array_connection=ArrayConnectionPatch(),
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to renew encryption key for connection to {0}. Error: {1}".format(
-                        target_array.name, res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to renew encryption key for connection to {target_array.name}",
+            )
         module.exit_json(changed=changed)
     if module.params["refresh"]:
         # No other attributes can be changed when doing this
@@ -269,12 +266,9 @@ def update_connection(module, array, target_array):
                     refresh=True,
                     array_connection=ArrayConnectionPatch(),
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to refresh connection to {0}. Error: {1}".format(
-                        target_array.name, res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Failed to refresh connection to {target_array.name}"
+            )
         module.exit_json(changed=changed)
     #
     # Special cases complete
@@ -313,12 +307,11 @@ def update_connection(module, array, target_array):
                             encryption=encrypted, connection_key=connection_key
                         ),
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to change encryption for {0}. Error: {1}".format(
-                            target_array.name, res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res,
+                    module,
+                    f"Failed to change encryption for {target_array.name}",
+                )
     if module.params["connection"] != target_array.type:
         changed = True
         if not module.check_mode:
@@ -337,12 +330,11 @@ def update_connection(module, array, target_array):
                         type=module.params["connection"]
                     ),
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to change connection type for {0}. Error: {1}".format(
-                        target_array.name, res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to change connection type for {target_array.name}",
+            )
     module.exit_json(changed=changed)
 
 
@@ -411,10 +403,7 @@ def create_connection(module, array):
             )
         else:
             res = array.post_array_connections(array_connection=array_connection)
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Array Connection failed. Error: {0}".format(res.errors[0].message)
-            )
+        check_response(res, module, "Array Connection failed")
     module.exit_json(changed=changed)
 
 

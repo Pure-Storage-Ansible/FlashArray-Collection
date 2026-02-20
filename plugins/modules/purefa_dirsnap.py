@@ -187,6 +187,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 MIN_REQUIRED_API_VERSION = "2.2"
 MIN_RENAME_API_VERSION = "2.10"
@@ -213,12 +216,9 @@ def eradicate_snap(module, array):
             )
         else:
             res = array.delete_directory_snapshots(names=[snapname])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to eradicate filesystem snapshot {0}. Error: {1}".format(
-                    snapname, res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to eradicate filesystem snapshot {snapname}"
+        )
     module.exit_json(changed=changed)
 
 
@@ -247,12 +247,7 @@ def delete_snap(module, array):
             res = array.patch_directory_snapshots(
                 names=[snapname], directory_snapshot=directory_snapshot
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete filesystem snapshot {0}. Error: {1}".format(
-                    snapname, res.errors[0].message
-                )
-            )
+        check_response(res, module, f"Failed to delete filesystem snapshot {snapname}")
         if module.params["eradicate"]:
             eradicate_snap(module, array)
     module.exit_json(changed=changed)
@@ -304,14 +299,8 @@ def update_snap(module, array, snap_detail):
                 res = array.patch_directory_snapshots(
                     names=[snapname], directory_snapshot=directory_snapshot
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to rename snapshot {0}. Error: {1}".format(
-                        snapname, res.errors[0].message
-                    )
-                )
-            else:
-                snapname = new_snapname
+            check_response(res, module, f"Failed to rename snapshot {snapname}")
+            snapname = new_snapname
     if not module.params["keep_for"] or module.params["keep_for"] == 0:
         keep_for = None
     elif 300 <= module.params["keep_for"] <= 31536000:
@@ -332,12 +321,7 @@ def update_snap(module, array, snap_detail):
                 res = array.patch_directory_snapshots(
                     names=[snapname], directory_snapshot=directory_snapshot
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to recover snapshot {0}. Error: {1}".format(
-                        snapname, res.errors[0].message
-                    )
-                )
+            check_response(res, module, f"Failed to recover snapshot {snapname}")
             if keep_for != 0:  # Set a new keep-for after recovery if requested
                 directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
                 if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
@@ -350,12 +334,9 @@ def update_snap(module, array, snap_detail):
                     res = array.patch_directory_snapshots(
                         names=[snapname], directory_snapshot=directory_snapshot
                     )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to retention time for snapshot {0}. Error: {1}".format(
-                            snapname, res.errors[0].message
-                        )
-                    )
+                check_response(
+                    res, module, f"Failed to set retention time for snapshot {snapname}"
+                )
     if keep_for:
         directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
         changed = True
@@ -370,12 +351,9 @@ def update_snap(module, array, snap_detail):
                 res = array.patch_directory_snapshots(
                     names=[snapname], directory_snapshot=directory_snapshot
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to retention time for snapshot {0}. Error: {1}".format(
-                        snapname, res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Failed to set retention time for snapshot {snapname}"
+            )
     if module.params["rename"] and keep_for:
         directory_snapshot = DirectorySnapshotPatch(keep_for=keep_for)
         changed = True
@@ -390,12 +368,11 @@ def update_snap(module, array, snap_detail):
                 res = array.patch_directory_snapshots(
                     names=[new_snapname], directory_snapshot=directory_snapshot
                 )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to retention time for renamed snapshot {0}. Error: {1}".format(
-                        snapname, res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to set retention time for renamed snapshot {snapname}",
+            )
     module.exit_json(changed=changed)
 
 
@@ -431,12 +408,11 @@ def create_snap(module, array):
             res = array.post_directory_snapshots(
                 source_names=[directory], directory_snapshot=directory_snapshot
             )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to create client {0} snapshot for {1}. Error: {2}".format(
-                    module.params["client"], directory, res.errors[0].message
-                )
-            )
+        check_response(
+            res,
+            module,
+            f"Failed to create client {module.params['client']} snapshot for {directory}",
+        )
     module.exit_json(changed=changed)
 
 

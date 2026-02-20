@@ -69,6 +69,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 HAS_PURESTORAGE = True
 try:
@@ -116,12 +119,9 @@ def create_alert(module, array):
             names=[module.params["address"]],
             alert_watcher=AlertWatcherPost(enabled=module.params["enabled"]),
         )
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to create alert email: {0}. Error: {1}".format(
-                    module.params["address"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to create alert email: {module.params['address']}"
+        )
     module.exit_json(changed=changed)
 
 
@@ -135,13 +135,11 @@ def update_alert(module, array, enabled):
                 names=[module.params["address"]],
                 alert_watcher=AlertWatcherPatch(enabled=module.params["enabled"]),
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to change alert email state: {0}. Error: {1}".format(
-                        module.params["address"],
-                        res.errors[0].message,
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to change alert email state: {module.params['address']}",
+            )
     module.exit_json(changed=changed)
 
 
@@ -156,12 +154,9 @@ def delete_alert(module, array):
         )
     if not module.check_mode:
         res = array.delete_alert_watchers(names=[module.params["address"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete alert email: {0}. Error: {1}".format(
-                    module.params["address"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to delete alert email: {module.params['address']}"
+        )
     module.exit_json(changed=changed)
 
 
@@ -189,14 +184,8 @@ def main():
 
     exists = False
     res = array.get_alert_watchers()
-    if res.status_code != 200:
-        module.fail_json(
-            msg="Failed to get existing email list. Error: {0}".format(
-                res.errors[0].message
-            )
-        )
-    else:
-        watchers = list(res.items)
+    check_response(res, module, "Failed to get existing email list")
+    watchers = list(res.items)
     for watcher in watchers:
         if watcher.name == module.params["address"]:
             exists = True

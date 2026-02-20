@@ -127,6 +127,9 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
 from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
     LooseVersion,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    check_response,
+)
 
 MIN_REQUIRED_API_VERSION = "2.11"
 
@@ -165,12 +168,9 @@ def delete_saml(module, array):
     changed = True
     if not module.check_mode:
         res = array.delete_sso_saml2_idps(names=[module.params["name"]])
-        if res.status_code != 200:
-            module.fail_json(
-                msg="Failed to delete SAML2 IdP {0}. Error: {1}".format(
-                    module.params["name"], res.errors[0].message
-                )
-            )
+        check_response(
+            res, module, f"Failed to delete SAML2 IdP {module.params['name']}"
+        )
     module.exit_json(changed=changed)
 
 
@@ -259,12 +259,9 @@ def update_saml(module, array):
                 ),
                 names=[module.params["name"]],
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to update SAML2 IdP {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res, module, f"Failed to update SAML2 IdP {module.params['name']}"
+            )
     module.exit_json(changed=changed)
 
 
@@ -290,12 +287,11 @@ def create_saml(module, array):
                 idp=Saml2SsoPost(array_url=module.params["array_url"], idp=idp, sp=sp),
                 names=[module.params["name"]],
             )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to create SAML2 Identity Provider {0}. Error message: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
-                )
+            check_response(
+                res,
+                module,
+                f"Failed to create SAML2 Identity Provider {module.params['name']}",
+            )
             if module.params["enabled"]:
                 res = array.patch_sso_saml2_idps(
                     idp=Saml2Sso(enabled=module.params["enabled"]),
