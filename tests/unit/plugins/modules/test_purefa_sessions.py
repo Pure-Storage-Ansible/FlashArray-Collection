@@ -1,8 +1,11 @@
-"""
-Unit tests for purefa_sessions module
+# Copyright: (c) 2026, Pure Storage Ansible Team <pure-ansible-team@purestorage.com>
+# GNU General Public License v3.0+ (see COPYING.GPLv3 or https://www.gnu.org/licenses/gpl-3.0.txt)
 
-Tests for Session retrieval functions
-"""
+"""Unit tests for purefa_sessions module."""
+
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
 
 import sys
 from unittest.mock import Mock, MagicMock
