@@ -345,3 +345,148 @@ class TestRenameFsExtended:
 
         mock_array.patch_file_systems.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestMoveFs:
+    """Test cases for move_fs function"""
+
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_move_fs_to_local_same_location_fails(self, mock_lv):
+        """Test move_fs fails when source and destination are the same"""
+        import pytest
+        from plugins.modules.purefa_fs import move_fs
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-fs",  # Not in a pod
+            "move": "local",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+
+        with pytest.raises(SystemExit):
+            move_fs(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "cannot be the same" in mock_module.fail_json.call_args[1]["msg"]
+
+    @patch("plugins.modules.purefa_fs.check_response")
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_move_fs_to_local_success(self, mock_lv, mock_check_response):
+        """Test move_fs successfully moves filesystem to local"""
+        from plugins.modules.purefa_fs import move_fs
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "mypod::test-fs",  # In a pod
+            "move": "local",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_file_systems.return_value = Mock(status_code=404)
+        mock_array.patch_file_systems.return_value = Mock(status_code=200)
+
+        move_fs(mock_module, mock_array)
+
+        mock_array.patch_file_systems.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_fs.check_response")
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_move_fs_to_pod_success(self, mock_lv, mock_check_response):
+        """Test move_fs successfully moves filesystem to a pod"""
+        from plugins.modules.purefa_fs import move_fs
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-fs",
+            "move": "target-pod",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_pods.return_value = Mock(
+            status_code=200,
+            items=[
+                Mock(
+                    arrays=[Mock()],  # Single array
+                    link_target_count=0,
+                    promotion_status="promoted",
+                )
+            ],
+        )
+        mock_array.patch_file_systems.return_value = Mock(status_code=200)
+
+        move_fs(mock_module, mock_array)
+
+        mock_array.patch_file_systems.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_move_fs_to_stretched_pod_fails(self, mock_lv):
+        """Test move_fs fails when moving to a stretched pod"""
+        import pytest
+        from plugins.modules.purefa_fs import move_fs
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-fs",
+            "move": "stretched-pod",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_pods.return_value = Mock(
+            status_code=200,
+            items=[
+                Mock(
+                    arrays=[Mock(), Mock()],  # Multiple arrays = stretched
+                    link_target_count=0,
+                    promotion_status="promoted",
+                )
+            ],
+        )
+
+        with pytest.raises(SystemExit):
+            move_fs(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "stretched pod" in mock_module.fail_json.call_args[1]["msg"]
+
+    @patch("plugins.modules.purefa_fs.LooseVersion", side_effect=LooseVersion)
+    def test_move_fs_check_mode(self, mock_lv):
+        """Test move_fs in check mode"""
+        from plugins.modules.purefa_fs import move_fs
+
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-fs",
+            "move": "target-pod",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_pods.return_value = Mock(
+            status_code=200,
+            items=[
+                Mock(
+                    arrays=[Mock()],
+                    link_target_count=0,
+                    promotion_status="promoted",
+                )
+            ],
+        )
+
+        move_fs(mock_module, mock_array)
+
+        mock_array.patch_file_systems.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)

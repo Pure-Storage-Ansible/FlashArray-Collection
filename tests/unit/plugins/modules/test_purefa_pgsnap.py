@@ -664,3 +664,130 @@ class TestUpdatePgsnapshotExtended:
 
         mock_array.patch_protection_group_snapshots.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteOffloadSnapshot:
+    """Test cases for delete_offload_snapshot function"""
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap._check_offload")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_offload_snapshot_success(
+        self, mock_lv, mock_check_offload, mock_check_response
+    ):
+        """Test successful deletion of offload snapshot"""
+        from plugins.modules.purefa_pgsnap import delete_offload_snapshot
+
+        mock_check_offload.return_value = True
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "array2:pg1",
+            "suffix": "snap1",
+            "offload": "s3target",
+            "context": "",
+            "eradicate": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200, items=[Mock(destroyed=False)]
+        )
+        mock_array.patch_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+
+        delete_offload_snapshot(mock_module, mock_array)
+
+        mock_array.patch_remote_protection_group_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsnap._check_offload")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_offload_snapshot_offload_not_connected(
+        self, mock_lv, mock_check_offload
+    ):
+        """Test delete_offload_snapshot fails when offload not connected"""
+        import pytest
+        from plugins.modules.purefa_pgsnap import delete_offload_snapshot
+
+        mock_check_offload.return_value = False
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "array2:pg1",
+            "suffix": "snap1",
+            "offload": "s3target",
+            "context": "",
+            "eradicate": False,
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        with pytest.raises(SystemExit):
+            delete_offload_snapshot(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "not exist or not connected" in mock_module.fail_json.call_args[1]["msg"]
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_offload_snapshot_bad_name_format(self, mock_lv):
+        """Test delete_offload_snapshot fails with bad name format"""
+        import pytest
+        from plugins.modules.purefa_pgsnap import delete_offload_snapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",  # No colon - bad format
+            "suffix": "snap1",
+            "offload": "s3target",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        with pytest.raises(SystemExit):
+            delete_offload_snapshot(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "not in the correct format" in mock_module.fail_json.call_args[1]["msg"]
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap._check_offload")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_offload_snapshot_with_eradicate(
+        self, mock_lv, mock_check_offload, mock_check_response
+    ):
+        """Test deletion of offload snapshot with eradicate"""
+        from plugins.modules.purefa_pgsnap import delete_offload_snapshot
+
+        mock_check_offload.return_value = True
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "array2:pg1",
+            "suffix": "snap1",
+            "offload": "s3target",
+            "context": "",
+            "eradicate": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200, items=[Mock(destroyed=False)]
+        )
+        mock_array.patch_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+        mock_array.delete_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+
+        delete_offload_snapshot(mock_module, mock_array)
+
+        mock_array.patch_remote_protection_group_snapshots.assert_called_once()
+        mock_array.delete_remote_protection_group_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
