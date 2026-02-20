@@ -541,8 +541,7 @@ class TestRecoverSnapshotSuccess:
         }
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
-        # Use sttaus_code due to typo in the module
-        mock_array.patch_volume_snapshot.return_value = Mock(sttaus_code=200)
+        mock_array.patch_volume_snapshot.return_value = Mock(status_code=200)
 
         recover_snapshot(mock_module, mock_array)
 
@@ -716,5 +715,87 @@ class TestDeleteSnapshotOffload:
         delete_snapshot(mock_module, mock_array)
 
         mock_array.patch_volume_snapshots.assert_called_once()
+        mock_array.delete_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateSnapshotExtended:
+    """Extended test cases for update_snapshot function"""
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_update_snapshot_older_api(self, mock_lv, mock_check_response):
+        """Test renaming snapshot with older API version"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "vol1",
+            "suffix": "snap1",
+            "target": "snap2",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.16"
+        mock_array.patch_volume_snapshots.return_value = Mock(status_code=200)
+
+        update_snapshot(mock_module, mock_array)
+
+        mock_array.patch_volume_snapshots.assert_called_once()
+        call_kwargs = mock_array.patch_volume_snapshots.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRecoverSnapshotExtended:
+    """Extended test cases for recover_snapshot function"""
+
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_recover_snapshot_local_success(self, mock_lv, mock_check_offload):
+        """Test recovering local snapshot"""
+        mock_check_offload.return_value = False
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "vol1",
+            "suffix": "snap1",
+            "offload": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_volume_snapshot.return_value = Mock(status_code=200)
+
+        recover_snapshot(mock_module, mock_array)
+
+        mock_array.patch_volume_snapshot.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestEradicateSnapshotExtended:
+    """Extended test cases for eradicate_snapshot function"""
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_snapshot_local_success(
+        self, mock_lv, mock_check_offload, mock_check_response
+    ):
+        """Test eradicating local snapshot"""
+        mock_check_offload.return_value = False
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "vol1",
+            "suffix": "snap1",
+            "offload": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_volume_snapshots.return_value = Mock(status_code=200)
+
+        eradicate_snapshot(mock_module, mock_array)
+
         mock_array.delete_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
