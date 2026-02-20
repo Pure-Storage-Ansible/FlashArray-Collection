@@ -252,3 +252,101 @@ class TestDeleteVifSuccess:
             names=["ct0.eth0.100"]
         )
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateVif:
+    """Test cases for update_vif function"""
+
+    @patch("plugins.modules.purefa_vlan._get_vif")
+    def test_update_vif_no_changes(self, mock_get_vif):
+        """Test update_vif with no changes needed"""
+        from plugins.modules.purefa_vlan import update_vif
+
+        mock_get_vif.return_value = {
+            "name": "ct0.eth0.100",
+            "enabled": True,
+            "eth": {"address": "10.0.0.10"},
+        }
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"address": "10.0.0.10", "enabled": True}
+        mock_array = Mock()
+        mock_interface = {"name": "ct0.eth0"}
+        mock_subnet = {"vlan": 100}
+
+        update_vif(mock_module, mock_array, mock_interface, mock_subnet)
+
+        mock_array.patch_network_interfaces.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_vlan.check_response")
+    @patch("plugins.modules.purefa_vlan._get_vif")
+    def test_update_vif_change_address(self, mock_get_vif, mock_check_response):
+        """Test update_vif changes IP address"""
+        from plugins.modules.purefa_vlan import update_vif
+
+        mock_get_vif.return_value = {
+            "name": "ct0.eth0.100",
+            "enabled": True,
+            "eth": {"address": "10.0.0.10"},
+        }
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"address": "10.0.0.20", "enabled": True}
+        mock_array = Mock()
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+        mock_interface = {"name": "ct0.eth0"}
+        mock_subnet = {"vlan": 100}
+
+        update_vif(mock_module, mock_array, mock_interface, mock_subnet)
+
+        mock_array.patch_network_interfaces.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vlan.check_response")
+    @patch("plugins.modules.purefa_vlan._get_vif")
+    def test_update_vif_enable(self, mock_get_vif, mock_check_response):
+        """Test update_vif enables disabled interface"""
+        from plugins.modules.purefa_vlan import update_vif
+
+        mock_get_vif.return_value = {
+            "name": "ct0.eth0.100",
+            "enabled": False,
+            "eth": {"address": "10.0.0.10"},
+        }
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"address": None, "enabled": True}
+        mock_array = Mock()
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+        mock_interface = {"name": "ct0.eth0"}
+        mock_subnet = {"vlan": 100}
+
+        update_vif(mock_module, mock_array, mock_interface, mock_subnet)
+
+        mock_array.patch_network_interfaces.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vlan.check_response")
+    @patch("plugins.modules.purefa_vlan._get_vif")
+    def test_update_vif_disable(self, mock_get_vif, mock_check_response):
+        """Test update_vif disables enabled interface"""
+        from plugins.modules.purefa_vlan import update_vif
+
+        mock_get_vif.return_value = {
+            "name": "ct0.eth0.100",
+            "enabled": True,
+            "eth": {"address": "10.0.0.10"},
+        }
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"address": None, "enabled": False}
+        mock_array = Mock()
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+        mock_interface = {"name": "ct0.eth0"}
+        mock_subnet = {"vlan": 100}
+
+        update_vif(mock_module, mock_array, mock_interface, mock_subnet)
+
+        mock_array.patch_network_interfaces.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
