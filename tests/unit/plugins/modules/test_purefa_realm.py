@@ -358,3 +358,143 @@ class TestRenameRealmSuccess:
 
         mock_array.patch_realm.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateRealmSuccess:
+    """Test cases for update_realm function success scenarios"""
+
+    @patch("plugins.modules.purefa_realm.check_response")
+    @patch("plugins.modules.purefa_realm.human_to_bytes")
+    def test_update_realm_change_bw_qos(self, mock_human_to_bytes, mock_check_response):
+        """Test update_realm changes bandwidth QoS"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-realm",
+            "bw_qos": "100M",
+            "iops_qos": None,
+            "quota": None,
+        }
+        mock_array = Mock()
+        mock_realm = Mock()
+        mock_realm.quota_limit = 1024000
+        mock_realm.qos = Mock()
+        mock_realm.qos.bandwidth_limit = 50000000
+        mock_realm.qos.iops_limit = 1000
+        mock_array.get_realms.return_value = Mock(items=[mock_realm])
+        mock_array.patch_realms.return_value = Mock(status_code=200)
+        # 100MB is 104857600 bytes
+        mock_human_to_bytes.return_value = 104857600
+
+        update_realm(mock_module, mock_array)
+
+        mock_array.patch_realms.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_realm.check_response")
+    @patch("plugins.modules.purefa_realm.human_to_bytes")
+    @patch("plugins.modules.purefa_realm.human_to_real")
+    def test_update_realm_change_iops_qos(
+        self, mock_human_to_real, mock_human_to_bytes, mock_check_response
+    ):
+        """Test update_realm changes IOPS QoS"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-realm",
+            "bw_qos": None,
+            "iops_qos": "10000",
+            "quota": None,
+        }
+        mock_array = Mock()
+        mock_realm = Mock()
+        mock_realm.quota_limit = 1024000
+        mock_realm.qos = Mock()
+        mock_realm.qos.bandwidth_limit = 50000000
+        mock_realm.qos.iops_limit = 5000
+        mock_array.get_realms.return_value = Mock(items=[mock_realm])
+        mock_array.patch_realms.return_value = Mock(status_code=200)
+        mock_human_to_real.return_value = 10000
+        mock_human_to_bytes.return_value = 0
+
+        update_realm(mock_module, mock_array)
+
+        mock_array.patch_realms.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_realm.check_response")
+    @patch("plugins.modules.purefa_realm.human_to_bytes")
+    def test_update_realm_change_quota(self, mock_human_to_bytes, mock_check_response):
+        """Test update_realm changes quota"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-realm",
+            "bw_qos": None,
+            "iops_qos": None,
+            "quota": "100G",
+        }
+        mock_array = Mock()
+        mock_realm = Mock()
+        mock_realm.quota_limit = 1024000
+        mock_realm.qos = Mock()
+        mock_realm.qos.bandwidth_limit = 0
+        mock_realm.qos.iops_limit = 0
+        mock_array.get_realms.return_value = Mock(items=[mock_realm])
+        mock_array.patch_realms.return_value = Mock(status_code=200)
+        # 100GB = 107374182400 bytes (divisible by 512)
+        mock_human_to_bytes.return_value = 107374182400
+
+        update_realm(mock_module, mock_array)
+
+        mock_array.patch_realms.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_realm.human_to_bytes")
+    def test_update_realm_bw_qos_out_of_range(self, mock_human_to_bytes):
+        """Test update_realm fails when bandwidth QoS is out of range"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-realm",
+            "bw_qos": "1000",  # Too small
+            "iops_qos": None,
+            "quota": None,
+        }
+        mock_array = Mock()
+        mock_realm = Mock()
+        mock_realm.quota_limit = 1024000
+        mock_realm.qos = Mock()
+        mock_realm.qos.bandwidth_limit = 50000000
+        mock_realm.qos.iops_limit = 0
+        mock_array.get_realms.return_value = Mock(items=[mock_realm])
+        # 1000 bytes is less than 1048576 (1MB) minimum
+        mock_human_to_bytes.return_value = 1000
+
+        update_realm(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_realm.human_to_bytes")
+    def test_update_realm_quota_not_512_multiple(self, mock_human_to_bytes):
+        """Test update_realm fails when quota is not a multiple of 512"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-realm",
+            "bw_qos": None,
+            "iops_qos": None,
+            "quota": "1001",  # Not divisible by 512
+        }
+        mock_array = Mock()
+        mock_realm = Mock()
+        mock_realm.quota_limit = 1024000
+        mock_realm.qos = Mock()
+        mock_realm.qos.bandwidth_limit = 0
+        mock_realm.qos.iops_limit = 0
+        mock_array.get_realms.return_value = Mock(items=[mock_realm])
+        mock_human_to_bytes.return_value = 1001  # Not divisible by 512
+
+        update_realm(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
