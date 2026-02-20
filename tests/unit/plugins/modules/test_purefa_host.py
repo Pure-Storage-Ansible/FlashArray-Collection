@@ -591,3 +591,99 @@ class TestMoveHost:
             move_host(mock_module, mock_array)
 
         mock_module.fail_json.assert_called_once()
+
+
+class TestMakeHostSuccess:
+    """Test cases for make_host success paths"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_make_host_success(self, mock_get_with_context, mock_check_response):
+        """Test make_host creates host successfully"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "context": "",
+            "vlan": None,
+            "personality": None,
+            "preferred_array": None,
+            "host_user": None,
+            "target_user": None,
+            "volume": None,
+            "lun": None,
+            "wwns": None,
+            "iqn": None,
+            "nqn": None,
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        make_host(mock_module, mock_array)
+
+        mock_get_with_context.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host._set_vlan")
+    def test_make_host_with_vlan(
+        self, mock_set_vlan, mock_get_with_context, mock_check_response
+    ):
+        """Test make_host creates host with VLAN"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "context": "",
+            "vlan": "100",
+            "personality": None,
+            "preferred_array": None,
+            "host_user": None,
+            "target_user": None,
+            "volume": None,
+            "lun": None,
+            "wwns": None,
+            "iqn": None,
+            "nqn": None,
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        make_host(mock_module, mock_array)
+
+        mock_set_vlan.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteHostSuccess:
+    """Test cases for delete_host success paths"""
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_delete_host_success(self, mock_get_with_context):
+        """Test delete_host successfully deletes host"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "context": "",
+        }
+        mock_array = Mock()
+
+        # Mock the host with no host_group
+        mock_host = Mock()
+        mock_host.host_group = None
+
+        def side_effect(*args, **kwargs):
+            if args[1] == "get_hosts":
+                return Mock(items=[mock_host], status_code=200)
+            elif args[1] == "get_connections":
+                return Mock(items=[], status_code=200)
+            else:
+                return Mock(status_code=200)
+
+        mock_get_with_context.side_effect = side_effect
+
+        delete_host(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
