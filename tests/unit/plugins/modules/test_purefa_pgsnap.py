@@ -501,3 +501,43 @@ class TestRestorePgsnapvolume:
 
         mock_array.post_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreatePgsnapshotSuccess:
+    """Test cases for create_pgsnapshot success paths"""
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.ProtectionGroupSnapshot")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_create_pgsnapshot_with_target(self, mock_lv, mock_pgs, mock_check_response):
+        """Test create_pgsnapshot with remote target"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "suffix": "snap1",
+            "apply_retention": False,
+            "now": False,
+            "remote": True,
+            "context": "",
+            "throttle": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_pg = Mock()
+        mock_pg.target_count = 1
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+        mock_snap = Mock()
+        mock_snap.name = "test-pg.snap1"
+        mock_array.post_protection_group_snapshots.return_value = Mock(
+            status_code=200, items=[mock_snap]
+        )
+
+        from plugins.modules.purefa_pgsnap import create_pgsnapshot
+
+        create_pgsnapshot(mock_module, mock_array)
+
+        mock_array.post_protection_group_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called()
