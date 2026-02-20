@@ -9,6 +9,7 @@ __metaclass__ = type
 
 import sys
 from unittest.mock import Mock, patch, MagicMock
+from packaging.version import Version as LooseVersion
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -404,4 +405,99 @@ class TestEradicatePgsnapshotSuccess:
         eradicate_pgsnapshot(mock_module, mock_array)
 
         mock_array.delete_protection_group_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRestorePgsnapvolume:
+    """Test cases for restore_pgsnapvolume function"""
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
+    def test_restore_pgsnapvolume_check_mode(
+        self, mock_get_pgroupvolume, mock_loose_version, mock_check_response
+    ):
+        """Test restore_pgsnapvolume in check mode"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_get_pgroupvolume.return_value = Mock()  # Volume exists
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-pg",
+            "suffix": "snap1",
+            "restore": "vol1",
+            "target": "new-vol1",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        from plugins.modules.purefa_pgsnap import restore_pgsnapvolume
+
+        restore_pgsnapvolume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
+    def test_restore_pgsnapvolume_volume_not_in_pgroup(
+        self, mock_get_pgroupvolume, mock_loose_version, mock_check_response
+    ):
+        """Test restore_pgsnapvolume fails when volume not in pgroup"""
+        import pytest
+
+        mock_loose_version.side_effect = LooseVersion
+        mock_get_pgroupvolume.return_value = None  # Volume doesn't exist
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "test-pg",
+            "suffix": "snap1",
+            "restore": "nonexistent-vol",
+            "target": "new-vol",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        from plugins.modules.purefa_pgsnap import restore_pgsnapvolume
+
+        with pytest.raises(SystemExit):
+            restore_pgsnapvolume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
+    def test_restore_pgsnapvolume_success(
+        self, mock_get_pgroupvolume, mock_loose_version, mock_check_response
+    ):
+        """Test restore_pgsnapvolume successfully restores volume"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_get_pgroupvolume.return_value = Mock()  # Volume exists
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "suffix": "snap1",
+            "restore": "vol1",
+            "target": "new-vol1",
+            "context": "",
+            "overwrite": False,
+            "with_default_protection": False,
+            "add_to_pgs": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+
+        from plugins.modules.purefa_pgsnap import restore_pgsnapvolume
+
+        restore_pgsnapvolume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
