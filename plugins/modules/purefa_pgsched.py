@@ -50,6 +50,8 @@ options:
     description:
     - Provide a time in 12-hour AM/PM format, eg. 11AM
     - Only valid if I(replicate_frequency) is an exact multiple of 86400, ie 1 day.
+    - Set to an empty string "" to clear an existing at value.
+    - Automatically cleared when I(replicate_frequency) changes to a non-day multiple.
     type: str
   blackout_start:
     description:
@@ -71,6 +73,8 @@ options:
     description:
     - Provide a time in 12-hour AM/PM format, eg. 11AM
     - Only valid if I(snap_frequency) is an exact multiple of 86400, ie 1 day.
+    - Set to an empty string "" to clear an existing at value.
+    - Automatically cleared when I(snap_frequency) changes to a non-day multiple.
     type: str
   snap_frequency:
     description:
@@ -162,6 +166,22 @@ EXAMPLES = r"""
     name: foo
     schedule: replication
     state: absent
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Clear snap_at value while keeping daily frequency
+  purestorage.flasharray.purefa_pgsched:
+    name: foo
+    schedule: snapshot
+    snap_at: ""
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Clear replicate_at value while keeping daily frequency
+  purestorage.flasharray.purefa_pgsched:
+    name: foo
+    schedule: replication
+    replicate_at: ""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
@@ -297,11 +317,24 @@ def update_schedule(module, array, snap_time, repl_time):
             if module.params.get("snap_frequency") is not None
             else current_snap["snap_frequency"]
         )
-        snap_at = (
-            _convert_to_minutes(module.params["snap_at"].upper())
-            if module.params.get("snap_at")
-            else current_snap["snap_at"]
-        )
+        # Determine snap_at value:
+        # - Empty string "" means explicitly clear the at value
+        # - Non-day frequency means at value must be cleared
+        # - Valid time string means set to that time
+        # - None (not provided) means keep current value
+        freq_is_days = snap_frequency % 86400000 == 0
+        if module.params.get("snap_at") == "":
+            # Explicit clear request
+            snap_at = None
+        elif not freq_is_days:
+            # Non-day frequency - at value must be cleared
+            snap_at = None
+        elif module.params.get("snap_at"):
+            # New value provided
+            snap_at = _convert_to_minutes(module.params["snap_at"].upper())
+        else:
+            # No change - keep current
+            snap_at = current_snap["snap_at"]
         days = (
             current_snap["days"]
             if module.params.get("days") is None
@@ -338,15 +371,22 @@ def update_schedule(module, array, snap_time, repl_time):
             )
 
         # Patch frequency and at together
-        # Only include 'at' if frequency is a multiple of days (86400000ms) and at is set
-        freq_in_days = snap_frequency % 86400000 == 0
-        if snap_frequency != current_snap["snap_frequency"] or (
-            freq_in_days and snap_at != current_snap["snap_at"]
+        # Handle clearing at value: when snap_at is None and current has a value, clear it
+        if (
+            snap_frequency != current_snap["snap_frequency"]
+            or snap_at != current_snap["snap_at"]
         ):
             changed = True
-            if freq_in_days and snap_at is not None:
+            if freq_is_days and snap_at is not None:
+                # Day frequency with at value set
                 schedule = SnapshotSchedule(frequency=snap_frequency, at=snap_at)
+            elif (
+                freq_is_days and snap_at is None and current_snap["snap_at"] is not None
+            ):
+                # Day frequency but clearing at value - explicitly set at=0
+                schedule = SnapshotSchedule(frequency=snap_frequency, at=0)
             else:
+                # Non-day frequency or no at value change needed
                 schedule = SnapshotSchedule(frequency=snap_frequency)
             res = get_with_context(
                 array,
@@ -399,11 +439,24 @@ def update_schedule(module, array, snap_time, repl_time):
             if module.params.get("replicate_frequency") is not None
             else current_repl["replicate_frequency"]
         )
-        replicate_at = (
-            _convert_to_minutes(module.params["replicate_at"].upper())
-            if module.params.get("replicate_at")
-            else current_repl["replicate_at"]
-        )
+        # Determine replicate_at value:
+        # - Empty string "" means explicitly clear the at value
+        # - Non-day frequency means at value must be cleared
+        # - Valid time string means set to that time
+        # - None (not provided) means keep current value
+        freq_is_days = replicate_frequency % 86400000 == 0
+        if module.params.get("replicate_at") == "":
+            # Explicit clear request
+            replicate_at = None
+        elif not freq_is_days:
+            # Non-day frequency - at value must be cleared
+            replicate_at = None
+        elif module.params.get("replicate_at"):
+            # New value provided
+            replicate_at = _convert_to_minutes(module.params["replicate_at"].upper())
+        else:
+            # No change - keep current
+            replicate_at = current_repl["replicate_at"]
         target_days = (
             current_repl["target_days"]
             if module.params.get("target_days") is None
@@ -450,17 +503,26 @@ def update_schedule(module, array, snap_time, repl_time):
             )
 
         # Patch frequency and at together
-        # Only include 'at' if frequency is a multiple of days (86400000ms) and at is set
-        freq_in_days = replicate_frequency % 86400000 == 0
-        if replicate_frequency != current_repl["replicate_frequency"] or (
-            freq_in_days and replicate_at != current_repl["replicate_at"]
+        # Handle clearing at value: when replicate_at is None and current has a value, clear it
+        if (
+            replicate_frequency != current_repl["replicate_frequency"]
+            or replicate_at != current_repl["replicate_at"]
         ):
             changed = True
-            if freq_in_days and replicate_at is not None:
+            if freq_is_days and replicate_at is not None:
+                # Day frequency with at value set
                 schedule = ReplicationSchedule(
                     frequency=replicate_frequency, at=replicate_at
                 )
+            elif (
+                freq_is_days
+                and replicate_at is None
+                and current_repl["replicate_at"] is not None
+            ):
+                # Day frequency but clearing at value - explicitly set at=0
+                schedule = ReplicationSchedule(frequency=replicate_frequency, at=0)
             else:
+                # Non-day frequency or no at value change needed
                 schedule = ReplicationSchedule(frequency=replicate_frequency)
             res = get_with_context(
                 array,
