@@ -47,7 +47,6 @@ from plugins.modules.purefa_host import (
     make_host,
     make_multi_hosts,
     delete_host,
-    move_host,
     update_host,
 )
 
@@ -341,7 +340,7 @@ class TestUpdateHost:
         }
         mock_array = Mock()
         mock_get_api_version.return_value = "2.0"
-        mock_loose_version.side_effect = lambda x: float(x)
+        mock_loose_version.side_effect = float
 
         update_host(mock_module, mock_array)
 

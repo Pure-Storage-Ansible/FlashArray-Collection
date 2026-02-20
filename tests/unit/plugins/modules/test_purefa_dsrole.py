@@ -61,7 +61,7 @@ class TestDeleteRole:
         mock_module.check_mode = True
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
-        mock_loose_version.side_effect = lambda x: LooseVersion(x)
+        mock_loose_version.side_effect = LooseVersion
 
         delete_role(mock_module, mock_array)
 

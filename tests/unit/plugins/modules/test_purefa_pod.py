@@ -249,4 +249,3 @@ class TestRecoverPod:
         recover_pod(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
-

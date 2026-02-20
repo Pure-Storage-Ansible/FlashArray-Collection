@@ -48,7 +48,6 @@ from plugins.modules.purefa_pg import (
     get_arrays,
     get_pending_pgroup,
     get_pgroup,
-    get_pgroup_sched,
     make_pgroup,
     delete_pgroup,
     eradicate_pgroup,
@@ -267,4 +266,3 @@ class TestRecoverPgroup:
         recover_pgroup(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
-

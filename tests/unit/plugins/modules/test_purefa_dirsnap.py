@@ -67,7 +67,7 @@ class TestEradicateSnap:
         mock_module.check_mode = True
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.42"
-        mock_loose_version.side_effect = lambda x: LooseVersion(x)
+        mock_loose_version.side_effect = LooseVersion
 
         eradicate_snap(mock_module, mock_array)
 
@@ -91,7 +91,7 @@ class TestDeleteSnap:
         mock_module.check_mode = True
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.42"
-        mock_loose_version.side_effect = lambda x: LooseVersion(x)
+        mock_loose_version.side_effect = LooseVersion
 
         delete_snap(mock_module, mock_array)
 

@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, MagicMock
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -116,4 +116,3 @@ class TestRenameWorkload:
         rename_workload(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
-

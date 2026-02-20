@@ -48,7 +48,6 @@ from plugins.modules.purefa_snap import (
     get_volume,
     get_target,
     get_snapshot,
-    get_deleted_snapshot,
     create_snapshot,
     delete_snapshot,
     eradicate_snapshot,
@@ -285,4 +284,3 @@ class TestRecoverSnapshot:
         recover_snapshot(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
-
