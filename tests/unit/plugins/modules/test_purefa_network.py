@@ -165,3 +165,6 @@ class TestCreateInterface:
         create_interface(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+

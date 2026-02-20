@@ -46,6 +46,7 @@ from plugins.modules.purefa_dns import (
     remove,
     delete_dns,
     create_dns,
+    _get_source,
 )
 
 
@@ -113,3 +114,31 @@ class TestCreateDns:
         create_dns(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestGetSource:
+    """Test cases for _get_source function"""
+
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_get_source_exists(self, mock_get_with_context):
+        """Test _get_source returns True when source interface exists"""
+        mock_module = Mock()
+        mock_module.params = {"source": "ct0.eth0"}
+        mock_array = Mock()
+        mock_get_with_context.return_value.status_code = 200
+
+        result = _get_source(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_get_source_not_exists(self, mock_get_with_context):
+        """Test _get_source returns False when source interface doesn't exist"""
+        mock_module = Mock()
+        mock_module.params = {"source": "ct0.eth0"}
+        mock_array = Mock()
+        mock_get_with_context.return_value.status_code = 404
+
+        result = _get_source(mock_module, mock_array)
+
+        assert result is False
