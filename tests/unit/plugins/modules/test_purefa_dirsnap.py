@@ -51,6 +51,8 @@ sys.modules[
 from plugins.modules.purefa_dirsnap import (
     eradicate_snap,
     delete_snap,
+    update_snap,
+    create_snap,
 )
 
 
@@ -97,5 +99,88 @@ class TestDeleteSnap:
         mock_loose_version.side_effect = LooseVersion
 
         delete_snap(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateSnap:
+    """Tests for update_snap function"""
+
+    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
+    def test_update_snap_check_mode_no_rename(self, mock_loose_version):
+        """Test update_snap in check mode when recovering a destroyed snapshot"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snap1",
+            "filesystem": "fs1",
+            "client": "client1",
+            "suffix": "snap",
+            "context": "",
+            "rename": False,
+            "keep_for": None,
+            "new_client": None,
+            "new_suffix": None,
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_loose_version.side_effect = LooseVersion
+
+        snap_detail = Mock()
+        snap_detail.destroyed = True
+
+        update_snap(mock_module, mock_array, snap_detail)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
+    def test_update_snap_check_mode_with_rename(self, mock_loose_version):
+        """Test update_snap in check mode with rename"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snap1",
+            "filesystem": "fs1",
+            "client": "client1",
+            "suffix": "snap",
+            "context": "",
+            "rename": True,
+            "keep_for": None,
+            "new_client": "new_client",
+            "new_suffix": "new_snap",
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_loose_version.side_effect = LooseVersion
+
+        snap_detail = Mock()
+        snap_detail.destroyed = False
+
+        update_snap(mock_module, mock_array, snap_detail)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateSnap:
+    """Tests for create_snap function"""
+
+    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
+    def test_create_snap_check_mode(self, mock_loose_version):
+        """Test create_snap in check mode"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snap1",
+            "filesystem": "fs1",
+            "client": "client1",
+            "suffix": "snap",
+            "context": "",
+            "keep_for": None,
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_loose_version.side_effect = LooseVersion
+
+        create_snap(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)

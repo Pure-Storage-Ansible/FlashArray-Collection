@@ -45,6 +45,8 @@ sys.modules[
 from plugins.modules.purefa_certs import (
     delete_cert,
     export_cert,
+    import_cert,
+    create_csr,
 )
 
 
@@ -82,3 +84,59 @@ class TestExportCert:
         export_cert(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once()
+
+
+class TestImportCert:
+    """Test cases for import_cert function"""
+
+    def test_import_cert_check_mode(self):
+        """Test import_cert in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-cert",
+            "certificate": "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----",
+            "intermeadiate_cert": None,
+            "key": "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----",
+            "passphrase": None,
+        }
+        mock_array = Mock()
+
+        import_cert(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateCsr:
+    """Test cases for create_csr function"""
+
+    def test_create_csr_check_mode(self):
+        """Test create_csr in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-cert",
+            "common_name": "test.example.com",
+            "country": "US",
+            "email": "test@example.com",
+            "locality": "Test City",
+            "organization": "Test Org",
+            "org_unit": "Test Unit",
+            "province": "Test State",
+            "csr_export_file": "/tmp/test.csr",
+        }
+        mock_array = Mock()
+        # Mock the current certificate attributes
+        mock_cert = Mock()
+        mock_cert.common_name = "test.example.com"
+        mock_cert.country = "US"
+        mock_cert.email = "test@example.com"
+        mock_cert.locality = "Test City"
+        mock_cert.organization = "Test Org"
+        mock_cert.organizational_unit = "Test Unit"
+        mock_cert.state = "Test State"
+        mock_array.get_certificates.return_value = Mock(items=[mock_cert])
+
+        create_csr(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
