@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -102,3 +102,120 @@ class TestCreateSmtp:
         create_smtp(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_smtp.check_response")
+    def test_create_smtp_with_changes_no_password(self, mock_check_response):
+        """Test create_smtp when settings change without password"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "sender_domain": "new-domain.com",
+            "relay_host": "new-smtp.example.com",
+            "user": None,
+            "user_name": None,
+            "password": None,
+            "encryption_mode": "starttls",
+            "sender": "alerts",
+            "subject_prefix": "[NewAlert]",
+            "body_prefix": "NewPrefix:",
+        }
+        mock_array = Mock()
+        # Current settings different
+        mock_smtp = Mock()
+        mock_smtp.sender_domain = "example.com"
+        mock_smtp.relay_host = "smtp.example.com"
+        mock_smtp.user_name = None
+        mock_smtp.encryption_mode = "tls"
+        mock_smtp.sender_username = None
+        mock_smtp.subject_prefix = "[Alert]"
+        mock_smtp.body_prefix = "FlashArray:"
+        mock_array.get_smtp_servers.return_value.items = [mock_smtp]
+        mock_array.patch_smtp_servers.return_value = Mock(status_code=200)
+
+        create_smtp(mock_module, mock_array)
+
+        mock_array.patch_smtp_servers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_smtp.check_response")
+    def test_create_smtp_with_password(self, mock_check_response):
+        """Test create_smtp when password is provided"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "sender_domain": "example.com",
+            "relay_host": "smtp.example.com",
+            "user": "smtp_user",
+            "user_name": "smtp_user",
+            "password": "secret_password",
+            "encryption_mode": "tls",
+            "sender": None,
+            "subject_prefix": "[Alert]",
+            "body_prefix": "FlashArray:",
+        }
+        mock_array = Mock()
+        # Current settings match but password forces change
+        mock_smtp = Mock()
+        mock_smtp.sender_domain = "example.com"
+        mock_smtp.relay_host = "smtp.example.com"
+        mock_smtp.user_name = "smtp_user"
+        mock_smtp.encryption_mode = "tls"
+        mock_smtp.sender_username = None
+        mock_smtp.subject_prefix = "[Alert]"
+        mock_smtp.body_prefix = "FlashArray:"
+        mock_array.get_smtp_servers.return_value.items = [mock_smtp]
+        mock_array.patch_smtp_servers.return_value = Mock(status_code=200)
+
+        create_smtp(mock_module, mock_array)
+
+        mock_array.patch_smtp_servers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_create_smtp_check_mode_with_changes(self):
+        """Test create_smtp in check mode when changes would be made"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "sender_domain": "new-domain.com",
+            "relay_host": "new-smtp.example.com",
+            "user": None,
+            "user_name": None,
+            "password": None,
+            "encryption_mode": "starttls",
+            "sender": None,
+            "subject_prefix": "[NewAlert]",
+            "body_prefix": "NewPrefix:",
+        }
+        mock_array = Mock()
+        # Current settings different
+        mock_smtp = Mock()
+        mock_smtp.sender_domain = "example.com"
+        mock_smtp.relay_host = "smtp.example.com"
+        mock_smtp.user_name = None
+        mock_smtp.encryption_mode = "tls"
+        mock_smtp.sender_username = None
+        mock_smtp.subject_prefix = "[Alert]"
+        mock_smtp.body_prefix = "FlashArray:"
+        mock_array.get_smtp_servers.return_value.items = [mock_smtp]
+
+        create_smtp(mock_module, mock_array)
+
+        mock_array.patch_smtp_servers.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteSmtpSuccess:
+    """Additional tests for delete_smtp function"""
+
+    @patch("plugins.modules.purefa_smtp.check_response")
+    def test_delete_smtp_success(self, mock_check_response):
+        """Test delete_smtp successfully deletes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.patch_smtp_servers.return_value = Mock(status_code=200)
+
+        delete_smtp(mock_module, mock_array)
+
+        mock_array.patch_smtp_servers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)

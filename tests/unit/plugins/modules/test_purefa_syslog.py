@@ -52,6 +52,7 @@ from plugins.modules.purefa_syslog import (
     delete_syslog,
     add_syslog,
     test_syslog as syslog_test,
+    update_syslog,
 )
 
 
@@ -192,3 +193,106 @@ class TestSyslogTest:
         call_args = mock_module.exit_json.call_args
         assert call_args[1]["test_response"][0]["enabled"] == "false"
         assert call_args[1]["test_response"][0]["success"] == "false"
+
+
+class TestUpdateSyslog:
+    """Tests for update_syslog function"""
+
+    @patch("plugins.modules.purefa_syslog.get_with_context")
+    def test_update_syslog_no_change(self, mock_get_with_context):
+        """Test update_syslog when URI already matches"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "syslog1",
+            "context": "",
+            "protocol": "tcp",
+            "address": "syslog.example.com",
+            "port": "514",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        # Current config matches
+        mock_config = Mock()
+        mock_config.uri = "tcp://syslog.example.com:514"
+        mock_get_with_context.return_value.items = [mock_config]
+
+        update_syslog(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+        # Should only call get_syslog_servers, not patch
+        assert mock_get_with_context.call_count == 1
+
+    @patch("plugins.modules.purefa_syslog.check_response")
+    @patch("plugins.modules.purefa_syslog.get_with_context")
+    def test_update_syslog_with_changes(self, mock_get_with_context, mock_check_response):
+        """Test update_syslog when URI changes"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "syslog1",
+            "context": "",
+            "protocol": "tcp",
+            "address": "new-syslog.example.com",
+            "port": "514",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        # Current config is different
+        mock_config = Mock()
+        mock_config.uri = "tcp://old-syslog.example.com:514"
+        mock_get_with_context.return_value.items = [mock_config]
+
+        update_syslog(mock_module, mock_array)
+
+        # Should call both get and patch
+        assert mock_get_with_context.call_count == 2
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_syslog.get_with_context")
+    def test_update_syslog_check_mode_with_changes(self, mock_get_with_context):
+        """Test update_syslog in check mode when URI would change"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "syslog1",
+            "context": "",
+            "protocol": "tcp",
+            "address": "new-syslog.example.com",
+            "port": "514",
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+
+        # Current config is different
+        mock_config = Mock()
+        mock_config.uri = "tcp://old-syslog.example.com:514"
+        mock_get_with_context.return_value.items = [mock_config]
+
+        update_syslog(mock_module, mock_array)
+
+        # Should only call get, not patch (check mode)
+        assert mock_get_with_context.call_count == 1
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_syslog.get_with_context")
+    def test_update_syslog_no_port(self, mock_get_with_context):
+        """Test update_syslog without port specified"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "syslog1",
+            "context": "",
+            "protocol": "udp",
+            "address": "syslog.example.com",
+            "port": None,
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        # Current config matches (no port)
+        mock_config = Mock()
+        mock_config.uri = "udp://syslog.example.com"
+        mock_get_with_context.return_value.items = [mock_config]
+
+        update_syslog(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
