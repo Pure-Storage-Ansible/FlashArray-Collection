@@ -53,6 +53,7 @@ from unittest.mock import patch
 from plugins.modules.purefa_snmp import (
     delete_manager,
     create_manager,
+    update_manager,
     test_manager as snmp_test_manager,
 )
 
@@ -188,3 +189,80 @@ class TestSnmpTestManager:
         call_args = mock_module.exit_json.call_args
         assert call_args[1]["test_response"][0]["enabled"] == "false"
         assert call_args[1]["test_response"][0]["success"] == "false"
+
+
+class TestUpdateManager:
+    """Test cases for update_manager function"""
+
+    @patch("plugins.modules.purefa_snmp.check_response")
+    def test_update_manager_version_change_fails(self, mock_check_response):
+        """Test update_manager fails when version changes"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "snmp1",
+            "version": "v3",
+        }
+        mock_array = Mock()
+        mock_mgr = Mock()
+        mock_mgr.version = "v2c"  # Different from params
+        mock_array.get_snmp_managers.return_value = Mock(
+            status_code=200, items=[mock_mgr]
+        )
+
+        with pytest.raises(SystemExit):
+            update_manager(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_snmp.check_response")
+    def test_update_manager_v2c_check_mode(self, mock_check_response):
+        """Test update_manager v2c in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "snmp1",
+            "version": "v2c",
+            "community": "public",
+            "notification": "trap",
+            "host": "192.168.1.100",
+        }
+        mock_array = Mock()
+        mock_mgr = Mock()
+        mock_mgr.version = "v2c"
+        mock_array.get_snmp_managers.return_value = Mock(
+            status_code=200, items=[mock_mgr]
+        )
+
+        update_manager(mock_module, mock_array)
+
+        mock_array.patch_snmp_managers.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snmp.check_response")
+    def test_update_manager_v2c_success(self, mock_check_response):
+        """Test update_manager v2c succeeds"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "snmp1",
+            "version": "v2c",
+            "community": "public",
+            "notification": "trap",
+            "host": "192.168.1.100",
+        }
+        mock_array = Mock()
+        mock_mgr = Mock()
+        mock_mgr.version = "v2c"
+        mock_array.get_snmp_managers.return_value = Mock(
+            status_code=200, items=[mock_mgr]
+        )
+        mock_array.patch_snmp_managers.return_value = Mock(status_code=200)
+
+        update_manager(mock_module, mock_array)
+
+        mock_array.patch_snmp_managers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
