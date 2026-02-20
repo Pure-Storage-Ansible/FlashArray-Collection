@@ -1343,3 +1343,83 @@ class TestMoveHost:
         mock_module.fail_json.assert_called_once_with(
             msg="Hosts cannot be moved with existing volume connections."
         )
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_move_host_to_local_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test move_host successfully moves host to local"""
+        from plugins.modules.purefa_host import move_host
+
+        mock_host = Mock()
+        mock_host.connection_count = 0  # No connections
+        mock_get_with_context.return_value = Mock(items=[mock_host], status_code=200)
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "realm1::host1",
+            "context": "",
+            "move": ["local"],
+            "modify_resource_access": False,
+        }
+        mock_array = Mock()
+        mock_array.get_arrays.return_value = Mock(items=[Mock(name="array1")])
+
+        move_host(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_move_host_to_realm_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test move_host successfully moves host to a realm"""
+        from plugins.modules.purefa_host import move_host
+
+        mock_host = Mock()
+        mock_host.connection_count = 0
+        mock_get_with_context.return_value = Mock(items=[mock_host], status_code=200)
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "host1",  # No realm prefix - local host
+            "context": "",
+            "move": ["realm2"],
+            "modify_resource_access": False,
+        }
+        mock_array = Mock()
+        mock_array.get_arrays.return_value = Mock(items=[Mock(name="array1")])
+
+        move_host(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_move_host_check_mode(self, mock_get_with_context):
+        """Test move_host in check mode"""
+        from plugins.modules.purefa_host import move_host
+
+        mock_host = Mock()
+        mock_host.connection_count = 0
+        mock_get_with_context.return_value = Mock(items=[mock_host], status_code=200)
+
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "realm1::host1",
+            "context": "",
+            "move": ["local"],
+            "modify_resource_access": False,
+        }
+        mock_array = Mock()
+        mock_array.get_arrays.return_value = Mock(items=[Mock(name="array1")])
+
+        move_host(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        # In check mode, get_with_context should only be called once (to get host)
+        assert mock_get_with_context.call_count == 1
