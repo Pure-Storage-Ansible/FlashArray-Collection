@@ -181,3 +181,69 @@ class TestUpdateAlertSuccess:
 
         mock_array.patch_alert_watchers.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestTestAlert:
+    """Test cases for test_alert function"""
+
+    def test_test_alert_success(self):
+        """Test test_alert successfully tests alert watchers"""
+        from plugins.modules.purefa_alert import test_alert
+
+        mock_module = Mock()
+        mock_module.params = {"address": "test@example.com"}
+        mock_array = Mock()
+
+        # Create mock response items
+        mock_component = Mock()
+        mock_component.enabled = True
+        mock_component.success = True
+        mock_component.component_address = "10.0.0.1"
+        mock_component.component_name = "controller"
+        mock_component.description = "Test description"
+        mock_component.destination = "test@example.com"
+        mock_component.result_details = "Test passed"
+        mock_component.test_type = "email"
+        mock_component.resource = Mock(name="array1")
+
+        mock_array.get_alert_watchers_test.return_value = Mock(items=[mock_component])
+
+        test_alert(mock_module, mock_array)
+
+        mock_array.get_alert_watchers_test.assert_called_once_with(
+            names=["test@example.com"]
+        )
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args
+        assert call_args[1]["changed"] is True
+        assert "test_response" in call_args[1]
+
+    def test_test_alert_disabled_component(self):
+        """Test test_alert with disabled component"""
+        from plugins.modules.purefa_alert import test_alert
+
+        mock_module = Mock()
+        mock_module.params = {"address": "test@example.com"}
+        mock_array = Mock()
+
+        mock_component = Mock()
+        mock_component.enabled = False
+        mock_component.success = False
+        mock_component.component_address = "10.0.0.1"
+        mock_component.component_name = "controller"
+        mock_component.description = "Test description"
+        mock_component.destination = "test@example.com"
+        mock_component.test_type = "email"
+        mock_component.resource = Mock(name="array1")
+        # result_details not present
+        del mock_component.result_details
+
+        mock_array.get_alert_watchers_test.return_value = Mock(items=[mock_component])
+
+        test_alert(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args
+        test_response = call_args[1]["test_response"]
+        assert test_response[0]["enabled"] == "false"
+        assert test_response[0]["success"] == "false"

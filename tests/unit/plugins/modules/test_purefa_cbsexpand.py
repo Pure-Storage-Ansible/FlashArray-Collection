@@ -100,3 +100,52 @@ class TestListCapacity:
         mock_module.exit_json.assert_called_once_with(
             changed=True, available=[1024, 2048]
         )
+
+
+from unittest.mock import patch
+
+
+class TestUpdateCapacity:
+    """Tests for update_capacity function"""
+
+    @patch("plugins.modules.purefa_cbsexpand.check_response")
+    def test_update_capacity_success(self, mock_check_response):
+        """Test update_capacity successfully expands CBS capacity"""
+        from plugins.modules.purefa_cbsexpand import update_capacity
+
+        mock_module = Mock()
+        mock_module.params = {"capacity": 2048}
+        mock_array = Mock()
+        mock_step1 = Mock()
+        mock_step1.supported_capacity = 1024
+        mock_step2 = Mock()
+        mock_step2.supported_capacity = 2048
+        mock_array.get_arrays_cloud_capacity_supported_steps.return_value = Mock(
+            items=[mock_step1, mock_step2]
+        )
+        mock_array.patch_arrays_cloud_capacity.return_value = Mock(status_code=200)
+
+        update_capacity(mock_module, mock_array)
+
+        mock_array.patch_arrays_cloud_capacity.assert_called_once()
+        mock_check_response.assert_called()
+
+    def test_update_capacity_invalid_fails(self):
+        """Test update_capacity fails when capacity not available"""
+        from plugins.modules.purefa_cbsexpand import update_capacity
+
+        mock_module = Mock()
+        mock_module.params = {"capacity": 9999}
+        mock_array = Mock()
+        mock_step1 = Mock()
+        mock_step1.supported_capacity = 1024
+        mock_step2 = Mock()
+        mock_step2.supported_capacity = 2048
+        mock_array.get_arrays_cloud_capacity_supported_steps.return_value = Mock(
+            items=[mock_step1, mock_step2]
+        )
+
+        update_capacity(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "not available" in str(mock_module.fail_json.call_args)

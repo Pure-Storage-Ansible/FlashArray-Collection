@@ -279,3 +279,109 @@ class TestUpdateConnection:
 
         mock_array.patch_array_connections.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateConnection:
+    """Test cases for create_connection function"""
+
+    @patch("plugins.modules.purefa_connect.Client")
+    @patch("plugins.modules.purefa_connect.check_response")
+    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
+    def test_create_connection_check_mode(
+        self, mock_lv, mock_check_response, mock_client
+    ):
+        """Test create_connection in check mode"""
+        from plugins.modules.purefa_connect import create_connection
+
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "context": "",
+            "target_url": "192.168.1.100",
+            "target_api": "api-token",
+            "connection": "async",
+            "transport": "ip",
+            "encrypted": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock remote system connection key
+        mock_remote = Mock()
+        mock_remote.get_array_connections_connection_key.return_value = Mock(
+            items=[Mock(connection_key="conn-key-123")]
+        )
+        mock_client.return_value = mock_remote
+
+        create_connection(mock_module, mock_array)
+
+        mock_array.post_array_connections.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_connect.Client")
+    @patch("plugins.modules.purefa_connect.check_response")
+    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
+    def test_create_connection_success(self, mock_lv, mock_check_response, mock_client):
+        """Test create_connection successfully creates connection"""
+        from plugins.modules.purefa_connect import create_connection
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "context": "",
+            "target_url": "192.168.1.100",
+            "target_api": "api-token",
+            "connection": "async",
+            "transport": "ip",
+            "encrypted": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_array_connections.return_value = Mock(status_code=200)
+
+        # Mock remote system connection key
+        mock_remote = Mock()
+        mock_remote.get_array_connections_connection_key.return_value = Mock(
+            items=[Mock(connection_key="conn-key-123")]
+        )
+        mock_client.return_value = mock_remote
+
+        create_connection(mock_module, mock_array)
+
+        mock_array.post_array_connections.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_connect.Client")
+    @patch("plugins.modules.purefa_connect.check_response")
+    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
+    def test_create_connection_encrypted(
+        self, mock_lv, mock_check_response, mock_client
+    ):
+        """Test create_connection with encryption"""
+        from plugins.modules.purefa_connect import create_connection
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "context": "",
+            "target_url": "[::1]",  # IPv6 address with brackets
+            "target_api": "api-token",
+            "connection": "sync",
+            "transport": "ip",
+            "encrypted": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Before ENCRYPT_VERSION
+        mock_array.post_array_connections.return_value = Mock(status_code=200)
+
+        # Mock remote system connection key
+        mock_remote = Mock()
+        mock_remote.get_array_connections_connection_key.return_value = Mock(
+            items=[Mock(connection_key="conn-key-123")]
+        )
+        mock_client.return_value = mock_remote
+
+        create_connection(mock_module, mock_array)
+
+        mock_array.post_array_connections.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
