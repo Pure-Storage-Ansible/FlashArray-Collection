@@ -48,9 +48,13 @@ sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.version"
 ] = mock_version_module
 
+from unittest.mock import patch
+
 from plugins.modules.purefa_user import (
     get_user,
+    create_local_user,
     delete_local_user,
+    delete_ad_user,
 )
 
 
@@ -97,3 +101,69 @@ class TestDeleteLocalUser:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.delete_admins.assert_not_called()
+
+
+class TestCreateLocalUser:
+    """Test cases for create_local_user function"""
+
+    @patch("plugins.modules.purefa_user.check_response")
+    def test_create_local_user_new_user_check_mode(self, mock_check_response):
+        """Test create_local_user with new user in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "new-user",
+            "role": "storage_admin",
+            "password": "secret123",
+            "api": False,
+            "public_key": None,
+        }
+        mock_array = Mock()
+
+        create_local_user(mock_module, mock_array, user=None)
+
+        mock_module.exit_json.assert_called_once()
+        mock_array.post_admins.assert_not_called()
+
+class TestDeleteAdUser:
+    """Test cases for delete_ad_user function"""
+
+    @patch("plugins.modules.purefa_user.check_response")
+    def test_delete_ad_user_with_user(self, mock_check_response):
+        """Test delete_ad_user removes API token and public key"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "ad-user"}
+        mock_array = Mock()
+        mock_user = Mock()
+        mock_user.public_key = "ssh-rsa AAA..."
+
+        delete_ad_user(mock_module, mock_array, user=mock_user)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        mock_array.delete_admins_api_tokens.assert_called_once()
+
+    def test_delete_ad_user_no_user(self):
+        """Test delete_ad_user when user is None"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "ad-user"}
+        mock_array = Mock()
+
+        delete_ad_user(mock_module, mock_array, user=None)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+        mock_array.delete_admins_api_tokens.assert_not_called()
+
+    def test_delete_ad_user_check_mode(self):
+        """Test delete_ad_user in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {"name": "ad-user"}
+        mock_array = Mock()
+        mock_user = Mock()
+
+        delete_ad_user(mock_module, mock_array, user=mock_user)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+        mock_array.delete_admins_api_tokens.assert_not_called()
