@@ -978,6 +978,90 @@ class TestDeletePolicySuccess:
         mock_array.delete_policies_autodir.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_delete_nfs_policy_full(self, mock_lv):
+        """Test successful full deletion of NFS policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "nfs_policy1",
+            "policy": "nfs",
+            "client": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_policies_nfs.return_value = Mock(status_code=200)
+
+        delete_policy(mock_module, mock_array)
+
+        mock_array.delete_policies_nfs.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_delete_smb_policy_full(self, mock_lv):
+        """Test successful full deletion of SMB policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "smb_policy1",
+            "policy": "smb",
+            "client": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_policies_smb.return_value = Mock(status_code=200)
+
+        delete_policy(mock_module, mock_array)
+
+        mock_array.delete_policies_smb.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_delete_snapshot_policy_full(self, mock_lv):
+        """Test successful full deletion of snapshot policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snap_policy1",
+            "policy": "snapshot",
+            "snap_client_name": None,
+            "directory": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_policies_snapshot.return_value = Mock(status_code=200)
+
+        delete_policy(mock_module, mock_array)
+
+        mock_array.delete_policies_snapshot.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_delete_quota_policy_success(self, mock_lv):
+        """Test successful deletion of quota policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "quota_policy1",
+            "policy": "quota",
+            "directory": None,
+            "quota_limit": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock get_policies_quota_members to return empty list (no members)
+        mock_array.get_policies_quota_members.return_value = Mock(items=[])
+        mock_array.delete_policies_quota.return_value = Mock(status_code=200)
+
+        delete_policy(mock_module, mock_array)
+
+        mock_array.delete_policies_quota.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
 
 class TestCreatePolicySuccess:
     """Test cases for create_policy success paths"""
