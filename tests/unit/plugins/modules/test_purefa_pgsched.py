@@ -504,7 +504,11 @@ class TestUpdateSchedule:
 
     @patch("plugins.modules.purefa_pgsched.get_with_context")
     def test_update_schedule_snapshot_no_changes(self, mock_get_with_context):
-        """Test update_schedule when no snapshot schedule changes needed"""
+        """Test update_schedule when no snapshot schedule changes needed.
+
+        Uses a non-day frequency (3600000ms = 1 hour), so at value must be None.
+        For non-day frequencies, the at value is not applicable and should be None.
+        """
         mock_module = Mock()
         mock_module.check_mode = False
         mock_module.params = {
@@ -524,12 +528,13 @@ class TestUpdateSchedule:
         mock_schedule.source_retention.days = 7
         mock_schedule.source_retention.per_day = 4
         mock_schedule.source_retention.all_for_sec = 86400
+        # Non-day frequency (1 hour = 3600000ms) - at value should be None
         mock_schedule.snapshot_schedule.frequency = 3600000
         mock_schedule.snapshot_schedule.enabled = True
-        mock_schedule.snapshot_schedule.at = 0
+        mock_schedule.snapshot_schedule.at = None
         mock_schedule.replication_schedule.frequency = 7200000
         mock_schedule.replication_schedule.enabled = True
-        mock_schedule.replication_schedule.at = 0
+        mock_schedule.replication_schedule.at = None
         mock_schedule.replication_schedule.blackout.start = 0
         mock_schedule.replication_schedule.blackout.end = 0
         mock_schedule.target_retention.days = 7
