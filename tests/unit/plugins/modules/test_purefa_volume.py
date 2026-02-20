@@ -1446,3 +1446,111 @@ class TestPgExists:
         result = pg_exists(mock_module, "test-pg", mock_array)
 
         assert result is False
+
+
+class TestMoveVolume:
+    """Test cases for move_volume function"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_local_same_source_dest(self, mock_loose_version):
+        """Test move_volume fails when moving local to local"""
+        import pytest
+        from packaging.version import Version as LooseVersion
+
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "test-vol",
+            "context": "",
+            "move": "local",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        with pytest.raises(SystemExit):
+            move_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_target_exists(self, mock_loose_version):
+        """Test move_volume fails when target volume exists"""
+        import pytest
+        from packaging.version import Version as LooseVersion
+
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "vgroup1/test-vol",
+            "context": "",
+            "move": "local",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value.status_code = 200  # target exists
+
+        with pytest.raises(SystemExit):
+            move_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestVolfact:
+    """Test cases for _volfact function"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_volfact_check_mode(self, mock_loose_version):
+        """Test _volfact returns empty dict in check mode"""
+        from packaging.version import Version as LooseVersion
+        from plugins.modules.purefa_volume import _volfact
+
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {"context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        result = _volfact(mock_module, mock_array, "test-vol")
+
+        assert result == {}
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_volfact_basic(self, mock_loose_version):
+        """Test _volfact returns volume facts"""
+        from packaging.version import Version as LooseVersion
+        from plugins.modules.purefa_volume import _volfact
+
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        mock_volume = Mock()
+        mock_volume.serial = "12345ABCDEF0123456"
+        mock_volume.provisioned = 1073741824
+        mock_volume.created = 1700000000000
+        mock_volume.qos = Mock()
+        mock_volume.qos.iops_limit = 10000
+        mock_volume.qos.bandwidth_limit = 100000000
+        mock_volume.requested_promotion_state = "promoted"
+        mock_volume.promotion_status = "promoted"
+        mock_volume.priority = 50
+        mock_volume.destroyed = False
+        mock_volume.priority_adjustment = Mock()
+        mock_volume.priority_adjustment.priority_adjustment_operator = "+"
+        mock_volume.priority_adjustment.priority_adjustment_value = 10
+        mock_volume.context = Mock()
+        mock_volume.context.name = ""
+        mock_array.get_volumes.return_value = Mock(items=[mock_volume], status_code=200)
+
+        result = _volfact(mock_module, mock_array, "test-vol")
+
+        assert "test-vol" in result
+        assert result["test-vol"]["serial"] == "12345ABCDEF0123456"
