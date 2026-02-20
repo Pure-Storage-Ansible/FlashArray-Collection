@@ -651,3 +651,70 @@ class TestCreateFromSnapshotSuccess:
 
         mock_array.post_volumes.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestDeleteSnapshotOffload:
+    """Test cases for delete_snapshot with offload scenarios"""
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_snapshot_offload_with_eradicate(
+        self, mock_lv, mock_check_offload, mock_check_response
+    ):
+        """Test deleting snapshot from offload with eradicate"""
+        mock_check_offload.return_value = True
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "vol1",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "",
+            "eradicate": True,
+            "ignore_repl": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_local_array = Mock()
+        mock_local_array.name = "local-array"
+        mock_array.get_arrays.return_value = Mock(items=[mock_local_array])
+        mock_array.patch_remote_volume_snapshots.return_value = Mock(status_code=200)
+        mock_array.delete_remote_volume_snapshots.return_value = Mock(status_code=200)
+
+        delete_snapshot(mock_module, mock_array)
+
+        mock_array.patch_remote_volume_snapshots.assert_called_once()
+        mock_array.delete_remote_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap._check_target")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_snapshot_local_with_eradicate(
+        self, mock_lv, mock_check_target, mock_check_offload, mock_check_response
+    ):
+        """Test deleting local snapshot with eradicate"""
+        mock_check_offload.return_value = False
+        mock_check_target.return_value = False
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "vol1",
+            "suffix": "snap1",
+            "offload": None,
+            "context": "",
+            "eradicate": True,
+            "ignore_repl": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_volume_snapshots.return_value = Mock(status_code=200)
+        mock_array.delete_volume_snapshots.return_value = Mock(status_code=200)
+
+        delete_snapshot(mock_module, mock_array)
+
+        mock_array.patch_volume_snapshots.assert_called_once()
+        mock_array.delete_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
