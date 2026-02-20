@@ -8,7 +8,8 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
+from packaging.version import Version as LooseVersion
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -46,6 +47,8 @@ from plugins.modules.purefa_fs import (
     delete_fs,
     recover_fs,
     eradicate_fs,
+    rename_fs,
+    create_fs,
 )
 
 
@@ -90,5 +93,47 @@ class TestEradicateFs:
         mock_array = Mock()
 
         eradicate_fs(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRenameFs:
+    """Test cases for rename_fs function"""
+
+    @patch("plugins.modules.purefa_fs.LooseVersion")
+    def test_rename_fs_check_mode(self, mock_loose_version):
+        """Test rename_fs in check mode"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "old-fs",
+            "rename": "new-fs",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        # Target doesn't exist
+        mock_array.get_file_systems.return_value = Mock(status_code=404)
+
+        rename_fs(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateFs:
+    """Test cases for create_fs function"""
+
+    @patch("plugins.modules.purefa_fs.LooseVersion")
+    def test_create_fs_check_mode(self, mock_loose_version):
+        """Test create_fs in check mode"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {"name": "new-fs", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+
+        create_fs(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)

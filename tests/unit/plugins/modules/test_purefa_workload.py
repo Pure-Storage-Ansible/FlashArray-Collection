@@ -47,6 +47,8 @@ from plugins.modules.purefa_workload import (
     eradicate_workload,
     recover_workload,
     rename_workload,
+    create_workload,
+    connect_or_disconnect_volumes,
 )
 
 
@@ -116,3 +118,116 @@ class TestRenameWorkload:
         rename_workload(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateWorkload:
+    """Test cases for create_workload function"""
+
+    def test_create_workload_check_mode(self):
+        """Test create_workload in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-workload",
+            "preset": "test-preset",
+            "context": "pod1",
+            "recommendation": False,
+            "host": "",
+        }
+        mock_array = Mock()
+        mock_fleet = Mock()
+        mock_preset_config = Mock()
+        mock_preset_config.parameters = Mock()
+        mock_preset_config.periodic_replication_configurations = []
+        mock_preset_config.placement_configurations = []
+        mock_preset_config.qos_configurations = []
+        mock_preset_config.snapshot_configurations = []
+        mock_preset_config.volume_configurations = []
+        mock_preset_config.workload_tags = []
+
+        create_workload(mock_module, mock_array, mock_fleet, mock_preset_config)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestConnectOrDisconnectVolumes:
+    """Test cases for connect_or_disconnect_volumes function"""
+
+    def test_connect_volumes_check_mode(self):
+        """Test connect_or_disconnect_volumes in connect mode with check_mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-workload",
+            "context": "pod1",
+            "host": "host1",
+        }
+        mock_array = Mock()
+
+        # Mock get_connections - no existing connections
+        mock_array.get_connections.return_value = Mock(status_code=200, items=[])
+
+        # Mock get_volumes - workload has volumes
+        mock_volume = Mock()
+        mock_volume.name = "test-volume"
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_volume])
+
+        connect_or_disconnect_volumes(mock_module, mock_array, "connect")
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_disconnect_volumes_check_mode(self):
+        """Test connect_or_disconnect_volumes in disconnect mode with check_mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-workload",
+            "context": "pod1",
+            "host": "host1",
+        }
+        mock_array = Mock()
+
+        # Mock get_connections - volume is connected
+        mock_conn = Mock()
+        mock_conn.volume = Mock()
+        mock_conn.volume.name = "test-volume"
+        mock_array.get_connections.return_value = Mock(
+            status_code=200, items=[mock_conn]
+        )
+
+        # Mock get_volumes - workload has the connected volume
+        mock_volume = Mock()
+        mock_volume.name = "test-volume"
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_volume])
+
+        connect_or_disconnect_volumes(mock_module, mock_array, "disconnect")
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_connect_volumes_no_change(self):
+        """Test connect_or_disconnect_volumes when volume is already connected"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-workload",
+            "context": "pod1",
+            "host": "host1",
+        }
+        mock_array = Mock()
+
+        # Mock get_connections - volume is already connected
+        mock_conn = Mock()
+        mock_conn.volume = Mock()
+        mock_conn.volume.name = "test-volume"
+        mock_array.get_connections.return_value = Mock(
+            status_code=200, items=[mock_conn]
+        )
+
+        # Mock get_volumes - workload has the same volume
+        mock_volume = Mock()
+        mock_volume.name = "test-volume"
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_volume])
+
+        connect_or_disconnect_volumes(mock_module, mock_array, "connect")
+
+        mock_module.exit_json.assert_called_once_with(changed=False)

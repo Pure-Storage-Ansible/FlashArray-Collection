@@ -50,6 +50,7 @@ sys.modules[
 
 from plugins.modules.purefa_smtp import (
     delete_smtp,
+    create_smtp,
 )
 
 
@@ -66,3 +67,38 @@ class TestDeleteSmtp:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.patch_smtp_servers.assert_not_called()
+
+
+class TestCreateSmtp:
+    """Tests for create_smtp function"""
+
+    def test_create_smtp_no_change(self):
+        """Test create_smtp when settings already match"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "sender_domain": "example.com",
+            "relay_host": "smtp.example.com",
+            "user": None,
+            "user_name": None,
+            "password": None,
+            "encryption_mode": "tls",
+            "sender": None,
+            "subject_prefix": "[Alert]",
+            "body_prefix": "FlashArray:",
+        }
+        mock_array = Mock()
+        # Current settings match
+        mock_smtp = Mock()
+        mock_smtp.sender_domain = "example.com"
+        mock_smtp.relay_host = "smtp.example.com"
+        mock_smtp.user_name = None
+        mock_smtp.encryption_mode = "tls"
+        mock_smtp.sender_username = None
+        mock_smtp.subject_prefix = "[Alert]"
+        mock_smtp.body_prefix = "FlashArray:"
+        mock_array.get_smtp_servers.return_value.items = [mock_smtp]
+
+        create_smtp(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)

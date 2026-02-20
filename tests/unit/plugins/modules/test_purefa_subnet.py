@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -51,6 +51,7 @@ sys.modules[
 from plugins.modules.purefa_subnet import (
     _get_subnet,
     delete_subnet,
+    create_subnet,
 )
 
 
@@ -110,3 +111,113 @@ class TestDeleteSubnet:
 
         mock_array.delete_subnets.assert_called_once_with(names=["subnet1"])
         mock_module.exit_json.assert_called_with(changed=True)
+
+
+class TestCreateSubnet:
+    """Test cases for create_subnet function"""
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_create_subnet_no_prefix_fails(self, mock_check_response):
+        """Test create_subnet fails without prefix"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "subnet1",
+            "prefix": None,
+        }
+        mock_array = Mock()
+
+        with pytest.raises(SystemExit):
+            create_subnet(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_create_subnet_check_mode(self, mock_check_response):
+        """Test create_subnet in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "subnet1",
+            "prefix": "10.0.0.0/24",
+            "gateway": None,
+            "vlan": None,
+            "mtu": None,
+            "enabled": True,
+        }
+        mock_array = Mock()
+
+        create_subnet(mock_module, mock_array)
+
+        mock_array.post_subnets.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_create_subnet_success(self, mock_check_response):
+        """Test create_subnet successfully creates"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "subnet1",
+            "prefix": "10.0.0.0/24",
+            "gateway": None,
+            "vlan": None,
+            "mtu": None,
+            "enabled": True,
+        }
+        mock_array = Mock()
+        mock_array.post_subnets.return_value = Mock(status_code=200)
+
+        create_subnet(mock_module, mock_array)
+
+        mock_array.post_subnets.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_create_subnet_vlan_out_of_range(self, mock_check_response):
+        """Test create_subnet fails with invalid VLAN"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "subnet1",
+            "prefix": "10.0.0.0/24",
+            "gateway": None,
+            "vlan": 5000,  # Out of range
+            "mtu": None,
+            "enabled": True,
+        }
+        mock_array = Mock()
+
+        with pytest.raises(SystemExit):
+            create_subnet(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_create_subnet_mtu_out_of_range(self, mock_check_response):
+        """Test create_subnet fails with invalid MTU"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "subnet1",
+            "prefix": "10.0.0.0/24",
+            "gateway": None,
+            "vlan": None,
+            "mtu": 10000,  # Out of range
+            "enabled": True,
+        }
+        mock_array = Mock()
+
+        with pytest.raises(SystemExit):
+            create_subnet(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()

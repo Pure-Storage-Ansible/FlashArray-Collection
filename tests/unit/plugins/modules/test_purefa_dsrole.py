@@ -50,6 +50,7 @@ sys.modules[
 
 from plugins.modules.purefa_dsrole import (
     delete_role,
+    create_role,
 )
 
 
@@ -69,3 +70,47 @@ class TestDeleteRole:
         delete_role(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateRole:
+    """Tests for create_role function"""
+
+    @patch("plugins.modules.purefa_dsrole.LooseVersion")
+    def test_create_role_check_mode(self, mock_loose_version):
+        """Test create_role in check mode"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "role1",
+            "context": "",
+            "group": "admins",
+            "group_base": "ou=groups,dc=example,dc=com",
+            "role": "array_admin",
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_loose_version.side_effect = LooseVersion
+
+        create_role(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_dsrole.LooseVersion")
+    def test_create_role_no_change(self, mock_loose_version):
+        """Test create_role when group and group_base are empty"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "role1",
+            "context": "",
+            "group": "",
+            "group_base": "",
+            "role": "array_admin",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_loose_version.side_effect = LooseVersion
+
+        create_role(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)

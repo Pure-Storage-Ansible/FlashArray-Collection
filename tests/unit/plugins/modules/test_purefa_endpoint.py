@@ -47,6 +47,8 @@ from plugins.modules.purefa_endpoint import (
     delete_endpoint,
     eradicate_endpoint,
     recover_endpoint,
+    rename_endpoint,
+    _volfact,
 )
 
 
@@ -131,5 +133,46 @@ class TestRecoverEndpoint:
         mock_array = Mock()
 
         recover_endpoint(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True, volume={})
+
+
+class TestVolfact:
+    """Test cases for _volfact function"""
+
+    @patch("plugins.modules.purefa_endpoint.LooseVersion")
+    def test_volfact_check_mode_returns_empty(self, mock_loose_version):
+        """Test _volfact returns empty dict in check mode"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_array = Mock()
+
+        result = _volfact(mock_module, mock_array, "test-vol")
+
+        assert result == {}
+
+
+class TestRenameEndpoint:
+    """Test cases for rename_endpoint function"""
+
+    @patch("plugins.modules.purefa_endpoint.LooseVersion")
+    @patch("plugins.modules.purefa_endpoint.get_volume")
+    def test_rename_endpoint_check_mode(self, mock_get_volume, mock_loose_version):
+        """Test rename_endpoint in check mode"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-endpoint",
+            "rename": "new-name",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        # Target does not exist
+        mock_get_volume.return_value = None
+
+        rename_endpoint(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True, volume={})

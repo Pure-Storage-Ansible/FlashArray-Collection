@@ -46,6 +46,8 @@ from plugins.modules.purefa_ntp import (
     remove,
     _is_cbs,
     delete_ntp,
+    test_ntp as ntp_test_func,
+    create_ntp,
 )
 
 
@@ -129,3 +131,55 @@ class TestDeleteNtp:
         delete_ntp(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestNtpTest:
+    """Test cases for test_ntp function"""
+
+    def test_ntp_test_returns_response(self):
+        """Test test_ntp returns test response"""
+        mock_module = Mock()
+        mock_module.params = {"context": ""}
+        mock_array = Mock()
+
+        # Create mock NTP test result
+        mock_result = Mock()
+        mock_result.enabled = True
+        mock_result.success = True
+        mock_result.component_address = "10.0.0.1"
+        mock_result.component_name = "ntp1"
+        mock_result.description = "NTP server test"
+        mock_result.destination = "ntp.example.com"
+        mock_result.result_details = "OK"
+        mock_result.test_type = "connectivity"
+        mock_result.resource = Mock()
+        mock_result.resource.name = "array1"
+        mock_array.get_arrays_ntp_test.return_value.items = [mock_result]
+
+        ntp_test_func(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is True
+        assert len(call_args["test_response"]) == 1
+        assert call_args["test_response"][0]["enabled"] == "true"
+        assert call_args["test_response"][0]["success"] == "true"
+
+
+class TestCreateNtp:
+    """Test cases for create_ntp function"""
+
+    def test_create_ntp_check_mode(self):
+        """Test create_ntp in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "context": "",
+            "ntp_servers": ["ntp1.example.com", "ntp2.example.com"],
+        }
+        mock_array = Mock()
+
+        create_ntp(mock_module, mock_array)
+
+        # In check mode, always returns changed=True without making API calls
+        mock_module.exit_json.assert_called_once_with(changed=True)

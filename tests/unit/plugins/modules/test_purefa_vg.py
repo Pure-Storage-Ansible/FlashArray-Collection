@@ -47,8 +47,10 @@ from plugins.modules.purefa_vg import (
     get_multi_vgroups,
     get_pending_vgroup,
     get_vgroup,
+    rename_vgroup,
     make_vgroup,
     make_multi_vgroups,
+    update_vgroup,
     delete_vgroup,
     eradicate_vgroup,
     recover_vgroup,
@@ -257,4 +259,185 @@ class TestRecoverVgroup:
 
         recover_vgroup(mock_module, mock_array)
 
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRenameVgroup:
+    """Test cases for rename_vgroup function"""
+
+    @patch("plugins.modules.purefa_vg.rename_exists")
+    @patch("plugins.modules.purefa_vg.LooseVersion")
+    def test_rename_vgroup_check_mode(self, mock_loose_version, mock_rename_exists):
+        """Test rename_vgroup in check mode"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_rename_exists.return_value = False
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {"name": "old-vg", "rename": "new-vg", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        rename_vgroup(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vg.rename_exists")
+    @patch("plugins.modules.purefa_vg.LooseVersion")
+    def test_rename_vgroup_target_exists(self, mock_loose_version, mock_rename_exists):
+        """Test rename_vgroup when target already exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_rename_exists.return_value = True
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "old-vg", "rename": "existing-vg", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        rename_vgroup(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestUpdateVgroup:
+    """Test cases for update_vgroup function"""
+
+    @patch("plugins.modules.purefa_vg.LooseVersion")
+    def test_update_vgroup_no_changes(self, mock_loose_version):
+        """Test update_vgroup with no changes needed"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = False
+        params = {
+            "name": "test-vg",
+            "context": "",
+            "bw_qos": None,
+            "iops_qos": None,
+            "priority_operator": None,
+            "priority_value": None,
+        }
+        mock_module.params = params
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_vg = Mock()
+        mock_vg.qos = Mock(bandwidth_limit=None, iops_limit=None)
+        mock_array.get_volume_groups.return_value.items = [mock_vg]
+
+        update_vgroup(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestDeleteVgroupSuccess:
+    """Test cases for delete_vgroup success paths"""
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion")
+    def test_delete_vgroup_success(self, mock_loose_version, mock_check_response):
+        """Test delete_vgroup successfully deletes"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "eradicate": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        delete_vgroup(mock_module, mock_array)
+
+        mock_array.patch_volume_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vg.eradicate_vgroup")
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion")
+    def test_delete_vgroup_with_eradicate(
+        self, mock_loose_version, mock_check_response, mock_eradicate
+    ):
+        """Test delete_vgroup with eradicate=True"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "eradicate": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        delete_vgroup(mock_module, mock_array)
+
+        mock_array.patch_volume_groups.assert_called_once()
+        mock_eradicate.assert_called_once()
+
+
+class TestEradicateVgroupSuccess:
+    """Test cases for eradicate_vgroup success paths"""
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion")
+    def test_eradicate_vgroup_success(self, mock_loose_version, mock_check_response):
+        """Test eradicate_vgroup successfully eradicates"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-vg", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.delete_volume_groups.return_value = Mock(status_code=200)
+
+        eradicate_vgroup(mock_module, mock_array)
+
+        mock_array.delete_volume_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRecoverVgroupSuccess:
+    """Test cases for recover_vgroup success paths"""
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion")
+    def test_recover_vgroup_success(self, mock_loose_version, mock_check_response):
+        """Test recover_vgroup successfully recovers"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-vg", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        recover_vgroup(mock_module, mock_array)
+
+        mock_array.patch_volume_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRenameVgroupSuccess:
+    """Test cases for rename_vgroup success paths"""
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.rename_exists")
+    @patch("plugins.modules.purefa_vg.LooseVersion")
+    def test_rename_vgroup_success(
+        self, mock_loose_version, mock_rename_exists, mock_check_response
+    ):
+        """Test rename_vgroup successfully renames"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_rename_exists.return_value = False
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "old-vg", "rename": "new-vg", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        rename_vgroup(mock_module, mock_array)
+
+        mock_array.patch_volume_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)

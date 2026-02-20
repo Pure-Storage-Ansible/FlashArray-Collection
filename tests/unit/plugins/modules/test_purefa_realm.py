@@ -42,10 +42,14 @@ sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.error_handlers"
 ] = MagicMock()
 
+from unittest.mock import patch
+
 from plugins.modules.purefa_realm import (
     get_pending_realm,
     get_realm,
+    rename_realm,
     make_realm,
+    update_realm,
     delete_realm,
     eradicate_realm,
     recover_realm,
@@ -171,3 +175,43 @@ class TestRecoverRealm:
         recover_realm(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRenameRealm:
+    """Test cases for rename_realm function"""
+
+    @patch("plugins.modules.purefa_realm.check_response")
+    def test_rename_realm_check_mode(self, mock_check_response):
+        """Test rename_realm in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {"name": "old-realm", "rename": "new-realm"}
+        mock_array = Mock()
+
+        rename_realm(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateRealm:
+    """Test cases for update_realm function"""
+
+    def test_update_realm_no_changes(self):
+        """Test update_realm with no changes needed"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-realm",
+            "bw_qos": None,
+            "iops_qos": None,
+            "quota": None,
+        }
+        mock_array = Mock()
+        mock_realm = Mock()
+        mock_realm.quota_limit = None
+        mock_realm.qos = Mock(bandwidth_limit=None, iops_limit=None)
+        mock_array.get_realms.return_value.items = [mock_realm]
+
+        update_realm(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)

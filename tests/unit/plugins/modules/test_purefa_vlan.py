@@ -45,7 +45,9 @@ sys.modules[
 from plugins.modules.purefa_vlan import (
     _get_subnet,
     _get_interface,
+    _get_vif,
     delete_vif,
+    create_vif,
 )
 
 
@@ -109,5 +111,57 @@ class TestDeleteVif:
         mock_subnet.vlan = 100
 
         delete_vif(mock_module, mock_array, mock_subnet)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestGetVif:
+    """Test cases for _get_vif function"""
+
+    def test_get_vif_exists(self):
+        """Test _get_vif returns vif when it exists"""
+        mock_array = Mock()
+        mock_interface = {"name": "ct0.eth0"}
+        mock_subnet = {"vlan": 100}
+        mock_vif = Mock()
+        mock_vif.name = "ct0.eth0.100"
+        mock_array.get_network_interfaces.return_value = Mock(
+            status_code=200, items=[mock_vif]
+        )
+
+        result = _get_vif(mock_array, mock_interface, mock_subnet)
+
+        assert result == mock_vif
+
+    def test_get_vif_not_exists(self):
+        """Test _get_vif returns None when vif doesn't exist"""
+        mock_array = Mock()
+        mock_interface = {"name": "ct0.eth0"}
+        mock_subnet = {"vlan": 100}
+        mock_array.get_network_interfaces.return_value = Mock(status_code=404)
+
+        result = _get_vif(mock_array, mock_interface, mock_subnet)
+
+        assert result is None
+
+
+class TestCreateVif:
+    """Test cases for create_vif function"""
+
+    def test_create_vif_check_mode(self):
+        """Test create_vif in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "ct0.eth0",
+            "subnet": "test-subnet",
+            "address": "10.0.0.1",
+            "enabled": True,
+        }
+        mock_array = Mock()
+        mock_interface = {"name": "ct0.eth0"}
+        mock_subnet = {"vlan": 100}
+
+        create_vif(mock_module, mock_array, mock_interface, mock_subnet)
 
         mock_module.exit_json.assert_called_once_with(changed=True)

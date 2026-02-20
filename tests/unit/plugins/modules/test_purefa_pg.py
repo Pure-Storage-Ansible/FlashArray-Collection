@@ -9,6 +9,7 @@ __metaclass__ = type
 
 import sys
 from unittest.mock import Mock, patch, MagicMock
+from packaging.version import Version as LooseVersion
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -48,10 +49,14 @@ from plugins.modules.purefa_pg import (
     get_arrays,
     get_pending_pgroup,
     get_pgroup,
+    get_pgroup_sched,
     make_pgroup,
     delete_pgroup,
     eradicate_pgroup,
     recover_pgroup,
+    update_pgroup,
+    rename_exists,
+    check_pg_on_offload,
 )
 
 
@@ -265,4 +270,231 @@ class TestRecoverPgroup:
 
         recover_pgroup(mock_module, mock_array)
 
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRenameExists:
+    """Test cases for rename_exists function"""
+
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_rename_exists_true(self, mock_loose_version):
+        """Test rename_exists returns True when target exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "source-pg", "rename": "target-pg"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_protection_groups.return_value.status_code = 200
+
+        result = rename_exists(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_rename_exists_false(self, mock_loose_version):
+        """Test rename_exists returns False when target doesn't exist"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "source-pg", "rename": "target-pg"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_protection_groups.return_value.status_code = 404
+
+        result = rename_exists(mock_module, mock_array)
+
+        assert result is False
+
+
+class TestCheckPgOnOffload:
+    """Test cases for check_pg_on_offload function"""
+
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_pg_exists_on_offload(self, mock_loose_version):
+        """Test check_pg_on_offload returns remote name when PG exists on offload"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "test-pg", "target": "offload-target"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        # Mock array.get_arrays().items
+        mock_local_array = Mock()
+        mock_local_array.name = "local-array"
+        mock_array.get_arrays.return_value.items = [mock_local_array]
+        # Mock remote protection groups response
+        mock_remote_pg = Mock()
+        mock_remote_pg.remote.name = "offload-target"
+        mock_array.get_remote_protection_groups.return_value.status_code = 200
+        mock_array.get_remote_protection_groups.return_value.items = [mock_remote_pg]
+
+        result = check_pg_on_offload(mock_module, mock_array)
+
+        assert result == "offload-target"
+
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_pg_not_on_offload(self, mock_loose_version):
+        """Test check_pg_on_offload returns None when PG doesn't exist on offload"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "test-pg", "target": "offload-target"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        # Mock array.get_arrays().items
+        mock_local_array = Mock()
+        mock_local_array.name = "local-array"
+        mock_array.get_arrays.return_value.items = [mock_local_array]
+        mock_array.get_remote_protection_groups.return_value.status_code = 404
+
+        result = check_pg_on_offload(mock_module, mock_array)
+
+        assert result is None
+
+
+class TestUpdatePgroup:
+    """Test cases for update_pgroup function"""
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_update_pgroup_check_mode_no_changes(
+        self, mock_loose_version, mock_check_response
+    ):
+        """Test update_pgroup in check mode with no changes needed"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "priority": None,
+            "priority_adjustment": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        # Mock empty current members
+        mock_pgroup = Mock()
+        mock_pgroup.volumes = []
+        mock_pgroup.hosts = []
+        mock_pgroup.hgroups = []
+        mock_array.get_protection_groups.return_value.items = [mock_pgroup]
+        mock_array.get_protection_groups.return_value.status_code = 200
+        mock_array.get_protection_group_targets.return_value.items = []
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called()
+
+
+class TestGetPgroupSched:
+    """Test cases for get_pgroup_sched function"""
+
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_get_pgroup_sched_exists(self, mock_loose_version):
+        """Test get_pgroup_sched returns schedule when exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "test-pg", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        mock_sched = Mock()
+        mock_sched.schedule = "daily"
+        mock_array.get_protection_groups.return_value.status_code = 200
+        mock_array.get_protection_groups.return_value.items = [mock_sched]
+
+        result = get_pgroup_sched(mock_module, mock_array)
+
+        assert result == mock_sched
+
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_get_pgroup_sched_not_exists(self, mock_loose_version):
+        """Test get_pgroup_sched returns None when not exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "test-pg", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        mock_array.get_protection_groups.return_value.status_code = 404
+
+        result = get_pgroup_sched(mock_module, mock_array)
+
+        assert result is None
+
+
+class TestDeletePgroupSuccess:
+    """Additional test cases for delete_pgroup function"""
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_delete_pgroup_success(self, mock_loose_version, mock_check_response):
+        """Test delete_pgroup successfully deletes"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "context": "",
+            "eradicate": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+
+        delete_pgroup(mock_module, mock_array)
+
+        mock_array.patch_protection_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRecoverPgroupSuccess:
+    """Additional test cases for recover_pgroup function"""
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_recover_pgroup_success(self, mock_loose_version, mock_check_response):
+        """Test recover_pgroup successfully recovers"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+
+        recover_pgroup(mock_module, mock_array)
+
+        mock_array.patch_protection_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestEradicatePgroupSuccess:
+    """Additional test cases for eradicate_pgroup function"""
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion")
+    def test_eradicate_pgroup_success(self, mock_loose_version, mock_check_response):
+        """Test eradicate_pgroup successfully eradicates"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_protection_groups.return_value = Mock(status_code=200)
+
+        eradicate_pgroup(mock_module, mock_array)
+
+        mock_array.delete_protection_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
