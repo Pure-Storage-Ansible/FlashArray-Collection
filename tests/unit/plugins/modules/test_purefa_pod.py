@@ -529,3 +529,91 @@ class TestEradicatePodSuccess:
 
         mock_array.delete_pods.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreatePodSuccess:
+    """Test cases for create_pod function success scenarios"""
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_create_pod_basic(self, mock_lv, mock_check_response):
+        """Test creating a basic pod without options"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "target": None,
+            "failover": None,
+            "stretch": None,
+            "mediator": "purestorage",
+            "throttle": True,
+            "context": None,
+            "quota": None,
+            "quota_notification": None,
+            "namespace": None,
+            "state": "present",
+        }
+        mock_array = Mock()
+        # Use old version to avoid DEFAULT_API_VERSION (2.24) path
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.post_pods.return_value = Mock(status_code=200)
+
+        create_pod(mock_module, mock_array)
+
+        mock_array.post_pods.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_create_pod_with_failover(self, mock_lv, mock_check_response):
+        """Test creating a pod with failover preferences"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "target": None,
+            "failover": ["array2"],
+            "stretch": None,
+            "mediator": "purestorage",
+            "throttle": True,
+            "context": None,
+            "quota": None,
+            "quota_notification": None,
+            "namespace": None,
+            "state": "present",
+        }
+        mock_array = Mock()
+        # Use old version to avoid DEFAULT_API_VERSION (2.24) path
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.post_pods.return_value = Mock(status_code=200)
+
+        create_pod(mock_module, mock_array)
+
+        mock_array.post_pods.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestClonePodSuccess:
+    """Test cases for clone_pod function success scenarios"""
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_clone_pod_basic(self, mock_lv, mock_check_response):
+        """Test cloning a pod"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "target": "new-pod",
+            "context": None,
+            "throttle": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_pods.return_value = Mock(status_code=400)  # Target doesn't exist
+        mock_array.post_pods.return_value = Mock(status_code=200)
+
+        clone_pod(mock_module, mock_array)
+
+        mock_array.post_pods.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
