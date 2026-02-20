@@ -131,3 +131,55 @@ class TestRenameFleet:
         rename_fleet(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_fleet.check_response")
+    def test_rename_fleet_success(self, mock_check_response):
+        """Test rename_fleet successfully renames"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "old-fleet", "rename": "new-fleet"}
+        mock_array = Mock()
+        mock_fleet = Mock()
+        mock_fleet.name = "old-fleet"
+        mock_array.get_fleets.return_value = Mock(items=[mock_fleet])
+        mock_array.patch_fleets.return_value = Mock(status_code=200)
+
+        rename_fleet(mock_module, mock_array)
+
+        mock_array.patch_fleets.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteFleetSuccess:
+    """Test cases for delete_fleet success paths"""
+
+    @patch("plugins.modules.purefa_fleet.check_response")
+    def test_delete_fleet_success(self, mock_check_response):
+        """Test delete_fleet successfully deletes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-fleet"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.39"
+        mock_array.delete_fleets.return_value = Mock(status_code=200)
+
+        delete_fleet(mock_module, mock_array)
+
+        mock_array.delete_fleets.assert_called_once_with(names=["test-fleet"])
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_delete_fleet_version_too_low(self):
+        """Test delete_fleet fails with old API version"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-fleet"}
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Too old
+
+        with pytest.raises(SystemExit):
+            delete_fleet(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()

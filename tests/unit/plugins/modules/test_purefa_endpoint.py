@@ -176,3 +176,172 @@ class TestRenameEndpoint:
         rename_endpoint(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True, volume={})
+
+    @patch("plugins.modules.purefa_endpoint.LooseVersion")
+    @patch("plugins.modules.purefa_endpoint.get_volume")
+    def test_rename_endpoint_target_exists(self, mock_get_volume, mock_loose_version):
+        """Test rename_endpoint fails when target exists"""
+        import pytest
+
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "test-endpoint",
+            "rename": "existing-name",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        # Target exists
+        mock_get_volume.return_value = Mock()
+
+        with pytest.raises(SystemExit):
+            rename_endpoint(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestDeleteEndpointSuccess:
+    """Test cases for delete_endpoint success paths"""
+
+    @patch("plugins.modules.purefa_endpoint._volfact")
+    @patch("plugins.modules.purefa_endpoint.LooseVersion")
+    @patch("plugins.modules.purefa_endpoint.check_response")
+    def test_delete_endpoint_success(
+        self, mock_check_response, mock_loose_version, mock_volfact
+    ):
+        """Test delete_endpoint successfully deletes"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_volfact.return_value = {}
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-endpoint",
+            "eradicate": False,
+            "hgroup": None,
+            "host": None,
+            "pgroup": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+
+        delete_endpoint(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True, volume={})
+
+    @patch("plugins.modules.purefa_endpoint._volfact")
+    @patch("plugins.modules.purefa_endpoint.LooseVersion")
+    @patch("plugins.modules.purefa_endpoint.check_response")
+    def test_delete_endpoint_with_eradicate(
+        self, mock_check_response, mock_loose_version, mock_volfact
+    ):
+        """Test delete_endpoint with eradicate=True"""
+        import pytest
+
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_volfact.return_value = {}
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.exit_json.side_effect = SystemExit(0)
+        mock_module.params = {
+            "name": "test-endpoint",
+            "eradicate": True,
+            "hgroup": None,
+            "host": None,
+            "pgroup": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+        mock_array.delete_volumes.return_value = Mock(status_code=200)
+
+        with pytest.raises(SystemExit):
+            delete_endpoint(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        mock_array.delete_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_with(changed=True, volume=[])
+
+
+class TestEradicateEndpointSuccess:
+    """Test cases for eradicate_endpoint success paths"""
+
+    @patch("plugins.modules.purefa_endpoint.LooseVersion")
+    @patch("plugins.modules.purefa_endpoint.check_response")
+    def test_eradicate_endpoint_success(self, mock_check_response, mock_loose_version):
+        """Test eradicate_endpoint successfully eradicates"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "deleted-endpoint",
+            "context": "",
+            "eradicate": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.delete_volumes.return_value = Mock(status_code=200)
+
+        eradicate_endpoint(mock_module, mock_array)
+
+        mock_array.delete_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True, volume=[])
+
+
+class TestRecoverEndpointSuccess:
+    """Test cases for recover_endpoint success paths"""
+
+    @patch("plugins.modules.purefa_endpoint._volfact")
+    @patch("plugins.modules.purefa_endpoint.LooseVersion")
+    @patch("plugins.modules.purefa_endpoint.check_response")
+    def test_recover_endpoint_success(
+        self, mock_check_response, mock_loose_version, mock_volfact
+    ):
+        """Test recover_endpoint successfully recovers"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_volfact.return_value = {"name": "recovered-endpoint"}
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "deleted-endpoint", "pgroup": None, "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+
+        recover_endpoint(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+
+class TestCreateEndpoint:
+    """Test cases for create_endpoint function"""
+
+    @patch("plugins.modules.purefa_endpoint.LooseVersion")
+    def test_create_endpoint_check_mode(self, mock_loose_version):
+        """Test create_endpoint in check mode"""
+        from plugins.modules.purefa_endpoint import create_endpoint
+
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "new-endpoint",
+            "context": "",
+            "container_version": 1,
+            "host": None,
+            "hgroup": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_volume_groups.return_value = Mock(status_code=404)
+
+        create_endpoint(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_not_called()
+        mock_module.exit_json.assert_called_once()

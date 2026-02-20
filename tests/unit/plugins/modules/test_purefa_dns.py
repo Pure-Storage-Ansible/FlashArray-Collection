@@ -47,6 +47,9 @@ from plugins.modules.purefa_dns import (
     delete_dns,
     create_dns,
     _get_source,
+    update_multi_dns,
+    delete_multi_dns,
+    create_multi_dns,
 )
 
 
@@ -233,4 +236,271 @@ class TestCreateDnsExtended:
         create_dns(mock_module, mock_array)
 
         mock_array.patch_dns.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateMultiDns:
+    """Test cases for update_multi_dns function"""
+
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_update_multi_dns_no_changes(self, mock_get_with_context):
+        """Test update_multi_dns when no changes needed"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "file-dns",
+            "domain": "example.com",
+            "nameservers": ["ns1.example.com"],
+            "service": None,
+            "source": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_dns = Mock()
+        mock_dns.domain = "example.com"
+        mock_dns.nameservers = ["ns1.example.com"]
+        mock_dns.services = ["file"]
+        mock_dns.source = Mock()
+        mock_dns.source.name = ""
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_dns])
+
+        update_multi_dns(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_dns.check_response")
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_update_multi_dns_domain_change(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test update_multi_dns when domain changes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "file-dns",
+            "domain": "newdomain.com",
+            "nameservers": None,
+            "service": None,
+            "source": "",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_dns = Mock()
+        mock_dns.domain = "olddomain.com"
+        mock_dns.nameservers = ["ns1.example.com"]
+        mock_dns.services = ["file"]
+        mock_dns.source = Mock()
+        mock_dns.source.name = ""
+        mock_get_with_context.side_effect = [
+            Mock(status_code=200, items=[mock_dns]),
+            Mock(status_code=200),
+        ]
+
+        update_multi_dns(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_update_multi_dns_check_mode(self, mock_get_with_context):
+        """Test update_multi_dns in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "file-dns",
+            "domain": "newdomain.com",
+            "nameservers": None,
+            "service": None,
+            "source": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_dns = Mock()
+        mock_dns.domain = "olddomain.com"
+        mock_dns.nameservers = ["ns1.example.com"]
+        mock_dns.services = ["file"]
+        mock_dns.source = Mock()
+        mock_dns.source.name = ""
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_dns])
+
+        update_multi_dns(mock_module, mock_array)
+
+        # Should not call patch in check mode
+        assert mock_get_with_context.call_count == 1
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_update_multi_dns_service_change_fails(self, mock_get_with_context):
+        """Test update_multi_dns fails when trying to change service type"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "file-dns",
+            "domain": None,
+            "nameservers": None,
+            "service": "management",  # Trying to change service type
+            "source": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_dns = Mock()
+        mock_dns.domain = "example.com"
+        mock_dns.nameservers = ["ns1.example.com"]
+        mock_dns.services = ["file"]  # Current service is file
+        mock_dns.source = Mock()
+        mock_dns.source.name = ""
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_dns])
+
+        with pytest.raises(SystemExit):
+            update_multi_dns(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once_with(
+            msg="Changing service type is not permitted"
+        )
+
+
+class TestDeleteMultiDns:
+    """Test cases for delete_multi_dns function"""
+
+    @patch("plugins.modules.purefa_dns.check_response")
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_delete_multi_dns_file_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test delete_multi_dns successfully deletes file DNS"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "file-dns", "context": ""}
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        delete_multi_dns(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_dns.check_response")
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_delete_multi_dns_management(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test delete_multi_dns clears management DNS (can't delete)"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "management", "context": ""}
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        delete_multi_dns(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_delete_multi_dns_check_mode(self, mock_get_with_context):
+        """Test delete_multi_dns in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {"name": "file-dns", "context": ""}
+        mock_array = Mock()
+
+        delete_multi_dns(mock_module, mock_array)
+
+        # Should not call delete in check mode for non-management
+        mock_get_with_context.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateMultiDns:
+    """Test cases for create_multi_dns function"""
+
+    @patch("plugins.modules.purefa_dns.check_response")
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_create_multi_dns_file_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test create_multi_dns successfully creates file DNS"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "file-dns",
+            "domain": "example.com",
+            "nameservers": ["ns1.example.com"],
+            "service": "file",
+            "source": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        create_multi_dns(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_dns.check_response")
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_create_multi_dns_file_with_source(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test create_multi_dns with source interface"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "file-dns",
+            "domain": "example.com",
+            "nameservers": ["ns1.example.com"],
+            "service": "file",
+            "source": "ct0.eth0",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        create_multi_dns(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_dns.check_response")
+    @patch("plugins.modules.purefa_dns.get_with_context")
+    def test_create_multi_dns_management(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test create_multi_dns for management service"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "management",
+            "domain": "example.com",
+            "nameservers": ["ns1.example.com"],
+            "service": "management",
+            "source": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        create_multi_dns(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_create_multi_dns_check_mode(self):
+        """Test create_multi_dns in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "file-dns",
+            "domain": "example.com",
+            "nameservers": ["ns1.example.com"],
+            "service": "file",
+            "source": None,
+            "context": "",
+        }
+        mock_array = Mock()
+
+        create_multi_dns(mock_module, mock_array)
+
         mock_module.exit_json.assert_called_once_with(changed=True)
