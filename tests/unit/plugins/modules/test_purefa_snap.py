@@ -45,10 +45,14 @@ sys.modules[
 from plugins.modules.purefa_snap import (
     _check_offload,
     _check_target,
+    _check_offload_snapshot,
     get_volume,
     get_target,
     get_snapshot,
+    get_deleted_snapshot,
     create_snapshot,
+    create_from_snapshot,
+    update_snapshot,
     delete_snapshot,
     eradicate_snapshot,
     recover_snapshot,
@@ -284,5 +288,148 @@ class TestRecoverSnapshot:
         mock_array.get_rest_version.return_value = "2.0"
 
         recover_snapshot(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCheckOffloadSnapshot:
+    """Test cases for _check_offload_snapshot function"""
+
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap.LooseVersion")
+    def test_check_offload_snapshot_exists(self, mock_loose_version, mock_check_offload):
+        """Test _check_offload_snapshot returns snapshot when it exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_check_offload.return_value = True
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "offload-target",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        # Mock array.get_arrays().items
+        mock_local_array = Mock()
+        mock_local_array.name = "local-array"
+        mock_array.get_arrays.return_value.items = [mock_local_array]
+        mock_snap = Mock()
+        mock_snap.name = "offload-target:test-vol.snap1"
+        mock_array.get_remote_volume_snapshots.return_value.status_code = 200
+        mock_array.get_remote_volume_snapshots.return_value.items = [mock_snap]
+
+        result = _check_offload_snapshot(mock_module, mock_array)
+
+        assert result is not None
+
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap.LooseVersion")
+    def test_check_offload_snapshot_not_exists(
+        self, mock_loose_version, mock_check_offload
+    ):
+        """Test _check_offload_snapshot returns None when snapshot doesn't exist"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_check_offload.return_value = True
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "offload-target",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        # Mock array.get_arrays().items
+        mock_local_array = Mock()
+        mock_local_array.name = "local-array"
+        mock_array.get_arrays.return_value.items = [mock_local_array]
+        mock_array.get_remote_volume_snapshots.return_value.status_code = 404
+
+        result = _check_offload_snapshot(mock_module, mock_array)
+
+        assert result is None
+
+
+class TestGetDeletedSnapshot:
+    """Test cases for get_deleted_snapshot function"""
+
+    @patch("plugins.modules.purefa_snap.LooseVersion")
+    def test_get_deleted_snapshot_exists(self, mock_loose_version):
+        """Test get_deleted_snapshot returns snapshot when it exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "test-vol", "suffix": "snap1", "offload": None}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_snap = Mock()
+        mock_array.get_volume_snapshots.return_value.status_code = 200
+        mock_array.get_volume_snapshots.return_value.items = [mock_snap]
+
+        result = get_deleted_snapshot(mock_module, mock_array)
+
+        assert result is not None
+
+    @patch("plugins.modules.purefa_snap.LooseVersion")
+    def test_get_deleted_snapshot_not_exists(self, mock_loose_version):
+        """Test get_deleted_snapshot returns False when snapshot doesn't exist"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "test-vol", "suffix": "snap1", "offload": None}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_volume_snapshots.return_value.status_code = 404
+
+        result = get_deleted_snapshot(mock_module, mock_array)
+
+        # get_deleted_snapshot returns bool, not None
+        assert result is False
+
+
+class TestCreateFromSnapshot:
+    """Test cases for create_from_snapshot function"""
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion")
+    def test_create_from_snapshot_check_mode(
+        self, mock_loose_version, mock_check_response
+    ):
+        """Test create_from_snapshot in check mode"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "target": "new-vol",
+            "overwrite": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        create_from_snapshot(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateSnapshot:
+    """Test cases for update_snapshot function"""
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion")
+    def test_update_snapshot_check_mode(self, mock_loose_version, mock_check_response):
+        """Test update_snapshot in check mode"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "rename": "new-suffix",
+            "target": None,
+            "offload": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        update_snapshot(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)

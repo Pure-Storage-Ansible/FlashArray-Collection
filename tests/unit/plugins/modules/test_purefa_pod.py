@@ -48,7 +48,9 @@ from plugins.modules.purefa_pod import (
     get_target,
     get_destroyed_pod,
     get_destroyed_target,
+    check_arrays,
     create_pod,
+    clone_pod,
     delete_pod,
     eradicate_pod,
     recover_pod,
@@ -249,3 +251,48 @@ class TestRecoverPod:
         recover_pod(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCheckArrays:
+    """Test cases for check_arrays function"""
+
+    @patch("plugins.modules.purefa_pod.LooseVersion")
+    def test_check_arrays_no_stretch_no_failover(self, mock_loose_version):
+        """Test check_arrays returns None when no stretch/failover specified"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"stretch": None, "failover": None, "context": None}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        # Mock array.get_arrays().items
+        mock_local = Mock()
+        mock_local.name = "local-array"
+        mock_array.get_arrays.return_value.items = [mock_local]
+        mock_array.get_array_connections.return_value.items = []
+
+        result = check_arrays(mock_module, mock_array)
+
+        assert result is None
+
+
+class TestClonePod:
+    """Test cases for clone_pod function"""
+
+    @patch("plugins.modules.purefa_pod.get_destroyed_target")
+    @patch("plugins.modules.purefa_pod.get_target")
+    @patch("plugins.modules.purefa_pod.LooseVersion")
+    def test_clone_pod_target_already_exists(
+        self, mock_loose_version, mock_get_target, mock_get_destroyed_target
+    ):
+        """Test clone_pod when target already exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_get_target.return_value = True  # Target already exists
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "source-pod", "target": "existing-pod"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        clone_pod(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)

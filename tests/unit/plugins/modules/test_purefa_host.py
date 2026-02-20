@@ -48,6 +48,8 @@ from plugins.modules.purefa_host import (
     make_multi_hosts,
     delete_host,
     update_host,
+    _set_host_personality,
+    _set_preferred_array,
 )
 
 
@@ -341,3 +343,81 @@ class TestUpdateHost:
         update_host(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once()
+
+
+class TestSetHostPersonality:
+    """Test cases for _set_host_personality function"""
+
+    @patch(
+        "plugins.modules.purefa_host.get_with_context",
+    )
+    @patch("plugins.modules.purefa_host.check_response")
+    def test_set_host_personality_success(
+        self, mock_check_response, mock_get_with_context
+    ):
+        """Test setting host personality"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "personality": "hpux",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+        mock_check_response.return_value = None
+
+        _set_host_personality(mock_module, mock_array)
+
+        mock_get_with_context.assert_called()
+
+
+class TestSetPreferredArray:
+    """Test cases for _set_preferred_array function"""
+
+    @patch(
+        "plugins.modules.purefa_host.get_with_context",
+    )
+    @patch("plugins.modules.purefa_host.check_response")
+    def test_set_preferred_array_success(
+        self, mock_check_response, mock_get_with_context
+    ):
+        """Test setting preferred array list"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "preferred_array": ["array1", "array2"],
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+        mock_check_response.return_value = None
+
+        _set_preferred_array(mock_module, mock_array)
+
+        mock_get_with_context.assert_called()
+
+    @patch(
+        "plugins.modules.purefa_host.get_with_context",
+    )
+    @patch("plugins.modules.purefa_host.check_response")
+    def test_set_preferred_array_delete(
+        self, mock_check_response, mock_get_with_context
+    ):
+        """Test deleting preferred array list"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "preferred_array": ["delete"],
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+        mock_check_response.return_value = None
+
+        _set_preferred_array(mock_module, mock_array)
+
+        # When preferred_array is ["delete"], the function sets an empty list
+        mock_get_with_context.assert_called()

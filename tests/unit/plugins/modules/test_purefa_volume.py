@@ -53,6 +53,12 @@ from plugins.modules.purefa_volume import (
     copy_from_volume,
     rename_volume,
     _create_nguid,
+    move_volume,
+    get_pod,
+    check_pod,
+    check_vgroup,
+    get_multi_volumes,
+    get_endpoint,
 )
 
 
@@ -1148,3 +1154,185 @@ class TestCreateMultiVolume:
         call_args = mock_module.fail_json.call_args[1]
         assert "Volume Group" in call_args["msg"]
         assert "does not exist" in call_args["msg"]
+
+
+class TestGetPod:
+    """Test cases for get_pod function"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_get_pod_exists(self, mock_loose_version):
+        """Test get_pod returns pod when it exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"pgroup": "pod1::pgroup1"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_pod = Mock()
+        mock_pod.name = "pod1"
+        mock_array.get_pods.return_value.status_code = 200
+        mock_array.get_pods.return_value.items = [mock_pod]
+
+        result = get_pod(mock_module, mock_array)
+
+        assert result is not None
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_get_pod_not_exists(self, mock_loose_version):
+        """Test get_pod returns None when pod doesn't exist"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"pgroup": "pod1::pgroup1"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_pods.return_value.status_code = 404
+
+        result = get_pod(mock_module, mock_array)
+
+        assert result is None
+
+
+class TestCheckPod:
+    """Test cases for check_pod function"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_check_pod_exists(self, mock_loose_version):
+        """Test check_pod returns True when pod exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "pod1::volume1"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_pods.return_value.status_code = 200
+
+        result = check_pod(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_check_pod_not_exists(self, mock_loose_version):
+        """Test check_pod returns False when pod doesn't exist"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "pod1::volume1"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_pods.return_value.status_code = 404
+
+        result = check_pod(mock_module, mock_array)
+
+        assert result is False
+
+
+class TestCheckVgroup:
+    """Test cases for check_vgroup function"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_check_vgroup_exists(self, mock_loose_version):
+        """Test check_vgroup returns True when vgroup exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "vgroup1/volume1"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_volume_groups.return_value.status_code = 200
+
+        result = check_vgroup(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_check_vgroup_not_exists(self, mock_loose_version):
+        """Test check_vgroup returns False when vgroup doesn't exist"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {"name": "vgroup1/volume1"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_volume_groups.return_value.status_code = 404
+
+        result = check_vgroup(mock_module, mock_array)
+
+        assert result is False
+
+
+class TestGetEndpoint:
+    """Test cases for get_endpoint function"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_get_endpoint_exists(self, mock_loose_version):
+        """Test get_endpoint returns endpoint when it exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_endpoint = Mock()
+        mock_endpoint.name = "endpoint1"
+        mock_endpoint.subtype = "protocol_endpoint"  # Must be protocol_endpoint
+        mock_array.get_volumes.return_value.status_code = 200
+        mock_array.get_volumes.return_value.items = [mock_endpoint]
+
+        result = get_endpoint(mock_module, "endpoint1", mock_array)
+
+        assert result is not None
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_get_endpoint_not_exists(self, mock_loose_version):
+        """Test get_endpoint returns None when endpoint doesn't exist"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_volumes.return_value.status_code = 404
+
+        result = get_endpoint(mock_module, "endpoint1", mock_array)
+
+        assert result is None
+
+
+class TestGetMultiVolumes:
+    """Test cases for get_multi_volumes function"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_get_multi_volumes_all_exist(self, mock_loose_version):
+        """Test get_multi_volumes returns volume when all volumes exist"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "vol",
+            "count": 3,
+            "start": 0,
+            "digits": 1,
+            "suffix": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        # Return volumes for each check
+        mock_vol = Mock()
+        mock_vol.name = "vol0"
+        mock_array.get_volumes.return_value.status_code = 200
+        mock_array.get_volumes.return_value.items = [mock_vol]
+
+        result = get_multi_volumes(mock_module, mock_array)
+
+        # Returns the first volume when found
+        assert result is not None
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_get_multi_volumes_not_exist(self, mock_loose_version):
+        """Test get_multi_volumes returns None when volumes don't exist"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "vol",
+            "count": 3,
+            "start": 0,
+            "digits": 1,
+            "suffix": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_volumes.return_value.status_code = 404
+
+        result = get_multi_volumes(mock_module, mock_array)
+
+        assert result is None

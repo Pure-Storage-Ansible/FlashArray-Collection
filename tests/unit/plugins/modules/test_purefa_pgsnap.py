@@ -45,8 +45,11 @@ sys.modules[
 from plugins.modules.purefa_pgsnap import (
     _check_offload,
     get_pgroup,
+    get_pgroupvolume,
     get_pgsnapshot,
+    get_rpgsnapshot,
     create_pgsnapshot,
+    update_pgsnapshot,
     delete_pgsnapshot,
     eradicate_pgsnapshot,
 )
@@ -231,5 +234,70 @@ class TestEradicatePgsnapshot:
         mock_array.get_rest_version.return_value = "2.0"
 
         eradicate_pgsnapshot(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestGetRpgsnapshot:
+    """Test cases for get_rpgsnapshot function"""
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    def test_get_rpgsnapshot_exists(self, mock_loose_version):
+        """Test get_rpgsnapshot returns snapshot name when it exists"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-pg",
+            "suffix": "snap1",
+            "restore": "source-vol",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_volume_snapshots.return_value.status_code = 200
+
+        result = get_rpgsnapshot(mock_module, mock_array)
+
+        assert result == "test-pg.snap1.source-vol"
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    def test_get_rpgsnapshot_not_exists(self, mock_loose_version):
+        """Test get_rpgsnapshot returns None when snapshot doesn't exist"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-pg",
+            "suffix": "snap1",
+            "restore": "source-vol",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+        mock_array.get_volume_snapshots.return_value.status_code = 404
+
+        result = get_rpgsnapshot(mock_module, mock_array)
+
+        assert result is None
+
+
+class TestUpdatePgsnapshot:
+    """Test cases for update_pgsnapshot function"""
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    def test_update_pgsnapshot_check_mode(self, mock_loose_version):
+        """Test update_pgsnapshot in check mode"""
+        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-pg",
+            "suffix": "snap1",
+            "rename": "new-suffix",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"
+
+        update_pgsnapshot(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)

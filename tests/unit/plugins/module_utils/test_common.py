@@ -144,6 +144,11 @@ class TestHumanToReal:
         """Test that invalid unit returns 0."""
         assert human_to_real("100X") == 0
 
+    def test_non_numeric_digit_returns_zero(self):
+        """Test that non-numeric digit part returns 0."""
+        assert human_to_real("abcM") == 0
+        assert human_to_real("x.yK") == 0
+
 
 class TestConvertToMillisecs:
     """Tests for convert_to_millisecs function (12-hour clock)."""
@@ -205,3 +210,8 @@ class TestConvertTimeToMillisecs:
         """Test that units are case-insensitive."""
         assert convert_time_to_millisecs("1D") == 86400000
         assert convert_time_to_millisecs("1d") == 86400000
+
+    def test_non_numeric_value_returns_zero(self):
+        """Test that non-numeric value causes exception and returns 0."""
+        assert convert_time_to_millisecs("abcd") == 0
+        assert convert_time_to_millisecs("x.yw") == 0
