@@ -543,3 +543,124 @@ class TestCreatePgsnapshotSuccess:
 
         mock_array.post_protection_group_snapshots.assert_called_once()
         mock_module.exit_json.assert_called()
+
+
+class TestDeletePgsnapshotSuccess:
+    """Test cases for delete_pgsnapshot success paths"""
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_pgsnapshot_success(self, mock_lv, mock_check_response):
+        """Test delete_pgsnapshot deletes successfully"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "suffix": "snap1",
+            "context": "",
+            "eradicate": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_protection_group_snapshots.return_value = Mock(status_code=200)
+
+        delete_pgsnapshot(mock_module, mock_array)
+
+        mock_array.patch_protection_group_snapshots.assert_called_once()
+        mock_check_response.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_delete_pgsnapshot_check_mode(self):
+        """Test delete_pgsnapshot in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-pg",
+            "suffix": "snap1",
+            "context": "",
+            "eradicate": False,
+        }
+        mock_array = Mock()
+
+        delete_pgsnapshot(mock_module, mock_array)
+
+        mock_array.patch_protection_group_snapshots.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestEradicatePgsnapshotSuccess:
+    """Test cases for eradicate_pgsnapshot success paths"""
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_pgsnapshot_success(self, mock_lv, mock_check_response):
+        """Test eradicate_pgsnapshot eradicates successfully"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-pg", "suffix": "snap1", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+
+        eradicate_pgsnapshot(mock_module, mock_array)
+
+        mock_array.delete_protection_group_snapshots.assert_called_once()
+        mock_check_response.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_eradicate_pgsnapshot_check_mode(self):
+        """Test eradicate_pgsnapshot in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {"name": "test-pg", "suffix": "snap1", "context": ""}
+        mock_array = Mock()
+
+        eradicate_pgsnapshot(mock_module, mock_array)
+
+        mock_array.delete_protection_group_snapshots.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdatePgsnapshotExtended:
+    """Extended test cases for update_pgsnapshot"""
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_update_pgsnapshot_rename(self, mock_lv, mock_check_response):
+        """Test update_pgsnapshot with rename"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "suffix": "snap1",
+            "context": "",
+            "target": "snap2",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_protection_group_snapshots.return_value = Mock(status_code=200)
+
+        update_pgsnapshot(mock_module, mock_array)
+
+        mock_array.patch_protection_group_snapshots.assert_called_once()
+        mock_check_response.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_update_pgsnapshot_check_mode(self):
+        """Test update_pgsnapshot in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-pg",
+            "suffix": "snap1",
+            "context": "",
+            "target": "snap2",
+        }
+        mock_array = Mock()
+
+        update_pgsnapshot(mock_module, mock_array)
+
+        mock_array.patch_protection_group_snapshots.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
