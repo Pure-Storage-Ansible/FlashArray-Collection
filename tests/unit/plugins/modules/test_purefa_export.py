@@ -169,3 +169,103 @@ class TestDeleteExport:
 
         mock_array.delete_directory_exports.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_export.check_response")
+    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
+    def test_delete_export_smb_policy_success(self, mock_lv, mock_check_response):
+        """Test delete_export with SMB policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": None,
+            "smb_policy": "smb_policy1",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_directory_exports.return_value = Mock(status_code=200)
+        mock_array.delete_directory_exports.return_value = Mock(status_code=200)
+
+        delete_export(mock_module, mock_array)
+
+        mock_array.delete_directory_exports.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateExportExtended:
+    """Additional tests for create_export function"""
+
+    @patch("plugins.modules.purefa_export.check_response")
+    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
+    def test_create_export_nfs_policy_success(self, mock_lv, mock_check_response):
+        """Test create_export with NFS policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": "nfs_policy1",
+            "smb_policy": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_policies_nfs.return_value = Mock(status_code=200)
+        mock_array.get_directory_exports.return_value = Mock(status_code=400)
+        mock_array.post_directory_exports.return_value = Mock(status_code=200)
+
+        create_export(mock_module, mock_array)
+
+        mock_array.get_policies_nfs.assert_called_once()
+        mock_array.post_directory_exports.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
+    def test_create_export_check_mode(self, mock_lv):
+        """Test create_export in check mode"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": "nfs_policy1",
+            "smb_policy": None,
+            "context": "",
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_policies_nfs.return_value = Mock(status_code=200)
+        mock_array.get_directory_exports.return_value = Mock(status_code=400)
+
+        create_export(mock_module, mock_array)
+
+        mock_array.post_directory_exports.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
+    def test_create_export_already_exists(self, mock_lv):
+        """Test create_export when export already exists"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": "nfs_policy1",
+            "smb_policy": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_array.get_policies_nfs.return_value = Mock(status_code=200)
+        mock_array.get_directory_exports.return_value = Mock(status_code=200)
+
+        create_export(mock_module, mock_array)
+
+        mock_array.post_directory_exports.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=False)

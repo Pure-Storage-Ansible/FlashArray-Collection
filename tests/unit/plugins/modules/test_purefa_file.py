@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -69,3 +69,34 @@ class TestCheckDirs:
         _check_dirs(mock_module, mock_array)
 
         assert mock_array.get_directories.call_count == 2
+
+    @patch("plugins.modules.purefa_file.check_response")
+    def test_check_dirs_source_not_found(self, mock_check_response):
+        """Test _check_dirs when source directory doesn't exist"""
+        mock_module = Mock()
+        mock_module.params = {"source_dir": "missing_src", "target_dir": "tgt_dir"}
+        mock_array = Mock()
+        mock_response = Mock()
+        mock_response.status_code = 400
+        mock_array.get_directories.return_value = mock_response
+
+        _check_dirs(mock_module, mock_array)
+
+        mock_check_response.assert_called()
+
+    @patch("plugins.modules.purefa_file.check_response")
+    def test_check_dirs_target_not_found(self, mock_check_response):
+        """Test _check_dirs when target directory doesn't exist"""
+        mock_module = Mock()
+        mock_module.params = {"source_dir": "src_dir", "target_dir": "missing_tgt"}
+        mock_array = Mock()
+        mock_response1 = Mock()
+        mock_response1.status_code = 200
+        mock_response2 = Mock()
+        mock_response2.status_code = 400
+        mock_array.get_directories.side_effect = [mock_response1, mock_response2]
+
+        _check_dirs(mock_module, mock_array)
+
+        assert mock_array.get_directories.call_count == 2
+        mock_check_response.assert_called()
