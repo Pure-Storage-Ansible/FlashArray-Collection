@@ -50,6 +50,8 @@ sys.modules[
 
 from plugins.modules.purefa_syslog import (
     delete_syslog,
+    add_syslog,
+    test_syslog as syslog_test,
 )
 
 
@@ -83,3 +85,110 @@ class TestDeleteSyslog:
 
         mock_get_with_context.assert_called_once()
         mock_module.exit_json.assert_called_with(changed=True)
+
+
+class TestAddSyslog:
+    """Tests for add_syslog function"""
+
+    @patch("plugins.modules.purefa_syslog.get_with_context")
+    def test_add_syslog_check_mode(self, mock_get_with_context):
+        """Test add_syslog in check mode"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "syslog1",
+            "context": "",
+            "protocol": "tcp",
+            "address": "syslog.example.com",
+            "port": "514",
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+
+        add_syslog(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        mock_get_with_context.assert_not_called()
+
+    @patch("plugins.modules.purefa_syslog.check_response")
+    @patch("plugins.modules.purefa_syslog.get_with_context")
+    def test_add_syslog_success(self, mock_get_with_context, mock_check_response):
+        """Test add_syslog successfully adds"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "syslog1",
+            "context": "",
+            "protocol": "tcp",
+            "address": "syslog.example.com",
+            "port": "514",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        add_syslog(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_with(changed=True)
+
+
+class TestSyslogTest:
+    """Tests for test_syslog function"""
+
+    @patch("plugins.modules.purefa_syslog.get_with_context")
+    def test_syslog_test_success(self, mock_get_with_context):
+        """Test syslog_test returns test results"""
+        mock_module = Mock()
+        mock_module.params = {"name": "syslog1", "context": ""}
+        mock_array = Mock()
+
+        # Create mock test response component
+        mock_component = Mock()
+        mock_component.enabled = True
+        mock_component.success = True
+        mock_component.component_address = "192.168.1.100"
+        mock_component.component_name = "syslog1"
+        mock_component.description = "Test description"
+        mock_component.destination = "syslog.example.com"
+        mock_component.result_details = "Success"
+        mock_component.test_type = "tcp"
+        mock_component.resource = Mock()
+        mock_component.resource.name = "test-resource"
+
+        mock_get_with_context.return_value.items = [mock_component]
+
+        syslog_test(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args
+        assert call_args[1]["changed"] is True
+        assert len(call_args[1]["test_response"]) == 1
+        assert call_args[1]["test_response"][0]["enabled"] == "true"
+        assert call_args[1]["test_response"][0]["success"] == "true"
+
+    @patch("plugins.modules.purefa_syslog.get_with_context")
+    def test_syslog_test_disabled_and_failed(self, mock_get_with_context):
+        """Test syslog_test with disabled and failed component"""
+        mock_module = Mock()
+        mock_module.params = {"name": "syslog1", "context": ""}
+        mock_array = Mock()
+
+        mock_component = Mock()
+        mock_component.enabled = False
+        mock_component.success = False
+        mock_component.component_address = "192.168.1.100"
+        mock_component.component_name = "syslog1"
+        mock_component.description = "Test description"
+        mock_component.destination = "syslog.example.com"
+        mock_component.test_type = "tcp"
+        mock_component.resource = Mock()
+        mock_component.resource.name = "test-resource"
+        del mock_component.result_details
+
+        mock_get_with_context.return_value.items = [mock_component]
+
+        syslog_test(mock_module, mock_array)
+
+        call_args = mock_module.exit_json.call_args
+        assert call_args[1]["test_response"][0]["enabled"] == "false"
+        assert call_args[1]["test_response"][0]["success"] == "false"
