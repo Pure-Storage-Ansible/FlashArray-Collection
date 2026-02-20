@@ -9,6 +9,7 @@ __metaclass__ = type
 
 import sys
 from unittest.mock import Mock, patch, MagicMock
+from packaging.version import Version as LooseVersion
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -432,4 +433,61 @@ class TestUpdateSnapshot:
 
         update_snapshot(mock_module, mock_array)
 
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateSnapshotSuccess:
+    """Additional test cases for create_snapshot function"""
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion")
+    def test_create_snapshot_success(self, mock_loose_version, mock_check_response):
+        """Test create_snapshot successfully creates"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": None,
+            "throttle": True,
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volume_snapshots.return_value = Mock(status_code=200)
+
+        create_snapshot(mock_module, mock_array)
+
+        mock_array.post_volume_snapshots.assert_called_once()
+        # exit_json is called with changed=True and suffix
+        mock_module.exit_json.assert_called_once()
+
+
+class TestDeleteSnapshotSuccess:
+    """Additional test cases for delete_snapshot function"""
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion")
+    def test_delete_snapshot_success(self, mock_loose_version, mock_check_response):
+        """Test delete_snapshot successfully deletes"""
+        mock_loose_version.side_effect = LooseVersion
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "target": None,
+            "offload": None,
+            "context": "",
+            "eradicate": False,
+            "ignore_repl": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_volume_snapshots.return_value = Mock(status_code=200)
+
+        delete_snapshot(mock_module, mock_array)
+
+        mock_array.patch_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)

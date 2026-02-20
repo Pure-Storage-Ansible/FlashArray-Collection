@@ -167,4 +167,55 @@ class TestCreateInterface:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
+class TestDeleteInterface:
+    """Test cases for delete_interface function"""
+
+    def test_delete_interface_success(self):
+        """Test delete_interface successfully deletes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "ct0.eth2"}
+        mock_array = Mock()
+        mock_array.delete_network_interfaces.return_value = Mock(status_code=200)
+
+        delete_interface(mock_module, mock_array)
+
+        mock_array.delete_network_interfaces.assert_called_once_with(names=["ct0.eth2"])
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCheckSubinterfacesAdditional:
+    """Additional test cases for _check_subinterfaces function"""
+
+    def test_check_subinterfaces_multiple(self):
+        """Test _check_subinterfaces returns correct list"""
+        mock_module = Mock()
+        mock_module.params = {"name": "eth2"}
+        mock_array = Mock()
+
+        # Create mock interface with eth.subinterfaces
+        mock_interface = Mock()
+        mock_interface.eth = Mock()
+        mock_interface.eth.subinterfaces = ["eth2.100", "eth2.200"]
+        mock_array.get_network_interfaces.return_value = Mock(items=[mock_interface])
+
+        result = _check_subinterfaces(mock_module, mock_array)
+
+        assert result == ["eth2.100", "eth2.200"]
+
+    def test_check_subinterfaces_none(self):
+        """Test _check_subinterfaces with no subinterfaces"""
+        mock_module = Mock()
+        mock_module.params = {"name": "eth2"}
+        mock_array = Mock()
+
+        # Create mock interface with empty subinterfaces
+        mock_interface = Mock()
+        mock_interface.eth = Mock()
+        mock_interface.eth.subinterfaces = []
+        mock_array.get_network_interfaces.return_value = Mock(items=[mock_interface])
+
+        result = _check_subinterfaces(mock_module, mock_array)
+
+        assert result == []
 
