@@ -76,6 +76,12 @@ from plugins.modules.purefa_info import (
     generate_preset_dict,
     generate_workload_dict,
     generate_realms_dict,
+    generate_config_dict,
+    generate_filesystems_dict,
+    generate_pgsnaps_dict,
+    generate_dir_snaps_dict,
+    generate_policies_dict,
+    generate_clients_dict,
 )
 
 
@@ -1574,3 +1580,326 @@ class TestGenerateRealmsDict:
 
         assert "realm-1" in result
         assert result["realm-1"]["destroyed"] is False
+
+
+class TestGenerateConfigDict:
+    """Test cases for generate_config_dict function"""
+
+    @patch("plugins.modules.purefa_info.LooseVersion", side_effect=LooseVersion)
+    def test_generate_config_dict_success(self, mock_lv):
+        """Test generate_config_dict returns expected config info"""
+        mock_module = Mock()
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock array info
+        mock_array_info = Mock()
+        mock_array_info.console_lock_enabled = True
+        mock_array.get_arrays.return_value = Mock(items=[mock_array_info])
+
+        # Mock alert watchers
+        mock_watcher = Mock()
+        mock_watcher.name = "admin@example.com"
+        mock_watcher.enabled = True
+        mock_array.get_alert_watchers.return_value = Mock(items=[mock_watcher])
+
+        # Mock SNMP managers
+        mock_snmp_manager = Mock()
+        mock_snmp_manager.name = "snmp-manager-1"
+        mock_snmp_manager.host = "192.168.1.100"
+        mock_snmp_manager.version = "v3"
+        mock_snmp_manager.v3 = Mock(
+            user="snmpuser",
+            auth_password="***",
+            auth_protocol="SHA",
+            privacy_password="***",
+            privacy_protocol="AES",
+        )
+        mock_snmp_manager.v2c = Mock(community=None)
+        mock_snmp_manager.notification = "trap"
+        mock_array.get_snmp_managers.return_value = Mock(items=[mock_snmp_manager])
+
+        # Mock SNMP agent
+        mock_snmp_agent = Mock()
+        mock_snmp_agent.name = "snmp-agent"
+        mock_snmp_agent.version = "v3"
+        mock_snmp_agent.engine_id = "engine123"
+        mock_snmp_agent.v3 = Mock(
+            user="agent-user",
+            auth_password=None,
+            auth_protocol=None,
+            privacy_password=None,
+            privacy_protocol=None,
+        )
+        mock_snmp_agent.v2c = Mock(community=None)
+        mock_snmp_agent.notification = None
+        mock_array.get_snmp_agents.return_value = Mock(items=[mock_snmp_agent])
+
+        # Mock SMTP servers
+        mock_smtp = Mock()
+        mock_smtp.name = "smtp-server"
+        mock_smtp.password = ""
+        mock_smtp.user_name = ""
+        mock_smtp.encryption_mode = "starttls"
+        mock_smtp.relay_host = "smtp.example.com"
+        mock_smtp.sender_domain = "example.com"
+        mock_array.get_smtp_servers.return_value = Mock(items=[mock_smtp])
+
+        # Mock directory services
+        mock_ds = Mock()
+        mock_ds.name = "management"
+        mock_ds.base_dn = "dc=example,dc=com"
+        mock_ds.bind_user = "admin"
+        mock_ds.enabled = True
+        mock_ds.services = ["management"]
+        mock_ds.uris = ["ldap://ldap.example.com"]
+        mock_array.get_directory_services.return_value = Mock(items=[mock_ds])
+
+        # Mock directory service roles
+        mock_role = Mock()
+        mock_role.role = Mock(name="array_admin")
+        mock_role.group = "admins"
+        mock_role.group_base = "ou=groups"
+        mock_role.management_access_policies = [Mock(name="policy1")]
+        mock_array.get_directory_services_roles.return_value = Mock(items=[mock_role])
+
+        # Mock SMI-S
+        mock_smis = Mock()
+        mock_smis.slp_enabled = True
+        mock_smis.wbem_https_enabled = True
+        mock_array.get_smi_s.return_value = Mock(items=[mock_smis])
+
+        # Mock DNS
+        mock_dns = Mock()
+        mock_dns.services = ["management"]
+        mock_dns.nameservers = ["8.8.8.8"]
+        mock_dns.domain = "example.com"
+        mock_dns.source = Mock(name="ct0.eth0")
+        mock_array.get_dns.return_value = Mock(items=[mock_dns])
+
+        # Mock SAML2 (not available in older versions)
+        mock_array.get_sso_saml2_idps.return_value = Mock(items=[])
+
+        # Mock NTP
+        mock_ntp = Mock()
+        mock_ntp.ntp_servers = ["time.google.com"]
+        mock_ntp.source = Mock(name="ct0.eth0")
+        mock_array.get_arrays_ntp_test.return_value = Mock(status_code=400)
+        mock_array_info.ntp_symmetric_key = None
+        mock_array_info.time_zone = "UTC"
+        mock_array.get_arrays.return_value = Mock(items=[mock_array_info])
+
+        # Mock container default protections - must return iterable
+        mock_array.get_container_default_protections.return_value = Mock(items=[])
+
+        # Mock syslog servers
+        mock_array.get_syslog_servers.return_value = Mock(items=[])
+
+        # Mock support info
+        mock_support = Mock()
+        mock_support.phonehome_enabled = True
+        mock_support.proxy = ""
+        mock_array.get_support.return_value = Mock(items=[mock_support])
+
+        # Mock array info with idle/scsi timeout
+        mock_array_info.idle_timeout = 600000
+        mock_array_info.scsi_timeout = 30000
+
+        # Mock admin settings
+        mock_admin_settings = Mock()
+        mock_admin_settings.lockout_duration = 0
+        mock_admin_settings.max_login_attempts = 5
+        mock_admin_settings.min_password_length = 8
+        mock_admin_settings.single_sign_on_enabled = False
+        mock_array.get_admins_settings.return_value = Mock(items=[mock_admin_settings])
+
+        result = generate_config_dict(mock_module, mock_array)
+
+        assert "console_lock" in result
+        assert result["console_lock"] == "enabled"
+        assert "smtp" in result
+        assert "snmp" in result
+
+
+class TestGenerateFilesystemsDict:
+    """Test cases for generate_filesystems_dict function"""
+
+    @patch("plugins.modules.purefa_info.LooseVersion", side_effect=LooseVersion)
+    def test_generate_filesystems_dict_success(self, mock_lv):
+        """Test generate_filesystems_dict returns expected filesystem info"""
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock filesystem
+        mock_fs = Mock()
+        mock_fs.name = "fs1"
+        mock_fs.destroyed = False
+        mock_array.get_file_systems.return_value = Mock(items=[mock_fs])
+
+        # Mock directory
+        mock_dir = Mock()
+        mock_dir.name = "fs1:dir1"
+        mock_dir.directory_name = "dir1"
+        mock_dir.path = "/fs1/dir1"
+        mock_dir.destroyed = False
+        mock_dir.space = Mock(
+            data_reduction=2.5,
+            snapshots=1000,
+            thin_provisioning=0.8,
+            total_physical=2000,
+            total_provisioned=5000,
+            total_reduction=3.0,
+            total_used=1500,
+            unique=1200,
+            virtual=4000,
+            used_provisioned=3000,
+        )
+        mock_dir.limited_by = None
+        mock_array.get_directories.return_value = Mock(items=[mock_dir])
+
+        # Mock policies
+        mock_array.get_directories_policies.return_value = Mock(items=[])
+
+        # Mock exports
+        mock_array.get_directory_exports.return_value = Mock(items=[])
+
+        # Mock performance
+        mock_array.get_directories_performance.return_value = Mock(items=[])
+
+        result = generate_filesystems_dict(mock_array, performance=False)
+
+        assert "fs1" in result
+        assert result["fs1"]["destroyed"] is False
+        assert "directories" in result["fs1"]
+
+
+class TestGeneratePgsnapsDict:
+    """Test cases for generate_pgsnaps_dict function"""
+
+    def test_generate_pgsnaps_dict_success(self):
+        """Test generate_pgsnaps_dict returns expected snapshot info"""
+        mock_array = Mock()
+
+        # Mock protection group snapshot
+        mock_snap = Mock()
+        mock_snap.name = "pgroup1.snap1"
+        mock_snap.destroyed = False
+        mock_source = Mock()
+        mock_source.name = "pgroup1"
+        mock_snap.source = mock_source
+        mock_snap.suffix = "snap1"
+        mock_snap.space = Mock(snapshots=5000, used_provisioned=3000)
+        mock_snap.eradication_config = Mock(manual_eradication="all-enabled")
+        mock_array.get_protection_group_snapshots.return_value = Mock(items=[mock_snap])
+
+        result = generate_pgsnaps_dict(mock_array)
+
+        assert "pgroup1.snap1" in result
+        assert result["pgroup1.snap1"]["destroyed"] is False
+        assert result["pgroup1.snap1"]["source"] == "pgroup1"
+        assert result["pgroup1.snap1"]["suffix"] == "snap1"
+
+
+class TestGenerateDirSnapsDict:
+    """Test cases for generate_dir_snaps_dict function"""
+
+    @patch("plugins.modules.purefa_info.LooseVersion", side_effect=LooseVersion)
+    def test_generate_dir_snaps_dict_success(self, mock_lv):
+        """Test generate_dir_snaps_dict returns expected snapshot info"""
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock directory snapshot
+        mock_snap = Mock()
+        mock_snap.name = "fs1:dir1.snap1"
+        mock_snap.destroyed = False
+        mock_source = Mock()
+        mock_source.name = "fs1:dir1"
+        mock_snap.source = mock_source
+        mock_snap.suffix = "snap1"
+        mock_snap.client_name = "client1"
+        mock_snap.space = Mock(
+            snapshots=1000,
+            total_physical=2000,
+            unique=1500,
+            used_provisioned=1800,
+            total_used=1600,
+        )
+        mock_policy = Mock()
+        mock_policy.name = "snap-policy1"
+        mock_snap.policy = mock_policy
+        mock_snap.time_remaining = None
+        mock_array.get_directory_snapshots.return_value = Mock(items=[mock_snap])
+
+        result = generate_dir_snaps_dict(mock_array)
+
+        assert "fs1:dir1.snap1" in result
+        assert result["fs1:dir1.snap1"]["destroyed"] is False
+        assert result["fs1:dir1.snap1"]["source"] == "fs1:dir1"
+
+
+class TestGeneratePoliciesDict:
+    """Test cases for generate_policies_dict function"""
+
+    def test_generate_policies_dict_success(self):
+        """Test generate_policies_dict returns expected policy info"""
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock policy - using snapshot type to avoid NFS-specific code paths
+        mock_policy = Mock()
+        mock_policy.name = "snap-policy1"
+        mock_policy.policy_type = "snapshot"
+        mock_policy.enabled = True
+        mock_array.get_policies.return_value = Mock(items=[mock_policy])
+
+        # Mock directories_policies (for policy members) - must return iterable
+        mock_array.get_directories_policies.return_value = Mock(items=[])
+
+        # Mock snapshot rules
+        mock_rule = Mock()
+        mock_rule.at = 3600000  # 1:00
+        mock_rule.client_name = "client1"
+        mock_rule.every = 3600000  # 60 mins
+        mock_rule.keep_for = 86400000  # 24 hours
+        mock_rule.suffix = "hourly"
+        mock_array.get_policies_snapshot_rules.return_value = Mock(items=[mock_rule])
+
+        result = generate_policies_dict(
+            mock_array,
+            quota_available=False,
+            autodir_available=False,
+            nfs_user_mapping=False,
+        )
+
+        assert "snap-policy1" in result
+        assert result["snap-policy1"]["type"] == "snapshot"
+        assert result["snap-policy1"]["enabled"] is True
+
+
+class TestGenerateClientsDict:
+    """Test cases for generate_clients_dict function"""
+
+    def test_generate_clients_dict_success(self):
+        """Test generate_clients_dict returns expected API client info"""
+        mock_array = Mock()
+
+        # Mock API client
+        mock_client = Mock()
+        mock_client.name = "api-client-1"
+        mock_client.enabled = True
+        mock_client.id = "client-id-123"
+        mock_client.key_id = "key-id-456"
+        mock_client.issuer = "pure-storage"
+        mock_client.max_role = "array_admin"
+        mock_client.access_token_ttl_in_ms = 3600000
+        mock_client.public_key = "ssh-rsa AAAA..."
+        mock_client.access_policies = [Mock(name="full-access")]
+        mock_array.get_api_clients.return_value = Mock(items=[mock_client])
+
+        result = generate_clients_dict(mock_array)
+
+        assert "api-client-1" in result
+        assert result["api-client-1"]["enabled"] is True
+        assert result["api-client-1"]["client_id"] == "client-id-123"
+        assert result["api-client-1"]["access_token_ttl_seconds"] == 3600

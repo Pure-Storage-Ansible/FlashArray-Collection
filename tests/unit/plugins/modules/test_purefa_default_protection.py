@@ -52,6 +52,7 @@ from plugins.modules.purefa_default_protection import (
     _get_pod,
     _get_pg,
     delete_default,
+    create_default,
 )
 
 
@@ -127,4 +128,97 @@ class TestDeleteDefault:
 
         delete_default(mock_module, mock_array)
 
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_default_protection.check_response")
+    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    def test_delete_default_array_scope_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test delete_default with array scope"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"scope": "array", "name": ["pg1"], "context": ""}
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        delete_default(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_default_protection.check_response")
+    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    def test_delete_default_pod_scope_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test delete_default with pod scope"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "scope": "pod",
+            "name": ["pg1"],
+            "pod": "test-pod",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        delete_default(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateDefault:
+    """Test cases for create_default function"""
+
+    def test_create_default_check_mode(self):
+        """Test create_default in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {"scope": "array", "name": ["pg1"]}
+        mock_array = Mock()
+
+        create_default(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_default_protection.check_response")
+    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    def test_create_default_array_scope_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test create_default with array scope"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"scope": "array", "name": ["pg1"], "context": ""}
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        create_default(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_default_protection.check_response")
+    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    def test_create_default_pod_scope_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test create_default with pod scope"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "scope": "pod",
+            "name": ["pg1"],
+            "pod": "test-pod",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        create_default(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)

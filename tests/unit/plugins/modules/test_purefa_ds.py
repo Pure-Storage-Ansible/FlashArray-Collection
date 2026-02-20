@@ -101,3 +101,50 @@ class TestDsTest:
         assert len(call_args["test_response"]) == 1
         assert call_args["test_response"][0]["enabled"] == "true"
         assert call_args["test_response"][0]["success"] == "true"
+
+
+class TestDeleteDsExtended:
+    """Extended tests for delete_ds function"""
+
+    @patch("plugins.modules.purefa_ds.check_response")
+    @patch("plugins.modules.purefa_ds.get_with_context")
+    def test_delete_ds_management_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test deleting management directory service"""
+        mock_module = Mock()
+        mock_module.params = {"dstype": "management", "context": ""}
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        delete_ds(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_ds.check_response")
+    @patch("plugins.modules.purefa_ds.get_with_context")
+    def test_delete_ds_data_success(self, mock_get_with_context, mock_check_response):
+        """Test deleting data directory service"""
+        mock_module = Mock()
+        mock_module.params = {"dstype": "data", "context": ""}
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        delete_ds(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_delete_ds_data_check_mode(self):
+        """Test delete_ds in check mode for data type"""
+        mock_module = Mock()
+        mock_module.params = {"dstype": "data", "context": ""}
+        mock_module.check_mode = True
+        mock_array = Mock()
+
+        delete_ds(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)

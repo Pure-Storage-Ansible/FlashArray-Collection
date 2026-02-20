@@ -50,6 +50,8 @@ from plugins.modules.purefa_network import (
     update_interface,
     create_interface,
     _check_subinterfaces,
+    _create_subordinates,
+    _create_subinterfaces,
 )
 
 
@@ -320,3 +322,148 @@ class TestUpdateInterface:
 
         mock_array.patch_network_interfaces.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestCreateSubordinates:
+    """Test cases for _create_subordinates function"""
+
+    def test_create_subordinates_success(self):
+        """Test creating subordinates with valid interfaces"""
+        mock_module = Mock()
+        mock_module.params = {"subordinates": ["ct0.eth0", "ct1.eth0"]}
+        mock_array = Mock()
+        mock_array.get_network_interfaces.return_value = Mock(status_code=200)
+
+        v1, v2 = _create_subordinates(mock_module, mock_array)
+
+        assert len(v1) == 2
+        assert "ct0.eth0" in v1
+        assert "ct1.eth0" in v1
+        assert len(v2) == 2
+
+    def test_create_subordinates_empty(self):
+        """Test creating subordinates with no subordinates specified"""
+        mock_module = Mock()
+        mock_module.params = {"subordinates": None}
+        mock_array = Mock()
+
+        v1, v2 = _create_subordinates(mock_module, mock_array)
+
+        assert v1 == []
+        assert v2 == []
+
+    def test_create_subordinates_not_exists(self):
+        """Test creating subordinates when interface doesn't exist"""
+        mock_module = Mock()
+        mock_module.params = {"subordinates": ["ct0.eth0"]}
+        mock_array = Mock()
+        mock_array.get_network_interfaces.return_value = Mock(status_code=400)
+
+        _create_subordinates(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestCreateSubinterfaces:
+    """Test cases for _create_subinterfaces function"""
+
+    def test_create_subinterfaces_lacp(self):
+        """Test creating subinterfaces with LACP interfaces"""
+        mock_module = Mock()
+        mock_module.params = {"subinterfaces": ["ct0.lacp0.eth0"]}
+        mock_array = Mock()
+        mock_array.get_network_interfaces.return_value = Mock(status_code=200)
+        mock_array.get_controllers.return_value = Mock(items=[Mock(), Mock()])
+
+        v1, v2 = _create_subinterfaces(mock_module, mock_array)
+
+        assert len(v1) == 1
+        assert "ct0.lacp0.eth0" in v1
+        assert len(v2) == 1
+
+    def test_create_subinterfaces_empty(self):
+        """Test creating subinterfaces with no subinterfaces specified"""
+        mock_module = Mock()
+        mock_module.params = {"subinterfaces": None}
+        mock_array = Mock()
+        mock_array.get_controllers.return_value = Mock(items=[Mock(), Mock()])
+
+        v1, v2 = _create_subinterfaces(mock_module, mock_array)
+
+        assert v1 == []
+        assert v2 == []
+
+    def test_create_subinterfaces_non_lacp(self):
+        """Test creating subinterfaces with non-LACP interfaces (dual controller)"""
+        mock_module = Mock()
+        mock_module.params = {"subinterfaces": ["eth0"]}
+        mock_array = Mock()
+        mock_array.get_network_interfaces.return_value = Mock(status_code=200)
+        mock_array.get_controllers.return_value = Mock(items=[Mock(), Mock()])
+
+        v1, v2 = _create_subinterfaces(mock_module, mock_array)
+
+        assert len(v1) == 2
+        assert "ct0.eth0" in v1
+        assert "ct1.eth0" in v1
+        assert len(v2) == 2
+
+    def test_create_subinterfaces_single_controller(self):
+        """Test creating subinterfaces on single controller (Purity VM)"""
+        mock_module = Mock()
+        mock_module.params = {"subinterfaces": ["eth0"]}
+        mock_array = Mock()
+        mock_array.get_network_interfaces.return_value = Mock(status_code=200)
+        mock_array.get_controllers.return_value = Mock(
+            items=[Mock()]
+        )  # Single controller
+
+        v1, v2 = _create_subinterfaces(mock_module, mock_array)
+
+        assert len(v1) == 1
+        assert "ct0.eth0" in v1
+        assert len(v2) == 1
+
+
+class TestCreateInterfaceExtended:
+    """Extended test cases for create_interface function"""
+
+    @patch("plugins.modules.purefa_network._create_subinterfaces")
+    def test_create_interface_vif_check_mode(self, mock_create_subinterfaces):
+        """Test creating a VIF interface in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "ct0.vif0",
+            "subnet": "test-subnet",
+            "interface": "vif",
+            "subinterfaces": None,
+        }
+        mock_array = Mock()
+        mock_array.get_subnets.return_value = Mock(status_code=200)
+        mock_create_subinterfaces.return_value = ([], [])
+
+        create_interface(mock_module, mock_array)
+
+        mock_array.post_network_interfaces.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_network._create_subordinates")
+    def test_create_interface_lacpbond_check_mode(self, mock_create_subordinates):
+        """Test creating a LACP bond interface in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "ct0.bond0",
+            "subnet": "test-subnet",
+            "interface": "lacpbond",
+            "subordinates": ["ct0.eth0", "ct1.eth0"],
+        }
+        mock_array = Mock()
+        mock_array.get_subnets.return_value = Mock(status_code=200)
+        mock_create_subordinates.return_value = ([], [])
+
+        create_interface(mock_module, mock_array)
+
+        mock_array.post_network_interfaces.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)

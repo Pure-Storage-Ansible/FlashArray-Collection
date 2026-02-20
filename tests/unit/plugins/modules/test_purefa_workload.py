@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -48,6 +48,7 @@ from plugins.modules.purefa_workload import (
     recover_workload,
     rename_workload,
     create_workload,
+    expand_workload,
     connect_or_disconnect_volumes,
 )
 
@@ -231,3 +232,203 @@ class TestConnectOrDisconnectVolumes:
         connect_or_disconnect_volumes(mock_module, mock_array, "connect")
 
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestDeleteWorkloadSuccess:
+    """Additional test cases for delete_workload function"""
+
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_delete_workload_success(self, mock_check_response):
+        """Test delete_workload successfully deletes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-workload",
+            "context": "pod1",
+            "eradicate": False,
+        }
+        mock_array = Mock()
+        mock_array.patch_workloads.return_value = Mock(status_code=200)
+
+        delete_workload(mock_module, mock_array)
+
+        mock_array.patch_workloads.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestEradicateWorkloadSuccess:
+    """Additional test cases for eradicate_workload function"""
+
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_eradicate_workload_success(self, mock_check_response):
+        """Test eradicate_workload successfully eradicates"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-workload", "context": "pod1"}
+        mock_array = Mock()
+        mock_array.delete_workloads.return_value = Mock(status_code=200)
+
+        eradicate_workload(mock_module, mock_array)
+
+        mock_array.delete_workloads.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRecoverWorkloadSuccess:
+    """Additional test cases for recover_workload function"""
+
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_recover_workload_success(self, mock_check_response):
+        """Test recover_workload successfully recovers without host"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-workload", "context": "pod1", "host": ""}
+        mock_array = Mock()
+        mock_array.patch_workloads.return_value = Mock(status_code=200)
+
+        recover_workload(mock_module, mock_array)
+
+        mock_array.patch_workloads.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRenameWorkloadSuccess:
+    """Additional test cases for rename_workload function"""
+
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_rename_workload_success(self, mock_check_response):
+        """Test rename_workload successfully renames"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "old-workload",
+            "rename": "new-workload",
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        mock_array.patch_workloads.return_value = Mock(status_code=200)
+
+        rename_workload(mock_module, mock_array)
+
+        mock_array.patch_workloads.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateWorkloadSuccess:
+    """Test cases for create_workload function success scenarios"""
+
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_create_workload_success(self, mock_check_response):
+        """Test create_workload successfully creates"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-workload",
+            "preset": "test-preset",
+            "context": "pod1",
+            "recommendation": False,
+            "host": "",
+        }
+        mock_array = Mock()
+        mock_array.post_workloads.return_value = Mock(status_code=200)
+        mock_fleet = Mock()
+        mock_preset_config = Mock()
+        mock_preset_config.parameters = Mock()
+        mock_preset_config.periodic_replication_configurations = Mock()
+        mock_preset_config.placement_configurations = Mock()
+        mock_preset_config.qos_configurations = Mock()
+        mock_preset_config.snapshot_configurations = Mock()
+        mock_preset_config.volume_configurations = Mock()
+        mock_preset_config.workload_tags = Mock()
+
+        create_workload(mock_module, mock_array, mock_fleet, mock_preset_config)
+
+        mock_array.post_workloads.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_create_workload_check_mode(self):
+        """Test create_workload in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-workload",
+            "preset": "test-preset",
+            "context": "pod1",
+            "recommendation": False,
+            "host": "",
+        }
+        mock_array = Mock()
+        mock_fleet = Mock()
+        mock_preset_config = Mock()
+        mock_preset_config.parameters = Mock()
+        mock_preset_config.periodic_replication_configurations = Mock()
+        mock_preset_config.placement_configurations = Mock()
+        mock_preset_config.qos_configurations = Mock()
+        mock_preset_config.snapshot_configurations = Mock()
+        mock_preset_config.volume_configurations = Mock()
+        mock_preset_config.workload_tags = Mock()
+
+        create_workload(mock_module, mock_array, mock_fleet, mock_preset_config)
+
+        mock_array.post_workloads.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestExpandWorkloadSuccess:
+    """Test cases for expand_workload function success scenarios"""
+
+    @patch("plugins.modules.purefa_workload._connect_volumes")
+    @patch("plugins.modules.purefa_workload._create_volume")
+    def test_expand_workload_success(self, mock_create_vol, mock_connect_vols):
+        """Test expand_workload successfully expands"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-workload",
+            "preset": "test-preset",
+            "context": "pod1",
+            "volume_configuration": "vol-config1",
+            "volume_count": 2,
+            "host": "host1",
+        }
+        mock_array = Mock()
+        mock_fleet = Mock()
+        # Create volume config that matches
+        mock_vol_config = Mock()
+        mock_vol_config.name = "vol-config1"
+        volume_configs = [mock_vol_config]
+
+        expand_workload(mock_module, mock_array, mock_fleet, volume_configs)
+
+        assert mock_create_vol.call_count == 2
+        mock_connect_vols.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_workload._create_volume")
+    def test_expand_workload_no_match_fails(self, mock_create_vol):
+        """Test expand_workload fails when no volume config matches"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-workload",
+            "preset": "test-preset",
+            "context": "pod1",
+            "volume_configuration": "nonexistent-config",
+            "volume_count": 2,
+            "host": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_fleet = Mock()
+        # Create volume config with different name
+        mock_vol_config = Mock()
+        mock_vol_config.name = "other-config"
+        volume_configs = [mock_vol_config]
+
+        with pytest.raises(SystemExit):
+            expand_workload(mock_module, mock_array, mock_fleet, volume_configs)
+
+        mock_create_vol.assert_not_called()
+        mock_module.fail_json.assert_called_once()
