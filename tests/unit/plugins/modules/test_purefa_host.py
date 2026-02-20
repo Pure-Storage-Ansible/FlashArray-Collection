@@ -870,3 +870,103 @@ class TestUpdateHostInitiators:
         result = _update_host_initiators(mock_module, mock_array)
 
         assert result is False
+
+
+class TestDeleteHostSuccess:
+    """Test cases for delete_host success paths"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_delete_host_success(self, mock_get_with_context, mock_check_response):
+        """Test delete_host successfully deletes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "host1", "context": ""}
+        mock_array = Mock()
+        # Mock host that doesn't belong to a host group
+        mock_host = Mock()
+        mock_host.host_group = None
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        delete_host(mock_module, mock_array)
+
+        mock_get_with_context.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestSetHostPersonalityExtended:
+    """Extended test cases for _set_host_personality"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_set_host_personality_linux(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test _set_host_personality with linux personality"""
+        mock_module = Mock()
+        mock_module.params = {"name": "host1", "personality": "linux", "context": ""}
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        _set_host_personality(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_check_response.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_set_host_personality_delete(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test _set_host_personality with delete"""
+        mock_module = Mock()
+        mock_module.params = {"name": "host1", "personality": "delete", "context": ""}
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        _set_host_personality(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+
+
+class TestSetPreferredArrayExtended:
+    """Extended test cases for _set_preferred_array"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_set_preferred_array_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test _set_preferred_array sets arrays"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "preferred_array": ["array1"],
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        _set_preferred_array(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_check_response.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_set_preferred_array_delete(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test _set_preferred_array with delete"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "preferred_array": ["delete"],
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        _set_preferred_array(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()

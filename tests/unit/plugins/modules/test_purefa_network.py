@@ -467,3 +467,82 @@ class TestCreateInterfaceExtended:
 
         mock_array.post_network_interfaces.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteInterfaceSuccess:
+    """Test cases for delete_interface success paths"""
+
+    @patch("plugins.modules.purefa_network.check_response")
+    def test_delete_interface_success(self, mock_check_response):
+        """Test delete_interface successfully deletes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "ct0.eth2.100"}
+        mock_array = Mock()
+        mock_array.delete_network_interfaces.return_value = Mock(status_code=200)
+
+        delete_interface(mock_module, mock_array)
+
+        mock_array.delete_network_interfaces.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateFcInterfaceExtended:
+    """Extended test cases for update_fc_interface"""
+
+    @patch("plugins.modules.purefa_network.check_response")
+    def test_update_fc_interface_disable_success(self, mock_check_response):
+        """Test disabling FC interface successfully"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "ct0.fc1", "state": "absent", "servicelist": None}
+        mock_array = Mock()
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+        mock_interface = Mock()
+        mock_interface.enabled = True
+        mock_interface.services = []
+
+        update_fc_interface(mock_module, mock_array, mock_interface)
+
+        mock_array.patch_network_interfaces.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_network.check_response")
+    def test_update_fc_interface_update_services(self, mock_check_response):
+        """Test updating FC interface services"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "ct0.fc1",
+            "state": "present",
+            "servicelist": ["replication"],
+        }
+        mock_array = Mock()
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+        mock_interface = Mock()
+        mock_interface.enabled = True
+        mock_interface.services = ["management"]
+
+        update_fc_interface(mock_module, mock_array, mock_interface)
+
+        mock_array.patch_network_interfaces.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_update_fc_interface_no_change(self):
+        """Test update_fc_interface when no change needed"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "ct0.fc1",
+            "state": "present",
+            "servicelist": None,
+        }
+        mock_array = Mock()
+        mock_interface = Mock()
+        mock_interface.enabled = True
+        mock_interface.services = []
+
+        update_fc_interface(mock_module, mock_array, mock_interface)
+
+        mock_array.patch_network_interfaces.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=False)
