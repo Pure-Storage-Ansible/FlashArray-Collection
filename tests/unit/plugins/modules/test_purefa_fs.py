@@ -49,7 +49,6 @@ from plugins.modules.purefa_fs import (
     eradicate_fs,
     rename_fs,
     create_fs,
-    move_fs,
 )
 
 
