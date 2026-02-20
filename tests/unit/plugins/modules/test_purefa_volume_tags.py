@@ -51,6 +51,9 @@ sys.modules[
 from plugins.modules.purefa_volume_tags import (
     get_volume,
     get_endpoint,
+    create_tag,
+    update_tags,
+    delete_tags,
 )
 
 
@@ -117,3 +120,144 @@ class TestGetEndpoint:
         result = get_endpoint(mock_module, mock_array)
 
         assert result is None
+
+
+class TestCreateTag:
+    """Tests for create_tag function"""
+
+    def test_create_tag_check_mode(self):
+        """Test create_tag in check mode"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-vol",
+            "context": "",
+            "kvp": ["env:prod", "team:devops"],
+            "copyable": True,
+            "namespace": "default",
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+
+        create_tag(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_volume_tags.check_response")
+    @patch("plugins.modules.purefa_volume_tags.get_with_context")
+    def test_create_tag_success(self, mock_get_with_context, mock_check_response):
+        """Test create_tag successfully creates tags"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-vol",
+            "context": "",
+            "kvp": ["env:prod", "team:devops"],
+            "copyable": True,
+            "namespace": "default",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        create_tag(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateTags:
+    """Tests for update_tags function"""
+
+    def test_update_tags_no_change(self):
+        """Test update_tags when tags already exist"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-vol",
+            "context": "",
+            "kvp": ["env:prod"],
+            "copyable": True,
+            "namespace": "default",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        # Current tags already include the new tag
+        mock_tag = Mock()
+        mock_tag.key = "env"
+        mock_tag.value = "prod"
+        current_tags = [mock_tag]
+
+        update_tags(mock_module, mock_array, current_tags)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_volume_tags.check_response")
+    @patch("plugins.modules.purefa_volume_tags.get_with_context")
+    def test_update_tags_with_new_tags(self, mock_get_with_context, mock_check_response):
+        """Test update_tags when adding new tags"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-vol",
+            "context": "",
+            "kvp": ["env:prod", "team:devops"],
+            "copyable": True,
+            "namespace": "default",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        # Current tags only have one tag
+        mock_tag = Mock()
+        mock_tag.key = "env"
+        mock_tag.value = "prod"
+        current_tags = [mock_tag]
+
+        update_tags(mock_module, mock_array, current_tags)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_update_tags_check_mode_with_changes(self):
+        """Test update_tags in check mode when changes would be made"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-vol",
+            "context": "",
+            "kvp": ["env:prod", "team:devops"],
+            "copyable": True,
+            "namespace": "default",
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+
+        # Current tags are empty
+        current_tags = []
+
+        update_tags(mock_module, mock_array, current_tags)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteTags:
+    """Tests for delete_tags function"""
+
+    def test_delete_tags_no_match(self):
+        """Test delete_tags when tags don't match"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-vol",
+            "context": "",
+            "kvp": ["nonexistent"],
+            "namespace": "default",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        # Current tags don't include the tag to delete
+        mock_tag = Mock()
+        mock_tag.key = "env"
+        current_tags = [mock_tag]
+
+        delete_tags(mock_module, mock_array, current_tags)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
