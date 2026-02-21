@@ -507,6 +507,13 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.common impo
     convert_to_millisecs,
     convert_time_to_millisecs,
 )
+from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    post_with_context,
+    patch_with_context,
+    delete_with_context,
+    check_response,
+)
 
 MIN_REQUIRED_API_VERSION = "2.3"
 MIN_QUOTA_API_VERSION = "2.7"
@@ -525,102 +532,84 @@ CA_VERSION = "2.43"
 def rename_policy(module, array):
     """Rename a file system policy"""
     changed = False
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        res = array.get_policies(
-            names=[module.params["rename"]], context_names=[module.params["context"]]
-        )
-    else:
-        res = array.get_policies(names=[module.params["rename"]])
-    if res.status_code != 200:
+    # Check if target policy name already exists
+    # If status_code == 200, the target policy EXISTS, so we should fail
+    res = get_with_context(
+        array, "get_policies", CONTEXT_VERSION, module, names=[module.params["rename"]]
+    )
+    if res.status_code == 200:
         module.fail_json(
-            msg="Rename failed - Target policy {0} already exists".format(
-                module.params["rename"]
-            )
+            msg=f"Rename failed - Target policy {module.params['rename']} already exists"
         )
     if not module.check_mode:
         changed = True
-        if module.params["policy"] == "nfs":
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.patch_policies_nfs(
-                    names=[module.params["name"]],
-                    policy=PolicyPatch(name=module.params["rename"]),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_policies_nfs(
-                    names=[module.params["name"]],
-                    policy=PolicyPatch(name=module.params["rename"]),
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to rename NFS policy {0} to {1}".format(
-                        module.params["name"], module.params["rename"]
-                    )
-                )
-        elif module.params["policy"] == "smb":
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.patch_policies_smb(
-                    names=[module.params["name"]],
-                    policy=PolicyPatch(name=module.params["rename"]),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_policies_smb(
-                    names=[module.params["name"]],
-                    policy=PolicyPatch(name=module.params["rename"]),
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to rename SMB policy {0} to {1}".format(
-                        module.params["name"], module.params["rename"]
-                    )
-                )
-        elif module.params["policy"] == "snapshot":
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.patch_policies_snapshot(
-                    names=[module.params["name"]],
-                    policy=PolicyPatch(name=module.params["rename"]),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_policies_snapshot(
-                    names=[module.params["name"]],
-                    policy=PolicyPatch(name=module.params["rename"]),
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to rename snapshot policy {0} to {1}".format(
-                        module.params["name"], module.params["rename"]
-                    )
-                )
-        elif module.params["policy"] == "password":
+        policy_type = module.params["policy"]
+        policy_patch = PolicyPatch(name=module.params["rename"])
+
+        if policy_type == "nfs":
+            res = patch_with_context(
+                array,
+                "patch_policies_nfs",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+                policy=policy_patch,
+            )
+            check_response(
+                res,
+                module,
+                f"Renaming NFS policy {module.params['name']} to {module.params['rename']}",
+            )
+        elif policy_type == "smb":
+            res = patch_with_context(
+                array,
+                "patch_policies_smb",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+                policy=policy_patch,
+            )
+            check_response(
+                res,
+                module,
+                f"Renaming SMB policy {module.params['name']} to {module.params['rename']}",
+            )
+        elif policy_type == "snapshot":
+            res = patch_with_context(
+                array,
+                "patch_policies_snapshot",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+                policy=policy_patch,
+            )
+            check_response(
+                res,
+                module,
+                f"Renaming snapshot policy {module.params['name']} to {module.params['rename']}",
+            )
+        elif policy_type == "password":
             module.fail_json(msg="Password policy rename is not yet supported")
-        else:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.patch_policies_quota(
-                    names=[module.params["name"]],
-                    policy=PolicyPatch(name=module.params["rename"]),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_policies_quota(
-                    names=[module.params["name"]],
-                    policy=PolicyPatch(name=module.params["rename"]),
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to rename quota policy {0} to {1}".format(
-                        module.params["name"], module.params["rename"]
-                    )
-                )
+        else:  # quota
+            res = patch_with_context(
+                array,
+                "patch_policies_quota",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+                policy=policy_patch,
+            )
+            check_response(
+                res,
+                module,
+                f"Renaming quota policy {module.params['name']} to {module.params['rename']}",
+            )
     module.exit_json(changed=changed)
 
 
 def delete_policy(module, array):
     """Delete a file system policy or rule within a policy"""
     changed = True
-    api_version = array.get_rest_version()
     if not module.check_mode:
         changed = False
         if module.params["policy"] == "password":
@@ -628,35 +617,29 @@ def delete_policy(module, array):
             changed = False
         if module.params["policy"] == "nfs":
             if not module.params["client"]:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.delete_policies_nfs(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.delete_policies_nfs(names=[module.params["name"]])
+                res = delete_with_context(
+                    array,
+                    "delete_policies_nfs",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                )
                 if res.status_code == 200:
                     changed = True
                 else:
                     module.fail_json(
-                        msg="Deletion of NFS policy {0} failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
+                        msg=f"Deletion of NFS policy {module.params['name']} failed. "
+                        f"Error: {res.errors[0].message}"
                     )
             else:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    rules = list(
-                        array.get_policies_nfs_client_rules(
-                            policy_names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                        ).items
-                    )
-                else:
-                    rules = list(
-                        array.get_policies_nfs_client_rules(
-                            policy_names=[module.params["name"]]
-                        ).items
-                    )
+                rules_res = get_with_context(
+                    array,
+                    "get_policies_nfs_client_rules",
+                    CONTEXT_VERSION,
+                    module,
+                    policy_names=[module.params["name"]],
+                )
+                rules = list(rules_res.items) if rules_res.status_code == 200 else []
                 if rules:
                     rule_name = ""
                     for rule in rules:
@@ -664,64 +647,47 @@ def delete_policy(module, array):
                             rule_name = rule.name
                             break
                     if rule_name:
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                            deleted = bool(
-                                array.delete_policies_nfs_client_rules(
-                                    policy_names=[module.params["name"]],
-                                    names=[rule_name],
-                                    context_names=[module.params["context"]],
-                                ).status_code
-                                == 200
-                            )
-                        else:
-                            deleted = bool(
-                                array.delete_policies_nfs_client_rules(
-                                    policy_names=[module.params["name"]],
-                                    names=[rule_name],
-                                ).status_code
-                                == 200
-                            )
-                        if deleted:
+                        res = delete_with_context(
+                            array,
+                            "delete_policies_nfs_client_rules",
+                            CONTEXT_VERSION,
+                            module,
+                            policy_names=[module.params["name"]],
+                            names=[rule_name],
+                        )
+                        if res.status_code == 200:
                             changed = True
                         else:
                             module.fail_json(
-                                msg="Failed to delete client {0} from NFS policy {1}. Error: {2}".format(
-                                    module.params["client"],
-                                    module.params["name"],
-                                    deleted.errors[0].message,
-                                )
+                                msg=f"Failed to delete client {module.params['client']} "
+                                f"from NFS policy {module.params['name']}. "
+                                f"Error: {res.errors[0].message}"
                             )
         elif module.params["policy"] == "smb":
             if not module.params["client"]:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.delete_policies_smb(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.delete_policies_smb(names=[module.params["name"]])
+                res = delete_with_context(
+                    array,
+                    "delete_policies_smb",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                )
                 if res.status_code == 200:
                     changed = True
                 else:
                     module.fail_json(
-                        msg="Deletion of SMB policy {0} failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
+                        msg=f"Deletion of SMB policy {module.params['name']} failed. "
+                        f"Error: {res.errors[0].message}"
                     )
             else:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    rules = list(
-                        array.get_policies_smb_client_rules(
-                            policy_names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                        ).items
-                    )
-                else:
-                    rules = list(
-                        array.get_policies_smb_client_rules(
-                            policy_names=[module.params["name"]]
-                        ).items
-                    )
+                rules_res = get_with_context(
+                    array,
+                    "get_policies_smb_client_rules",
+                    CONTEXT_VERSION,
+                    module,
+                    policy_names=[module.params["name"]],
+                )
+                rules = list(rules_res.items) if rules_res.status_code == 200 else []
                 if rules:
                     rule_name = ""
                     for rule in rules:
@@ -729,116 +695,77 @@ def delete_policy(module, array):
                             rule_name = rule.name
                             break
                     if rule_name:
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                            deleted = bool(
-                                array.delete_policies_smb_client_rules(
-                                    policy_names=[module.params["name"]],
-                                    names=[rule_name],
-                                    context_names=[module.params["context"]],
-                                ).status_code
-                                == 200
-                            )
-                        else:
-                            deleted = bool(
-                                array.delete_policies_smb_client_rules(
-                                    policy_names=[module.params["name"]],
-                                    names=[rule_name],
-                                ).status_code
-                                == 200
-                            )
-                        if deleted:
+                        res = delete_with_context(
+                            array,
+                            "delete_policies_smb_client_rules",
+                            CONTEXT_VERSION,
+                            module,
+                            policy_names=[module.params["name"]],
+                            names=[rule_name],
+                        )
+                        if res.status_code == 200:
                             changed = True
                         else:
                             module.fail_json(
-                                msg="Failed to delete client {0} from SMB policy {1}. Error: {2}".format(
-                                    module.params["client"],
-                                    module.params["name"],
-                                    deleted.errors[0].message,
-                                )
+                                msg=f"Failed to delete client {module.params['client']} "
+                                f"from SMB policy {module.params['name']}. "
+                                f"Error: {res.errors[0].message}"
                             )
         elif module.params["policy"] == "snapshot":
             if not module.params["snap_client_name"] and not module.params["directory"]:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.delete_policies_snapshot(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.delete_policies_snapshot(names=[module.params["name"]])
+                res = delete_with_context(
+                    array,
+                    "delete_policies_snapshot",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                )
                 if res.status_code == 200:
                     changed = True
                 else:
                     module.fail_json(
-                        msg="Deletion of Snapshot policy {0} failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
+                        msg=f"Deletion of Snapshot policy {module.params['name']} failed. "
+                        f"Error: {res.errors[0].message}"
                     )
             if module.params["directory"]:
-                dirs = []
-                old_dirs = []
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    current_dirs = list(
-                        array.get_directories_policies_snapshot(
-                            policy_names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                        ).items
-                    )
-                else:
-                    current_dirs = list(
-                        array.get_directories_policies_snapshot(
-                            policy_names=[module.params["name"]]
-                        ).items
-                    )
-                if current_dirs:
-                    for current_dir in current_dirs:
-                        dirs.append(current_dir.member.name)
-                    for old_dir in module.params["directory"]:
-                        if old_dir in dirs:
-                            old_dirs.append(old_dir)
-                else:
-                    pass
+                dirs_res = get_with_context(
+                    array,
+                    "get_directories_policies_snapshot",
+                    CONTEXT_VERSION,
+                    module,
+                    policy_names=[module.params["name"]],
+                )
+                current_dirs = (
+                    list(dirs_res.items) if dirs_res.status_code == 200 else []
+                )
+                dirs = [d.member.name for d in current_dirs]
+                old_dirs = [d for d in module.params["directory"] if d in dirs]
                 if old_dirs:
                     changed = True
                     for rem_dir in old_dirs:
                         if not module.check_mode:
-                            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
-                                api_version
-                            ):
-                                directory_removed = (
-                                    array.delete_directories_policies_snapshot(
-                                        member_names=[rem_dir],
-                                        policy_names=module.params["name"],
-                                        context_names=[module.params["context"]],
-                                    )
-                                )
-                            else:
-                                directory_removed = (
-                                    array.delete_directories_policies_snapshot(
-                                        member_names=[rem_dir],
-                                        policy_names=module.params["name"],
-                                    )
-                                )
+                            directory_removed = delete_with_context(
+                                array,
+                                "delete_directories_policies_snapshot",
+                                CONTEXT_VERSION,
+                                module,
+                                member_names=[rem_dir],
+                                policy_names=module.params["name"],
+                            )
                             if directory_removed.status_code != 200:
                                 module.fail_json(
-                                    msg="Failed to remove directory from Snapshot policy {0}. Error: {1}".format(
-                                        module.params["name"],
-                                        directory_removed.errors[0].message,
-                                    )
+                                    msg=f"Failed to remove directory from Snapshot policy "
+                                    f"{module.params['name']}. Error: {directory_removed.errors[0].message}"
                                 )
             if module.params["snap_client_name"]:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    rules = list(
-                        array.get_policies_snapshot_rules(
-                            policy_names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                        ).items
-                    )
-                else:
-                    rules = list(
-                        array.get_policies_snapshot_rules(
-                            policy_names=[module.params["name"]]
-                        ).items
-                    )
+                rules_res = get_with_context(
+                    array,
+                    "get_policies_snapshot_rules",
+                    CONTEXT_VERSION,
+                    module,
+                    policy_names=[module.params["name"]],
+                )
+                rules = list(rules_res.items) if rules_res.status_code == 200 else []
                 if rules:
                     rule_name = ""
                     for rule in rules:
@@ -846,118 +773,79 @@ def delete_policy(module, array):
                             rule_name = rule.name
                             break
                     if rule_name:
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                            deleted = bool(
-                                array.delete_policies_snapshot_rules(
-                                    policy_names=[module.params["name"]],
-                                    names=[rule_name],
-                                    context_names=[module.params["context"]],
-                                ).status_code
-                                == 200
-                            )
-                        else:
-                            deleted = bool(
-                                array.delete_policies_snapshot_rules(
-                                    policy_names=[module.params["name"]],
-                                    names=[rule_name],
-                                ).status_code
-                                == 200
-                            )
-                        if deleted:
+                        res = delete_with_context(
+                            array,
+                            "delete_policies_snapshot_rules",
+                            CONTEXT_VERSION,
+                            module,
+                            policy_names=[module.params["name"]],
+                            names=[rule_name],
+                        )
+                        if res.status_code == 200:
                             changed = True
                         else:
                             module.fail_json(
-                                msg="Failed to delete client {0} from Snapshot policy {1}. Error: {2}".format(
-                                    module.params["snap_client_name"],
-                                    module.params["name"],
-                                    deleted.errors[0].message,
-                                )
+                                msg=f"Failed to delete client {module.params['snap_client_name']} "
+                                f"from Snapshot policy {module.params['name']}. "
+                                f"Error: {res.errors[0].message}"
                             )
         elif module.params["policy"] == "autodir":
             if not module.params["directory"]:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.delete_policies_autodir(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.delete_policies_autodir(names=[module.params["name"]])
+                res = delete_with_context(
+                    array,
+                    "delete_policies_autodir",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                )
                 if res.status_code == 200:
                     changed = True
                 else:
                     module.fail_json(
-                        msg="Deletion of Autodir policy {0} failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
+                        msg=f"Deletion of Autodir policy {module.params['name']} failed. "
+                        f"Error: {res.errors[0].message}"
                     )
             if module.params["directory"]:
-                dirs = []
-                old_dirs = []
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    current_dirs = list(
-                        array.get_directories_policies_autodir(
-                            policy_names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                        ).items
-                    )
-                else:
-                    current_dirs = list(
-                        array.get_directories_policies_autodir(
-                            policy_names=[module.params["name"]]
-                        ).items
-                    )
-                if current_dirs:
-                    for current_dir in current_dirs:
-                        dirs.append(current_dir.member.name)
-                    for old_dir in module.params["directory"]:
-                        if old_dir in dirs:
-                            old_dirs.append(old_dir)
-                else:
-                    pass
+                dirs_res = get_with_context(
+                    array,
+                    "get_directories_policies_autodir",
+                    CONTEXT_VERSION,
+                    module,
+                    policy_names=[module.params["name"]],
+                )
+                current_dirs = (
+                    list(dirs_res.items) if dirs_res.status_code == 200 else []
+                )
+                dirs = [d.member.name for d in current_dirs]
+                old_dirs = [d for d in module.params["directory"] if d in dirs]
                 if old_dirs:
                     changed = True
                     for rem_dir in old_dirs:
                         if not module.check_mode:
-                            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
-                                api_version
-                            ):
-                                directory_removed = (
-                                    array.delete_directories_policies_autodir(
-                                        member_names=[rem_dir],
-                                        policy_names=module.params["name"],
-                                        context_names=[module.params["context"]],
-                                    )
-                                )
-                            else:
-                                directory_removed = (
-                                    array.delete_directories_policies_autodir(
-                                        member_names=[rem_dir],
-                                        policy_names=module.params["name"],
-                                    )
-                                )
+                            directory_removed = delete_with_context(
+                                array,
+                                "delete_directories_policies_autodir",
+                                CONTEXT_VERSION,
+                                module,
+                                member_names=[rem_dir],
+                                policy_names=module.params["name"],
+                            )
                             if directory_removed.status_code != 200:
                                 module.fail_json(
-                                    msg="Failed to remove directory from Autodir policy {0}. Error: {1}".format(
-                                        module.params["name"],
-                                        directory_removed.errors[0].message,
-                                    )
+                                    msg=f"Failed to remove directory from Autodir policy "
+                                    f"{module.params['name']}. Error: {directory_removed.errors[0].message}"
                                 )
         else:  # quota
             if module.params["quota_limit"]:
                 quota_limit = human_to_bytes(module.params["quota_limit"])
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    rules = list(
-                        array.get_policies_quota_rules(
-                            policy_names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                        ).items
-                    )
-                else:
-                    rules = list(
-                        array.get_policies_quota_rules(
-                            policy_names=[module.params["name"]]
-                        ).items
-                    )
+                rules_res = get_with_context(
+                    array,
+                    "get_policies_quota_rules",
+                    CONTEXT_VERSION,
+                    module,
+                    policy_names=[module.params["name"]],
+                )
+                rules = list(rules_res.items) if rules_res.status_code == 200 else []
                 if rules:
                     for rule in rules:
                         if rule.quota_limit == quota_limit:
@@ -966,120 +854,92 @@ def delete_policy(module, array):
                                 and ",".join(module.params["quota_notifications"])
                                 == rule.notifications
                             ):
-                                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
-                                    api_version
-                                ):
-                                    res = array.delete_policies_quota_rules(
-                                        policy_names=[module.params["name"]],
-                                        names=[rule.name],
-                                        context_names=[module.params["context"]],
-                                    )
-                                else:
-                                    res = array.delete_policies_quota_rules(
-                                        policy_names=[module.params["name"]],
-                                        names=[rule.name],
-                                    )
+                                res = delete_with_context(
+                                    array,
+                                    "delete_policies_quota_rules",
+                                    CONTEXT_VERSION,
+                                    module,
+                                    policy_names=[module.params["name"]],
+                                    names=[rule.name],
+                                )
                                 if res.status_code == 200:
                                     changed = True
                                 else:
                                     module.fail_json(
-                                        msg="Deletion of Quota rule failed. Error: {0}".format(
-                                            res.errors[0].message
-                                        )
+                                        msg=f"Deletion of Quota rule failed. "
+                                        f"Error: {res.errors[0].message}"
                                     )
             if module.params["directory"]:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    members = list(
-                        array.get_policies_quota_members(
-                            policy_names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                        ).items
-                    )
-                else:
-                    members = list(
-                        array.get_policies_quota_members(
-                            policy_names=[module.params["name"]]
-                        ).items
-                    )
+                members_res = get_with_context(
+                    array,
+                    "get_policies_quota_members",
+                    CONTEXT_VERSION,
+                    module,
+                    policy_names=[module.params["name"]],
+                )
+                members = (
+                    list(members_res.items) if members_res.status_code == 200 else []
+                )
                 if members:
                     for member in members:
                         if member.member.name in module.params["directory"]:
-                            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
-                                api_version
-                            ):
-                                res = array.delete_policies_quota_members(
-                                    policy_names=[module.params["name"]],
-                                    member_names=[member.member.name],
-                                    member_types="directories",
-                                    context_names=[module.params["context"]],
-                                )
-                            else:
-                                res = array.delete_policies_quota_members(
-                                    policy_names=[module.params["name"]],
-                                    member_names=[member.member.name],
-                                    member_types="directories",
-                                )
+                            res = delete_with_context(
+                                array,
+                                "delete_policies_quota_members",
+                                CONTEXT_VERSION,
+                                module,
+                                policy_names=[module.params["name"]],
+                                member_names=[member.member.name],
+                                member_types="directories",
+                            )
                             if res.status_code != 200:
                                 module.fail_json(
-                                    msg="Deletion of Quota member {0} from policy {1}. Error: {2}".format(
-                                        member.member.name,
-                                        module.params["name"],
-                                        res.errors[0].message,
-                                    )
+                                    msg=f"Deletion of Quota member {member.member.name} "
+                                    f"from policy {module.params['name']}. "
+                                    f"Error: {res.errors[0].message}"
                                 )
                             else:
                                 changed = True
             if not module.params["quota_limit"] and not module.params["directory"]:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    members = list(
-                        array.get_policies_quota_members(
-                            policy_names=[module.params["name"]],
-                            context_names=[module.params["context"]],
-                        ).items
-                    )
-                else:
-                    members = list(
-                        array.get_policies_quota_members(
-                            policy_names=[module.params["name"]]
-                        ).items
-                    )
+                members_res = get_with_context(
+                    array,
+                    "get_policies_quota_members",
+                    CONTEXT_VERSION,
+                    module,
+                    policy_names=[module.params["name"]],
+                )
+                members = (
+                    list(members_res.items) if members_res.status_code == 200 else []
+                )
                 if members:
-                    member_names = []
-                    for member in members:
-                        member_names.append(member.member.name)
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.delete_policies_quota_members(
-                            policy_names=[module.params["name"]],
-                            member_names=member_names,
-                            member_types="directories",
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.delete_policies_quota_members(
-                            policy_names=[module.params["name"]],
-                            member_names=member_names,
-                            member_types="directories",
-                        )
+                    member_names = [m.member.name for m in members]
+                    res = delete_with_context(
+                        array,
+                        "delete_policies_quota_members",
+                        CONTEXT_VERSION,
+                        module,
+                        policy_names=[module.params["name"]],
+                        member_names=member_names,
+                        member_types="directories",
+                    )
                     if res.status_code != 200:
                         module.fail_json(
-                            msg="Deletion of Quota members {0} failed. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
+                            msg=f"Deletion of Quota members {module.params['name']} failed. "
+                            f"Error: {res.errors[0].message}"
                         )
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.delete_policies_quota(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.delete_policies_quota(names=[module.params["name"]])
+                res = delete_with_context(
+                    array,
+                    "delete_policies_quota",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                )
                 if res.status_code == 200:
                     changed = True
                 else:
                     module.fail_json(
-                        msg="Deletion of Quota policy {0} failed. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
+                        msg=f"Deletion of Quota policy {module.params['name']} failed. "
+                        f"Error: {res.errors[0].message}"
                     )
     module.exit_json(changed=changed)
 
@@ -1091,18 +951,14 @@ def create_policy(module, array, all_squash):
     if not module.check_mode:
         changed = False
         if module.params["policy"] == "nfs":
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.post_policies_nfs(
-                    names=[module.params["name"]],
-                    policy=PolicyPost(enabled=module.params["enabled"]),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.post_policies_nfs(
-                    names=[module.params["name"]],
-                    policy=PolicyPost(enabled=module.params["enabled"]),
-                )
-
+            res = post_with_context(
+                array,
+                "post_policies_nfs",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+                policy=PolicyPost(enabled=module.params["enabled"]),
+            )
             if res.status_code == 200:
                 changed = True
                 if module.params["client"]:
@@ -1121,148 +977,118 @@ def create_policy(module, array, all_squash):
                             permission=module.params["nfs_permission"],
                         )
                     rule = PolicyRuleNfsClientPost(rules=[rules])
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.post_policies_nfs_client_rules(
-                            policy_names=[module.params["name"]],
-                            rules=rule,
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.post_policies_nfs_client_rules(
-                            policy_names=[module.params["name"]], rules=rule
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to create rule for NFS policy {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = post_with_context(
+                        array,
+                        "post_policies_nfs_client_rules",
+                        CONTEXT_VERSION,
+                        module,
+                        policy_names=[module.params["name"]],
+                        rules=rule,
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Creating rule for NFS policy {module.params['name']}",
+                    )
                 policy = PolicyNfsPatch(
                     user_mapping_enabled=module.params["user_mapping"],
                 )
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_policies_nfs(
-                        names=[module.params["name"]],
-                        policy=policy,
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_policies_nfs(
-                        names=[module.params["name"]], policy=policy
-                    )
-                if res.status_code != 200:
-                    module.fail_json(
-                        msg="Failed to set NFS policy user_mapping {0}. Error: {1}".format(
-                            module.params["name"], res.errors[0].message
-                        )
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_policies_nfs",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    policy=policy,
+                )
+                check_response(
+                    res,
+                    module,
+                    f"Setting NFS policy user_mapping {module.params['name']}",
+                )
                 if (
-                    LooseVersion(array.get_rest_version()) >= LooseVersion(NFS_VERSION)
+                    LooseVersion(api_version) >= LooseVersion(NFS_VERSION)
                     and module.params["client"]
                     and module.params["nfs_version"]
                 ):
                     policy = PolicyNfsPatch(
                         nfs_version=module.params["nfs_version"],
                     )
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.patch_policies_nfs(
-                            names=[module.params["name"]],
-                            policy=policy,
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.patch_policies_nfs(
-                            names=[module.params["name"]], policy=policy
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to set NFS policy version {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = patch_with_context(
+                        array,
+                        "patch_policies_nfs",
+                        CONTEXT_VERSION,
+                        module,
+                        names=[module.params["name"]],
+                        policy=policy,
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Setting NFS policy version {module.params['name']}",
+                    )
                 if (
-                    LooseVersion(array.get_rest_version())
-                    >= LooseVersion(SECURITY_VERSION)
+                    LooseVersion(api_version) >= LooseVersion(SECURITY_VERSION)
                     and module.params["security"]
                 ):
                     policy = PolicyNfsPatch(
                         security=module.params["security"],
                     )
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.patch_policies_nfs(
-                            names=[module.params["name"]],
-                            policy=policy,
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.patch_policies_nfs(
-                            names=[module.params["name"]], policy=policy
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to set NFS policy security {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = patch_with_context(
+                        array,
+                        "patch_policies_nfs",
+                        CONTEXT_VERSION,
+                        module,
+                        names=[module.params["name"]],
+                        policy=policy,
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Setting NFS policy security {module.params['name']}",
+                    )
             else:
                 module.fail_json(
-                    msg="Failed to create NFS policy {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
+                    msg=f"Failed to create NFS policy {module.params['name']}. "
+                    f"Error: {res.errors[0].message}"
                 )
         elif module.params["policy"] == "smb":
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.post_policies_smb(
-                    names=[module.params["name"]],
-                    policy=PolicyPost(enabled=module.params["enabled"]),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.post_policies_smb(
-                    names=[module.params["name"]],
-                    policy=PolicyPost(enabled=module.params["enabled"]),
-                )
+            res = post_with_context(
+                array,
+                "post_policies_smb",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+                policy=PolicyPost(enabled=module.params["enabled"]),
+            )
             if res.status_code == 200:
-                if LooseVersion(ABE_VERSION) <= LooseVersion(array.get_rest_version()):
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        if LooseVersion(CA_VERSION) <= LooseVersion(api_version):
-                            res = array.patch_policies_smb(
-                                names=[module.params["name"]],
-                                context_names=[module.params["context"]],
-                                policy=PolicySmbPatch(
-                                    access_based_enumeration_enabled=module.params[
-                                        "access_based_enumeration"
-                                    ],
-                                    continuous_availability_enabled=module.params[
-                                        "continuous_availability"
-                                    ],
-                                ),
-                            )
-                        else:
-                            res = array.patch_policies_smb(
-                                names=[module.params["name"]],
-                                context_names=[module.params["context"]],
-                                policy=PolicySmbPatch(
-                                    access_based_enumeration_enabled=module.params[
-                                        "access_based_enumeration"
-                                    ]
-                                ),
-                            )
+                if LooseVersion(ABE_VERSION) <= LooseVersion(api_version):
+                    if LooseVersion(CA_VERSION) <= LooseVersion(api_version):
+                        smb_policy = PolicySmbPatch(
+                            access_based_enumeration_enabled=module.params[
+                                "access_based_enumeration"
+                            ],
+                            continuous_availability_enabled=module.params[
+                                "continuous_availability"
+                            ],
+                        )
                     else:
-                        res = array.patch_policies_smb(
-                            names=[module.params["name"]],
-                            policy=PolicySmbPatch(
-                                access_based_enumeration_enabled=module.params[
-                                    "access_based_enumeration"
-                                ]
-                            ),
+                        smb_policy = PolicySmbPatch(
+                            access_based_enumeration_enabled=module.params[
+                                "access_based_enumeration"
+                            ]
                         )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to set SMB policy {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = patch_with_context(
+                        array,
+                        "patch_policies_smb",
+                        CONTEXT_VERSION,
+                        module,
+                        names=[module.params["name"]],
+                        policy=smb_policy,
+                    )
+                    check_response(
+                        res, module, f"Setting SMB policy {module.params['name']}"
+                    )
                 if module.params["client"]:
                     rules = PolicyrulesmbclientpostRules(
                         anonymous_access_allowed=module.params["smb_anon_allowed"],
@@ -1270,45 +1096,37 @@ def create_policy(module, array, all_squash):
                         smb_encryption_required=module.params["smb_encrypt"],
                     )
                     rule = PolicyRuleSmbClientPost(rules=[rules])
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.post_policies_smb_client_rules(
-                            policy_names=[module.params["name"]],
-                            rules=rule,
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.post_policies_smb_client_rules(
-                            policy_names=[module.params["name"]], rules=rule
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to create rule for SMB policy {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = post_with_context(
+                        array,
+                        "post_policies_smb_client_rules",
+                        CONTEXT_VERSION,
+                        module,
+                        policy_names=[module.params["name"]],
+                        rules=rule,
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Creating rule for SMB policy {module.params['name']}",
+                    )
                 changed = True
             else:
                 module.fail_json(
-                    msg="Failed to create SMB policy {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
+                    msg=f"Failed to create SMB policy {module.params['name']}. "
+                    f"Error: {res.errors[0].message}"
                 )
         elif module.params["policy"] == "snapshot":
             suffix_enabled = bool(
-                LooseVersion(array.get_rest_version())
-                >= LooseVersion(MIN_SUFFIX_API_VERSION)
+                LooseVersion(api_version) >= LooseVersion(MIN_SUFFIX_API_VERSION)
             )
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.post_policies_snapshot(
-                    names=[module.params["name"]],
-                    policy=PolicyPost(enabled=module.params["enabled"]),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.post_policies_snapshot(
-                    names=[module.params["name"]],
-                    policy=PolicyPost(enabled=module.params["enabled"]),
-                )
+            res = post_with_context(
+                array,
+                "post_policies_snapshot",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+                policy=PolicyPost(enabled=module.params["enabled"]),
+            )
             if res.status_code == 200:
                 changed = True
                 if module.params["snap_client_name"]:
@@ -1351,22 +1169,19 @@ def create_policy(module, array, all_squash):
                                 keep_for=module.params["snap_keep_for"] * 60000,
                             )
                     rule = PolicyRuleSnapshotPost(rules=[rules])
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.post_policies_snapshot_rules(
-                            policy_names=[module.params["name"]],
-                            rules=rule,
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.post_policies_snapshot_rules(
-                            policy_names=[module.params["name"]], rules=rule
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to create rule for Snapshot policy {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = post_with_context(
+                        array,
+                        "post_policies_snapshot_rules",
+                        CONTEXT_VERSION,
+                        module,
+                        policy_names=[module.params["name"]],
+                        rules=rule,
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Creating rule for Snapshot policy {module.params['name']}",
+                    )
                 if module.params["directory"]:
                     policies = DirectoryPolicyPost(
                         policies=[
@@ -1375,43 +1190,35 @@ def create_policy(module, array, all_squash):
                             )
                         ]
                     )
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.post_directories_policies_snapshot(
-                            member_names=module.params["directory"],
-                            policies=policies,
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.post_directories_policies_snapshot(
-                            member_names=module.params["directory"], policies=policies
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to add directory for Snapshot policy {0}. Error: {1}".format(
-                                module.params["name"],
-                                res.errors[0].message,
-                            )
-                        )
+                    res = post_with_context(
+                        array,
+                        "post_directories_policies_snapshot",
+                        CONTEXT_VERSION,
+                        module,
+                        member_names=module.params["directory"],
+                        policies=policies,
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Adding directory for Snapshot policy {module.params['name']}",
+                    )
             else:
                 module.fail_json(
-                    msg="Failed to create Snapshot policy {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
+                    msg=f"Failed to create Snapshot policy {module.params['name']}. "
+                    f"Error: {res.errors[0].message}"
                 )
         elif module.params["policy"] == "password":
             module.fail_json(msg="Password policy creation is not yet supported")
         elif module.params["policy"] == "autodir":
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.post_policies_autodir(
-                    names=[module.params["name"]],
-                    policy=PolicyPost(enabled=module.params["enabled"]),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.post_policies_autodir(
-                    names=[module.params["name"]],
-                    policy=PolicyPost(enabled=module.params["enabled"]),
-                )
+            res = post_with_context(
+                array,
+                "post_policies_autodir",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+                policy=PolicyPost(enabled=module.params["enabled"]),
+            )
             if res.status_code == 200:
                 changed = True
                 if module.params["directory"]:
@@ -1422,41 +1229,33 @@ def create_policy(module, array, all_squash):
                             )
                         ]
                     )
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.post_directories_policies_autodir(
-                            member_names=module.params["directory"],
-                            policies=policies,
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.post_directories_policies_autodir(
-                            member_names=module.params["directory"], policies=policies
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to add directory for Autodir policy {0}. Error: {1}".format(
-                                module.params["name"],
-                                res.errors[0].message,
-                            )
-                        )
+                    res = post_with_context(
+                        array,
+                        "post_directories_policies_autodir",
+                        CONTEXT_VERSION,
+                        module,
+                        member_names=module.params["directory"],
+                        policies=policies,
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Adding directory for Autodir policy {module.params['name']}",
+                    )
             else:
                 module.fail_json(
-                    msg="Failed to create Autodir policy {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
+                    msg=f"Failed to create Autodir policy {module.params['name']}. "
+                    f"Error: {res.errors[0].message}"
                 )
         else:  # quota
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.post_policies_quota(
-                    names=[module.params["name"]],
-                    policy=PolicyPost(enabled=module.params["enabled"]),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.post_policies_quota(
-                    names=[module.params["name"]],
-                    policy=PolicyPost(enabled=module.params["enabled"]),
-                )
+            res = post_with_context(
+                array,
+                "post_policies_quota",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+                policy=PolicyPost(enabled=module.params["enabled"]),
+            )
             if res.status_code == 200:
                 changed = True
                 if module.params["quota_limit"]:
@@ -1467,25 +1266,20 @@ def create_policy(module, array, all_squash):
                         notifications=",".join(module.params["quota_notifications"]),
                     )
                     rule = PolicyRuleQuotaPost(rules=[rules])
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.post_policies_quota_rules(
-                            policy_names=[module.params["name"]],
-                            rules=rule,
-                            ignore_usage=module.params["ignore_usage"],
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.post_policies_quota_rules(
-                            policy_names=[module.params["name"]],
-                            rules=rule,
-                            ignore_usage=module.params["ignore_usage"],
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to create rule for Quota policy {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = post_with_context(
+                        array,
+                        "post_policies_quota_rules",
+                        CONTEXT_VERSION,
+                        module,
+                        policy_names=[module.params["name"]],
+                        rules=rule,
+                        ignore_usage=module.params["ignore_usage"],
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Creating rule for Quota policy {module.params['name']}",
+                    )
                 if module.params["directory"]:
                     members = []
                     for mem in module.params["directory"]:
@@ -1498,31 +1292,24 @@ def create_policy(module, array, all_squash):
                             )
                         )
                     member = PolicyMemberPost(members=members)
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.post_policies_quota_members(
-                            policy_names=[module.params["name"]],
-                            members=member,
-                            ignore_usage=module.params["ignore_usage"],
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.post_policies_quota_members(
-                            policy_names=[module.params["name"]],
-                            members=member,
-                            ignore_usage=module.params["ignore_usage"],
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to add members to Quota policy {0}. Error: {1}".format(
-                                module.params["name"],
-                                res.errors[0].message,
-                            )
-                        )
+                    res = post_with_context(
+                        array,
+                        "post_policies_quota_members",
+                        CONTEXT_VERSION,
+                        module,
+                        policy_names=[module.params["name"]],
+                        members=member,
+                        ignore_usage=module.params["ignore_usage"],
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Adding members to Quota policy {module.params['name']}",
+                    )
             else:
                 module.fail_json(
-                    msg="Failed to create Quota policy {0}. Error: {1}".format(
-                        module.params["name"], res.errors[0].message
-                    )
+                    msg=f"Failed to create Quota policy {module.params['name']}. "
+                    f"Error: {res.errors[0].message}"
                 )
     module.exit_json(changed=changed)
 
@@ -1533,32 +1320,27 @@ def update_policy(module, array, api_version, all_squash):
         changed_member
     ) = changed_user_map = changed_abe = changed_ca = changed_nfs = False
     if module.params["policy"] == "nfs":
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            current_policy = list(
-                array.get_policies_nfs(
-                    names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                ).items
-            )[0]
-        else:
-            current_policy = list(
-                array.get_policies_nfs(names=[module.params["name"]]).items
-            )[0]
+        res = get_with_context(
+            array,
+            "get_policies_nfs",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["name"]],
+        )
+        current_policy = list(res.items)[0]
         current_enabled = current_policy.enabled
         res = {}
         if LooseVersion(USER_MAP_VERSION) <= LooseVersion(api_version):
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.get_policies_nfs(
-                    names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.get_policies_nfs(names=[module.params["name"]])
+            res = get_with_context(
+                array,
+                "get_policies_nfs",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+            )
         if res.status_code != 200:
             module.fail_json(
-                msg="Incorrect policy type specified for existing policy {0}".format(
-                    module.params["name"]
-                )
+                msg=f"Incorrect policy type specified for existing policy {module.params['name']}"
             )
         else:
             current_user_map = list(res.items)[0].user_mapping_enabled
@@ -1567,22 +1349,17 @@ def update_policy(module, array, api_version, all_squash):
         ) != sorted(getattr(current_policy, "nfs_version", [])):
             changed_nfs = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_policies_nfs(
-                        names=[module.params["name"]],
-                        policy=PolicyNfsPatch(nfs_version=module.params["nfs_version"]),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_policies_nfs(
-                        names=[module.params["name"]],
-                        policy=PolicyNfsPatch(nfs_version=module.params["nfs_version"]),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_policies_nfs",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    policy=PolicyNfsPatch(nfs_version=module.params["nfs_version"]),
+                )
                 if res.status_code != 200:
                     module.exit_json(
-                        msg="Failed to change NFS version for NFS policy {0}".format(
-                            module.params["name"]
-                        )
+                        msg=f"Failed to change NFS version for NFS policy {module.params['name']}"
                     )
         if (
             module.params["user_mapping"]
@@ -1590,61 +1367,44 @@ def update_policy(module, array, api_version, all_squash):
         ):
             changed_user_map = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_policies_nfs(
-                        names=[module.params["name"]],
-                        policy=PolicyNfsPatch(
-                            user_mapping_enabled=module.params["user_mapping"]
-                        ),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_policies_nfs(
-                        names=[module.params["name"]],
-                        policy=PolicyNfsPatch(
-                            user_mapping_enabled=module.params["user_mapping"]
-                        ),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_policies_nfs",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    policy=PolicyNfsPatch(
+                        user_mapping_enabled=module.params["user_mapping"]
+                    ),
+                )
                 if res.status_code != 200:
                     module.exit_json(
-                        msg="Failed to enable/disable User Mapping for NFS policy {0}".format(
-                            module.params["name"]
-                        )
+                        msg=f"Failed to enable/disable User Mapping for NFS policy {module.params['name']}"
                     )
         if current_enabled != module.params["enabled"]:
             changed_enable = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_policies_nfs(
-                        names=[module.params["name"]],
-                        policy=PolicyPatch(enabled=module.params["enabled"]),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_policies_nfs(
-                        names=[module.params["name"]],
-                        policy=PolicyPatch(enabled=module.params["enabled"]),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_policies_nfs",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    policy=PolicyPatch(enabled=module.params["enabled"]),
+                )
                 if res.status_code != 200:
                     module.exit_json(
-                        msg="Failed to enable/disable NFS policy {0}".format(
-                            module.params["name"]
-                        )
+                        msg=f"Failed to enable/disable NFS policy {module.params['name']}"
                     )
         if module.params["client"]:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                rules = list(
-                    array.get_policies_nfs_client_rules(
-                        policy_names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )
-            else:
-                rules = list(
-                    array.get_policies_nfs_client_rules(
-                        policy_names=[module.params["name"]]
-                    ).items
-                )
+            res = get_with_context(
+                array,
+                "get_policies_nfs_client_rules",
+                CONTEXT_VERSION,
+                module,
+                policy_names=[module.params["name"]],
+            )
+            rules = list(res.items)
             if rules:
                 rule_name = ""
                 for rule in rules:
@@ -1726,23 +1486,19 @@ def update_policy(module, array, api_version, all_squash):
                     rule = PolicyRuleNfsClientPost(rules=[rules])
                     changed_rule = True
                     if not module.check_mode:
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                            res = array.post_policies_nfs_client_rules(
-                                policy_names=[module.params["name"]],
-                                rules=rule,
-                                context_names=[module.params["context"]],
-                            )
-                        else:
-                            res = array.post_policies_nfs_client_rules(
-                                policy_names=[module.params["name"]], rules=rule
-                            )
-                        if res.status_code != 200:
-                            module.fail_json(
-                                msg="Failed to create new rule for NFS policy {0}. Error: {1}".format(
-                                    module.params["name"],
-                                    res.errors[0].message,
-                                )
-                            )
+                        res = post_with_context(
+                            array,
+                            "post_policies_nfs_client_rules",
+                            CONTEXT_VERSION,
+                            module,
+                            policy_names=[module.params["name"]],
+                            rules=rule,
+                        )
+                        check_response(
+                            res,
+                            module,
+                            f"Creating new rule for NFS policy {module.params['name']}",
+                        )
             else:
                 if all_squash:
                     rules = PolicyrulenfsclientpostRules(
@@ -1761,30 +1517,27 @@ def update_policy(module, array, api_version, all_squash):
                 rule = PolicyRuleNfsClientPost(rules=[rules])
                 changed_rule = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.post_policies_nfs_client_rules(
-                            policy_names=[module.params["name"]],
-                            rules=rule,
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.post_policies_nfs_client_rules(
-                            policy_names=[module.params["name"]], rules=rule
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to create new rule for SMB policy {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = post_with_context(
+                        array,
+                        "post_policies_nfs_client_rules",
+                        CONTEXT_VERSION,
+                        module,
+                        policy_names=[module.params["name"]],
+                        rules=rule,
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Creating new rule for NFS policy {module.params['name']}",
+                    )
     elif module.params["policy"] == "smb":
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.get_policies_smb(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.get_policies_smb(names=[module.params["name"]])
+        res = get_with_context(
+            array,
+            "get_policies_smb",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["name"]],
+        )
         if res.status_code == 200:
             current = list(res.items)[0]
             current_enabled = current.enabled
@@ -1796,9 +1549,7 @@ def update_policy(module, array, api_version, all_squash):
             )
         else:
             module.fail_json(
-                msg="Incorrect policy type specified for existing policy {0}".format(
-                    module.params["name"]
-                )
+                msg=f"Incorrect policy type specified for existing policy {module.params['name']}"
             )
         if (
             "access_based_enumeration" in module.params
@@ -1807,30 +1558,21 @@ def update_policy(module, array, api_version, all_squash):
         ):
             changed_abe = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_policies_smb(
-                        names=[module.params["name"]],
-                        policy=PolicySmbPatch(
-                            access_based_enumeration_enabled=module.params[
-                                "access_based_enumeration"
-                            ]
-                        ),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_policies_smb(
-                        names=[module.params["name"]],
-                        policy=PolicySmbPatch(
-                            access_based_enumeration_enabled=module.params[
-                                "access_based_enumeration"
-                            ]
-                        ),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_policies_smb",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    policy=PolicySmbPatch(
+                        access_based_enumeration_enabled=module.params[
+                            "access_based_enumeration"
+                        ]
+                    ),
+                )
                 if res.status_code != 200:
                     module.exit_json(
-                        msg="Failed to enable/disable Access based enueration for SMB policy {0}".format(
-                            module.params["name"]
-                        )
+                        msg=f"Failed to enable/disable Access based enumeration for SMB policy {module.params['name']}"
                     )
         if (
             LooseVersion(CA_VERSION) <= LooseVersion(api_version)
@@ -1839,55 +1581,46 @@ def update_policy(module, array, api_version, all_squash):
         ):
             changed_ca = True
             if not module.check_mode:
-                res = array.patch_policies_smb(
+                res = patch_with_context(
+                    array,
+                    "patch_policies_smb",
+                    CONTEXT_VERSION,
+                    module,
                     names=[module.params["name"]],
                     policy=PolicySmbPatch(
                         continuous_availability_enabled=module.params[
                             "continuous_availability"
                         ]
                     ),
-                    context_names=[module.params["context"]],
                 )
                 if res.status_code != 200:
                     module.exit_json(
-                        msg="Failed to enable/disable Continuous Availability for SMB policy {0}".format(
-                            module.params["name"]
-                        )
+                        msg=f"Failed to enable/disable Continuous Availability for SMB policy {module.params['name']}"
                     )
         if current_enabled != module.params["enabled"]:
             changed_enable = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_policies_smb(
-                        names=[module.params["name"]],
-                        policy=PolicyPatch(enabled=module.params["enabled"]),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_policies_smb(
-                        names=[module.params["name"]],
-                        policy=PolicyPatch(enabled=module.params["enabled"]),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_policies_smb",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    policy=PolicyPatch(enabled=module.params["enabled"]),
+                )
                 if res.status_code != 200:
                     module.exit_json(
-                        msg="Failed to enable/disable SMB policy {0}".format(
-                            module.params["name"]
-                        )
+                        msg=f"Failed to enable/disable SMB policy {module.params['name']}"
                     )
         if module.params["client"]:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                rules = list(
-                    array.get_policies_smb_client_rules(
-                        policy_names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )
-            else:
-                rules = list(
-                    array.get_policies_smb_client_rules(
-                        policy_names=[module.params["name"]]
-                    ).items
-                )
+            res = get_with_context(
+                array,
+                "get_policies_smb_client_rules",
+                CONTEXT_VERSION,
+                module,
+                policy_names=[module.params["name"]],
+            )
+            rules = list(res.items)
             if rules:
                 rule_name = ""
                 for rule in rules:
@@ -1903,23 +1636,19 @@ def update_policy(module, array, api_version, all_squash):
                     rule = PolicyRuleSmbClientPost(rules=[rules])
                     changed_rule = True
                     if not module.check_mode:
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                            res = array.post_policies_smb_client_rules(
-                                policy_names=[module.params["name"]],
-                                rules=rule,
-                                context_names=[module.params["context"]],
-                            )
-                        else:
-                            res = array.post_policies_smb_client_rules(
-                                policy_names=[module.params["name"]], rules=rule
-                            )
-                        if res.status_code != 200:
-                            module.fail_json(
-                                msg="Failed to create new rule for SMB policy {0}. Error: {1}".format(
-                                    module.params["name"],
-                                    res.errors[0].message,
-                                )
-                            )
+                        res = post_with_context(
+                            array,
+                            "post_policies_smb_client_rules",
+                            CONTEXT_VERSION,
+                            module,
+                            policy_names=[module.params["name"]],
+                            rules=rule,
+                        )
+                        check_response(
+                            res,
+                            module,
+                            f"Creating new rule for SMB policy {module.params['name']}",
+                        )
             else:
                 rules = PolicyrulesmbclientpostRules(
                     anonymous_access_allowed=module.params["smb_anon_allowed"],
@@ -1929,77 +1658,62 @@ def update_policy(module, array, api_version, all_squash):
                 rule = PolicyRuleSmbClientPost(rules=[rules])
                 changed_rule = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.post_policies_smb_client_rules(
-                            policy_names=[module.params["name"]],
-                            rules=rule,
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.post_policies_smb_client_rules(
-                            policy_names=[module.params["name"]], rules=rule
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to create new rule for SMB policy {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = post_with_context(
+                        array,
+                        "post_policies_smb_client_rules",
+                        CONTEXT_VERSION,
+                        module,
+                        policy_names=[module.params["name"]],
+                        rules=rule,
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Creating new rule for SMB policy {module.params['name']}",
+                    )
     elif module.params["policy"] == "snapshot":
         suffix_enabled = bool(
             LooseVersion(api_version) >= LooseVersion(MIN_SUFFIX_API_VERSION)
         )
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.get_policies_snapshot(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.get_policies_snapshot(names=[module.params["name"]])
+        res = get_with_context(
+            array,
+            "get_policies_snapshot",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["name"]],
+        )
         if res.status_code == 200:
             current_enabled = list(res.items)[0].enabled
         else:
             module.fail_json(
-                msg="Incorrect policy type specified for existing policy {0}".format(
-                    module.params["name"]
-                )
+                msg=f"Incorrect policy type specified for existing policy {module.params['name']}"
             )
         if current_enabled != module.params["enabled"]:
             changed_enable = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_policies_snapshot(
-                        names=[module.params["name"]],
-                        policy=PolicyPatch(enabled=module.params["enabled"]),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_policies_snapshot(
-                        names=[module.params["name"]],
-                        policy=PolicyPatch(enabled=module.params["enabled"]),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_policies_snapshot",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    policy=PolicyPatch(enabled=module.params["enabled"]),
+                )
                 if res.status_code != 200:
                     module.exit_json(
-                        msg="Failed to enable/disable snapshot policy {0}".format(
-                            module.params["name"]
-                        )
+                        msg=f"Failed to enable/disable snapshot policy {module.params['name']}"
                     )
         if module.params["directory"]:
             dirs = []
             new_dirs = []
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                current_dirs = list(
-                    array.get_directories_policies_snapshot(
-                        policy_names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )
-            else:
-                current_dirs = list(
-                    array.get_directories_policies_snapshot(
-                        policy_names=[module.params["name"]]
-                    ).items
-                )
+            res = get_with_context(
+                array,
+                "get_directories_policies_snapshot",
+                CONTEXT_VERSION,
+                module,
+                policy_names=[module.params["name"]],
+            )
+            current_dirs = list(res.items)
             if current_dirs:
                 for current_dir in current_dirs:
                     dirs.append(current_dir.member.name)
@@ -2020,23 +1734,19 @@ def update_policy(module, array, api_version, all_squash):
                 changed_dir = True
                 for add_dir in new_dirs:
                     if not module.check_mode:
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                            res = array.post_directories_policies_snapshot(
-                                member_names=[add_dir],
-                                policies=policies,
-                                context_names=[module.params["context"]],
-                            )
-                        else:
-                            res = array.post_directories_policies_snapshot(
-                                member_names=[add_dir], policies=policies
-                            )
-                        if res.status_code != 200:
-                            module.fail_json(
-                                msg="Failed to add new directory to Snapshot policy {0}. Error: {1}".format(
-                                    module.params["name"],
-                                    res.errors[0].message,
-                                )
-                            )
+                        res = post_with_context(
+                            array,
+                            "post_directories_policies_snapshot",
+                            CONTEXT_VERSION,
+                            module,
+                            member_names=[add_dir],
+                            policies=policies,
+                        )
+                        check_response(
+                            res,
+                            module,
+                            f"Adding new directory to Snapshot policy {module.params['name']}",
+                        )
         if module.params["snap_client_name"]:
             if module.params["snap_at"]:
                 if not module.params["snap_every"] % 1440 == 0:
@@ -2054,19 +1764,14 @@ def update_policy(module, array, api_version, all_squash):
                 module.fail_json(
                     msg="Suffix (snap_suufix) can only be applied when `snap_keep_for` and `snap_every` are equal."
                 )
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                rules = list(
-                    array.get_policies_snapshot_rules(
-                        policy_names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )
-            else:
-                rules = list(
-                    array.get_policies_snapshot_rules(
-                        policy_names=[module.params["name"]]
-                    ).items
-                )
+            res = get_with_context(
+                array,
+                "get_policies_snapshot_rules",
+                CONTEXT_VERSION,
+                module,
+                policy_names=[module.params["name"]],
+            )
+            rules = list(res.items)
             if rules:
                 for rule in rules:
                     if (
@@ -2116,23 +1821,18 @@ def update_policy(module, array, api_version, all_squash):
                     rule = PolicyRuleSnapshotPost(rules=[rules])
                     changed_rule = True
                     if not module.check_mode:
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                            res = array.post_policies_snapshot_rules(
-                                policy_names=[module.params["name"]],
-                                rules=rule,
-                                context_names=[module.params["context"]],
-                            )
-                        else:
-                            res = array.post_policies_snapshot_rules(
-                                policy_names=[module.params["name"]], rules=rule
-                            )
+                        res = post_with_context(
+                            array,
+                            "post_policies_snapshot_rules",
+                            CONTEXT_VERSION,
+                            module,
+                            policy_names=[module.params["name"]],
+                            rules=rule,
+                        )
                         if res.status_code != 200:
                             err_no = len(res.errors) - 1
                             module.fail_json(
-                                msg="Failed to create new rule for Snapshot policy {0}. Error: {1}".format(
-                                    module.params["name"],
-                                    res.errors[err_no].message,
-                                )
+                                msg=f"Failed to create new rule for Snapshot policy {module.params['name']}. Error: {res.errors[err_no].message}"
                             )
             else:
                 if module.params["snap_keep_for"] < module.params["snap_every"]:
@@ -2176,76 +1876,59 @@ def update_policy(module, array, api_version, all_squash):
                 rule = PolicyRuleSnapshotPost(rules=[rules])
                 changed_rule = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.post_policies_snapshot_rules(
-                            policy_names=[module.params["name"]],
-                            rules=rule,
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.post_policies_snapshot_rules(
-                            policy_names=[module.params["name"]], rules=rule
-                        )
+                    res = post_with_context(
+                        array,
+                        "post_policies_snapshot_rules",
+                        CONTEXT_VERSION,
+                        module,
+                        policy_names=[module.params["name"]],
+                        rules=rule,
+                    )
                     if res.status_code != 200:
                         err_no = len(res.errors) - 1
                         module.fail_json(
-                            msg="Failed to create new rule for Snapshot policy {0}. Error: {1}".format(
-                                module.params["name"],
-                                res.errors[err_no].message,
-                            )
+                            msg=f"Failed to create new rule for Snapshot policy {module.params['name']}. Error: {res.errors[err_no].message}"
                         )
     elif module.params["policy"] == "autodir":
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.get_policies_autodir(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.get_policies_autodir(names=[module.params["name"]])
+        res = get_with_context(
+            array,
+            "get_policies_autodir",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["name"]],
+        )
         if res.status_code == 200:
             current_enabled = list(res.items)[0].enabled
         else:
             module.fail_json(
-                msg="Incorrect policy type specified for existing policy {0}".format(
-                    module.params["name"]
-                )
+                msg=f"Incorrect policy type specified for existing policy {module.params['name']}"
             )
         if current_enabled != module.params["enabled"]:
             changed_enable = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_policies_autodir(
-                        names=[module.params["name"]],
-                        policy=PolicyPatch(enabled=module.params["enabled"]),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_policies_autodir(
-                        names=[module.params["name"]],
-                        policy=PolicyPatch(enabled=module.params["enabled"]),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_policies_autodir",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    policy=PolicyPatch(enabled=module.params["enabled"]),
+                )
                 if res.status_code != 200:
                     module.exit_json(
-                        msg="Failed to enable/disable autodir policy {0}".format(
-                            module.params["name"]
-                        )
+                        msg=f"Failed to enable/disable autodir policy {module.params['name']}"
                     )
         if module.params["directory"]:
             dirs = []
             new_dirs = []
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                current_dirs = list(
-                    array.get_directories_policies_autodir(
-                        policy_names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )
-            else:
-                current_dirs = list(
-                    array.get_directories_policies_autodir(
-                        policy_names=[module.params["name"]]
-                    ).items
-                )
+            res = get_with_context(
+                array,
+                "get_directories_policies_autodir",
+                CONTEXT_VERSION,
+                module,
+                policy_names=[module.params["name"]],
+            )
+            current_dirs = list(res.items)
             if current_dirs:
                 for current_dir in current_dirs:
                     dirs.append(current_dir.member.name)
@@ -2266,70 +1949,56 @@ def update_policy(module, array, api_version, all_squash):
                 changed_dir = True
                 for add_dir in new_dirs:
                     if not module.check_mode:
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                            res = array.post_directories_policies_autodir(
-                                member_names=[add_dir],
-                                policies=policies,
-                                context_names=[module.params["context"]],
-                            )
-                        else:
-                            res = array.post_directories_policies_autodir(
-                                member_names=[add_dir], policies=policies
-                            )
-                        if res.status_code != 200:
-                            module.fail_json(
-                                msg="Failed to add new directory to Autodir policy {0}. Error: {1}".format(
-                                    module.params["name"],
-                                    res.errors[0].message,
-                                )
-                            )
+                        res = post_with_context(
+                            array,
+                            "post_directories_policies_autodir",
+                            CONTEXT_VERSION,
+                            module,
+                            member_names=[add_dir],
+                            policies=policies,
+                        )
+                        check_response(
+                            res,
+                            module,
+                            f"Adding new directory to Autodir policy {module.params['name']}",
+                        )
     elif module.params["policy"] == "password":
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.get_policies_password(
-                names=[module.params["name"]],
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.get_policies_password(names=[module.params["name"]])
+        res = get_with_context(
+            array,
+            "get_policies_password",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["name"]],
+        )
         if res.status_code == 200:
             current_enabled = list(res.items)[0].enabled
         else:
             module.fail_json(
-                msg="Incorrect policy type specified for existing policy {0}".format(
-                    module.params["name"]
-                )
+                msg=f"Incorrect policy type specified for existing policy {module.params['name']}"
             )
         if current_enabled != module.params["enabled"]:
             changed_enable = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_policies_password(
-                        names=[module.params["name"]],
-                        policy=PolicyPatch(enabled=module.params["enabled"]),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_policies_password(
-                        names=[module.params["name"]],
-                        policy=PolicyPatch(enabled=module.params["enabled"]),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_policies_password",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    policy=PolicyPatch(enabled=module.params["enabled"]),
+                )
                 if res.status_code != 200:
                     module.exit_json(
-                        msg="Failed to enable/disable password policy {0}".format(
-                            module.params["name"]
-                        )
+                        msg=f"Failed to enable/disable password policy {module.params['name']}"
                     )
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            pwd_policy = list(
-                array.get_policies_password(
-                    names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                ).items
-            )[0]
-        else:
-            pwd_policy = list(
-                array.get_policies_password(names=[module.params["name"]]).items
-            )[0]
+        res = get_with_context(
+            array,
+            "get_policies_password",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["name"]],
+        )
+        pwd_policy = list(res.items)[0]
         current_pwd_policy = {
             "enforce_dictionary_check": pwd_policy.enforce_dictionary_check,
             "enforce_username_check": pwd_policy.enforce_username_check,
@@ -2417,127 +2086,80 @@ def update_policy(module, array, api_version, all_squash):
                 )
                 changed = True
         if changed and not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.patch_policies_password(
-                    names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                    policy=PolicyPassword(
-                        max_login_attempts=new_pwd_policy["max_login_attempts"],
-                        min_password_length=new_pwd_policy["min_password_length"],
-                        password_history=new_pwd_policy["password_history"],
-                        min_password_age=new_pwd_policy["min_password_age"],
-                        max_password_age=new_pwd_policy.get("max_password_age"),
-                        min_character_groups=new_pwd_policy["min_character_groups"],
-                        min_characters_per_group=new_pwd_policy[
-                            "min_characters_per_group"
-                        ],
-                        enforce_username_check=new_pwd_policy["enforce_username_check"],
-                        enforce_dictionary_check=new_pwd_policy[
-                            "enforce_dictionary_check"
-                        ],
-                        lockout_duration=new_pwd_policy["lockout_duration"],
-                    ),
-                )
-            else:
-                res = array.patch_policies_password(
-                    names=[module.params["name"]],
-                    policy=PolicyPassword(
-                        max_login_attempts=new_pwd_policy["max_login_attempts"],
-                        min_password_length=new_pwd_policy["min_password_length"],
-                        password_history=new_pwd_policy["password_history"],
-                        min_password_age=new_pwd_policy["min_password_age"],
-                        max_password_age=new_pwd_policy.get("max_password_age"),
-                        min_character_groups=new_pwd_policy["min_character_groups"],
-                        min_characters_per_group=new_pwd_policy[
-                            "min_characters_per_group"
-                        ],
-                        enforce_username_check=new_pwd_policy["enforce_username_check"],
-                        enforce_dictionary_check=new_pwd_policy[
-                            "enforce_dictionary_check"
-                        ],
-                        lockout_duration=new_pwd_policy["lockout_duration"],
-                    ),
-                )
-            if res.status_code != 200:
-                module.fail_json(
-                    msg="Failed to change password policy {0}. Error: {1}".format(
-                        module.params["name"],
-                        res.errors[0].message,
-                    )
-                )
+            res = patch_with_context(
+                array,
+                "patch_policies_password",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+                policy=PolicyPassword(
+                    max_login_attempts=new_pwd_policy["max_login_attempts"],
+                    min_password_length=new_pwd_policy["min_password_length"],
+                    password_history=new_pwd_policy["password_history"],
+                    min_password_age=new_pwd_policy["min_password_age"],
+                    max_password_age=new_pwd_policy.get("max_password_age"),
+                    min_character_groups=new_pwd_policy["min_character_groups"],
+                    min_characters_per_group=new_pwd_policy["min_characters_per_group"],
+                    enforce_username_check=new_pwd_policy["enforce_username_check"],
+                    enforce_dictionary_check=new_pwd_policy["enforce_dictionary_check"],
+                    lockout_duration=new_pwd_policy["lockout_duration"],
+                ),
+            )
+            check_response(
+                res, module, f"Changing password policy {module.params['name']}"
+            )
     else:  # quota
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            current_enabled = list(
-                array.get_policies_quota(
-                    names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                ).items
-            )[0].enabled
-        else:
-            current_enabled = list(
-                array.get_policies_quota(names=[module.params["name"]]).items
-            )[0].enabled
+        res = get_with_context(
+            array,
+            "get_policies_quota",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["name"]],
+        )
+        current_enabled = list(res.items)[0].enabled
         if current_enabled != module.params["enabled"]:
             changed_quota = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_policies_quota(
-                        names=[module.params["name"]],
-                        policy=PolicyPatch(enabled=module.params["enabled"]),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_policies_quota(
-                        names=[module.params["name"]],
-                        policy=PolicyPatch(enabled=module.params["enabled"]),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_policies_quota",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    policy=PolicyPatch(enabled=module.params["enabled"]),
+                )
                 if res.status_code != 200:
                     module.exit_json(
-                        msg="Failed to enable/disable snapshot policy {0}".format(
-                            module.params["name"]
-                        )
+                        msg=f"Failed to enable/disable snapshot policy {module.params['name']}"
                     )
         if module.params["directory"]:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                current_members = list(
-                    array.get_policies_quota_members(
-                        policy_names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )
-            else:
-                current_members = list(
-                    array.get_policies_quota_members(
-                        policy_names=[module.params["name"]]
-                    ).items
-                )
+            res = get_with_context(
+                array,
+                "get_policies_quota_members",
+                CONTEXT_VERSION,
+                module,
+                policy_names=[module.params["name"]],
+            )
+            current_members = list(res.items)
             if current_members:
                 if module.params["state"] == "absent":
                     for member in current_members:
                         if member.member.name in module.params["directory"]:
                             changed_member = True
                             if not module.check_mode:
-                                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
-                                    api_version
-                                ):
-                                    res = array.delete_policies_quota_members(
-                                        policy_names=[module.params["name"]],
-                                        member_names=[member.member.name],
-                                        context_names=[module.params["context"]],
-                                    )
-                                else:
-                                    res = array.delete_policies_quota_members(
-                                        policy_names=[module.params["name"]],
-                                        member_names=[member.member.name],
-                                    )
-                                if res.status_code != 200:
-                                    module.fail_json(
-                                        msg="Failed to delete rule {0} from quota policy {1}. Error: {2}".format(
-                                            member.member.name,
-                                            module.params["name"],
-                                            res.errors[0].message,
-                                        )
-                                    )
+                                res = delete_with_context(
+                                    array,
+                                    "delete_policies_quota_members",
+                                    CONTEXT_VERSION,
+                                    module,
+                                    policy_names=[module.params["name"]],
+                                    member_names=[member.member.name],
+                                )
+                                check_response(
+                                    res,
+                                    module,
+                                    f"Deleting rule {member.member.name} from quota policy {module.params['name']}",
+                                )
                 else:
                     members = []
                     cmembers = []
@@ -2557,28 +2179,20 @@ def update_policy(module, array, api_version, all_squash):
                         member = PolicyMemberPost(members=members)
                         changed_member = True
                         if not module.check_mode:
-                            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
-                                api_version
-                            ):
-                                res = array.post_policies_quota_members(
-                                    policy_names=[module.params["name"]],
-                                    members=member,
-                                    ignore_usage=module.params["ignore_usage"],
-                                    context_names=[module.params["context"]],
-                                )
-                            else:
-                                res = array.post_policies_quota_members(
-                                    policy_names=[module.params["name"]],
-                                    members=member,
-                                    ignore_usage=module.params["ignore_usage"],
-                                )
-                            if res.status_code != 200:
-                                module.fail_json(
-                                    msg="Failed to update members for Quota policy {0}. Error: {1}".format(
-                                        module.params["name"],
-                                        res.errors[0].message,
-                                    )
-                                )
+                            res = post_with_context(
+                                array,
+                                "post_policies_quota_members",
+                                CONTEXT_VERSION,
+                                module,
+                                policy_names=[module.params["name"]],
+                                members=member,
+                                ignore_usage=module.params["ignore_usage"],
+                            )
+                            check_response(
+                                res,
+                                module,
+                                f"Updating members for Quota policy {module.params['name']}",
+                            )
             else:
                 members = []
                 for mem in module.params["directory"]:
@@ -2593,60 +2207,41 @@ def update_policy(module, array, api_version, all_squash):
                 member = PolicyMemberPost(members=members)
                 changed_member = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.post_policies_quota_members(
-                            policy_names=[module.params["name"]],
-                            members=member,
-                            ignore_usage=module.params["ignore_usage"],
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.post_policies_quota_members(
-                            policy_names=[module.params["name"]],
-                            members=member,
-                            ignore_usage=module.params["ignore_usage"],
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to update members for Quota policy {0}. Error: {1}".format(
-                                module.params["name"],
-                                res.errors[0].message,
-                            )
-                        )
+                    res = post_with_context(
+                        array,
+                        "post_policies_quota_members",
+                        CONTEXT_VERSION,
+                        module,
+                        policy_names=[module.params["name"]],
+                        members=member,
+                        ignore_usage=module.params["ignore_usage"],
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Updating members for Quota policy {module.params['name']}",
+                    )
         if module.params["quota_limit"]:
             quota = human_to_bytes(module.params["quota_limit"])
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                current_rules = list(
-                    array.get_policies_quota_rules(
-                        policy_names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                    ).items
-                )
-            else:
-                current_rules = list(
-                    array.get_policies_quota_rules(
-                        policy_names=[module.params["name"]]
-                    ).items
-                )
+            res = get_with_context(
+                array,
+                "get_policies_quota_rules",
+                CONTEXT_VERSION,
+                module,
+                policy_names=[module.params["name"]],
+            )
+            current_rules = list(res.items)
             if current_rules:
                 if module.params["rule_name"]:
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.get_policies_quota_rules(
-                            policy_names=[module.params["name"]],
-                            filter="name='" + module.params["rule_name"] + "'",
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.get_policies_quota_rules(
-                            policy_names=[module.params["name"]],
-                            filter="name='" + module.params["rule_name"] + "'",
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Rule update failed. Error: {0}".format(
-                                res.errors[0].message
-                            )
-                        )
+                    res = get_with_context(
+                        array,
+                        "get_policies_quota_rules",
+                        CONTEXT_VERSION,
+                        module,
+                        policy_names=[module.params["name"]],
+                        filter="name='" + module.params["rule_name"] + "'",
+                    )
+                    check_response(res, module, "Rule update")
                     rule_config = list(res.items)[0]
                     current_rule_config = {
                         "enforced": rule_config.enforced,
@@ -2678,49 +2273,29 @@ def update_policy(module, array, api_version, all_squash):
                             new_rule_config["notifications"] = new_notifications
                     if new_rule_config != current_rule_config:
                         changed_rule = True
-                        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                            res = array.patch_policies_quota_rules(
-                                policy_names=[module.params["name"]],
-                                ignore_usage=module.params["ignore_usage"],
-                                names=[module.params["rule_name"]],
-                                context_names=[module.params["context"]],
-                                rules=PolicyRuleQuotaPatch(
-                                    rules=[
-                                        PolicyrulequotapatchRules(
-                                            enforced=new_rule_config["enforced"],
-                                            quota_limit=new_rule_config["quota"],
-                                            notifications=new_rule_config[
-                                                "notifications"
-                                            ],
-                                        )
-                                    ]
-                                ),
-                            )
-                        else:
-                            res = array.patch_policies_quota_rules(
-                                policy_names=[module.params["name"]],
-                                ignore_usage=module.params["ignore_usage"],
-                                names=[module.params["rule_name"]],
-                                rules=PolicyRuleQuotaPatch(
-                                    rules=[
-                                        PolicyrulequotapatchRules(
-                                            enforced=new_rule_config["enforced"],
-                                            quota_limit=new_rule_config["quota"],
-                                            notifications=new_rule_config[
-                                                "notifications"
-                                            ],
-                                        )
-                                    ]
-                                ),
-                            )
-                        if res.status_code != 200:
-                            module.fail_json(
-                                msg="Failed to update rule {0} for quota {1}. Error: {2}".format(
-                                    module.params["rule_name"],
-                                    module.params["name"],
-                                    res.errors[0].message,
-                                )
-                            )
+                        res = patch_with_context(
+                            array,
+                            "patch_policies_quota_rules",
+                            CONTEXT_VERSION,
+                            module,
+                            policy_names=[module.params["name"]],
+                            ignore_usage=module.params["ignore_usage"],
+                            names=[module.params["rule_name"]],
+                            rules=PolicyRuleQuotaPatch(
+                                rules=[
+                                    PolicyrulequotapatchRules(
+                                        enforced=new_rule_config["enforced"],
+                                        quota_limit=new_rule_config["quota"],
+                                        notifications=new_rule_config["notifications"],
+                                    )
+                                ]
+                            ),
+                        )
+                        check_response(
+                            res,
+                            module,
+                            f"Updating rule {module.params['rule_name']} for quota {module.params['name']}",
+                        )
                 else:
                     one_enforced = False
                     for check_rule in current_rules:
@@ -2759,28 +2334,20 @@ def update_policy(module, array, api_version, all_squash):
                         rule = PolicyRuleQuotaPost(rules=[rules])
                         changed_quota = True
                         if not module.check_mode:
-                            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
-                                api_version
-                            ):
-                                res = array.post_policies_quota_rules(
-                                    policy_names=[module.params["name"]],
-                                    rules=rule,
-                                    ignore_usage=module.params["ignore_usage"],
-                                    context_names=[module.params["context"]],
-                                )
-                            else:
-                                res = array.post_policies_quota_rules(
-                                    policy_names=[module.params["name"]],
-                                    rules=rule,
-                                    ignore_usage=module.params["ignore_usage"],
-                                )
-                            if res.status_code != 200:
-                                module.fail_json(
-                                    msg="Failed to add new rule to Quota policy {0}. Error: {1}".format(
-                                        module.params["name"],
-                                        res.errors[0].message,
-                                    )
-                                )
+                            res = post_with_context(
+                                array,
+                                "post_policies_quota_rules",
+                                CONTEXT_VERSION,
+                                module,
+                                policy_names=[module.params["name"]],
+                                rules=rule,
+                                ignore_usage=module.params["ignore_usage"],
+                            )
+                            check_response(
+                                res,
+                                module,
+                                f"Adding new rule to Quota policy {module.params['name']}",
+                            )
             else:
                 rules = PolicyrulequotapostRules(
                     enforced=module.params["quota_enforced"],
@@ -2790,25 +2357,20 @@ def update_policy(module, array, api_version, all_squash):
                 rule = PolicyRuleQuotaPost(rules=[rules])
                 changed_quota = True
                 if not module.check_mode:
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.post_policies_quota_rules(
-                            policy_names=[module.params["name"]],
-                            rules=rule,
-                            ignore_usage=module.params["ignore_usage"],
-                            context_names=[module.params["context"]],
-                        )
-                    else:
-                        res = array.post_policies_quota_rules(
-                            policy_names=[module.params["name"]],
-                            rules=rule,
-                            ignore_usage=module.params["ignore_usage"],
-                        )
-                    if res.status_code != 200:
-                        module.fail_json(
-                            msg="Failed to add rule to Quota policy {0}. Error: {1}".format(
-                                module.params["name"], res.errors[0].message
-                            )
-                        )
+                    res = post_with_context(
+                        array,
+                        "post_policies_quota_rules",
+                        CONTEXT_VERSION,
+                        module,
+                        policy_names=[module.params["name"]],
+                        rules=rule,
+                        ignore_usage=module.params["ignore_usage"],
+                    )
+                    check_response(
+                        res,
+                        module,
+                        f"Adding rule to Quota policy {module.params['name']}",
+                    )
 
     if (
         changed_rule

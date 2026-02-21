@@ -10,6 +10,8 @@ __metaclass__ = type
 import sys
 from unittest.mock import Mock, patch, MagicMock
 
+import pytest
+
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
@@ -32,13 +34,6 @@ sys.modules[
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.common"
 ] = MagicMock()
-sys.modules[
-    "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers"
-] = MagicMock()
-sys.modules[
-    "ansible_collections.purestorage.flasharray.plugins.module_utils.error_handlers"
-] = MagicMock()
-
 # Create a mock version module with real LooseVersion
 mock_version_module = MagicMock()
 from packaging.version import Version as LooseVersion
@@ -47,6 +42,49 @@ mock_version_module.LooseVersion = LooseVersion
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.version"
 ] = mock_version_module
+
+
+# Create proper helper functions that work with mocked arrays
+def mock_get_with_context(client, method_name, context_version, module, **kwargs):
+    """Mock helper that properly calls getattr on the client."""
+    api_version = client.get_rest_version()
+    method = getattr(client, method_name)
+    if LooseVersion(context_version) <= LooseVersion(api_version) and module.params.get(
+        "context"
+    ):
+        kwargs["context_names"] = [module.params["context"]]
+    return method(**kwargs)
+
+
+def mock_check_response(response, module, operation="Operation"):
+    """Mock helper that checks API responses."""
+    if hasattr(response, "status_code") and response.status_code != 200:
+        error_detail = (
+            response.errors[0].message
+            if hasattr(response, "errors") and response.errors
+            else "Unknown error"
+        )
+        module.fail_json(
+            msg=f"{operation} failed. Error: {error_detail}",
+            status_code=response.status_code,
+            changed=False,
+        )
+
+
+# Create api_helpers mock with real implementations
+mock_api_helpers = MagicMock()
+mock_api_helpers.get_with_context = mock_get_with_context
+mock_api_helpers.post_with_context = mock_get_with_context
+mock_api_helpers.patch_with_context = mock_get_with_context
+mock_api_helpers.delete_with_context = mock_get_with_context
+mock_api_helpers.check_response = mock_check_response
+
+sys.modules[
+    "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers"
+] = mock_api_helpers
+sys.modules[
+    "ansible_collections.purestorage.flasharray.plugins.module_utils.error_handlers"
+] = MagicMock()
 
 from plugins.modules.purefa_policy import (
     delete_policy,
@@ -240,11 +278,12 @@ class TestDeletePolicy:
         mock_module.check_mode = False
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
-        # Mock existing rule
+        # Mock existing rule - include status_code for get_with_context
         mock_rule = Mock()
         mock_rule.client = "192.168.1.0/24"
         mock_rule.name = "rule1"
         mock_array.get_policies_nfs_client_rules.return_value.items = [mock_rule]
+        mock_array.get_policies_nfs_client_rules.return_value.status_code = 200
         mock_array.delete_policies_nfs_client_rules.return_value.status_code = 200
 
         delete_policy(mock_module, mock_array)
@@ -265,11 +304,12 @@ class TestDeletePolicy:
         mock_module.check_mode = False
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
-        # Mock existing rule
+        # Mock existing rule - include status_code for get_with_context
         mock_rule = Mock()
         mock_rule.client = "client1"
         mock_rule.name = "rule1"
         mock_array.get_policies_smb_client_rules.return_value.items = [mock_rule]
+        mock_array.get_policies_smb_client_rules.return_value.status_code = 200
         mock_array.delete_policies_smb_client_rules.return_value.status_code = 200
 
         delete_policy(mock_module, mock_array)
@@ -425,14 +465,17 @@ class TestRenamePolicy:
             "context": "",
         }
         mock_module.check_mode = False
+        # fail_json should raise SystemExit to stop execution
+        mock_module.fail_json.side_effect = SystemExit(1)
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
-        # status_code != 200 means target name already exists (fail)
-        mock_array.get_policies.return_value.status_code = 400
+        # status_code == 200 means target policy exists (fail)
+        mock_array.get_policies.return_value.status_code = 200
 
-        rename_policy(mock_module, mock_array)
+        with pytest.raises(SystemExit):
+            rename_policy(mock_module, mock_array)
 
-        # May be called multiple times in error handling
+        # Should fail because target policy already exists
         mock_module.fail_json.assert_called()
 
 
@@ -920,11 +963,12 @@ class TestDeletePolicySuccess:
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
 
-        # Mock existing rule
+        # Mock existing rule - include status_code for get_with_context
         mock_rule = Mock()
         mock_rule.client = "192.168.1.0/24"
         mock_rule.name = "rule1"
         mock_array.get_policies_nfs_client_rules.return_value.items = [mock_rule]
+        mock_array.get_policies_nfs_client_rules.return_value.status_code = 200
         mock_array.delete_policies_nfs_client_rules.return_value.status_code = 200
 
         delete_policy(mock_module, mock_array)
@@ -946,11 +990,12 @@ class TestDeletePolicySuccess:
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
 
-        # Mock existing rule
+        # Mock existing rule - include status_code for get_with_context
         mock_rule = Mock()
         mock_rule.client = "192.168.1.0/24"
         mock_rule.name = "smb_rule1"
         mock_array.get_policies_smb_client_rules.return_value.items = [mock_rule]
+        mock_array.get_policies_smb_client_rules.return_value.status_code = 200
         mock_array.delete_policies_smb_client_rules.return_value.status_code = 200
 
         delete_policy(mock_module, mock_array)
@@ -1301,7 +1346,10 @@ class TestDeletePolicySnapshotExtended:
         mock_rule = Mock()
         mock_rule.client_name = "daily_snap"
         mock_rule.name = "rule1"
-        mock_array.get_policies_snapshot_rules.return_value = Mock(items=[mock_rule])
+        # Include status_code for get_with_context
+        mock_array.get_policies_snapshot_rules.return_value = Mock(
+            items=[mock_rule], status_code=200
+        )
         mock_array.delete_policies_snapshot_rules.return_value = Mock(status_code=200)
 
         delete_policy(mock_module, mock_array)
