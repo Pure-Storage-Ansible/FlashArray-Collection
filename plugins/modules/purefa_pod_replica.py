@@ -104,10 +104,11 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
-)
 from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    patch_with_context,
+    post_with_context,
+    delete_with_context,
     check_response,
 )
 
@@ -116,13 +117,9 @@ CONTEXT_VERSION = "2.38"
 
 def get_local_pod(module, array):
     """Return Pod or None"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        res = array.get_pods(
-            names=[module.params["name"]], context_names=[module.params["context"]]
-        )
-    else:
-        res = array.get_pods(names=[module.params["name"]])
+    res = get_with_context(
+        array, "get_pods", CONTEXT_VERSION, module, names=[module.params["name"]]
+    )
     if res.status_code != 200:
         return None
     return list(res.items)[0]
@@ -130,17 +127,14 @@ def get_local_pod(module, array):
 
 def get_local_rl(module, array):
     """Return Pod Replica Link or None"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        res = array.get_pod_replica_links(
-            local_pod_names=[module.params["name"]],
-            context_names=[module.params["context"]],
-            total_item_count=True,
-        )
-    else:
-        res = array.get_pod_replica_links(
-            local_pod_names=[module.params["name"]], total_item_count=True
-        )
+    res = get_with_context(
+        array,
+        "get_pod_replica_links",
+        CONTEXT_VERSION,
+        module,
+        local_pod_names=[module.params["name"]],
+        total_item_count=True,
+    )
     if res.total_item_count == 0:
         return None
     return list(res.items)[0]
@@ -148,25 +142,20 @@ def get_local_rl(module, array):
 
 def update_rl(module, array, local_rl):
     """Create Pod Replica Link"""
-    api_version = array.get_rest_version()
     changed = False
     if module.params["pause"] is not None:
         if local_rl.status != "paused" and module.params["pause"]:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_pod_replica_links(
-                        local_pod_names=module.params["name"],
-                        context_names=[module.params["context"]],
-                        remote_pod_names=local_rl["remote_pod"]["name"],
-                        pod_replica_link=PodReplicaLinkPatch(paused=True),
-                    )
-                else:
-                    res = array.patch_pod_replica_links(
-                        local_pod_names=module.params["name"],
-                        remote_pod_names=local_rl["remote_pod"]["name"],
-                        pod_replica_link=PodReplicaLinkPatch(paused=True),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_pod_replica_links",
+                    CONTEXT_VERSION,
+                    module,
+                    local_pod_names=module.params["name"],
+                    remote_pod_names=local_rl["remote_pod"]["name"],
+                    pod_replica_link=PodReplicaLinkPatch(paused=True),
+                )
                 check_response(
                     res,
                     module,
@@ -175,19 +164,15 @@ def update_rl(module, array, local_rl):
         elif local_rl.status == "paused" and not module.params["pause"]:
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_pod_replica_links(
-                        local_pod_names=module.params["name"],
-                        context_names=[module.params["context"]],
-                        remote_pod_names=local_rl["remote_pod"]["name"],
-                        pod_replica_link=PodReplicaLinkPatch(paused=False),
-                    )
-                else:
-                    res = array.patch_pod_replica_links(
-                        local_pod_names=module.params["name"],
-                        remote_pod_names=local_rl["remote_pod"]["name"],
-                        pod_replica_link=PodReplicaLinkPatch(paused=False),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_pod_replica_links",
+                    CONTEXT_VERSION,
+                    module,
+                    local_pod_names=module.params["name"],
+                    remote_pod_names=local_rl["remote_pod"]["name"],
+                    pod_replica_link=PodReplicaLinkPatch(paused=False),
+                )
                 check_response(
                     res,
                     module,
@@ -198,7 +183,6 @@ def update_rl(module, array, local_rl):
 
 def create_rl(module, array):
     """Create Pod Replica Link"""
-    api_version = array.get_rest_version()
     changed = True
     if not module.params["target_pod"]:
         module.fail_json(msg="target_pod required to create a new replica link.")
@@ -206,13 +190,13 @@ def create_rl(module, array):
         module.fail_json(msg="target_array required to create a new replica link.")
     if array.get_array_connections(total_item_count=True).total_item_count == 0:
         module.fail_json(msg="No connected arrays.")
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        res = array.get_array_connections(
-            names=[module.params["target_array"]],
-            context_names=[module.params["context"]],
-        )
-    else:
-        res = array.get_array_connections(names=[module.params["target_array"]])
+    res = get_with_context(
+        array,
+        "get_array_connections",
+        CONTEXT_VERSION,
+        module,
+        names=[module.params["target_array"]],
+    )
     check_response(
         res,
         module,
@@ -225,19 +209,15 @@ def create_rl(module, array):
         "partially_connected",
     ]:
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.post_pod_replica_links(
-                    context_names=[module.params["context"]],
-                    local_pod_names=[module.params["name"]],
-                    remote_names=[module.params["target_array"]],
-                    remote_pod_names=[module.params["target_pod"]],
-                )
-            else:
-                res = array.post_pod_replica_links(
-                    local_pod_names=[module.params["name"]],
-                    remote_names=[module.params["target_array"]],
-                    remote_pod_names=[module.params["target_pod"]],
-                )
+            res = post_with_context(
+                array,
+                "post_pod_replica_links",
+                CONTEXT_VERSION,
+                module,
+                local_pod_names=[module.params["name"]],
+                remote_names=[module.params["target_array"]],
+                remote_pod_names=[module.params["target_pod"]],
+            )
             check_response(
                 res,
                 module,
@@ -255,20 +235,16 @@ def create_rl(module, array):
 
 def delete_rl(module, array, local_rl):
     """Delete Pod Replica Link"""
-    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.delete_pod_replica_links(
-                local_pod_names=[module.params["name"]],
-                remote_pod_names=[local_rl["remote_pod"]["name"]],
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.delete_pod_replica_links(
-                local_pod_names=[module.params["name"]],
-                remote_pod_names=[local_rl["remote_pod"]["name"]],
-            )
+        res = delete_with_context(
+            array,
+            "delete_pod_replica_links",
+            CONTEXT_VERSION,
+            module,
+            local_pod_names=[module.params["name"]],
+            remote_pod_names=[local_rl["remote_pod"]["name"]],
+        )
         check_response(
             res,
             module,
