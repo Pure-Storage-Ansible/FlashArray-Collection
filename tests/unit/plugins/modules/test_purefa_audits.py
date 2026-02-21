@@ -94,3 +94,33 @@ class TestGetFilterString:
 
         assert result.startswith("time>=")
         # The timestamp should be calculated with timezone offset
+
+
+# Import main for testing
+from plugins.modules.purefa_audits import main
+import pytest
+from unittest.mock import patch
+
+
+class TestAuditsMissingDependency:
+    """Test cases for missing dependency"""
+
+    @patch("plugins.modules.purefa_audits.HAS_PYTZ", False)
+    @patch("plugins.modules.purefa_audits.AnsibleModule")
+    def test_missing_pytz_dependency_fails(self, mock_ansible_module):
+        """Test that missing pytz dependency fails"""
+        mock_module = Mock()
+        mock_module.params = {
+            "start": None,
+            "timezone": None,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called_once_with(
+            msg="pytz is required for this module"
+        )
