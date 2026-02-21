@@ -132,6 +132,47 @@ def delete_with_context(client, method_name, context_version, module, **kwargs):
     return get_with_context(client, method_name, context_version, module, **kwargs)
 
 
+def post_with_throttle_and_context(
+    client, method_name, throttle_version, context_version, module, **kwargs
+):
+    """Call array API method with throttle and context support if API versions allow.
+
+    This helper handles the pattern where both throttle and context are optional
+    based on API version. Used primarily for pod creation operations.
+
+    Behavior:
+    - If API version < throttle_version: Call without allow_throttle or context_names
+    - If API version >= throttle_version but < context_version: Add allow_throttle only
+    - If API version >= context_version: Add both allow_throttle and context_names
+
+    Args:
+        client: FlashArray client instance
+        method_name: Name of method to call (e.g., 'post_pods')
+        throttle_version: Minimum API version for throttle support (e.g., "2.31")
+        context_version: Minimum API version for context support (e.g., "2.38")
+        module: AnsibleModule instance
+        **kwargs: Arguments to pass to the method
+
+    Returns:
+        API response object
+    """
+    api_version = get_cached_api_version(client)
+    method = getattr(client, method_name)
+
+    # Check if throttle is supported
+    if LooseVersion(throttle_version) <= LooseVersion(api_version):
+        # Throttle is supported, add allow_throttle
+        kwargs["allow_throttle"] = module.params.get("throttle", False)
+
+        # Check if context is also supported
+        if LooseVersion(context_version) <= LooseVersion(
+            api_version
+        ) and module.params.get("context"):
+            kwargs["context_names"] = [module.params["context"]]
+
+    return method(**kwargs)
+
+
 def check_response(response, module, operation="Operation"):
     """Check API response and fail module if error occurred.
 

@@ -248,6 +248,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers
     get_with_context,
     patch_with_context,
     post_with_context,
+    post_with_throttle_and_context,
 )
 
 DEFAULT_API_VERSION = "2.16"
@@ -363,45 +364,25 @@ def create_pod(module, array):
             failovers = []
             for fo_array in module.params["failover"]:
                 failovers.append(Reference(name=fo_array))
-            if LooseVersion(THROTTLE_VERSION) > LooseVersion(api_version):
-                res = array.post_pods(
-                    names=[module.params["name"]],
-                    pod=PodPost(failover_preferences=failovers),
-                )
-            else:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.post_pods(
-                        names=[module.params["name"]],
-                        context_names=[module.params["context"]],
-                        pod=PodPost(failover_preferences=failovers),
-                        allow_throttle=module.params["throttle"],
-                    )
-                else:
-                    res = array.post_pods(
-                        names=[module.params["name"]],
-                        pod=PodPost(failover_preferences=failovers),
-                        allow_throttle=module.params["throttle"],
-                    )
+            res = post_with_throttle_and_context(
+                array,
+                "post_pods",
+                THROTTLE_VERSION,
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+                pod=PodPost(failover_preferences=failovers),
+            )
         else:
-            if LooseVersion(THROTTLE_VERSION) > LooseVersion(api_version):
-                res = array.post_pods(
-                    names=[module.params["name"]],
-                    pod=PodPost(),
-                )
-            else:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.post_pods(
-                        names=[module.params["name"]],
-                        pod=PodPost(),
-                        context_names=[module.params["context"]],
-                        allow_throttle=module.params["throttle"],
-                    )
-                else:
-                    res = array.post_pods(
-                        names=[module.params["name"]],
-                        pod=PodPost(),
-                        allow_throttle=module.params["throttle"],
-                    )
+            res = post_with_throttle_and_context(
+                array,
+                "post_pods",
+                THROTTLE_VERSION,
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+                pod=PodPost(),
+            )
         check_response(res, module, f"Pod {module.params['name']} creation failed")
         if module.params["mediator"] != "purestorage":
             res = patch_with_context(
@@ -596,36 +577,25 @@ def create_pod(module, array):
 
 def clone_pod(module, array):
     """Create Pod Clone"""
-    api_version = array.get_rest_version()
     changed = False
     if not get_target(module, array):
         if not get_destroyed_target(module, array):
             changed = True
             if not module.check_mode:
-                if LooseVersion(THROTTLE_VERSION) > LooseVersion(api_version):
-                    res = array.post_pods(
-                        pod=PodPost(source=Reference(name=module.params["name"])),
-                        names=[module.params["target"]],
-                    )
-                else:
-                    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                        res = array.post_pods(
-                            pod=PodPost(source=Reference(name=module.params["name"])),
-                            names=[module.params["target"]],
-                            context_names=[module.params["context"]],
-                            allow_throttle=module.params["throttle"],
-                        )
-                    else:
-                        res = array.post_pods(
-                            pod=PodPost(source=Reference(name=module.params["name"])),
-                            names=[module.params["target"]],
-                            allow_throttle=module.params["throttle"],
-                        )
-            check_response(
-                res,
-                module,
-                f"Clone pod {module.params['name']} to pod {module.params['target']} failed",
-            )
+                res = post_with_throttle_and_context(
+                    array,
+                    "post_pods",
+                    THROTTLE_VERSION,
+                    CONTEXT_VERSION,
+                    module,
+                    pod=PodPost(source=Reference(name=module.params["name"])),
+                    names=[module.params["target"]],
+                )
+                check_response(
+                    res,
+                    module,
+                    f"Clone pod {module.params['name']} to pod {module.params['target']} failed",
+                )
         else:
             module.fail_json(
                 msg="Target pod {0} already exists but deleted.".format(
