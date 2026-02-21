@@ -626,3 +626,111 @@ class TestUpdateInterfaceSuccess:
 
         mock_array.patch_network_interfaces.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateInterfaceSuccess:
+    """Test cases for create_interface function success paths"""
+
+    @patch("plugins.modules.purefa_network._create_subinterfaces")
+    @patch("plugins.modules.purefa_network.check_response")
+    def test_create_vif_interface_success(
+        self, mock_check_response, mock_create_subinterfaces
+    ):
+        """Test creating a VIF interface successfully"""
+        mock_create_subinterfaces.return_value = (False, ["ct0.eth8", "ct1.eth8"])
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "vif1",
+            "interface": "vif",
+            "subnet": None,
+            "address": None,
+            "gateway": None,
+            "mtu": 1500,
+            "enabled": True,
+            "subinterfaces": ["ct0.eth8", "ct1.eth8"],
+        }
+        mock_array = Mock()
+        mock_array.get_subnets.return_value = Mock(status_code=404)
+        mock_array.post_network_interfaces.return_value = Mock(status_code=200)
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+
+        create_interface(mock_module, mock_array)
+
+        mock_array.post_network_interfaces.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_network._create_subinterfaces")
+    def test_create_vif_interface_check_mode(self, mock_create_subinterfaces):
+        """Test creating a VIF interface in check mode"""
+        mock_create_subinterfaces.return_value = (False, [])
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "vif1",
+            "interface": "vif",
+            "subnet": None,
+            "address": None,
+            "gateway": None,
+            "mtu": 1500,
+            "enabled": True,
+            "subinterfaces": None,
+        }
+        mock_array = Mock()
+        mock_array.get_subnets.return_value = Mock(status_code=404)
+
+        create_interface(mock_module, mock_array)
+
+        mock_array.post_network_interfaces.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_create_interface_subnet_not_exists(self):
+        """Test create_interface fails when subnet doesn't exist"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "vif1",
+            "interface": "vif",
+            "subnet": "nonexistent_subnet",
+            "address": None,
+        }
+        mock_array = Mock()
+        mock_array.get_subnets.return_value = Mock(status_code=404)
+
+        with pytest.raises(SystemExit):
+            create_interface(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestDeleteInterfaceSuccess:
+    """Test cases for delete_interface function success paths"""
+
+    @patch("plugins.modules.purefa_network.check_response")
+    def test_delete_interface_success(self, mock_check_response):
+        """Test delete_interface successfully deletes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "ct0.eth8"}
+        mock_array = Mock()
+        mock_array.delete_network_interfaces.return_value = Mock(status_code=200)
+
+        delete_interface(mock_module, mock_array)
+
+        mock_array.delete_network_interfaces.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_delete_interface_check_mode(self):
+        """Test delete_interface in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {"name": "ct0.eth8"}
+        mock_array = Mock()
+
+        delete_interface(mock_module, mock_array)
+
+        mock_array.delete_network_interfaces.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)

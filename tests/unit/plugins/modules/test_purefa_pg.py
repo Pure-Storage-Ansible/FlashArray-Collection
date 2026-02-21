@@ -999,3 +999,53 @@ class TestRenameExistsContainer:
         result = rename_exists(mock_module, mock_array)
 
         assert result is False
+
+
+class TestRecoverPgroupExtended:
+    """Extended test cases for recover_pgroup function"""
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_recover_pgroup_older_api(self, mock_lv, mock_check_response):
+        """Test recovering pgroup with older API version"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.16"
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+
+        recover_pgroup(mock_module, mock_array)
+
+        mock_array.patch_protection_groups.assert_called_once()
+        call_kwargs = mock_array.patch_protection_groups.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestEradicatePgroupExtended:
+    """Extended test cases for eradicate_pgroup function"""
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_pgroup_older_api(self, mock_lv, mock_check_response):
+        """Test eradicating pgroup with older API version"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.16"
+        mock_array.delete_protection_groups.return_value = Mock(status_code=200)
+
+        eradicate_pgroup(mock_module, mock_array)
+
+        mock_array.delete_protection_groups.assert_called_once()
+        call_kwargs = mock_array.delete_protection_groups.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
