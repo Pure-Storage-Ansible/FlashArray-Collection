@@ -133,34 +133,31 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 )
 from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
     check_response,
+    delete_with_context,
+    get_with_context,
+    patch_with_context,
+    post_with_context,
 )
 
 
 def update_role(module, array):
     """Update Directory Service Role"""
     changed = False
-    api_version = array.get_rest_version()
     # Check for special case of deleting a system-defined role.
     # Here we have to just blank out the group and group_base fields
     if module.params["state"] == "absent":
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.patch_directory_services_roles(
-                    names=[module.params["name"]],
-                    directory_service_roles=DirectoryServiceRole(
-                        group_base="",
-                        group="",
-                    ),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_directory_services_roles(
-                    names=[module.params["name"]],
-                    directory_service_roles=DirectoryServiceRole(
-                        group_base="",
-                        group="",
-                    ),
-                )
+            res = patch_with_context(
+                array,
+                "patch_directory_services_roles",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+                directory_service_roles=DirectoryServiceRole(
+                    group_base="",
+                    group="",
+                ),
+            )
             check_response(
                 res,
                 module,
@@ -169,16 +166,14 @@ def update_role(module, array):
             )
         module.exit_json(changed=True)
 
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        role = list(
-            array.get_directory_services_roles(
-                names=[module.params["name"]], context_names=[module.params["context"]]
-            ).items
-        )[0]
-    else:
-        role = list(
-            array.get_directory_services_roles(names=[module.params["name"]]).items
-        )[0]
+    res = get_with_context(
+        array,
+        "get_directory_services_roles",
+        CONTEXT_VERSION,
+        module,
+        names=[module.params["name"]],
+    )
+    role = list(res.items)[0]
     if module.params["name"] not in [
         "array_admin",
         "storage_admin",
@@ -192,25 +187,18 @@ def update_role(module, array):
         ):
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_directory_services_roles(
-                        names=[module.params["name"]],
-                        directory_service_roles=DirectoryServiceRole(
-                            group_base=module.params["group_base"],
-                            group=module.params["group"],
-                            role=Reference(name=module.params["role"]),
-                        ),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_directory_services_roles(
-                        names=[module.params["name"]],
-                        directory_service_roles=DirectoryServiceRole(
-                            group_base=module.params["group_base"],
-                            group=module.params["group"],
-                            role=Reference(name=module.params["role"]),
-                        ),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_directory_services_roles",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    directory_service_roles=DirectoryServiceRole(
+                        group_base=module.params["group_base"],
+                        group=module.params["group"],
+                        role=Reference(name=module.params["role"]),
+                    ),
+                )
                 check_response(
                     res,
                     module,
@@ -223,23 +211,17 @@ def update_role(module, array):
         ):
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_directory_services_roles(
-                        names=[module.params["name"]],
-                        directory_service_roles=DirectoryServiceRole(
-                            group_base=module.params["group_base"],
-                            group=module.params["group"],
-                        ),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_directory_services_roles(
-                        names=[module.params["name"]],
-                        directory_service_roles=DirectoryServiceRole(
-                            group_base=module.params["group_base"],
-                            group=module.params["group"],
-                        ),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_directory_services_roles",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    directory_service_roles=DirectoryServiceRole(
+                        group_base=module.params["group_base"],
+                        group=module.params["group"],
+                    ),
+                )
                 check_response(
                     res,
                     module,
@@ -251,14 +233,14 @@ def update_role(module, array):
 def delete_role(module, array):
     """Delete Directory Service Role"""
     changed = True
-    api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.delete_directory_services_roles(
-                names=[module.params["name"]], context_names=[module.params["context"]]
-            )
-        else:
-            res = array.delete_directory_services_roles(names=[module.params["name"]])
+        res = delete_with_context(
+            array,
+            "delete_directory_services_roles",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["name"]],
+        )
         check_response(
             res,
             module,
@@ -275,43 +257,30 @@ def create_role(module, array):
         changed = True
         if not module.check_mode:
             if LooseVersion(api_version) >= LooseVersion(POLICY_API_VERSION):
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.post_directory_services_roles(
-                        names=[module.params["name"]],
-                        directory_service_roles=DirectoryServiceRolePost(
-                            group_base=module.params["group_base"],
-                            group=module.params["group"],
-                            role=ReferenceNoId(name=module.params["role"]),
-                        ),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.post_directory_services_roles(
-                        names=[module.params["name"]],
-                        directory_service_roles=DirectoryServiceRolePost(
-                            group_base=module.params["group_base"],
-                            group=module.params["group"],
-                            role=ReferenceNoId(name=module.params["role"]),
-                        ),
-                    )
+                res = post_with_context(
+                    array,
+                    "post_directory_services_roles",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    directory_service_roles=DirectoryServiceRolePost(
+                        group_base=module.params["group_base"],
+                        group=module.params["group"],
+                        role=ReferenceNoId(name=module.params["role"]),
+                    ),
+                )
             else:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.post_directory_services_roles(
-                        names=[module.params["name"]],
-                        directory_service_roles=DirectoryServiceRole(
-                            group_base=module.params["group_base"],
-                            group=module.params["group"],
-                        ),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.post_directory_services_roles(
-                        names=[module.params["name"]],
-                        directory_service_roles=DirectoryServiceRole(
-                            group_base=module.params["group_base"],
-                            group=module.params["group"],
-                        ),
-                    )
+                res = post_with_context(
+                    array,
+                    "post_directory_services_roles",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[module.params["name"]],
+                    directory_service_roles=DirectoryServiceRole(
+                        group_base=module.params["group_base"],
+                        group=module.params["group"],
+                    ),
+                )
             check_response(
                 res,
                 module,
@@ -361,13 +330,13 @@ def main():
         )
     role_configured = False
     role = {}
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        res = array.get_directory_services_roles(
-            names=[module.params["name"]],
-            context_names=[module.params["context"]],
-        )
-    else:
-        res = array.get_directory_services_roles(names=[module.params["name"]])
+    res = get_with_context(
+        array,
+        "get_directory_services_roles",
+        CONTEXT_VERSION,
+        module,
+        names=[module.params["name"]],
+    )
     if res.status_code == 200:
         role = list(res.items)[0]
     if getattr(role, "group", None) is not None:
