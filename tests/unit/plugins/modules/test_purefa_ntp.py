@@ -48,6 +48,7 @@ from plugins.modules.purefa_ntp import (
     delete_ntp,
     test_ntp as ntp_test_func,
     create_ntp,
+    update_ntp_key,
 )
 
 
@@ -183,3 +184,117 @@ class TestCreateNtp:
 
         # In check mode, always returns changed=True without making API calls
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_ntp.check_response")
+    @patch("plugins.modules.purefa_ntp.get_with_context")
+    def test_create_ntp_success(self, mock_get_with_context, mock_check_response):
+        """Test create_ntp successfully sets NTP servers"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "context": "",
+            "ntp_servers": ["ntp1.example.com", "ntp2.example.com"],
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        create_ntp(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_ntp.check_response")
+    @patch("plugins.modules.purefa_ntp.get_with_context")
+    def test_create_ntp_defaults_to_pool(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test create_ntp uses default pool when no servers provided"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "context": "",
+            "ntp_servers": None,
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        create_ntp(mock_module, mock_array)
+
+        # Check that default was set
+        assert mock_module.params["ntp_servers"] == ["0.pool.ntp.org"]
+        mock_get_with_context.assert_called_once()
+
+
+class TestDeleteNtpSuccess:
+    """Test cases for delete_ntp success paths"""
+
+    @patch("plugins.modules.purefa_ntp.check_response")
+    @patch("plugins.modules.purefa_ntp.get_with_context")
+    def test_delete_ntp_success(self, mock_get_with_context, mock_check_response):
+        """Test delete_ntp successfully removes NTP servers"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"context": ""}
+        mock_array = Mock()
+        mock_array_obj = Mock()
+        mock_array_obj.ntp_servers = ["ntp1.example.com"]
+        mock_get_with_context.return_value = Mock(items=[mock_array_obj])
+
+        delete_ntp(mock_module, mock_array)
+
+        assert mock_get_with_context.call_count == 2
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateNtpKey:
+    """Test cases for update_ntp_key function"""
+
+    @patch("plugins.modules.purefa_ntp.get_with_context")
+    def test_update_ntp_key_no_change(self, mock_get_with_context):
+        """Test update_ntp_key when no change needed"""
+        mock_module = Mock()
+        mock_module.params = {"ntp_key": "", "context": ""}
+        mock_array = Mock()
+        mock_array_obj = Mock(spec=[])  # No ntp_symmetric_key attribute
+        mock_get_with_context.return_value = Mock(items=[mock_array_obj])
+
+        update_ntp_key(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_ntp.check_response")
+    @patch("plugins.modules.purefa_ntp.get_with_context")
+    def test_update_ntp_key_hex_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test update_ntp_key with valid HEX key"""
+        mock_module = Mock()
+        mock_module.params = {"ntp_key": "0123456789ABCDEF", "context": ""}
+        mock_array = Mock()
+        mock_array_obj = Mock()
+        mock_array_obj.ntp_symmetric_key = None
+        mock_get_with_context.return_value = Mock(items=[mock_array_obj])
+
+        update_ntp_key(mock_module, mock_array)
+
+        assert mock_get_with_context.call_count == 2
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_ntp.get_with_context")
+    def test_update_ntp_key_ascii_too_long(self, mock_get_with_context):
+        """Test update_ntp_key fails with ASCII key > 20 chars"""
+        import pytest
+
+        mock_module = Mock()
+        # Use non-hex characters like 'z' to ensure it's treated as ASCII
+        mock_module.params = {"ntp_key": "z" * 21, "context": ""}  # 21 non-hex chars
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array_obj = Mock()
+        mock_array_obj.ntp_symmetric_key = None
+        mock_get_with_context.return_value = Mock(items=[mock_array_obj])
+
+        with pytest.raises(SystemExit):
+            update_ntp_key(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()

@@ -238,3 +238,161 @@ class TestCreateRl:
             create_rl(mock_module, mock_array)
 
         mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_pod_replica.check_response")
+    @patch("plugins.modules.purefa_pod_replica.LooseVersion", side_effect=LooseVersion)
+    def test_create_rl_success(self, mock_lv, mock_check_response):
+        """Test create_rl successfully creates replica link"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "target_pod": "remote-pod",
+            "target_array": "array2",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_array_connections.return_value = Mock(
+            total_item_count=1,
+            status_code=200,
+            items=[Mock(status="connected")],
+        )
+        mock_array.post_pod_replica_links.return_value = Mock(status_code=200)
+
+        create_rl(mock_module, mock_array)
+
+        mock_array.post_pod_replica_links.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod_replica.check_response")
+    @patch("plugins.modules.purefa_pod_replica.LooseVersion", side_effect=LooseVersion)
+    def test_create_rl_check_mode(self, mock_lv, mock_check_response):
+        """Test create_rl in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-pod",
+            "target_pod": "remote-pod",
+            "target_array": "array2",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_array_connections.return_value = Mock(
+            total_item_count=1,
+            status_code=200,
+            items=[Mock(status="connected")],
+        )
+
+        create_rl(mock_module, mock_array)
+
+        mock_array.post_pod_replica_links.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod_replica.check_response")
+    @patch("plugins.modules.purefa_pod_replica.LooseVersion", side_effect=LooseVersion)
+    def test_create_rl_bad_status(self, mock_lv, mock_check_response):
+        """Test create_rl fails with bad connection status"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "target_pod": "remote-pod",
+            "target_array": "array2",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_array_connections.return_value = Mock(
+            total_item_count=1,
+            status_code=200,
+            items=[Mock(status="disconnected")],
+        )
+
+        with pytest.raises(SystemExit):
+            create_rl(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "Bad status" in mock_module.fail_json.call_args[1]["msg"]
+
+
+class TestDeleteRlSuccess:
+    """Test cases for delete_rl success paths"""
+
+    @patch("plugins.modules.purefa_pod_replica.check_response")
+    @patch("plugins.modules.purefa_pod_replica.LooseVersion", side_effect=LooseVersion)
+    def test_delete_rl_success(self, mock_lv, mock_check_response):
+        """Test delete_rl successfully deletes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-pod", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_pod_replica_links.return_value = Mock(status_code=200)
+        mock_rl = Mock()
+        mock_rl.__getitem__ = Mock(return_value={"name": "remote-pod"})
+
+        delete_rl(mock_module, mock_array, mock_rl)
+
+        mock_array.delete_pod_replica_links.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateRlSuccess:
+    """Test cases for update_rl success paths"""
+
+    @patch("plugins.modules.purefa_pod_replica.check_response")
+    @patch("plugins.modules.purefa_pod_replica.PodReplicaLinkPatch")
+    @patch("plugins.modules.purefa_pod_replica.LooseVersion", side_effect=LooseVersion)
+    def test_update_rl_resume_success(self, mock_lv, mock_patch, mock_check_response):
+        """Test update_rl resuming a paused replica link"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-pod", "pause": False, "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_pod_replica_links.return_value = Mock(status_code=200)
+        mock_rl = Mock()
+        mock_rl.status = "paused"
+        mock_rl.__getitem__ = Mock(return_value={"name": "remote-pod"})
+
+        update_rl(mock_module, mock_array, mock_rl)
+
+        mock_array.patch_pod_replica_links.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod_replica.LooseVersion", side_effect=LooseVersion)
+    def test_update_rl_already_paused(self, mock_lv):
+        """Test update_rl when already paused - no change"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-pod", "pause": True, "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_rl = Mock()
+        mock_rl.status = "paused"
+
+        update_rl(mock_module, mock_array, mock_rl)
+
+        mock_array.patch_pod_replica_links.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_pod_replica.LooseVersion", side_effect=LooseVersion)
+    def test_update_rl_already_running(self, mock_lv):
+        """Test update_rl when already running - no change"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "test-pod", "pause": False, "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_rl = Mock()
+        mock_rl.status = "replicating"
+
+        update_rl(mock_module, mock_array, mock_rl)
+
+        mock_array.patch_pod_replica_links.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=False)

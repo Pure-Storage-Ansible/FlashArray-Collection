@@ -145,3 +145,91 @@ class TestUpdateAgent:
 
         mock_array.patch_snmp_agents.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snmp_agent.check_response")
+    def test_update_agent_v3_full(self, mock_check_response):
+        """Test update_agent with v3 full auth and privacy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "version": "v3",
+            "user": "snmpuser",
+            "auth_protocol": "SHA",
+            "auth_passphrase": "authpass",
+            "privacy_protocol": "AES",
+            "privacy_passphrase": "privpass",
+            "state": "present",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.patch_snmp_agents.return_value = Mock(status_code=200)
+
+        update_agent(mock_module, mock_array)
+
+        mock_array.patch_snmp_agents.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snmp_agent.check_response")
+    def test_update_agent_v3_privacy_only(self, mock_check_response):
+        """Test update_agent with v3 privacy protocol only"""
+        mock_module = Mock()
+        mock_module.params = {
+            "version": "v3",
+            "user": "snmpuser",
+            "auth_protocol": None,
+            "auth_passphrase": None,
+            "privacy_protocol": "AES",
+            "privacy_passphrase": "privpass",
+            "state": "present",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.patch_snmp_agents.return_value = Mock(status_code=200)
+
+        update_agent(mock_module, mock_array)
+
+        mock_array.patch_snmp_agents.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snmp_agent.check_response")
+    def test_update_agent_v3_user_only(self, mock_check_response):
+        """Test update_agent with v3 user only (no auth or privacy)"""
+        mock_module = Mock()
+        mock_module.params = {
+            "version": "v3",
+            "user": "snmpuser",
+            "auth_protocol": None,
+            "auth_passphrase": None,
+            "privacy_protocol": None,
+            "privacy_passphrase": None,
+            "state": "present",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.patch_snmp_agents.return_value = Mock(status_code=200)
+
+        update_agent(mock_module, mock_array)
+
+        mock_array.patch_snmp_agents.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snmp_agent.check_response")
+    def test_update_agent_v3_delete(self, mock_check_response):
+        """Test update_agent with v3 delete state"""
+        mock_module = Mock()
+        mock_module.params = {
+            "version": "v3",
+            "user": "snmpuser",
+            "auth_protocol": None,
+            "auth_passphrase": None,
+            "privacy_protocol": None,
+            "privacy_passphrase": None,
+            "state": "delete",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.patch_snmp_agents.return_value = Mock(status_code=200)
+
+        update_agent(mock_module, mock_array)
+
+        mock_array.patch_snmp_agents.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)

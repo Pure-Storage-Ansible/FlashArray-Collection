@@ -176,3 +176,149 @@ class TestUpdateOffload:
         update_offload(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestCreateOffloadProtocols:
+    """Test cases for create_offload with different protocols"""
+
+    @patch("plugins.modules.purefa_offload.check_response")
+    @patch("plugins.modules.purefa_offload.get_with_context")
+    @patch("plugins.modules.purefa_offload.OffloadGoogleCloud")
+    @patch("plugins.modules.purefa_offload.OffloadPost")
+    def test_create_offload_gcp(
+        self, mock_offload_post, mock_offload_gcp, mock_get_with_context, mock_check
+    ):
+        """Test create_offload with GCP protocol"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "gcp-offload",
+            "protocol": "gcp",
+            "access_key": "access123",
+            "bucket": "mybucket",
+            "secret": "secret123",
+            "profile": None,
+            "initialize": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        create_offload(mock_module, mock_array)
+
+        mock_offload_gcp.assert_called_once()
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_offload.check_response")
+    @patch("plugins.modules.purefa_offload.get_with_context")
+    @patch("plugins.modules.purefa_offload.OffloadAzure")
+    @patch("plugins.modules.purefa_offload.OffloadPost")
+    def test_create_offload_azure(
+        self, mock_offload_post, mock_offload_azure, mock_get_with_context, mock_check
+    ):
+        """Test create_offload with Azure protocol"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "azure-offload",
+            "protocol": "azure",
+            "container": "mycontainer",
+            "bucket": "mybucket",
+            "secret": "secret123",
+            "profile": None,
+            "initialize": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        create_offload(mock_module, mock_array)
+
+        mock_offload_azure.assert_called_once()
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_offload.check_response")
+    @patch("plugins.modules.purefa_offload.get_with_context")
+    @patch("plugins.modules.purefa_offload.OffloadNfs")
+    @patch("plugins.modules.purefa_offload.OffloadPost")
+    def test_create_offload_nfs(
+        self, mock_offload_post, mock_offload_nfs, mock_get_with_context, mock_check
+    ):
+        """Test create_offload with NFS protocol"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "nfs-offload",
+            "protocol": "nfs",
+            "share": "/mnt/share",
+            "address": "nfs.example.com",
+            "options": "rw,no_root_squash",
+            "profile": None,
+            "initialize": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        create_offload(mock_module, mock_array)
+
+        mock_offload_nfs.assert_called_once()
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_offload.check_response")
+    @patch("plugins.modules.purefa_offload.get_with_context")
+    @patch("plugins.modules.purefa_offload.OffloadS3")
+    @patch("plugins.modules.purefa_offload.OffloadPost")
+    def test_create_offload_s3_with_profile(
+        self, mock_offload_post, mock_offload_s3, mock_get_with_context, mock_check
+    ):
+        """Test create_offload with S3 protocol and profile"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "s3-offload",
+            "protocol": "s3",
+            "access_key": "access123",
+            "bucket": "mybucket",
+            "secret": "secret123",
+            "profile": "my-profile",
+            "uri": "https://s3.example.com",
+            "auth_region": None,
+            "initialize": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.25"
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        create_offload(mock_module, mock_array)
+
+        mock_offload_s3.assert_called_once()
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteOffloadSuccess:
+    """Test cases for delete_offload success paths"""
+
+    @patch("plugins.modules.purefa_offload.check_response")
+    @patch("plugins.modules.purefa_offload.get_with_context")
+    def test_delete_offload_success(self, mock_get_with_context, mock_check_response):
+        """Test successful offload deletion"""
+        mock_module = Mock()
+        mock_module.params = {"name": "offload1", "context": ""}
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        delete_offload(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_check_response.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)

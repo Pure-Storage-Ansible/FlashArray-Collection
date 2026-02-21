@@ -1206,3 +1206,463 @@ class TestRenamePolicySuccess:
 
         mock_array.patch_policies_quota.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeletePolicyAutodir:
+    """Test cases for delete_policy with autodir policy type"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_delete_autodir_policy_success(self, mock_lv):
+        """Test successful deletion of autodir policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "autodir_policy",
+            "policy": "autodir",
+            "client": None,
+            "directory": None,
+            "snap_client_name": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_policies_autodir.return_value = Mock(status_code=200)
+
+        delete_policy(mock_module, mock_array)
+
+        mock_array.delete_policies_autodir.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_delete_autodir_policy_older_api(self, mock_lv):
+        """Test deletion of autodir policy with older API version"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "autodir_policy",
+            "policy": "autodir",
+            "client": None,
+            "directory": None,
+            "snap_client_name": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Older than CONTEXT_VERSION
+        mock_array.delete_policies_autodir.return_value = Mock(status_code=200)
+
+        delete_policy(mock_module, mock_array)
+
+        mock_array.delete_policies_autodir.assert_called_once_with(
+            names=["autodir_policy"]
+        )
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeletePolicySnapshotExtended:
+    """Extended test cases for delete_policy with snapshot policy"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_delete_snapshot_policy_success(self, mock_lv):
+        """Test successful deletion of entire snapshot policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snap_policy",
+            "policy": "snapshot",
+            "client": None,
+            "directory": None,
+            "snap_client_name": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_policies_snapshot.return_value = Mock(status_code=200)
+
+        delete_policy(mock_module, mock_array)
+
+        mock_array.delete_policies_snapshot.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_delete_snapshot_policy_with_rule(self, mock_lv):
+        """Test deletion of snapshot rule from policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snap_policy",
+            "policy": "snapshot",
+            "client": None,
+            "directory": None,
+            "snap_client_name": "daily_snap",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_rule = Mock()
+        mock_rule.client_name = "daily_snap"
+        mock_rule.name = "rule1"
+        mock_array.get_policies_snapshot_rules.return_value = Mock(items=[mock_rule])
+        mock_array.delete_policies_snapshot_rules.return_value = Mock(status_code=200)
+
+        delete_policy(mock_module, mock_array)
+
+        mock_array.delete_policies_snapshot_rules.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreatePolicyAutodir:
+    """Test cases for create_policy with autodir policy type"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPost")
+    def test_create_autodir_policy_success(self, mock_policy_post, mock_lv):
+        """Test successful creation of autodir policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "autodir_policy",
+            "policy": "autodir",
+            "enabled": True,
+            "directory": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_policies_autodir.return_value = Mock(status_code=200)
+
+        create_policy(mock_module, mock_array, False)
+
+        mock_array.post_policies_autodir.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreatePolicyNfs:
+    """Test cases for create_policy with NFS policy type"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPost")
+    def test_create_nfs_policy_basic(self, mock_policy_post, mock_lv):
+        """Test basic NFS policy creation"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "nfs_policy",
+            "policy": "nfs",
+            "enabled": True,
+            "client": None,
+            "user_mapping": True,
+            "nfs_version": None,
+            "security": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_policies_nfs.return_value = Mock(status_code=200)
+        mock_array.patch_policies_nfs.return_value = Mock(status_code=200)
+
+        create_policy(mock_module, mock_array, False)
+
+        mock_array.post_policies_nfs.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPost")
+    def test_create_nfs_policy_check_mode(self, mock_policy_post, mock_lv):
+        """Test NFS policy creation in check mode"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "nfs_policy",
+            "policy": "nfs",
+            "enabled": True,
+            "context": "",
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        create_policy(mock_module, mock_array, False)
+
+        mock_array.post_policies_nfs.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreatePolicySmb:
+    """Test cases for create_policy with SMB policy type"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPost")
+    def test_create_smb_policy_basic(self, mock_policy_post, mock_lv):
+        """Test basic SMB policy creation"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "smb_policy",
+            "policy": "smb",
+            "enabled": True,
+            "smb_anon_allowed": False,
+            "smb_encrypt": False,
+            "access_based_enumeration": False,
+            "continuous_availability": False,
+            "client": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_policies_smb.return_value = Mock(status_code=200)
+        mock_array.patch_policies_smb.return_value = Mock(status_code=200)
+
+        create_policy(mock_module, mock_array, False)
+
+        mock_array.post_policies_smb.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreatePolicySnapshot:
+    """Test cases for create_policy with snapshot policy type"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPost")
+    def test_create_snapshot_policy_basic(self, mock_policy_post, mock_lv):
+        """Test basic snapshot policy creation"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snap_policy",
+            "policy": "snapshot",
+            "enabled": True,
+            "snap_client_name": None,
+            "snap_every": None,
+            "snap_keep_for": None,
+            "snap_at": None,
+            "directory": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_policies_snapshot.return_value = Mock(status_code=200)
+
+        create_policy(mock_module, mock_array, False)
+
+        mock_array.post_policies_snapshot.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreatePolicyQuota:
+    """Test cases for create_policy with quota policy type"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPost")
+    def test_create_quota_policy_basic(self, mock_policy_post, mock_lv):
+        """Test basic quota policy creation"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "quota_policy",
+            "policy": "quota",
+            "enabled": True,
+            "quota_limit": None,
+            "directory": None,
+            "quota_enforced": False,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_policies_quota.return_value = Mock(status_code=200)
+
+        create_policy(mock_module, mock_array, False)
+
+        mock_array.post_policies_quota.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdatePolicyNfs:
+    """Test cases for update_policy with NFS policy type"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyNfsPatch")
+    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    def test_update_nfs_policy_enable_change(
+        self, mock_policy_patch, mock_nfs_patch, mock_lv
+    ):
+        """Test updating NFS policy enabled state"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "nfs_policy",
+            "policy": "nfs",
+            "enabled": False,
+            "client": None,
+            "user_mapping": True,
+            "nfs_version": None,
+            "security": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_current = Mock()
+        mock_current.enabled = True
+        mock_current.user_mapping_enabled = True
+        mock_array.get_policies_nfs.return_value = Mock(
+            status_code=200, items=[mock_current]
+        )
+        mock_array.patch_policies_nfs.return_value = Mock(status_code=200)
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        mock_array.patch_policies_nfs.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreatePolicyPassword:
+    """Test cases for create_policy with password policy type"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_create_password_policy_fails(self, mock_lv):
+        """Test password policy creation fails with proper error"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "password_policy",
+            "policy": "password",
+            "enabled": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        create_policy(mock_module, mock_array, False)
+
+        mock_module.fail_json.assert_called_once()
+        assert "Password policy creation" in str(
+            mock_module.fail_json.call_args[1]["msg"]
+        )
+
+
+class TestUpdatePolicySmbExtended:
+    """Extended test cases for update_policy with SMB policy"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicySmbPatch")
+    def test_update_smb_policy_enable_change(self, mock_smb_patch, mock_lv):
+        """Test updating SMB policy enabled state"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "smb_policy",
+            "policy": "smb",
+            "enabled": False,
+            "client": None,
+            "access_based_enumeration": None,
+            "continuous_availability": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_current = Mock()
+        mock_current.enabled = True
+        mock_current.access_based_enumeration_enabled = False
+        mock_current.continuous_availability_enabled = False
+        mock_array.get_policies_smb.return_value = Mock(
+            status_code=200, items=[mock_current]
+        )
+        mock_array.patch_policies_smb.return_value = Mock(status_code=200)
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        mock_array.patch_policies_smb.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_update_smb_policy_no_change(self, mock_lv):
+        """Test SMB policy with no changes needed"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "smb_policy",
+            "policy": "smb",
+            "enabled": True,
+            "client": None,
+            "access_based_enumeration": False,  # Match current state
+            "continuous_availability": False,  # Match current state
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_current = Mock()
+        mock_current.enabled = True
+        mock_current.access_based_enumeration_enabled = False
+        mock_current.continuous_availability_enabled = False
+        mock_array.get_policies_smb.return_value = Mock(
+            status_code=200, items=[mock_current]
+        )
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestUpdatePolicySnapshotExtended:
+    """Extended test cases for update_policy with snapshot policy"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    def test_update_snapshot_policy_enable_change(self, mock_policy_patch, mock_lv):
+        """Test updating snapshot policy enabled state"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snap_policy",
+            "policy": "snapshot",
+            "enabled": False,
+            "snap_client_name": None,
+            "snap_every": None,
+            "snap_keep_for": None,
+            "snap_at": None,
+            "directory": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_current = Mock()
+        mock_current.enabled = True
+        mock_array.get_policies_snapshot.return_value = Mock(
+            status_code=200, items=[mock_current]
+        )
+        mock_array.patch_policies_snapshot.return_value = Mock(status_code=200)
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        mock_array.patch_policies_snapshot.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdatePolicyQuotaExtended:
+    """Extended test cases for update_policy with quota policy"""
+
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    def test_update_quota_policy_enable_change(self, mock_policy_patch, mock_lv):
+        """Test updating quota policy enabled state"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "quota_policy",
+            "policy": "quota",
+            "enabled": False,
+            "quota_limit": None,
+            "directory": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_current = Mock()
+        mock_current.enabled = True
+        mock_array.get_policies_quota.return_value = Mock(
+            status_code=200, items=[mock_current]
+        )
+        mock_array.patch_policies_quota.return_value = Mock(status_code=200)
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        mock_array.patch_policies_quota.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)

@@ -525,7 +525,7 @@ def recover_snapshot(module, array):
                     names=[snapname],
                     volume_snapshot=VolumeSnapshotPatch(destroyed=False),
                 )
-            if res.sttaus_code != 200:
+            if res.status_code != 200:
                 module.fail_json(
                     msg="Recovery of snapshot {0} failed. Error: {1}".format(
                         snapname, res.errors[0].message

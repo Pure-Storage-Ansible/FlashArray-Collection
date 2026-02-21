@@ -349,3 +349,94 @@ class TestUpdateSubnet:
             update_subnet(mock_module, mock_array, mock_subnet)
 
         mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_mtu_out_of_range(self, mock_check_response):
+        """Test update_subnet fails with invalid MTU"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "prefix": None,
+            "vlan": None,
+            "mtu": 500,  # Out of range - minimum is 568
+            "gateway": None,
+            "enabled": True,
+        }
+
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "10.0.0.0/24"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = 100
+        mock_subnet.gateway = "10.0.0.1"
+        mock_subnet.enabled = True
+
+        mock_array = Mock()
+
+        with pytest.raises(SystemExit):
+            update_subnet(mock_module, mock_array, mock_subnet)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_change_enabled(self, mock_check_response):
+        """Test update_subnet changes enabled state"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "prefix": None,
+            "vlan": None,
+            "mtu": None,
+            "gateway": None,
+            "enabled": False,  # Change from True to False
+        }
+
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "10.0.0.0/24"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = 100
+        mock_subnet.gateway = "10.0.0.1"
+        mock_subnet.enabled = True
+        mock_subnet.__getitem__ = Mock(return_value="10.0.0.1")
+
+        mock_array = Mock()
+        mock_array.patch_subnets.return_value = Mock(status_code=200)
+
+        update_subnet(mock_module, mock_array, mock_subnet)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        mock_array.patch_subnets.assert_called()
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_change_mtu(self, mock_check_response):
+        """Test update_subnet changes MTU"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "prefix": None,
+            "vlan": None,
+            "mtu": 9000,  # Change MTU
+            "gateway": None,
+            "enabled": True,
+        }
+
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "10.0.0.0/24"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = 100
+        mock_subnet.gateway = "10.0.0.1"
+        mock_subnet.enabled = True
+        mock_subnet.__getitem__ = Mock(return_value="10.0.0.1")
+
+        mock_array = Mock()
+        mock_array.patch_subnets.return_value = Mock(status_code=200)
+
+        update_subnet(mock_module, mock_array, mock_subnet)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        mock_array.patch_subnets.assert_called()

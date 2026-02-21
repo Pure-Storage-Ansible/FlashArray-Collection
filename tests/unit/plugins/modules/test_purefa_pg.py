@@ -705,3 +705,347 @@ class TestUpdatePgroupSuccess:
 
         mock_array.patch_protection_groups.assert_called()
         mock_module.exit_json.assert_called()
+
+
+class TestUpdatePgroupVolumes:
+    """Additional tests for update_pgroup with volumes"""
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_update_pgroup_add_volumes(
+        self, mock_lv, mock_check_response, mock_get_pgroup_sched
+    ):
+        """Test update_pgroup adding volumes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": ["vol1", "vol2"],
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "priority": None,
+            "priority_adjustment": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_pg = Mock()
+        mock_pg.volume_count = 0
+        mock_pg.host_count = 0
+        mock_pg.host_group_count = 0
+        mock_pg.retention_lock = "unlocked"
+        mock_get_pgroup_sched.return_value = Mock()
+        mock_array.post_protection_groups_volumes.return_value = Mock(status_code=200)
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups_volumes.assert_called_once()
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_update_pgroup_add_hostgroup(
+        self, mock_lv, mock_check_response, mock_get_pgroup_sched
+    ):
+        """Test update_pgroup adding host groups"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": None,
+            "host": None,
+            "hostgroup": ["hg1"],
+            "target": None,
+            "priority": None,
+            "priority_adjustment": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_pg = Mock()
+        mock_pg.volume_count = 0
+        mock_pg.host_count = 0
+        mock_pg.host_group_count = 0
+        mock_pg.retention_lock = "unlocked"
+        mock_get_pgroup_sched.return_value = Mock()
+        mock_array.post_protection_groups_host_groups.return_value = Mock(
+            status_code=200
+        )
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups_host_groups.assert_called_once()
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_update_pgroup_disable_snapshot_schedule(
+        self, mock_lv, mock_get_pgroup_sched
+    ):
+        """Test update_pgroup disabling snapshot schedule"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "priority": None,
+            "priority_adjustment": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": False,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_sched = Mock()
+        mock_sched.snapshot_schedule.enabled = True
+        mock_get_pgroup_sched.return_value = mock_sched
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+        mock_pg = Mock()
+        mock_pg.retention_lock = "unlocked"
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.patch_protection_groups.assert_called()
+        mock_module.exit_json.assert_called()
+
+
+class TestUpdatePgroupTargets:
+    """Test cases for update_pgroup with target handling"""
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.get_targets")
+    @patch("plugins.modules.purefa_pg.get_arrays")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_update_pgroup_no_targets_connected(
+        self,
+        mock_lv,
+        mock_check_response,
+        mock_get_arrays,
+        mock_get_targets,
+        mock_get_pgroup_sched,
+    ):
+        """Test update_pgroup fails when no targets connected"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": ["offload-target"],
+            "priority": None,
+            "priority_adjustment": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": True,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_arrays.return_value = []
+        mock_get_targets.return_value = []
+
+        with pytest.raises(SystemExit):
+            update_pgroup(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.get_targets")
+    @patch("plugins.modules.purefa_pg.get_arrays")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_update_pgroup_target_not_connected(
+        self,
+        mock_lv,
+        mock_check_response,
+        mock_get_arrays,
+        mock_get_targets,
+        mock_get_pgroup_sched,
+    ):
+        """Test update_pgroup fails when target not connected"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": ["nonexistent-target"],
+            "priority": None,
+            "priority_adjustment": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": True,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_arrays.return_value = ["array2"]
+        mock_get_targets.return_value = ["nfs-target1"]
+        mock_array.get_protection_groups_targets.return_value = Mock(
+            status_code=200, items=[]
+        )
+
+        with pytest.raises(SystemExit):
+            update_pgroup(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestDeletePgroupEradicate:
+    """Test cases for delete_pgroup with eradicate option"""
+
+    @patch("plugins.modules.purefa_pg.eradicate_pgroup")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_delete_pgroup_with_eradicate(
+        self, mock_lv, mock_check_response, mock_eradicate
+    ):
+        """Test delete_pgroup calls eradicate when eradicate=True"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "eradicate": True,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+
+        delete_pgroup(mock_module, mock_array)
+
+        mock_eradicate.assert_called_once_with(mock_module, mock_array)
+
+
+class TestRenameExistsContainer:
+    """Test cases for rename_exists with container handling"""
+
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_rename_exists_in_pod(self, mock_lv):
+        """Test rename_exists for pgroup in pod"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pod1::test-pg",
+            "rename": "new-pg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[Mock()]
+        )
+
+        result = rename_exists(mock_module, mock_array)
+
+        assert result is True
+        # Verify it looked for pod1::new-pg
+        call_args = mock_array.get_protection_groups.call_args
+        assert "pod1::new-pg" in str(call_args)
+
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_rename_exists_no_container(self, mock_lv):
+        """Test rename_exists for standalone pgroup"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": "new-pg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_protection_groups.return_value = Mock(status_code=404, items=[])
+
+        result = rename_exists(mock_module, mock_array)
+
+        assert result is False
+
+
+class TestRecoverPgroupExtended:
+    """Extended test cases for recover_pgroup function"""
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_recover_pgroup_older_api(self, mock_lv, mock_check_response):
+        """Test recovering pgroup with older API version"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.16"
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+
+        recover_pgroup(mock_module, mock_array)
+
+        mock_array.patch_protection_groups.assert_called_once()
+        call_kwargs = mock_array.patch_protection_groups.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestEradicatePgroupExtended:
+    """Extended test cases for eradicate_pgroup function"""
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_pgroup_older_api(self, mock_lv, mock_check_response):
+        """Test eradicating pgroup with older API version"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.16"
+        mock_array.delete_protection_groups.return_value = Mock(status_code=200)
+
+        eradicate_pgroup(mock_module, mock_array)
+
+        mock_array.delete_protection_groups.assert_called_once()
+        call_kwargs = mock_array.delete_protection_groups.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)

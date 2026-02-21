@@ -870,3 +870,556 @@ class TestUpdateHostInitiators:
         result = _update_host_initiators(mock_module, mock_array)
 
         assert result is False
+
+
+class TestDeleteHostSuccess:
+    """Test cases for delete_host success paths"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_delete_host_success(self, mock_get_with_context, mock_check_response):
+        """Test delete_host successfully deletes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"name": "host1", "context": ""}
+        mock_array = Mock()
+        # Mock host that doesn't belong to a host group
+        mock_host = Mock()
+        mock_host.host_group = None
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        delete_host(mock_module, mock_array)
+
+        mock_get_with_context.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestSetHostPersonalityExtended:
+    """Extended test cases for _set_host_personality"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_set_host_personality_linux(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test _set_host_personality with linux personality"""
+        mock_module = Mock()
+        mock_module.params = {"name": "host1", "personality": "linux", "context": ""}
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        _set_host_personality(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_check_response.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_set_host_personality_delete(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test _set_host_personality with delete"""
+        mock_module = Mock()
+        mock_module.params = {"name": "host1", "personality": "delete", "context": ""}
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        _set_host_personality(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+
+
+class TestSetPreferredArrayExtended:
+    """Extended test cases for _set_preferred_array"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_set_preferred_array_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test _set_preferred_array sets arrays"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "preferred_array": ["array1"],
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        _set_preferred_array(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        mock_check_response.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_set_preferred_array_delete(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test _set_preferred_array with delete"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "preferred_array": ["delete"],
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        _set_preferred_array(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+
+
+class TestUpdateChapSecurity:
+    """Test cases for _update_chap_security function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_chap_host_user_clear(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test clearing CHAP host username"""
+        from plugins.modules.purefa_host import _update_chap_security
+
+        mock_chap = Mock()
+        mock_chap.host_user = "existing_user"
+        mock_host = Mock()
+        mock_host.chap = mock_chap
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "host_user": "test_user",
+            "host_password": "clear",
+            "target_user": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _update_chap_security(mock_module, mock_array)
+
+        assert result is True
+        assert mock_get_with_context.call_count >= 2
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_chap_host_password_invalid(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test CHAP update with invalid password"""
+        import pytest
+        from plugins.modules.purefa_host import _update_chap_security
+
+        mock_chap = Mock()
+        mock_host = Mock()
+        mock_host.chap = mock_chap
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "host_user": "test_user",
+            "host_password": "short",  # Less than 12 chars
+            "target_user": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+
+        with pytest.raises(SystemExit):
+            _update_chap_security(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_chap_target_user_clear(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test clearing CHAP target username"""
+        from plugins.modules.purefa_host import _update_chap_security
+
+        mock_chap = Mock()
+        mock_chap.target_user = "existing_target"
+        mock_host = Mock()
+        mock_host.chap = mock_chap
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "host_user": None,
+            "target_user": "target_test",
+            "target_password": "clear",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _update_chap_security(mock_module, mock_array)
+
+        assert result is True
+
+
+class TestUpdateHostPersonality:
+    """Test cases for _update_host_personality function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_host_personality_change(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test updating host personality"""
+        from plugins.modules.purefa_host import _update_host_personality
+
+        mock_host = Mock()
+        mock_host.personality = "linux"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "personality": "windows",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _update_host_personality(mock_module, mock_array)
+
+        assert result is True
+        assert mock_get_with_context.call_count >= 2
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_host_personality_no_change(self, mock_get_with_context):
+        """Test updating host personality when no change needed"""
+        from plugins.modules.purefa_host import _update_host_personality
+
+        mock_host = Mock()
+        mock_host.personality = "linux"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "personality": "linux",  # Same as current
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _update_host_personality(mock_module, mock_array)
+
+        assert result is False
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_host_personality_delete(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test deleting host personality"""
+        from plugins.modules.purefa_host import _update_host_personality
+
+        mock_host = Mock()
+        mock_host.personality = "linux"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "personality": "delete",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _update_host_personality(mock_module, mock_array)
+
+        assert result is True
+
+
+class TestConnectVolume:
+    """Test cases for _connect_new_volume function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_connect_volume_success(self, mock_get_with_context, mock_check_response):
+        """Test connecting volume to host"""
+        from plugins.modules.purefa_host import _connect_new_volume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+            "lun": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _connect_new_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_get_with_context.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_connect_volume_with_lun(self, mock_get_with_context, mock_check_response):
+        """Test connecting volume with specific LUN"""
+        from plugins.modules.purefa_host import _connect_new_volume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+            "lun": 10,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _connect_new_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_get_with_context.assert_called_once()
+
+    def test_connect_volume_check_mode(self):
+        """Test connecting volume in check mode"""
+        from plugins.modules.purefa_host import _connect_new_volume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+            "lun": None,
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+
+        result = _connect_new_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_array.post_connections.assert_not_called()
+
+
+class TestDisconnectVolume:
+    """Test cases for _disconnect_volume function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_disconnect_volume_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test disconnecting volume from host"""
+        from plugins.modules.purefa_host import _disconnect_volume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+
+        result = _disconnect_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_get_with_context.assert_called_once()
+
+    def test_disconnect_volume_check_mode(self):
+        """Test disconnecting volume in check mode"""
+        from plugins.modules.purefa_host import _disconnect_volume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "volume": "vol1",
+        }
+        mock_module.check_mode = True
+        mock_array = Mock()
+
+        result = _disconnect_volume(mock_module, mock_array)
+
+        assert result is True
+        mock_array.delete_connections.assert_not_called()
+
+
+class TestMoveHost:
+    """Test cases for move_host function"""
+
+    def test_move_host_context_not_supported(self):
+        """Test move_host fails when context is provided"""
+        import pytest
+        from plugins.modules.purefa_host import move_host
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "context": "some-context",
+            "move": ["realm1"],
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        with pytest.raises(SystemExit):
+            move_host(mock_module, Mock())
+
+        mock_module.fail_json.assert_called_once_with(
+            msg="context is not yet supported for host move function"
+        )
+
+    def test_move_host_mixed_local_realm(self):
+        """Test move_host fails when mixing local with realm"""
+        import pytest
+        from plugins.modules.purefa_host import move_host
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",
+            "context": "",
+            "move": ["local", "realm1"],
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_arrays.return_value = Mock(items=[Mock(name="array1")])
+
+        with pytest.raises(SystemExit):
+            move_host(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once_with(
+            msg="Cannot mix local with another realm in move target list"
+        )
+
+    def test_move_host_local_without_realm_name(self):
+        """Test move_host fails when moving to local without realm in hostname"""
+        import pytest
+        from plugins.modules.purefa_host import move_host
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "host1",  # No :: in name
+            "context": "",
+            "move": ["local"],
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_arrays.return_value = Mock(items=[Mock(name="array1")])
+
+        with pytest.raises(SystemExit):
+            move_host(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once_with(
+            msg="host must be provided with current realm name"
+        )
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_move_host_with_connections_fails(self, mock_get_with_context):
+        """Test move_host fails when host has existing connections"""
+        import pytest
+        from plugins.modules.purefa_host import move_host
+
+        mock_host = Mock()
+        mock_host.connection_count = 5  # Has connections
+        mock_get_with_context.return_value = Mock(items=[mock_host])
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "realm1::host1",
+            "context": "",
+            "move": ["local"],
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_arrays.return_value = Mock(items=[Mock(name="array1")])
+
+        with pytest.raises(SystemExit):
+            move_host(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once_with(
+            msg="Hosts cannot be moved with existing volume connections."
+        )
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_move_host_to_local_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test move_host successfully moves host to local"""
+        from plugins.modules.purefa_host import move_host
+
+        mock_host = Mock()
+        mock_host.connection_count = 0  # No connections
+        mock_get_with_context.return_value = Mock(items=[mock_host], status_code=200)
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "realm1::host1",
+            "context": "",
+            "move": ["local"],
+            "modify_resource_access": False,
+        }
+        mock_array = Mock()
+        mock_array.get_arrays.return_value = Mock(items=[Mock(name="array1")])
+
+        move_host(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_move_host_to_realm_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test move_host successfully moves host to a realm"""
+        from plugins.modules.purefa_host import move_host
+
+        mock_host = Mock()
+        mock_host.connection_count = 0
+        mock_get_with_context.return_value = Mock(items=[mock_host], status_code=200)
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "host1",  # No realm prefix - local host
+            "context": "",
+            "move": ["realm2"],
+            "modify_resource_access": False,
+        }
+        mock_array = Mock()
+        mock_array.get_arrays.return_value = Mock(items=[Mock(name="array1")])
+
+        move_host(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_move_host_check_mode(self, mock_get_with_context):
+        """Test move_host in check mode"""
+        from plugins.modules.purefa_host import move_host
+
+        mock_host = Mock()
+        mock_host.connection_count = 0
+        mock_get_with_context.return_value = Mock(items=[mock_host], status_code=200)
+
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "realm1::host1",
+            "context": "",
+            "move": ["local"],
+            "modify_resource_access": False,
+        }
+        mock_array = Mock()
+        mock_array.get_arrays.return_value = Mock(items=[Mock(name="array1")])
+
+        move_host(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        # In check mode, get_with_context should only be called once (to get host)
+        assert mock_get_with_context.call_count == 1

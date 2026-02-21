@@ -73,3 +73,54 @@ class TestGetFilterString:
         result = _get_filter_string(mock_module, "+00:00")
 
         assert result == "time>=0"
+
+    def test_get_filter_string_with_date(self):
+        """Test _get_filter_string with a valid date"""
+        mock_module = Mock()
+        mock_module.params = {"start": "2026-01-15 10:30:00"}
+
+        result = _get_filter_string(mock_module, "+00:00")
+
+        # Should contain time>= with a non-zero timestamp
+        assert result.startswith("time>=")
+        assert result != "time>=0"
+
+    def test_get_filter_string_with_timezone_offset(self):
+        """Test _get_filter_string with timezone offset"""
+        mock_module = Mock()
+        mock_module.params = {"start": "2026-02-20 12:00:00"}
+
+        result = _get_filter_string(mock_module, "-05:00")
+
+        assert result.startswith("time>=")
+        # The timestamp should be calculated with timezone offset
+
+
+# Import main for testing
+from plugins.modules.purefa_audits import main
+import pytest
+from unittest.mock import patch
+
+
+class TestAuditsMissingDependency:
+    """Test cases for missing dependency"""
+
+    @patch("plugins.modules.purefa_audits.HAS_PYTZ", False)
+    @patch("plugins.modules.purefa_audits.AnsibleModule")
+    def test_missing_pytz_dependency_fails(self, mock_ansible_module):
+        """Test that missing pytz dependency fails"""
+        mock_module = Mock()
+        mock_module.params = {
+            "start": None,
+            "timezone": None,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called_once_with(
+            msg="pytz is required for this module"
+        )

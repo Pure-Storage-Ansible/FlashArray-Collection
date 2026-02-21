@@ -53,6 +53,7 @@ from plugins.modules.purefa_default_protection import (
     _get_pg,
     delete_default,
     create_default,
+    update_default,
 )
 
 
@@ -221,4 +222,100 @@ class TestCreateDefault:
         create_default(mock_module, mock_array)
 
         mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateDefault:
+    """Test cases for update_default function"""
+
+    def test_update_default_no_change(self):
+        """Test update_default when no change needed"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "scope": "array",
+            "name": ["pg1"],
+            "state": "present",
+        }
+        mock_array = Mock()
+        # Current defaults already match
+        mock_default = Mock()
+        mock_default.name = "pg1"
+        current_default = [mock_default]
+
+        update_default(mock_module, mock_array, current_default)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_default_protection.check_response")
+    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    def test_update_default_add_pgroup_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test update_default adding new protection group"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "scope": "array",
+            "name": ["pg1", "pg2"],
+            "state": "present",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+        # Current has only pg1
+        mock_default = Mock()
+        mock_default.name = "pg1"
+        current_default = [mock_default]
+
+        update_default(mock_module, mock_array, current_default)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_default_protection.check_response")
+    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    def test_update_default_remove_pgroup_success(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test update_default removing protection group"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "scope": "array",
+            "name": ["pg1"],
+            "state": "absent",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+        # Current has pg1 and pg2
+        mock_default1 = Mock()
+        mock_default1.name = "pg1"
+        mock_default2 = Mock()
+        mock_default2.name = "pg2"
+        current_default = [mock_default1, mock_default2]
+
+        update_default(mock_module, mock_array, current_default)
+
+        mock_get_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_update_default_check_mode(self):
+        """Test update_default in check mode when change needed"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "scope": "array",
+            "name": ["pg1", "pg2"],
+            "state": "present",
+        }
+        mock_array = Mock()
+        # Current has only pg1
+        mock_default = Mock()
+        mock_default.name = "pg1"
+        current_default = [mock_default]
+
+        update_default(mock_module, mock_array, current_default)
+
         mock_module.exit_json.assert_called_once_with(changed=True)
