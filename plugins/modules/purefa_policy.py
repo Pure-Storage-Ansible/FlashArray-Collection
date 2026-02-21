@@ -242,6 +242,26 @@ options:
     - Maximum is limited by the minimum password length divided by the number of character groups
     type: int
     version_added: 1.33.0
+  min_password_age:
+    description:
+    - Minimum password age before a password can be changed.
+    - Value can be specified as a human-readable time period (e.g., C(1d), C(2h), C(30m), C(60s))
+      or as an integer representing seconds.
+    - Supported time units are C(w) (weeks), C(d) (days), C(h) (hours), C(m) (minutes), C(s) (seconds).
+    - Range between 0 seconds (no minimum) and 7 days.
+    - A value of 0 or C(0s) means passwords can be changed immediately.
+    type: str
+    version_added: 1.33.0
+  max_password_age:
+    description:
+    - Maximum password age before a password must be changed.
+    - Value can be specified as a human-readable time period (e.g., C(90d), C(1w), C(24h))
+      or as an integer representing seconds.
+    - Supported time units are C(w) (weeks), C(d) (days), C(h) (hours), C(m) (minutes), C(s) (seconds).
+    - Range between 1 day and 99999 days.
+    - A value of 0 or C(0s) disables password expiration.
+    type: str
+    version_added: 1.33.0
   rule_name:
     description:
     - Name of rule to update for a quota policy
@@ -412,7 +432,7 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 
-- name: Update password police management
+- name: Update password policy management
   purestorage.flasharray.purefa_policy:
     name: management
     policy: password
@@ -421,6 +441,24 @@ EXAMPLES = r"""
     enforce_dictionary_check: true
     min_password_length: 5
     password_history: 2
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Update password policy with password age requirements
+  purestorage.flasharray.purefa_policy:
+    name: management
+    policy: password
+    min_password_age: 1d
+    max_password_age: 90d
+    lockout_duration: 300
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+
+- name: Disable password expiration
+  purestorage.flasharray.purefa_policy:
+    name: management
+    policy: password
+    max_password_age: 0
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
 """
@@ -467,6 +505,7 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 from ansible_collections.purestorage.flasharray.plugins.module_utils.common import (
     human_to_bytes,
     convert_to_millisecs,
+    convert_time_to_millisecs,
 )
 
 MIN_REQUIRED_API_VERSION = "2.3"
@@ -925,7 +964,7 @@ def delete_policy(module, array):
                             if (
                                 module.params["quota_enforced"] == rule.enforced
                                 and ",".join(module.params["quota_notifications"])
-                                == rules[rule].notifications
+                                == rule.notifications
                             ):
                                 if LooseVersion(CONTEXT_VERSION) <= LooseVersion(
                                     api_version
@@ -1492,7 +1531,7 @@ def update_policy(module, array, api_version, all_squash):
     """Update an existing policy including add/remove rules"""
     changed = changed_dir = changed_rule = changed_enable = changed_quota = (
         changed_member
-    ) = changed_user_map = changed_abe = changed_ca = changed_nfs = changed_rule = False
+    ) = changed_user_map = changed_abe = changed_ca = changed_nfs = False
     if module.params["policy"] == "nfs":
         if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
             current_policy = list(
@@ -2299,6 +2338,7 @@ def update_policy(module, array, api_version, all_squash):
             "min_characters_per_group": pwd_policy.min_characters_per_group,
             "min_password_length": pwd_policy.min_password_length,
             "min_password_age": getattr(pwd_policy, "min_password_age", 0),
+            "max_password_age": getattr(pwd_policy, "max_password_age", 0),
             "max_login_attempts": getattr(pwd_policy, "max_login_attempts", 0),
             "password_history": getattr(pwd_policy, "password_history", 0),
         }
@@ -2341,8 +2381,17 @@ def update_policy(module, array, api_version, all_squash):
         ):
             new_pwd_policy["min_password_length"] = module.params["min_password_length"]
             changed = True
-        if module.params["min_password_age"] != current_pwd_policy["min_password_age"]:
+        if (
+            module.params["min_password_age"]
+            and module.params["min_password_age"]
+            != current_pwd_policy["min_password_age"]
+        ):
             new_pwd_policy["min_password_age"] = module.params["min_password_age"]
+            changed = True
+        if module.params["max_password_age"] and module.params[
+            "max_password_age"
+        ] != current_pwd_policy.get("max_password_age", 0):
+            new_pwd_policy["max_password_age"] = module.params["max_password_age"]
             changed = True
         if (
             module.params["password_history"]
@@ -2373,30 +2422,40 @@ def update_policy(module, array, api_version, all_squash):
                     names=[module.params["name"]],
                     context_names=[module.params["context"]],
                     policy=PolicyPassword(
-                        max_login_attempts=new_pwd_policy.max_login_attempts,
-                        min_password_length=new_pwd_policy.min_password_length,
-                        password_history=new_pwd_policy.password_history,
-                        min_password_age=new_pwd_policy.min_password_age,
-                        min_character_groups=new_pwd_policy.min_character_groups,
-                        min_characters_per_group=new_pwd_policy.min_characters_per_group,
-                        enforce_username_check=new_pwd_policy.enforce_username_check,
-                        enforce_dictionary_check=new_pwd_policy.enforce_dictionary_check,
-                        lockout_duration=new_pwd_policy.lockout_duration,
+                        max_login_attempts=new_pwd_policy["max_login_attempts"],
+                        min_password_length=new_pwd_policy["min_password_length"],
+                        password_history=new_pwd_policy["password_history"],
+                        min_password_age=new_pwd_policy["min_password_age"],
+                        max_password_age=new_pwd_policy.get("max_password_age"),
+                        min_character_groups=new_pwd_policy["min_character_groups"],
+                        min_characters_per_group=new_pwd_policy[
+                            "min_characters_per_group"
+                        ],
+                        enforce_username_check=new_pwd_policy["enforce_username_check"],
+                        enforce_dictionary_check=new_pwd_policy[
+                            "enforce_dictionary_check"
+                        ],
+                        lockout_duration=new_pwd_policy["lockout_duration"],
                     ),
                 )
             else:
                 res = array.patch_policies_password(
                     names=[module.params["name"]],
                     policy=PolicyPassword(
-                        max_login_attempts=new_pwd_policy.max_login_attempts,
-                        min_password_length=new_pwd_policy.min_password_length,
-                        password_history=new_pwd_policy.password_history,
-                        min_password_age=new_pwd_policy.min_password_age,
-                        min_character_groups=new_pwd_policy.min_character_groups,
-                        min_characters_per_group=new_pwd_policy.min_characters_per_group,
-                        enforce_username_check=new_pwd_policy.enforce_username_check,
-                        enforce_dictionary_check=new_pwd_policy.enforce_dictionary_check,
-                        lockout_duration=new_pwd_policy.lockout_duration,
+                        max_login_attempts=new_pwd_policy["max_login_attempts"],
+                        min_password_length=new_pwd_policy["min_password_length"],
+                        password_history=new_pwd_policy["password_history"],
+                        min_password_age=new_pwd_policy["min_password_age"],
+                        max_password_age=new_pwd_policy.get("max_password_age"),
+                        min_character_groups=new_pwd_policy["min_character_groups"],
+                        min_characters_per_group=new_pwd_policy[
+                            "min_characters_per_group"
+                        ],
+                        enforce_username_check=new_pwd_policy["enforce_username_check"],
+                        enforce_dictionary_check=new_pwd_policy[
+                            "enforce_dictionary_check"
+                        ],
+                        lockout_duration=new_pwd_policy["lockout_duration"],
                     ),
                 )
             if res.status_code != 200:
@@ -2761,7 +2820,6 @@ def update_policy(module, array, api_version, all_squash):
         or changed_abe
         or changed_ca
         or changed_nfs
-        or changed_rule
     ):
         changed = True
     module.exit_json(changed=changed)
@@ -2822,6 +2880,8 @@ def main():
             min_character_groups=dict(type="int"),
             min_characters_per_group=dict(type="int"),
             min_password_length=dict(type="int", no_log=False),
+            min_password_age=dict(type="str", no_log=False),
+            max_password_age=dict(type="str", no_log=False),
             password_history=dict(type="int", no_log=False),
             max_login_attempts=dict(type="int"),
             rule_name=dict(type="str"),
@@ -2871,6 +2931,62 @@ def main():
         and not 1 <= module.params["lockout_duration"] <= 7776000
     ):
         module.fail_json(msg="Lockout duration must be between 1 and 7776000 seconds")
+
+    # Convert and validate min_password_age
+    if module.params["policy"] == "password" and module.params["min_password_age"]:
+        min_age_value = module.params["min_password_age"]
+        # Try to convert from human-readable format
+        if min_age_value[-1:].lower() in ["w", "d", "h", "m", "s"]:
+            min_age_ms = convert_time_to_millisecs(min_age_value)
+            if min_age_ms == 0 and min_age_value not in ["0s", "0m", "0h", "0d", "0w"]:
+                module.fail_json(
+                    msg="Invalid min_password_age format. Use format like '1d', '2h', '30m', '60s'"
+                )
+        else:
+            # Assume it's already in seconds (for backward compatibility)
+            try:
+                min_age_seconds = int(min_age_value)
+                min_age_ms = min_age_seconds * 1000
+            except ValueError:
+                module.fail_json(
+                    msg="Invalid min_password_age value. Must be an integer or time period like '1d', '2h'"
+                )
+
+        # Validate range: 0ms to 7 days (604800000 milliseconds)
+        if not 0 <= min_age_ms <= 604800000:
+            module.fail_json(
+                msg="min_password_age must be between 0 and 7 days (604800 seconds)"
+            )
+        module.params["min_password_age"] = min_age_ms
+
+    # Convert and validate max_password_age
+    if module.params["policy"] == "password" and module.params["max_password_age"]:
+        max_age_value = module.params["max_password_age"]
+        # Try to convert from human-readable format
+        if max_age_value[-1:].lower() in ["w", "d", "h", "m", "s"]:
+            max_age_ms = convert_time_to_millisecs(max_age_value)
+            # Allow 0 to disable password expiration
+            if max_age_ms == 0 and max_age_value not in ["0s", "0m", "0h", "0d", "0w"]:
+                module.fail_json(
+                    msg="Invalid max_password_age format. Use format like '90d', '1w', '24h', or '0' to disable"
+                )
+        else:
+            # Assume it's already in seconds (for backward compatibility)
+            try:
+                max_age_seconds = int(max_age_value)
+                max_age_ms = max_age_seconds * 1000
+            except ValueError:
+                module.fail_json(
+                    msg="Invalid max_password_age value. Must be an integer or time period like '90d', '1w'"
+                )
+
+        # Validate range: 0 (disabled) or 1 day to 99999 days (86400000ms to 8639913600000ms)
+        if max_age_ms != 0 and not 86400000 <= max_age_ms <= 8639913600000:
+            module.fail_json(
+                msg="max_password_age must be 0 (disabled) or between 1 day and 99999 days"
+            )
+        module.params["max_password_age"] = max_age_ms
+
     state = module.params["state"]
     if module.params["quota_notifications"]:
         module.params["quota_notifications"].sort(reverse=True)
