@@ -517,8 +517,9 @@ class TestCreatePodSuccess:
     """Test cases for create_pod function success scenarios"""
 
     @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.post_with_throttle_and_context")
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_create_pod_basic(self, mock_lv, mock_check_response):
+    def test_create_pod_basic(self, mock_lv, mock_post, mock_check_response):
         """Test creating a basic pod without options"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -538,16 +539,17 @@ class TestCreatePodSuccess:
         mock_array = Mock()
         # Use old version to avoid DEFAULT_API_VERSION (2.24) path
         mock_array.get_rest_version.return_value = "2.0"
-        mock_array.post_pods.return_value = Mock(status_code=200)
+        mock_post.return_value = Mock(status_code=200)
 
         create_pod(mock_module, mock_array)
 
-        mock_array.post_pods.assert_called_once()
+        mock_post.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.post_with_throttle_and_context")
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_create_pod_with_failover(self, mock_lv, mock_check_response):
+    def test_create_pod_with_failover(self, mock_lv, mock_post, mock_check_response):
         """Test creating a pod with failover preferences"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -567,11 +569,11 @@ class TestCreatePodSuccess:
         mock_array = Mock()
         # Use old version to avoid DEFAULT_API_VERSION (2.24) path
         mock_array.get_rest_version.return_value = "2.0"
-        mock_array.post_pods.return_value = Mock(status_code=200)
+        mock_post.return_value = Mock(status_code=200)
 
         create_pod(mock_module, mock_array)
 
-        mock_array.post_pods.assert_called_once()
+        mock_post.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -579,8 +581,8 @@ class TestClonePodSuccess:
     """Test cases for clone_pod function success scenarios"""
 
     @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_clone_pod_basic(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_pod.post_with_throttle_and_context")
+    def test_clone_pod_basic(self, mock_post, mock_check_response):
         """Test cloning a pod"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -591,13 +593,12 @@ class TestClonePodSuccess:
             "throttle": True,
         }
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
         mock_array.get_pods.return_value = Mock(status_code=400)  # Target doesn't exist
-        mock_array.post_pods.return_value = Mock(status_code=200)
+        mock_post.return_value = Mock(status_code=200)
 
         clone_pod(mock_module, mock_array)
 
-        mock_array.post_pods.assert_called_once()
+        mock_post.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -812,12 +813,12 @@ class TestUpdatePodSuccess:
         mock_module.exit_json.assert_called_once_with(changed=False)
 
 
-class TestClonePodSuccess:
-    """Test cases for clone_pod success paths"""
+class TestClonePodEdgeCases:
+    """Test cases for clone_pod edge cases"""
 
     @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_clone_pod_success(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_pod.post_with_throttle_and_context")
+    def test_clone_pod_success(self, mock_post, mock_check_response):
         """Test clone_pod successfully clones"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -829,17 +830,16 @@ class TestClonePodSuccess:
             "quota": None,
         }
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_array.post_pods.return_value = Mock(status_code=200)
+        mock_array.get_pods.return_value = Mock(status_code=400)  # Target doesn't exist
+        mock_post.return_value = Mock(status_code=200)
 
         clone_pod(mock_module, mock_array)
 
-        mock_array.post_pods.assert_called_once()
+        mock_post.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_pod.get_target")
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_clone_pod_target_already_exists(self, mock_lv, mock_get_target):
+    def test_clone_pod_target_already_exists(self, mock_get_target):
         """Test clone_pod when target already exists"""
         mock_get_target.return_value = True  # Target pod exists
         mock_module = Mock()
@@ -852,7 +852,6 @@ class TestClonePodSuccess:
             "quota": None,
         }
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
 
         clone_pod(mock_module, mock_array)
 
