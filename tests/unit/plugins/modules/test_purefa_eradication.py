@@ -45,7 +45,7 @@ sys.modules[
 ] = MagicMock()
 
 # Import after mocking
-from plugins.modules.purefa_eradication import main, SEC_PER_DAY
+from plugins.modules.purefa_eradication import main
 
 
 class TestEradicationTimerValidation:

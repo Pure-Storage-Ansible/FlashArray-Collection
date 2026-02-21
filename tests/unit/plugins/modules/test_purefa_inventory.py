@@ -10,8 +10,6 @@ __metaclass__ = type
 import sys
 from unittest.mock import MagicMock, Mock, patch
 
-import pytest
-
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
@@ -92,7 +90,7 @@ class TestGenerateHardwareDict:
 
         # Mock old API version (skip SFP details)
         mock_array.get_rest_version.return_value = "2.10"
-        mock_lv.side_effect = lambda x: float(x)
+        mock_lv.side_effect = float
 
         # Mock hardware components
         mock_chassis = Mock()
@@ -148,7 +146,7 @@ class TestGenerateHardwareDict:
         mock_array = Mock()
 
         mock_array.get_rest_version.return_value = "2.10"
-        mock_lv.side_effect = lambda x: float(x)
+        mock_lv.side_effect = float
 
         mock_hardware_response = Mock()
         mock_hardware_response.items = []

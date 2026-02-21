@@ -113,7 +113,7 @@ class TestDsroleOldNoChange:
         mock_get_array.return_value = mock_array
 
         # Make LooseVersion comparisons work - 2.25 <= 2.30
-        mock_lv.side_effect = lambda x: float(x)
+        mock_lv.side_effect = float
 
         # Mock role without group attribute (not configured)
         mock_role = Mock(spec=[])  # No attributes
@@ -150,7 +150,7 @@ class TestDsroleOldCreateRole:
         mock_array.get_rest_version.return_value = "2.25"
         mock_get_array.return_value = mock_array
 
-        mock_lv.side_effect = lambda x: float(x)
+        mock_lv.side_effect = float
 
         # Mock role without group attribute (not configured)
         mock_role = Mock(spec=[])

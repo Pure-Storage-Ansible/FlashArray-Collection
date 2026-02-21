@@ -106,7 +106,7 @@ class TestLoggingCheckMode:
         mock_get_array.return_value = mock_array
 
         # Make LooseVersion comparisons work - 2.2 <= 2.3
-        mock_lv.side_effect = lambda x: float(x)
+        mock_lv.side_effect = float
 
         main()
 
@@ -130,7 +130,7 @@ class TestLoggingCheckMode:
         mock_get_array.return_value = mock_array
 
         # Make LooseVersion comparisons work - 2.2 <= 2.3
-        mock_lv.side_effect = lambda x: float(x)
+        mock_lv.side_effect = float
 
         main()
 
