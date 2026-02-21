@@ -101,10 +101,11 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
-)
 from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
+    get_with_context,
+    post_with_context,
+    patch_with_context,
+    delete_with_context,
     check_response,
 )
 
@@ -113,18 +114,15 @@ CONTEXT_VERSION = "2.38"
 
 def delete_dir(module, array):
     """Delete a file system directory"""
-    api_version = array.get_rest_version()
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.delete_directories(
-                names=[module.params["filesystem"] + ":" + module.params["name"]],
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.delete_directories(
-                names=[module.params["filesystem"] + ":" + module.params["name"]]
-            )
+        res = delete_with_context(
+            array,
+            "delete_directories",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["filesystem"] + ":" + module.params["name"]],
+        )
         check_response(
             res, module, f"Failed to delete file system {module.params['name']}"
         )
@@ -133,34 +131,28 @@ def delete_dir(module, array):
 
 def rename_dir(module, array):
     """Rename a file system directory"""
-    api_version = array.get_rest_version()
     changed = False
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        target = array.get_directories(
-            names=[module.params["filesystem"] + ":" + module.params["rename"]],
-            context_names=[module.params["context"]],
-        )
-    else:
-        target = array.get_directories(
-            names=[module.params["filesystem"] + ":" + module.params["rename"]]
-        )
+    target = get_with_context(
+        array,
+        "get_directories",
+        CONTEXT_VERSION,
+        module,
+        names=[module.params["filesystem"] + ":" + module.params["rename"]],
+    )
     if target.status_code != 200:
         if not module.check_mode:
             changed = True
             directory = flasharray.DirectoryPatch(
                 name=module.params["filesystem"] + ":" + module.params["rename"]
             )
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.patch_directories(
-                    names=[module.params["filesystem"] + ":" + module.params["name"]],
-                    directory=directory,
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_directories(
-                    names=[module.params["filesystem"] + ":" + module.params["name"]],
-                    directory=directory,
-                )
+            res = patch_with_context(
+                array,
+                "patch_directories",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["filesystem"] + ":" + module.params["name"]],
+                directory=directory,
+            )
             check_response(
                 res, module, f"Failed to rename file system {module.params['name']}"
             )
@@ -173,21 +165,17 @@ def rename_dir(module, array):
 
 def create_dir(module, array):
     """Create a file system directory"""
-    api_version = array.get_rest_version()
     changed = False
     if not module.params["path"]:
         module.params["path"] = module.params["name"]
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        all_fs = list(
-            array.get_directories(
-                file_system_names=[module.params["filesystem"]],
-                context_names=[module.params["context"]],
-            ).items
-        )
-    else:
-        all_fs = list(
-            array.get_directories(file_system_names=[module.params["filesystem"]]).items
-        )
+    all_fs_res = get_with_context(
+        array,
+        "get_directories",
+        CONTEXT_VERSION,
+        module,
+        file_system_names=[module.params["filesystem"]],
+    )
+    all_fs = list(all_fs_res.items)
     for check in all_fs:
         if module.params["path"] == check.path[1:]:
             module.fail_json(
@@ -200,16 +188,14 @@ def create_dir(module, array):
         directory = flasharray.DirectoryPost(
             directory_name=module.params["name"], path=module.params["path"]
         )
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.post_directories(
-                file_system_names=[module.params["filesystem"]],
-                directory=directory,
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.post_directories(
-                file_system_names=[module.params["filesystem"]], directory=directory
-            )
+        res = post_with_context(
+            array,
+            "post_directories",
+            CONTEXT_VERSION,
+            module,
+            file_system_names=[module.params["filesystem"]],
+            directory=directory,
+        )
         check_response(
             res, module, f"Failed to create file system {module.params['name']}"
         )
@@ -236,15 +222,14 @@ def main():
 
     array = get_array(module)
     state = module.params["state"]
-    api_version = array.get_rest_version()
 
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        res = array.get_file_systems(
-            names=[module.params["filesystem"]],
-            context_names=[module.params["context"]],
-        )
-    else:
-        res = array.get_file_systems(names=[module.params["filesystem"]])
+    res = get_with_context(
+        array,
+        "get_file_systems",
+        CONTEXT_VERSION,
+        module,
+        names=[module.params["filesystem"]],
+    )
     if res.status_code == 200:
         filesystem = list(res.items)[0]
     else:
@@ -253,8 +238,12 @@ def main():
                 module.params["filesystem"]
             )
         )
-    res = array.get_directories(
-        names=[module.params["filesystem"] + ":" + module.params["name"]]
+    res = get_with_context(
+        array,
+        "get_directories",
+        CONTEXT_VERSION,
+        module,
+        names=[module.params["filesystem"] + ":" + module.params["name"]],
     )
     exists = bool(res.status_code == 200)
 
