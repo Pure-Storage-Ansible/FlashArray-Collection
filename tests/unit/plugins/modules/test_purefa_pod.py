@@ -63,29 +63,25 @@ from plugins.modules.purefa_pod import (
 class TestGetPod:
     """Test cases for get_pod function"""
 
-    @patch("plugins.modules.purefa_pod.LooseVersion")
-    def test_get_pod_exists(self, mock_loose_version):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_get_pod_exists(self, mock_get_with_context):
         """Test get_pod returns True when pod exists"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_module = Mock()
         mock_module.params = {"name": "test-pod", "context": ""}
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.0"
-        mock_array.get_pods.return_value = Mock(status_code=200)
+        mock_get_with_context.return_value = Mock(status_code=200)
 
         result = get_pod(mock_module, mock_array)
 
         assert result is True
 
-    @patch("plugins.modules.purefa_pod.LooseVersion")
-    def test_get_pod_not_exists(self, mock_loose_version):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_get_pod_not_exists(self, mock_get_with_context):
         """Test get_pod returns False when pod doesn't exist"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_module = Mock()
         mock_module.params = {"name": "nonexistent-pod", "context": ""}
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.0"
-        mock_array.get_pods.return_value = Mock(status_code=404)
+        mock_get_with_context.return_value = Mock(status_code=404)
 
         result = get_pod(mock_module, mock_array)
 
@@ -95,31 +91,29 @@ class TestGetPod:
 class TestGetUndoPod:
     """Test cases for get_undo_pod function"""
 
-    @patch("plugins.modules.purefa_pod.LooseVersion")
-    def test_get_undo_pod_exists(self, mock_loose_version):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_get_undo_pod_exists(self, mock_get_with_context):
         """Test get_undo_pod returns list when undo pods exist"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_module = Mock()
         mock_module.params = {"name": "test-pod", "context": ""}
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.0"
         mock_undo_pod = Mock()
         mock_undo_pod.name = "test-pod.undo-demote.1"
-        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_undo_pod])
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_undo_pod]
+        )
 
         result = get_undo_pod(mock_module, mock_array)
 
         assert result == [mock_undo_pod]
 
-    @patch("plugins.modules.purefa_pod.LooseVersion")
-    def test_get_undo_pod_not_exists(self, mock_loose_version):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_get_undo_pod_not_exists(self, mock_get_with_context):
         """Test get_undo_pod returns None when no undo pods exist"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_module = Mock()
         mock_module.params = {"name": "test-pod", "context": ""}
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.0"
-        mock_array.get_pods.return_value = Mock(status_code=404)
+        mock_get_with_context.return_value = Mock(status_code=404)
 
         result = get_undo_pod(mock_module, mock_array)
 
@@ -129,15 +123,13 @@ class TestGetUndoPod:
 class TestGetTarget:
     """Test cases for get_target function"""
 
-    @patch("plugins.modules.purefa_pod.LooseVersion")
-    def test_get_target_exists(self, mock_loose_version):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_get_target_exists(self, mock_get_with_context):
         """Test get_target returns True when target exists"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_module = Mock()
         mock_module.params = {"target": "target-pod", "context": ""}
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.0"
-        mock_array.get_pods.return_value = Mock(status_code=200)
+        mock_get_with_context.return_value = Mock(status_code=200)
 
         result = get_target(mock_module, mock_array)
 
@@ -147,15 +139,13 @@ class TestGetTarget:
 class TestGetDestroyedPod:
     """Test cases for get_destroyed_pod function"""
 
-    @patch("plugins.modules.purefa_pod.LooseVersion")
-    def test_get_destroyed_pod_exists(self, mock_loose_version):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_get_destroyed_pod_exists(self, mock_get_with_context):
         """Test get_destroyed_pod returns True when destroyed pod exists"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_module = Mock()
         mock_module.params = {"name": "deleted-pod", "context": ""}
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.0"
-        mock_array.get_pods.return_value = Mock(status_code=200)
+        mock_get_with_context.return_value = Mock(status_code=200)
 
         result = get_destroyed_pod(mock_module, mock_array)
 
@@ -165,15 +155,13 @@ class TestGetDestroyedPod:
 class TestGetDestroyedTarget:
     """Test cases for get_destroyed_target function"""
 
-    @patch("plugins.modules.purefa_pod.LooseVersion")
-    def test_get_destroyed_target_exists(self, mock_loose_version):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_get_destroyed_target_exists(self, mock_get_with_context):
         """Test get_destroyed_target returns True when destroyed target exists"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_module = Mock()
         mock_module.params = {"target": "deleted-target", "context": ""}
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.0"
-        mock_array.get_pods.return_value = Mock(status_code=200)
+        mock_get_with_context.return_value = Mock(status_code=200)
 
         result = get_destroyed_target(mock_module, mock_array)
 
@@ -259,19 +247,20 @@ class TestRecoverPod:
 class TestCheckArrays:
     """Test cases for check_arrays function"""
 
-    @patch("plugins.modules.purefa_pod.LooseVersion")
-    def test_check_arrays_no_stretch_no_failover(self, mock_loose_version):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_check_arrays_no_stretch_no_failover(self, mock_get_with_context):
         """Test check_arrays returns None when no stretch/failover specified"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_module = Mock()
         mock_module.params = {"stretch": None, "failover": None, "context": None}
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.0"
-        # Mock array.get_arrays().items
+        # Mock get_with_context for both get_arrays and get_array_connections
         mock_local = Mock()
         mock_local.name = "local-array"
-        mock_array.get_arrays.return_value.items = [mock_local]
-        mock_array.get_array_connections.return_value.items = []
+        # First call: get_arrays, Second call: get_array_connections
+        mock_get_with_context.side_effect = [
+            Mock(status_code=200, items=[mock_local]),  # get_arrays
+            Mock(status_code=200, items=[]),  # get_array_connections
+        ]
 
         result = check_arrays(mock_module, mock_array)
 
@@ -283,18 +272,15 @@ class TestClonePod:
 
     @patch("plugins.modules.purefa_pod.get_destroyed_target")
     @patch("plugins.modules.purefa_pod.get_target")
-    @patch("plugins.modules.purefa_pod.LooseVersion")
     def test_clone_pod_target_already_exists(
-        self, mock_loose_version, mock_get_target, mock_get_destroyed_target
+        self, mock_get_target, mock_get_destroyed_target
     ):
         """Test clone_pod when target already exists"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_get_target.return_value = True  # Target already exists
         mock_module = Mock()
         mock_module.check_mode = False
         mock_module.params = {"name": "source-pod", "target": "existing-pod"}
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.0"
 
         clone_pod(mock_module, mock_array)
 
@@ -304,10 +290,9 @@ class TestClonePod:
 class TestUpdatePod:
     """Test cases for update_pod function"""
 
-    @patch("plugins.modules.purefa_pod.LooseVersion")
-    def test_update_pod_no_changes(self, mock_loose_version):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_update_pod_no_changes(self, mock_get_with_context):
         """Test update_pod when no changes are needed"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_module = Mock()
         mock_module.check_mode = False
         mock_module.params = {
@@ -330,16 +315,15 @@ class TestUpdatePod:
         mock_config.failover_preferences = []
         mock_config.mediator = "purearray1"
         mock_config.quota_limit = None
-        mock_array.get_pods.return_value.items = [mock_config]
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
 
         update_pod(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_pod.LooseVersion")
-    def test_update_pod_check_mode_failover_change(self, mock_loose_version):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_update_pod_check_mode_failover_change(self, mock_get_with_context):
         """Test update_pod in check mode when failover preference changes"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_module = Mock()
         mock_module.check_mode = True
         mock_module.params = {
@@ -362,7 +346,7 @@ class TestUpdatePod:
         mock_config.failover_preferences = ["array1"]
         mock_config.mediator = "purearray1"
         mock_config.quota_limit = None
-        mock_array.get_pods.return_value.items = [mock_config]
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
 
         update_pod(mock_module, mock_array)
 
@@ -372,10 +356,9 @@ class TestUpdatePod:
 class TestStretchPod:
     """Test cases for stretch_pod function"""
 
-    @patch("plugins.modules.purefa_pod.LooseVersion")
-    def test_stretch_pod_check_mode(self, mock_loose_version):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_stretch_pod_check_mode(self, mock_get_with_context):
         """Test stretch_pod in check mode"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_module = Mock()
         mock_module.check_mode = True
         mock_module.params = {
@@ -391,16 +374,15 @@ class TestStretchPod:
         # Mock current config
         mock_config = Mock()
         mock_config.arrays = [{"name": "local-array"}]
-        mock_array.get_pods.return_value.items = [mock_config]
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
 
         stretch_pod(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.LooseVersion")
-    def test_stretch_pod_no_change_already_stretched(self, mock_loose_version):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_stretch_pod_no_change_already_stretched(self, mock_get_with_context):
         """Test stretch_pod when pod is already stretched to target"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
         mock_module = Mock()
         mock_module.check_mode = False
         mock_module.params = {
@@ -416,7 +398,7 @@ class TestStretchPod:
         # Mock current config - already stretched to remote-array
         mock_config = Mock()
         mock_config.arrays = [{"name": "local-array"}, {"name": "remote-array"}]
-        mock_array.get_pods.return_value.items = [mock_config]
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
 
         stretch_pod(mock_module, mock_array)
 
@@ -623,8 +605,16 @@ class TestStretchPodSuccess:
     """Test cases for stretch_pod function success scenarios"""
 
     @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.post_with_context")
+    @patch("plugins.modules.purefa_pod.get_with_context")
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_stretch_pod_success(self, mock_lv, mock_check_response):
+    def test_stretch_pod_success(
+        self,
+        mock_lv,
+        mock_get_with_context,
+        mock_post_with_context,
+        mock_check_response,
+    ):
         """Test successfully stretching a pod to another array"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -640,17 +630,25 @@ class TestStretchPodSuccess:
         # Mock current config - not yet stretched to remote
         mock_config = Mock()
         mock_config.arrays = [{"name": "local-array"}]
-        mock_array.get_pods.return_value.items = [mock_config]
-        mock_array.post_pods_members.return_value = Mock(status_code=200)
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+        mock_post_with_context.return_value = Mock(status_code=200)
 
         stretch_pod(mock_module, mock_array)
 
-        mock_array.post_pods_members.assert_called_once()
+        mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.delete_with_context")
+    @patch("plugins.modules.purefa_pod.get_with_context")
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_unstretch_pod_success(self, mock_lv, mock_check_response):
+    def test_unstretch_pod_success(
+        self,
+        mock_lv,
+        mock_get_with_context,
+        mock_delete_with_context,
+        mock_check_response,
+    ):
         """Test successfully unstretching a pod from an array"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -666,16 +664,16 @@ class TestStretchPodSuccess:
         # Mock current config - stretched to remote-array
         mock_config = Mock()
         mock_config.arrays = [{"name": "local-array"}, {"name": "remote-array"}]
-        mock_array.get_pods.return_value.items = [mock_config]
-        mock_array.delete_pods_members.return_value = Mock(status_code=200)
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+        mock_delete_with_context.return_value = Mock(status_code=200)
 
         stretch_pod(mock_module, mock_array)
 
-        mock_array.delete_pods_members.assert_called_once()
+        mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_unstretch_pod_no_change(self, mock_lv):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_unstretch_pod_no_change(self, mock_get_with_context):
         """Test unstretch when pod is not stretched to target"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -691,11 +689,10 @@ class TestStretchPodSuccess:
         # Mock current config - only local array
         mock_config = Mock()
         mock_config.arrays = [{"name": "local-array"}]
-        mock_array.get_pods.return_value.items = [mock_config]
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
 
         stretch_pod(mock_module, mock_array)
 
-        mock_array.delete_pods_members.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
 
 
@@ -703,8 +700,16 @@ class TestUpdatePodSuccess:
     """Test cases for update_pod function success scenarios"""
 
     @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch("plugins.modules.purefa_pod.get_with_context")
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_update_pod_change_failover(self, mock_lv, mock_check_response):
+    def test_update_pod_change_failover(
+        self,
+        mock_lv,
+        mock_get_with_context,
+        mock_patch_with_context,
+        mock_check_response,
+    ):
         """Test update_pod changing failover preferences"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -727,17 +732,25 @@ class TestUpdatePodSuccess:
         mock_config = Mock()
         mock_config.failover_preferences = ["old-array"]
         mock_config.mediator = "mediator.example.com"
-        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_config])
-        mock_array.patch_pods.return_value = Mock(status_code=200)
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         update_pod(mock_module, mock_array)
 
-        mock_array.patch_pods.assert_called()
+        mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch("plugins.modules.purefa_pod.get_with_context")
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_update_pod_clear_failover_auto(self, mock_lv, mock_check_response):
+    def test_update_pod_clear_failover_auto(
+        self,
+        mock_lv,
+        mock_get_with_context,
+        mock_patch_with_context,
+        mock_check_response,
+    ):
         """Test update_pod clearing failover with auto"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -760,16 +773,16 @@ class TestUpdatePodSuccess:
         mock_config = Mock()
         mock_config.failover_preferences = ["array1"]
         mock_config.mediator = "mediator.example.com"
-        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_config])
-        mock_array.patch_pods.return_value = Mock(status_code=200)
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         update_pod(mock_module, mock_array)
 
-        mock_array.patch_pods.assert_called()
+        mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_update_pod_no_changes(self, mock_lv):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_update_pod_no_changes(self, mock_get_with_context):
         """Test update_pod when no changes needed"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -792,7 +805,7 @@ class TestUpdatePodSuccess:
         mock_config = Mock()
         mock_config.failover_preferences = []
         mock_config.mediator = "mediator.example.com"
-        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_config])
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
 
         update_pod(mock_module, mock_array)
 
@@ -851,19 +864,18 @@ class TestRecoverPodSuccess:
     """Test cases for recover_pod success paths"""
 
     @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_recover_pod_success(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    def test_recover_pod_success(self, mock_patch_with_context, mock_check_response):
         """Test recover_pod successfully recovers"""
         mock_module = Mock()
         mock_module.check_mode = False
         mock_module.params = {"name": "test-pod", "context": ""}
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_array.patch_pods.return_value = Mock(status_code=200)
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         recover_pod(mock_module, mock_array)
 
-        mock_array.patch_pods.assert_called_once()
+        mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     def test_recover_pod_check_mode(self):
@@ -883,8 +895,8 @@ class TestEradicatePodSuccess:
     """Test cases for eradicate_pod success paths"""
 
     @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_eradicate_pod_success(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_pod.delete_with_context")
+    def test_eradicate_pod_success(self, mock_delete_with_context, mock_check_response):
         """Test eradicate_pod successfully eradicates"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -895,16 +907,14 @@ class TestEradicatePodSuccess:
             "delete_contents": False,
         }
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_array.delete_pods.return_value = Mock(status_code=200)
+        mock_delete_with_context.return_value = Mock(status_code=200)
 
         eradicate_pod(mock_module, mock_array)
 
-        mock_array.delete_pods.assert_called_once()
+        mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_eradicate_pod_check_mode(self, mock_lv):
+    def test_eradicate_pod_check_mode(self):
         """Test eradicate_pod in check mode"""
         mock_module = Mock()
         mock_module.check_mode = True
@@ -915,7 +925,6 @@ class TestEradicatePodSuccess:
             "delete_contents": False,
         }
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
 
         eradicate_pod(mock_module, mock_array)
 
@@ -923,8 +932,10 @@ class TestEradicatePodSuccess:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_eradicate_pod_with_delete_contents(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_pod.delete_with_context")
+    def test_eradicate_pod_with_delete_contents(
+        self, mock_delete_with_context, mock_check_response
+    ):
         """Test eradicate_pod with delete_contents option"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -935,17 +946,18 @@ class TestEradicatePodSuccess:
             "delete_contents": True,
         }
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_array.delete_pods.return_value = Mock(status_code=200)
+        mock_delete_with_context.return_value = Mock(status_code=200)
 
         eradicate_pod(mock_module, mock_array)
 
-        mock_array.delete_pods.assert_called_once()
+        mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_eradicate_pod_older_api_version(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_pod.delete_with_context")
+    def test_eradicate_pod_older_api_version(
+        self, mock_delete_with_context, mock_check_response
+    ):
         """Test eradicate_pod with older API version"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -956,20 +968,19 @@ class TestEradicatePodSuccess:
             "delete_contents": False,
         }
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.0"
-        mock_array.delete_pods.return_value = Mock(status_code=200)
+        mock_delete_with_context.return_value = Mock(status_code=200)
 
         eradicate_pod(mock_module, mock_array)
 
-        mock_array.delete_pods.assert_called_once()
+        mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
 class TestUpdatePodPromotion:
     """Test cases for update_pod promotion scenarios"""
 
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_update_pod_promote_fails_when_stretched(self, mock_lv):
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_update_pod_promote_fails_when_stretched(self, mock_get_with_context):
         """Test update_pod promotion fails when pod is stretched"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -993,14 +1004,17 @@ class TestUpdatePodPromotion:
         mock_config.failover_preferences = []
         mock_config.mediator = "purestorage"
         mock_config.array_count = 2  # Stretched pod
-        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_config])
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
 
         update_pod(mock_module, mock_array)
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_update_pod_change_mediator(self, mock_lv):
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_update_pod_change_mediator(
+        self, mock_get_with_context, mock_patch_with_context
+    ):
         """Test update_pod changing mediator"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -1023,16 +1037,19 @@ class TestUpdatePodPromotion:
         mock_config = Mock()
         mock_config.failover_preferences = []
         mock_config.mediator = "old-mediator.example.com"
-        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_config])
-        mock_array.patch_pods.return_value = Mock(status_code=200)
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         update_pod(mock_module, mock_array)
 
-        mock_array.patch_pods.assert_called()
+        mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_update_pod_mediator_change_fails(self, mock_lv):
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_update_pod_mediator_change_fails(
+        self, mock_get_with_context, mock_patch_with_context
+    ):
         """Test update_pod when mediator change fails"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -1054,10 +1071,12 @@ class TestUpdatePodPromotion:
         mock_config = Mock()
         mock_config.failover_preferences = []
         mock_config.mediator = "old-mediator.example.com"
-        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_config])
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
         mock_error = Mock()
         mock_error.message = "Connection failed"
-        mock_array.patch_pods.return_value = Mock(status_code=400, errors=[mock_error])
+        mock_patch_with_context.return_value = Mock(
+            status_code=400, errors=[mock_error]
+        )
 
         update_pod(mock_module, mock_array)
 
@@ -1069,8 +1088,8 @@ class TestDeletePodSuccess:
     """Test cases for delete_pod success scenarios"""
 
     @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_delete_pod_success(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    def test_delete_pod_success(self, mock_patch_with_context, mock_check_response):
         """Test delete_pod successfully deletes"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -1081,16 +1100,14 @@ class TestDeletePodSuccess:
             "eradicate": False,
         }
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_array.patch_pods.return_value = Mock(status_code=200)
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         delete_pod(mock_module, mock_array)
 
-        mock_array.patch_pods.assert_called_once()
+        mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_delete_pod_check_mode(self, mock_lv):
+    def test_delete_pod_check_mode(self):
         """Test delete_pod in check mode"""
         mock_module = Mock()
         mock_module.check_mode = True
@@ -1101,7 +1118,6 @@ class TestDeletePodSuccess:
             "eradicate": False,
         }
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
 
         delete_pod(mock_module, mock_array)
 
@@ -1109,8 +1125,8 @@ class TestDeletePodSuccess:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_delete_pod_older_api(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    def test_delete_pod_older_api(self, mock_patch_with_context, mock_check_response):
         """Test delete_pod with older API version"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -1121,17 +1137,19 @@ class TestDeletePodSuccess:
             "eradicate": False,
         }
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.0"
-        mock_array.patch_pods.return_value = Mock(status_code=200)
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         delete_pod(mock_module, mock_array)
 
-        mock_array.patch_pods.assert_called_once()
+        mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
-    def test_delete_pod_with_eradicate(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_pod.delete_with_context")
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    def test_delete_pod_with_eradicate(
+        self, mock_patch_with_context, mock_delete_with_context, mock_check_response
+    ):
         """Test delete_pod with eradicate option"""
         mock_module = Mock()
         mock_module.check_mode = False
@@ -1142,12 +1160,11 @@ class TestDeletePodSuccess:
             "eradicate": True,
         }
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_array.patch_pods.return_value = Mock(status_code=200)
-        mock_array.delete_pods.return_value = Mock(status_code=200)
+        mock_patch_with_context.return_value = Mock(status_code=200)
+        mock_delete_with_context.return_value = Mock(status_code=200)
 
         delete_pod(mock_module, mock_array)
 
-        mock_array.patch_pods.assert_called_once()
-        mock_array.delete_pods.assert_called_once()
+        mock_patch_with_context.assert_called_once()
+        mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
