@@ -383,3 +383,115 @@ class TestUpdateCert:
 
         mock_array.patch_certificates.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_certs.flasharray")
+    @patch("plugins.modules.purefa_certs.check_response")
+    def test_update_cert_multiple_field_changes(
+        self, mock_check_response, mock_flasharray
+    ):
+        """Test update_cert when multiple fields change"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-cert",
+            "common_name": "new.example.com",
+            "country": "UK",
+            "email": "new@example.com",
+            "key_size": 4096,
+            "locality": "New City",
+            "organization": "New Org",
+            "org_unit": "New Unit",
+            "province": "New State",
+            "generate": True,
+        }
+        mock_array = Mock()
+
+        # Current cert has different values
+        mock_cert = Mock()
+        mock_cert.common_name = "old.example.com"
+        mock_cert.country = "US"
+        mock_cert.email = "old@example.com"
+        mock_cert.key_size = 2048
+        mock_cert.locality = "Old City"
+        mock_cert.organization = "Old Org"
+        mock_cert.organizational_unit = "Old Unit"
+        mock_cert.state = "Old State"
+        mock_array.get_certificates.return_value = Mock(items=[mock_cert])
+        mock_array.patch_certificates.return_value = Mock(status_code=200)
+
+        update_cert(mock_module, mock_array)
+
+        mock_array.patch_certificates.assert_called_once()
+        call_kwargs = mock_array.patch_certificates.call_args
+        assert call_kwargs[1]["generate_new_key"] is True
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestImportCertReimport:
+    """Test cases for import_cert reimport functionality"""
+
+    @patch("plugins.modules.purefa_certs.flasharray")
+    @patch("plugins.modules.purefa_certs.check_response")
+    def test_import_cert_reimport_uses_patch(
+        self, mock_check_response, mock_flasharray
+    ):
+        """Test import_cert with reimport=True uses patch"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "existing-cert",
+            "certificate": "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----",
+            "intermeadiate_cert": None,
+            "key": "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----",
+            "passphrase": None,
+        }
+        mock_array = Mock()
+        mock_array.patch_certificates.return_value = Mock(status_code=200)
+
+        import_cert(mock_module, mock_array, reimport=True)
+
+        mock_array.patch_certificates.assert_called_once()
+        mock_array.post_certificates.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_certs.flasharray")
+    @patch("plugins.modules.purefa_certs.check_response")
+    def test_import_cert_new_uses_post(self, mock_check_response, mock_flasharray):
+        """Test import_cert with reimport=False uses post"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "new-cert",
+            "certificate": "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----",
+            "intermeadiate_cert": "-----BEGIN CERTIFICATE-----\nintermediate\n-----END CERTIFICATE-----",
+            "key": "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----",
+            "passphrase": "secret",
+        }
+        mock_array = Mock()
+        mock_array.post_certificates.return_value = Mock(status_code=200)
+
+        import_cert(mock_module, mock_array, reimport=False)
+
+        mock_array.post_certificates.assert_called_once()
+        mock_array.patch_certificates.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_certs.flasharray")
+    def test_import_cert_check_mode(self, mock_flasharray):
+        """Test import_cert in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-cert",
+            "certificate": "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----",
+            "intermeadiate_cert": None,
+            "key": "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----",
+            "passphrase": None,
+        }
+        mock_array = Mock()
+
+        import_cert(mock_module, mock_array, reimport=False)
+
+        mock_array.post_certificates.assert_not_called()
+        mock_array.patch_certificates.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
