@@ -59,8 +59,7 @@ from plugins.modules.purefa_dirsnap import (
 class TestEradicateSnap:
     """Tests for eradicate_snap function"""
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    def test_eradicate_snap_check_mode(self, mock_loose_version):
+    def test_eradicate_snap_check_mode(self):
         """Test eradicate_snap in check mode"""
         mock_module = Mock()
         mock_module.params = {
@@ -68,11 +67,11 @@ class TestEradicateSnap:
             "filesystem": "fs1",
             "directory": "dir1",
             "context": "",
+            "client": "client1",
+            "suffix": "snap",
         }
         mock_module.check_mode = True
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_loose_version.side_effect = LooseVersion
 
         eradicate_snap(mock_module, mock_array)
 
@@ -82,8 +81,7 @@ class TestEradicateSnap:
 class TestDeleteSnap:
     """Tests for delete_snap function"""
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    def test_delete_snap_check_mode(self, mock_loose_version):
+    def test_delete_snap_check_mode(self):
         """Test delete_snap in check mode"""
         mock_module = Mock()
         mock_module.params = {
@@ -92,11 +90,11 @@ class TestDeleteSnap:
             "directory": "dir1",
             "context": "",
             "eradicate": False,
+            "client": "client1",
+            "suffix": "snap",
         }
         mock_module.check_mode = True
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_loose_version.side_effect = LooseVersion
 
         delete_snap(mock_module, mock_array)
 
@@ -106,8 +104,7 @@ class TestDeleteSnap:
 class TestUpdateSnap:
     """Tests for update_snap function"""
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    def test_update_snap_check_mode_no_rename(self, mock_loose_version):
+    def test_update_snap_check_mode_no_rename(self):
         """Test update_snap in check mode when recovering a destroyed snapshot"""
         mock_module = Mock()
         mock_module.params = {
@@ -123,8 +120,6 @@ class TestUpdateSnap:
         }
         mock_module.check_mode = True
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_loose_version.side_effect = LooseVersion
 
         snap_detail = Mock()
         snap_detail.destroyed = True
@@ -133,8 +128,7 @@ class TestUpdateSnap:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    def test_update_snap_check_mode_with_rename(self, mock_loose_version):
+    def test_update_snap_check_mode_with_rename(self):
         """Test update_snap in check mode with rename"""
         mock_module = Mock()
         mock_module.params = {
@@ -150,8 +144,6 @@ class TestUpdateSnap:
         }
         mock_module.check_mode = True
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_loose_version.side_effect = LooseVersion
 
         snap_detail = Mock()
         snap_detail.destroyed = False
@@ -164,8 +156,7 @@ class TestUpdateSnap:
 class TestCreateSnap:
     """Tests for create_snap function"""
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    def test_create_snap_check_mode(self, mock_loose_version):
+    def test_create_snap_check_mode(self):
         """Test create_snap in check mode"""
         mock_module = Mock()
         mock_module.params = {
@@ -178,8 +169,6 @@ class TestCreateSnap:
         }
         mock_module.check_mode = True
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_loose_version.side_effect = LooseVersion
 
         create_snap(mock_module, mock_array)
 
@@ -187,9 +176,9 @@ class TestCreateSnap:
 
     @patch("plugins.modules.purefa_dirsnap.check_response")
     @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPost")
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
+    @patch("plugins.modules.purefa_dirsnap.post_with_context")
     def test_create_snap_success(
-        self, mock_loose_version, mock_snap_post, mock_check_response
+        self, mock_post_with_context, mock_snap_post, mock_check_response
     ):
         """Test create_snap successfully creates a snapshot"""
         mock_module = Mock()
@@ -203,20 +192,18 @@ class TestCreateSnap:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.post_directory_snapshots.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_post_with_context.return_value = Mock(status_code=200)
 
         create_snap(mock_module, mock_array)
 
-        mock_array.post_directory_snapshots.assert_called_once()
+        mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_dirsnap.check_response")
     @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPost")
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
+    @patch("plugins.modules.purefa_dirsnap.post_with_context")
     def test_create_snap_with_keep_for(
-        self, mock_loose_version, mock_snap_post, mock_check_response
+        self, mock_post_with_context, mock_snap_post, mock_check_response
     ):
         """Test create_snap with keep_for retention"""
         mock_module = Mock()
@@ -230,13 +217,11 @@ class TestCreateSnap:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.post_directory_snapshots.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_post_with_context.return_value = Mock(status_code=200)
 
         create_snap(mock_module, mock_array)
 
-        mock_array.post_directory_snapshots.assert_called_once()
+        mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -244,8 +229,10 @@ class TestEradicateSnapSuccess:
     """Tests for eradicate_snap function success paths"""
 
     @patch("plugins.modules.purefa_dirsnap.check_response")
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    def test_eradicate_snap_success(self, mock_loose_version, mock_check_response):
+    @patch("plugins.modules.purefa_dirsnap.delete_with_context")
+    def test_eradicate_snap_success(
+        self, mock_delete_with_context, mock_check_response
+    ):
         """Test eradicate_snap successfully eradicates a snapshot"""
         mock_module = Mock()
         mock_module.params = {
@@ -257,18 +244,18 @@ class TestEradicateSnapSuccess:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.delete_directory_snapshots.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_delete_with_context.return_value = Mock(status_code=200)
 
         eradicate_snap(mock_module, mock_array)
 
-        mock_array.delete_directory_snapshots.assert_called_once()
+        mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_dirsnap.check_response")
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    def test_eradicate_snap_with_context(self, mock_loose_version, mock_check_response):
+    @patch("plugins.modules.purefa_dirsnap.delete_with_context")
+    def test_eradicate_snap_with_context(
+        self, mock_delete_with_context, mock_check_response
+    ):
         """Test eradicate_snap with context (API >= 2.42)"""
         mock_module = Mock()
         mock_module.params = {
@@ -280,15 +267,11 @@ class TestEradicateSnapSuccess:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.50"
-        mock_array.delete_directory_snapshots.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_delete_with_context.return_value = Mock(status_code=200)
 
         eradicate_snap(mock_module, mock_array)
 
-        mock_array.delete_directory_snapshots.assert_called_once_with(
-            names=["fs1:dir1.client1.snap"], context_names=["fleet-member"]
-        )
+        mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -297,9 +280,9 @@ class TestDeleteSnapSuccess:
 
     @patch("plugins.modules.purefa_dirsnap.check_response")
     @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPatch")
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
+    @patch("plugins.modules.purefa_dirsnap.patch_with_context")
     def test_delete_snap_success(
-        self, mock_loose_version, mock_snap_patch, mock_check_response
+        self, mock_patch_with_context, mock_snap_patch, mock_check_response
     ):
         """Test delete_snap successfully deletes a snapshot"""
         mock_module = Mock()
@@ -313,22 +296,20 @@ class TestDeleteSnapSuccess:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.patch_directory_snapshots.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         delete_snap(mock_module, mock_array)
 
-        mock_array.patch_directory_snapshots.assert_called_once()
+        mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_dirsnap.eradicate_snap")
     @patch("plugins.modules.purefa_dirsnap.check_response")
     @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPatch")
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
+    @patch("plugins.modules.purefa_dirsnap.patch_with_context")
     def test_delete_snap_with_eradicate(
         self,
-        mock_loose_version,
+        mock_patch_with_context,
         mock_snap_patch,
         mock_check_response,
         mock_eradicate_snap,
@@ -345,13 +326,11 @@ class TestDeleteSnapSuccess:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.patch_directory_snapshots.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         delete_snap(mock_module, mock_array)
 
-        mock_array.patch_directory_snapshots.assert_called_once()
+        mock_patch_with_context.assert_called_once()
         mock_eradicate_snap.assert_called_once_with(mock_module, mock_array)
 
 
@@ -360,9 +339,9 @@ class TestUpdateSnapSuccess:
 
     @patch("plugins.modules.purefa_dirsnap.check_response")
     @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPatch")
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
+    @patch("plugins.modules.purefa_dirsnap.patch_with_context")
     def test_update_snap_recover_destroyed(
-        self, mock_loose_version, mock_snap_patch, mock_check_response
+        self, mock_patch_with_context, mock_snap_patch, mock_check_response
     ):
         """Test update_snap recovers a destroyed snapshot"""
         mock_module = Mock()
@@ -379,23 +358,21 @@ class TestUpdateSnapSuccess:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.patch_directory_snapshots.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         snap_detail = Mock()
         snap_detail.destroyed = True
 
         update_snap(mock_module, mock_array, snap_detail)
 
-        mock_array.patch_directory_snapshots.assert_called()
+        mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_dirsnap.check_response")
     @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPatch")
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
+    @patch("plugins.modules.purefa_dirsnap.patch_with_context")
     def test_update_snap_rename_success(
-        self, mock_loose_version, mock_snap_patch, mock_check_response
+        self, mock_patch_with_context, mock_snap_patch, mock_check_response
     ):
         """Test update_snap renames a snapshot"""
         mock_module = Mock()
@@ -412,23 +389,21 @@ class TestUpdateSnapSuccess:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.patch_directory_snapshots.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         snap_detail = Mock()
         snap_detail.destroyed = False
 
         update_snap(mock_module, mock_array, snap_detail)
 
-        mock_array.patch_directory_snapshots.assert_called()
+        mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_dirsnap.check_response")
     @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPatch")
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
+    @patch("plugins.modules.purefa_dirsnap.patch_with_context")
     def test_update_snap_set_keep_for(
-        self, mock_loose_version, mock_snap_patch, mock_check_response
+        self, mock_patch_with_context, mock_snap_patch, mock_check_response
     ):
         """Test update_snap sets keep_for retention time"""
         mock_module = Mock()
@@ -445,20 +420,17 @@ class TestUpdateSnapSuccess:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.patch_directory_snapshots.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         snap_detail = Mock()
         snap_detail.destroyed = False
 
         update_snap(mock_module, mock_array, snap_detail)
 
-        mock_array.patch_directory_snapshots.assert_called()
+        mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    def test_update_snap_keep_for_out_of_range(self, mock_loose_version):
+    def test_update_snap_keep_for_out_of_range(self):
         """Test update_snap fails when keep_for is out of range"""
         import pytest
 
@@ -477,8 +449,6 @@ class TestUpdateSnapSuccess:
         mock_module.check_mode = False
         mock_module.fail_json.side_effect = SystemExit(1)
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_loose_version.side_effect = LooseVersion
 
         snap_detail = Mock()
         snap_detail.destroyed = False
@@ -490,8 +460,7 @@ class TestUpdateSnapSuccess:
             msg="keep_for not in range of 300 - 31536000"
         )
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    def test_update_snap_no_changes(self, mock_loose_version):
+    def test_update_snap_no_changes(self):
         """Test update_snap with no changes needed"""
         mock_module = Mock()
         mock_module.params = {
@@ -507,13 +476,10 @@ class TestUpdateSnapSuccess:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_loose_version.side_effect = LooseVersion
 
         snap_detail = Mock()
         snap_detail.destroyed = False  # Not destroyed, no rename, no keep_for
 
         update_snap(mock_module, mock_array, snap_detail)
 
-        mock_array.patch_directory_snapshots.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)

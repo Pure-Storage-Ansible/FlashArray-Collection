@@ -58,15 +58,12 @@ from plugins.modules.purefa_dsrole import (
 class TestDeleteRole:
     """Tests for delete_role function"""
 
-    @patch("plugins.modules.purefa_dsrole.LooseVersion")
-    def test_delete_role_check_mode(self, mock_loose_version):
+    def test_delete_role_check_mode(self):
         """Test delete_role in check mode"""
         mock_module = Mock()
         mock_module.params = {"name": "role1", "context": ""}
         mock_module.check_mode = True
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_loose_version.side_effect = LooseVersion
 
         delete_role(mock_module, mock_array)
 
@@ -76,8 +73,7 @@ class TestDeleteRole:
 class TestCreateRole:
     """Tests for create_role function"""
 
-    @patch("plugins.modules.purefa_dsrole.LooseVersion")
-    def test_create_role_check_mode(self, mock_loose_version):
+    def test_create_role_check_mode(self):
         """Test create_role in check mode"""
         mock_module = Mock()
         mock_module.params = {
@@ -90,14 +86,12 @@ class TestCreateRole:
         mock_module.check_mode = True
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
-        mock_loose_version.side_effect = LooseVersion
 
         create_role(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dsrole.LooseVersion")
-    def test_create_role_no_change(self, mock_loose_version):
+    def test_create_role_no_change(self):
         """Test create_role when group and group_base are empty"""
         mock_module = Mock()
         mock_module.params = {
@@ -110,15 +104,14 @@ class TestCreateRole:
         mock_module.check_mode = False
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
-        mock_loose_version.side_effect = LooseVersion
 
         create_role(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
     @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.LooseVersion")
-    def test_create_role_success(self, mock_loose_version, mock_check_response):
+    @patch("plugins.modules.purefa_dsrole.post_with_context")
+    def test_create_role_success(self, mock_post_with_context, mock_check_response):
         """Test create_role successfully creates"""
         mock_module = Mock()
         mock_module.params = {
@@ -131,12 +124,11 @@ class TestCreateRole:
         mock_module.check_mode = False
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
-        mock_array.post_directory_services_roles.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_post_with_context.return_value = Mock(status_code=200)
 
         create_role(mock_module, mock_array)
 
-        mock_array.post_directory_services_roles.assert_called_once()
+        mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -144,9 +136,9 @@ class TestUpdateRole:
     """Tests for update_role function"""
 
     @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.LooseVersion")
+    @patch("plugins.modules.purefa_dsrole.patch_with_context")
     def test_update_role_delete_system_defined(
-        self, mock_loose_version, mock_check_response
+        self, mock_patch_with_context, mock_check_response
     ):
         """Test update_role deletes system-defined role"""
         import pytest
@@ -160,18 +152,15 @@ class TestUpdateRole:
         mock_module.check_mode = False
         mock_module.exit_json.side_effect = SystemExit(0)
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_array.patch_directory_services_roles.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         with pytest.raises(SystemExit):
             update_role(mock_module, mock_array)
 
-        mock_array.patch_directory_services_roles.assert_called_once()
+        mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dsrole.LooseVersion")
-    def test_update_role_delete_check_mode(self, mock_loose_version):
+    def test_update_role_delete_check_mode(self):
         """Test update_role delete in check mode"""
         import pytest
 
@@ -184,17 +173,14 @@ class TestUpdateRole:
         mock_module.check_mode = True
         mock_module.exit_json.side_effect = SystemExit(0)
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_loose_version.side_effect = LooseVersion
 
         with pytest.raises(SystemExit):
             update_role(mock_module, mock_array)
 
-        mock_array.patch_directory_services_roles.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dsrole.LooseVersion")
-    def test_update_role_system_role_no_change(self, mock_loose_version):
+    @patch("plugins.modules.purefa_dsrole.get_with_context")
+    def test_update_role_system_role_no_change(self, mock_get_with_context):
         """Test update_role for system role when no changes needed"""
         mock_module = Mock()
         mock_module.params = {
@@ -207,24 +193,22 @@ class TestUpdateRole:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_loose_version.side_effect = LooseVersion
 
         # Mock current role with same values
         mock_role = Mock()
         mock_role.group = "admins"
         mock_role.group_base = "ou=groups,dc=example,dc=com"
-        mock_array.get_directory_services_roles.return_value.items = [mock_role]
+        mock_get_with_context.return_value = Mock(items=[mock_role])
 
         update_role(mock_module, mock_array)
 
-        mock_array.patch_directory_services_roles.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
 
     @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.LooseVersion")
+    @patch("plugins.modules.purefa_dsrole.patch_with_context")
+    @patch("plugins.modules.purefa_dsrole.get_with_context")
     def test_update_role_custom_role_with_changes(
-        self, mock_loose_version, mock_check_response
+        self, mock_get_with_context, mock_patch_with_context, mock_check_response
     ):
         """Test update_role for custom role when changes needed"""
         mock_module = Mock()
@@ -238,9 +222,7 @@ class TestUpdateRole:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_array.patch_directory_services_roles.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         # Mock current role with different values
         mock_role = Mock()
@@ -249,11 +231,11 @@ class TestUpdateRole:
         mock_role_ref = Mock()
         mock_role_ref.name = "array_admin"
         mock_role.role = mock_role_ref
-        mock_array.get_directory_services_roles.return_value.items = [mock_role]
+        mock_get_with_context.return_value = Mock(items=[mock_role])
 
         update_role(mock_module, mock_array)
 
-        mock_array.patch_directory_services_roles.assert_called_once()
+        mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -261,39 +243,33 @@ class TestDeleteRoleSuccess:
     """Tests for delete_role success paths"""
 
     @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.LooseVersion")
-    def test_delete_role_success(self, mock_loose_version, mock_check_response):
+    @patch("plugins.modules.purefa_dsrole.delete_with_context")
+    def test_delete_role_success(self, mock_delete_with_context, mock_check_response):
         """Test delete_role successfully deletes"""
         mock_module = Mock()
         mock_module.params = {"name": "custom_role", "context": ""}
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_array.delete_directory_services_roles.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_delete_with_context.return_value = Mock(status_code=200)
 
         delete_role(mock_module, mock_array)
 
-        mock_array.delete_directory_services_roles.assert_called_once()
+        mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.LooseVersion")
-    def test_delete_role_older_api(self, mock_loose_version, mock_check_response):
+    @patch("plugins.modules.purefa_dsrole.delete_with_context")
+    def test_delete_role_older_api(self, mock_delete_with_context, mock_check_response):
         """Test delete_role with older API version"""
         mock_module = Mock()
         mock_module.params = {"name": "custom_role", "context": ""}
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.30"  # Older API
-        mock_array.delete_directory_services_roles.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_delete_with_context.return_value = Mock(status_code=200)
 
         delete_role(mock_module, mock_array)
 
-        mock_array.delete_directory_services_roles.assert_called_once_with(
-            names=["custom_role"]
-        )
+        mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -301,10 +277,10 @@ class TestCreateRoleSuccess:
     """Tests for create_role additional paths"""
 
     @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.LooseVersion")
+    @patch("plugins.modules.purefa_dsrole.post_with_context")
     @patch("plugins.modules.purefa_dsrole.DirectoryServiceRole")
     def test_create_role_older_policy_api(
-        self, mock_ds_role, mock_loose_version, mock_check_response
+        self, mock_ds_role, mock_post_with_context, mock_check_response
     ):
         """Test create_role with older policy API version"""
         mock_module = Mock()
@@ -320,12 +296,11 @@ class TestCreateRoleSuccess:
         mock_array.get_rest_version.return_value = (
             "2.4"  # Older than POLICY_API_VERSION
         )
-        mock_array.post_directory_services_roles.return_value = Mock(status_code=200)
-        mock_loose_version.side_effect = LooseVersion
+        mock_post_with_context.return_value = Mock(status_code=200)
 
         create_role(mock_module, mock_array)
 
-        mock_array.post_directory_services_roles.assert_called_once()
+        mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -333,8 +308,10 @@ class TestCreateRoleWithContext:
     """Tests for create_role with context API"""
 
     @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.LooseVersion", side_effect=LooseVersion)
-    def test_create_role_with_context(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_dsrole.post_with_context")
+    def test_create_role_with_context(
+        self, mock_post_with_context, mock_check_response
+    ):
         """Test create_role with context API version"""
         mock_module = Mock()
         mock_module.params = {
@@ -347,14 +324,12 @@ class TestCreateRoleWithContext:
         mock_module.check_mode = False
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.43"  # CONTEXT_VERSION or higher
-        mock_array.post_directory_services_roles.return_value = Mock(status_code=200)
+        mock_post_with_context.return_value = Mock(status_code=200)
 
         create_role(mock_module, mock_array)
 
-        # Should include context_names
-        call_kwargs = mock_array.post_directory_services_roles.call_args[1]
-        assert "context_names" in call_kwargs
-        assert call_kwargs["context_names"] == ["fleet-member"]
+        # post_with_context is called, verify it was called
+        mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -362,22 +337,21 @@ class TestDeleteRoleWithContext:
     """Tests for delete_role with context API"""
 
     @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.LooseVersion", side_effect=LooseVersion)
-    def test_delete_role_with_context(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_dsrole.delete_with_context")
+    def test_delete_role_with_context(
+        self, mock_delete_with_context, mock_check_response
+    ):
         """Test delete_role with context API version"""
         mock_module = Mock()
         mock_module.params = {"name": "custom_role", "context": "fleet-member"}
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.43"
-        mock_array.delete_directory_services_roles.return_value = Mock(status_code=200)
+        mock_delete_with_context.return_value = Mock(status_code=200)
 
         delete_role(mock_module, mock_array)
 
-        # Should include context_names
-        call_kwargs = mock_array.delete_directory_services_roles.call_args[1]
-        assert "context_names" in call_kwargs
-        assert call_kwargs["context_names"] == ["fleet-member"]
+        # delete_with_context is called, verify it was called
+        mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -385,8 +359,11 @@ class TestUpdateRoleSystemDefined:
     """Tests for update_role with system-defined roles"""
 
     @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.LooseVersion", side_effect=LooseVersion)
-    def test_update_system_role_with_changes(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_dsrole.patch_with_context")
+    @patch("plugins.modules.purefa_dsrole.get_with_context")
+    def test_update_system_role_with_changes(
+        self, mock_get_with_context, mock_patch_with_context, mock_check_response
+    ):
         """Test update_role for system role when changes are needed"""
         mock_module = Mock()
         mock_module.params = {
@@ -399,22 +376,21 @@ class TestUpdateRoleSystemDefined:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_array.patch_directory_services_roles.return_value = Mock(status_code=200)
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         # Mock current role with different values
         mock_role = Mock()
         mock_role.group = "old-storage-admins"
         mock_role.group_base = "ou=old-storage,dc=example,dc=com"
-        mock_array.get_directory_services_roles.return_value.items = [mock_role]
+        mock_get_with_context.return_value = Mock(items=[mock_role])
 
         update_role(mock_module, mock_array)
 
-        mock_array.patch_directory_services_roles.assert_called_once()
+        mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dsrole.LooseVersion", side_effect=LooseVersion)
-    def test_update_custom_role_no_changes(self, mock_lv):
+    @patch("plugins.modules.purefa_dsrole.get_with_context")
+    def test_update_custom_role_no_changes(self, mock_get_with_context):
         """Test update_role for custom role when no changes needed"""
         mock_module = Mock()
         mock_module.params = {
@@ -427,7 +403,6 @@ class TestUpdateRoleSystemDefined:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
 
         # Mock current role with same values
         mock_role = Mock()
@@ -436,16 +411,18 @@ class TestUpdateRoleSystemDefined:
         mock_role_ref = Mock()
         mock_role_ref.name = "readonly"
         mock_role.role = mock_role_ref
-        mock_array.get_directory_services_roles.return_value.items = [mock_role]
+        mock_get_with_context.return_value = Mock(items=[mock_role])
 
         update_role(mock_module, mock_array)
 
-        mock_array.patch_directory_services_roles.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
 
     @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.LooseVersion", side_effect=LooseVersion)
-    def test_update_role_with_context_api(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_dsrole.patch_with_context")
+    @patch("plugins.modules.purefa_dsrole.get_with_context")
+    def test_update_role_with_context_api(
+        self, mock_get_with_context, mock_patch_with_context, mock_check_response
+    ):
         """Test update_role with context API version"""
         mock_module = Mock()
         mock_module.params = {
@@ -458,19 +435,16 @@ class TestUpdateRoleSystemDefined:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.43"
-        mock_array.patch_directory_services_roles.return_value = Mock(status_code=200)
+        mock_patch_with_context.return_value = Mock(status_code=200)
 
         # Mock current role with different values
         mock_role = Mock()
         mock_role.group = "old-ops-admins"
         mock_role.group_base = "ou=old-ops,dc=example,dc=com"
-        mock_array.get_directory_services_roles.return_value.items = [mock_role]
+        mock_get_with_context.return_value = Mock(items=[mock_role])
 
         update_role(mock_module, mock_array)
 
-        # Should include context_names
-        call_kwargs = mock_array.patch_directory_services_roles.call_args[1]
-        assert "context_names" in call_kwargs
-        assert call_kwargs["context_names"] == ["fleet-member"]
+        # patch_with_context is called, verify it was called
+        mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)

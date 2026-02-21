@@ -136,27 +136,25 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.purefa impo
     get_array,
     purefa_argument_spec,
 )
-from ansible_collections.purestorage.flasharray.plugins.module_utils.version import (
-    LooseVersion,
-)
 from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
     check_response,
+    delete_with_context,
+    get_with_context,
+    patch_with_context,
+    post_with_context,
 )
 
 CONTEXT_VERSION = "2.38"
 
 
 def _volfact(module, array, volume_name):
-    api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            volume_data = list(
-                array.get_volumes(
-                    names=[volume_name], context_names=[module.params["context"]]
-                ).items
-            )[0]
-        else:
-            volume_data = list(array.get_volumes(names=[volume_name]).items)[0]
+        res = get_with_context(
+            array, "get_volumes", CONTEXT_VERSION, module, names=[volume_name]
+        )
+        if res.status_code != 200:
+            return {}
+        volume_data = list(res.items)[0]
         volfact = {
             "name": volume_data.name,
             "source": getattr(volume_data.source, "name", None),
@@ -173,13 +171,9 @@ def _volfact(module, array, volume_name):
 
 def get_volume(module, volume, array):
     """Return Volume or None"""
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        res = array.get_volumes(
-            names=[volume], context_names=[module.params["context"]]
-        )
-    else:
-        res = array.get_volumes(names=[volume])
+    res = get_with_context(
+        array, "get_volumes", CONTEXT_VERSION, module, names=[volume]
+    )
     if res.status_code != 200:
         return None
     return list(res.items)[0]
@@ -188,22 +182,14 @@ def get_volume(module, volume, array):
 def create_endpoint(module, array):
     """Create Endpoint"""
     changed = True
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        vg_exists = bool(
-            array.get_volume_groups(
-                context_names=[module.params["context"]],
-                names=[module.params["name"].split("/")[0]],
-            ).status_code
-            != 200
-        )
-    else:
-        vg_exists = bool(
-            array.get_volume_groups(
-                names=[module.params["name"].split("/")[0]]
-            ).status_code
-            != 200
-        )
+    res = get_with_context(
+        array,
+        "get_volume_groups",
+        CONTEXT_VERSION,
+        module,
+        names=[module.params["name"].split("/")[0]],
+    )
+    vg_exists = bool(res.status_code != 200)
     if "/" in module.params["name"] and not vg_exists:
         module.fail_json(
             msg="Failed to create endpoint {0}. Volume Group does not exist.".format(
@@ -211,41 +197,30 @@ def create_endpoint(module, array):
             )
         )
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.post_volumes(
-                names=[module.params["name"]],
-                volume=VolumePost(
-                    subtype="protocol_endpoint",
-                    protocol_endpoint=ProtocolEndpoint(
-                        container_version=str(module.params["container_version"])
-                    ),
+        res = post_with_context(
+            array,
+            "post_volumes",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["name"]],
+            volume=VolumePost(
+                subtype="protocol_endpoint",
+                protocol_endpoint=ProtocolEndpoint(
+                    container_version=str(module.params["container_version"])
                 ),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.post_volumes(
-                names=[module.params["name"]],
-                volume=VolumePost(
-                    subtype="protocol_endpoint",
-                    protocol_endpoint=ProtocolEndpoint(
-                        container_version=str(module.params["container_version"])
-                    ),
-                ),
-            )
+            ),
+        )
         check_response(res, module, f"Endpoint {module.params['name']} creation failed")
     if module.params["host"]:
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.post_connections(
-                    host_names=[module.params["host"]],
-                    volume_names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.post_connections(
-                    host_names=[module.params["host"]],
-                    volume_names=[module.params["name"]],
-                )
+            res = post_with_context(
+                array,
+                "post_connections",
+                CONTEXT_VERSION,
+                module,
+                host_names=[module.params["host"]],
+                volume_names=[module.params["name"]],
+            )
             check_response(
                 res,
                 module,
@@ -254,17 +229,14 @@ def create_endpoint(module, array):
             )
     if module.params["hgroup"]:
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.post_connections(
-                    host_group_names=[module.params["hgroup"]],
-                    volume_names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.post_connections(
-                    host_group_names=[module.params["hgroup"]],
-                    volume_names=[module.params["name"]],
-                )
+            res = post_with_context(
+                array,
+                "post_connections",
+                CONTEXT_VERSION,
+                module,
+                host_group_names=[module.params["hgroup"]],
+                volume_names=[module.params["name"]],
+            )
             check_response(
                 res,
                 module,
@@ -280,7 +252,6 @@ def create_endpoint(module, array):
 def rename_endpoint(module, array):
     """Rename endpoint within a container, ie vgroup or local array"""
     changed = False
-    api_version = array.get_rest_version()
     target_name = module.params["rename"]
     if "/" in module.params["rename"] or "::" in module.params["rename"]:
         module.fail_json(msg="Target endpoint cannot include a container name")
@@ -291,16 +262,14 @@ def rename_endpoint(module, array):
         module.fail_json(msg="Target {0} already exists.".format(target_name))
     changed = True
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.patch_volumes(
-                names=[module.params["name"]],
-                volume=VolumePatch(name=target_name),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.patch_volumes(
-                names=[module.params["name"]], volume=VolumePatch(name=target_name)
-            )
+        res = patch_with_context(
+            array,
+            "patch_volumes",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["name"]],
+            volume=VolumePatch(name=target_name),
+        )
         check_response(
             res,
             module,
@@ -314,29 +283,26 @@ def rename_endpoint(module, array):
 def delete_endpoint(module, array):
     """Delete Endpoint"""
     changed = True
-    api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.patch_volumes(
-                names=[module.params["name"]],
-                volume=VolumePatch(destroyed=True),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.patch_volumes(
-                names=[module.params["name"]], volume=VolumePatch(destroyed=True)
-            )
+        res = patch_with_context(
+            array,
+            "patch_volumes",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["name"]],
+            volume=VolumePatch(destroyed=True),
+        )
         check_response(
             res, module, f"Failed to delete endpoint {module.params['name']}"
         )
         if module.params["eradicate"]:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.delete_volumes(
-                    names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.delete_volumes(names=[module.params["name"]])
+            res = delete_with_context(
+                array,
+                "delete_volumes",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+            )
             check_response(
                 res, module, f"Eradicate endpoint {module.params['name']} failed"
             )
@@ -349,18 +315,15 @@ def delete_endpoint(module, array):
 def recover_endpoint(module, array):
     """Recover Deleted Endpoint"""
     changed = True
-    api_version = array.get_rest_version()
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.patch_volumes(
-                names=[module.params["name"]],
-                volume=VolumePatch(destroyed=False),
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.patch_volumes(
-                names=[module.params["name"]], volume=VolumePatch(destroyed=False)
-            )
+        res = patch_with_context(
+            array,
+            "patch_volumes",
+            CONTEXT_VERSION,
+            module,
+            names=[module.params["name"]],
+            volume=VolumePatch(destroyed=False),
+        )
         check_response(
             res, module, f"Recovery of endpoint {module.params['name']} failed"
         )
@@ -372,16 +335,15 @@ def recover_endpoint(module, array):
 def eradicate_endpoint(module, array):
     """Eradicate Deleted Endpoint"""
     changed = True
-    api_version = array.get_rest_version()
     if not module.check_mode:
         if module.params["eradicate"]:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.delete_volumes(
-                    names=[module.params["name"]],
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.delete_volumes(names=[module.params["name"]])
+            res = delete_with_context(
+                array,
+                "delete_volumes",
+                CONTEXT_VERSION,
+                module,
+                names=[module.params["name"]],
+            )
             check_response(
                 res, module, f"Eradication of endpoint {module.params['name']} failed"
             )

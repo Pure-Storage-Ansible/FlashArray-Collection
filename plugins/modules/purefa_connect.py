@@ -137,6 +137,10 @@ from ansible_collections.purestorage.flasharray.plugins.module_utils.version imp
 )
 from ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers import (
     check_response,
+    delete_with_context,
+    get_with_context,
+    patch_with_context,
+    post_with_context,
 )
 import platform
 import socket
@@ -153,11 +157,7 @@ def _lookup(address):
 
 
 def _check_connected(module, array):
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        res = array.get_array_connections(context_names=[module.params["context"]])
-    else:
-        res = array.get_array_connections()
+    res = get_with_context(array, "get_array_connections", CONTEXT_VERSION, module)
     if res.status_code != 200:
         return None
     connected_arrays = list(res.items)
@@ -175,24 +175,20 @@ def _check_connected(module, array):
 def break_connection(module, array, target_array):
     """Break connection between arrays"""
     changed = True
-    api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        source_array = list(
-            array.get_arrays(context_names=[module.params["context"]]).items
-        )[0].name
-    else:
-        source_array = list(array.get_arrays().items)[0].name
+    res = get_with_context(array, "get_arrays", CONTEXT_VERSION, module)
+    source_array = list(res.items)[0].name
     if getattr(target_array, "management_address", None) is None:
         module.fail_json(
             msg="disconnect can only happen from the array that formed the connection"
         )
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.delete_array_connections(
-                names=[target_array.name], context_names=[module.params["context"]]
-            )
-        else:
-            res = array.delete_array_connections(names=[target_array.name])
+        res = delete_with_context(
+            array,
+            "delete_array_connections",
+            CONTEXT_VERSION,
+            module,
+            names=[target_array.name],
+        )
         check_response(
             res, module, f"Failed to disconnect {target_array.name} from {source_array}"
         )
@@ -217,12 +213,8 @@ def update_connection(module, array, target_array):
             "platform": platform.platform(),
         }
     api_version = array.get_rest_version()
-    if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-        source_array = list(
-            array.get_arrays(context_names=[module.params["context"]]).items
-        )[0].name
-    else:
-        source_array = list(array.get_arrays().items)[0].name
+    res = get_with_context(array, "get_arrays", CONTEXT_VERSION, module)
+    source_array = list(res.items)[0].name
     #
     # Special cases
     #
@@ -230,19 +222,15 @@ def update_connection(module, array, target_array):
         # No other attributes can be changed when doing this
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.patch_array_connections(
-                    names=[target_array.name],
-                    renew_encryption_key=True,
-                    array_connection=ArrayConnectionPatch(),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_array_connections(
-                    names=[target_array.name],
-                    renew_encryption_key=True,
-                    array_connection=ArrayConnectionPatch(),
-                )
+            res = patch_with_context(
+                array,
+                "patch_array_connections",
+                CONTEXT_VERSION,
+                module,
+                names=[target_array.name],
+                renew_encryption_key=True,
+                array_connection=ArrayConnectionPatch(),
+            )
             check_response(
                 res,
                 module,
@@ -253,19 +241,15 @@ def update_connection(module, array, target_array):
         # No other attributes can be changed when doing this
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.patch_array_connections(
-                    names=[target_array.name],
-                    refresh=True,
-                    array_connection=ArrayConnectionPatch(),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_array_connections(
-                    names=[target_array.name],
-                    refresh=True,
-                    array_connection=ArrayConnectionPatch(),
-                )
+            res = patch_with_context(
+                array,
+                "patch_array_connections",
+                CONTEXT_VERSION,
+                module,
+                names=[target_array.name],
+                refresh=True,
+                array_connection=ArrayConnectionPatch(),
+            )
             check_response(
                 res, module, f"Failed to refresh connection to {target_array.name}"
             )
@@ -292,21 +276,16 @@ def update_connection(module, array, target_array):
             )[0].connection_key
             changed = True
             if not module.check_mode:
-                if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                    res = array.patch_array_connections(
-                        names=[target_array.name],
-                        array_connection=ArrayConnectionPatch(
-                            encryption=encrypted, connection_key=connection_key
-                        ),
-                        context_names=[module.params["context"]],
-                    )
-                else:
-                    res = array.patch_array_connections(
-                        names=[target_array.name],
-                        array_connection=ArrayConnectionPatch(
-                            encryption=encrypted, connection_key=connection_key
-                        ),
-                    )
+                res = patch_with_context(
+                    array,
+                    "patch_array_connections",
+                    CONTEXT_VERSION,
+                    module,
+                    names=[target_array.name],
+                    array_connection=ArrayConnectionPatch(
+                        encryption=encrypted, connection_key=connection_key
+                    ),
+                )
                 check_response(
                     res,
                     module,
@@ -315,21 +294,14 @@ def update_connection(module, array, target_array):
     if module.params["connection"] != target_array.type:
         changed = True
         if not module.check_mode:
-            if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-                res = array.patch_array_connections(
-                    names=[target_array.name],
-                    array_connection=ArrayConnectionPatch(
-                        type=module.params["connection"]
-                    ),
-                    context_names=[module.params["context"]],
-                )
-            else:
-                res = array.patch_array_connections(
-                    names=[target_array.name],
-                    array_connection=ArrayConnectionPatch(
-                        type=module.params["connection"]
-                    ),
-                )
+            res = patch_with_context(
+                array,
+                "patch_array_connections",
+                CONTEXT_VERSION,
+                module,
+                names=[target_array.name],
+                array_connection=ArrayConnectionPatch(type=module.params["connection"]),
+            )
             check_response(
                 res,
                 module,
@@ -396,13 +368,13 @@ def create_connection(module, array):
             connection_key=connection_key,
         )
     if not module.check_mode:
-        if LooseVersion(CONTEXT_VERSION) <= LooseVersion(api_version):
-            res = array.post_array_connections(
-                array_connection=array_connection,
-                context_names=[module.params["context"]],
-            )
-        else:
-            res = array.post_array_connections(array_connection=array_connection)
+        res = post_with_context(
+            array,
+            "post_array_connections",
+            CONTEXT_VERSION,
+            module,
+            array_connection=array_connection,
+        )
         check_response(res, module, "Array Connection failed")
     module.exit_json(changed=changed)
 

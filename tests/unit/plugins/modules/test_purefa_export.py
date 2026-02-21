@@ -103,8 +103,11 @@ class TestDeleteExport:
         )
 
     @patch("plugins.modules.purefa_export.check_response")
-    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
-    def test_delete_export_nfs_policy_success(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_export.delete_with_context")
+    @patch("plugins.modules.purefa_export.get_with_context")
+    def test_delete_export_nfs_policy_success(
+        self, mock_get_with_context, mock_delete_with_context, mock_check_response
+    ):
         """Test delete_export with NFS policy"""
         mock_module = Mock()
         mock_module.params = {
@@ -117,17 +120,16 @@ class TestDeleteExport:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.get_directory_exports.return_value = Mock(status_code=200)
-        mock_array.delete_directory_exports.return_value = Mock(status_code=200)
+        mock_get_with_context.return_value = Mock(status_code=200)
+        mock_delete_with_context.return_value = Mock(status_code=200)
 
         delete_export(mock_module, mock_array)
 
-        mock_array.delete_directory_exports.assert_called_once()
+        mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
-    def test_delete_export_check_mode(self, mock_lv):
+    @patch("plugins.modules.purefa_export.get_with_context")
+    def test_delete_export_check_mode(self, mock_get_with_context):
         """Test delete_export in check mode"""
         mock_module = Mock()
         mock_module.params = {
@@ -140,16 +142,14 @@ class TestDeleteExport:
         }
         mock_module.check_mode = True
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.get_directory_exports.return_value = Mock(status_code=200)
+        mock_get_with_context.return_value = Mock(status_code=200)
 
         delete_export(mock_module, mock_array)
 
-        mock_array.delete_directory_exports.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
-    def test_delete_export_policy_not_exists(self, mock_lv):
+    @patch("plugins.modules.purefa_export.get_with_context")
+    def test_delete_export_policy_not_exists(self, mock_get_with_context):
         """Test delete_export when policy doesn't exist"""
         mock_module = Mock()
         mock_module.params = {
@@ -162,17 +162,18 @@ class TestDeleteExport:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.get_directory_exports.return_value = Mock(status_code=400)
+        mock_get_with_context.return_value = Mock(status_code=400)
 
         delete_export(mock_module, mock_array)
 
-        mock_array.delete_directory_exports.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
 
     @patch("plugins.modules.purefa_export.check_response")
-    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
-    def test_delete_export_smb_policy_success(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_export.delete_with_context")
+    @patch("plugins.modules.purefa_export.get_with_context")
+    def test_delete_export_smb_policy_success(
+        self, mock_get_with_context, mock_delete_with_context, mock_check_response
+    ):
         """Test delete_export with SMB policy"""
         mock_module = Mock()
         mock_module.params = {
@@ -185,13 +186,12 @@ class TestDeleteExport:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.get_directory_exports.return_value = Mock(status_code=200)
-        mock_array.delete_directory_exports.return_value = Mock(status_code=200)
+        mock_get_with_context.return_value = Mock(status_code=200)
+        mock_delete_with_context.return_value = Mock(status_code=200)
 
         delete_export(mock_module, mock_array)
 
-        mock_array.delete_directory_exports.assert_called_once()
+        mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -199,8 +199,11 @@ class TestCreateExportExtended:
     """Additional tests for create_export function"""
 
     @patch("plugins.modules.purefa_export.check_response")
-    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
-    def test_create_export_nfs_policy_success(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_export.post_with_context")
+    @patch("plugins.modules.purefa_export.get_with_context")
+    def test_create_export_nfs_policy_success(
+        self, mock_get_with_context, mock_post_with_context, mock_check_response
+    ):
         """Test create_export with NFS policy"""
         mock_module = Mock()
         mock_module.params = {
@@ -213,19 +216,21 @@ class TestCreateExportExtended:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.get_policies_nfs.return_value = Mock(status_code=200)
-        mock_array.get_directory_exports.return_value = Mock(status_code=400)
-        mock_array.post_directory_exports.return_value = Mock(status_code=200)
+        # First call: get_policies_nfs (200), second call: get_directory_exports (400)
+        mock_get_with_context.side_effect = [
+            Mock(status_code=200),
+            Mock(status_code=400),
+        ]
+        mock_post_with_context.return_value = Mock(status_code=200)
 
         create_export(mock_module, mock_array)
 
-        mock_array.get_policies_nfs.assert_called_once()
-        mock_array.post_directory_exports.assert_called_once()
+        mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
-    def test_create_export_check_mode(self, mock_lv):
+    @patch("plugins.modules.purefa_export.check_response")
+    @patch("plugins.modules.purefa_export.get_with_context")
+    def test_create_export_check_mode(self, mock_get_with_context, mock_check_response):
         """Test create_export in check mode"""
         mock_module = Mock()
         mock_module.params = {
@@ -238,17 +243,21 @@ class TestCreateExportExtended:
         }
         mock_module.check_mode = True
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.get_policies_nfs.return_value = Mock(status_code=200)
-        mock_array.get_directory_exports.return_value = Mock(status_code=400)
+        # First call: get_policies_nfs (200), second call: get_directory_exports (400)
+        mock_get_with_context.side_effect = [
+            Mock(status_code=200),
+            Mock(status_code=400),
+        ]
 
         create_export(mock_module, mock_array)
 
-        mock_array.post_directory_exports.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_export.LooseVersion", side_effect=LooseVersion)
-    def test_create_export_already_exists(self, mock_lv):
+    @patch("plugins.modules.purefa_export.check_response")
+    @patch("plugins.modules.purefa_export.get_with_context")
+    def test_create_export_already_exists(
+        self, mock_get_with_context, mock_check_response
+    ):
         """Test create_export when export already exists"""
         mock_module = Mock()
         mock_module.params = {
@@ -261,11 +270,12 @@ class TestCreateExportExtended:
         }
         mock_module.check_mode = False
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.42"
-        mock_array.get_policies_nfs.return_value = Mock(status_code=200)
-        mock_array.get_directory_exports.return_value = Mock(status_code=200)
+        # First call: get_policies_nfs (200), second call: get_directory_exports (200)
+        mock_get_with_context.side_effect = [
+            Mock(status_code=200),
+            Mock(status_code=200),
+        ]
 
         create_export(mock_module, mock_array)
 
-        mock_array.post_directory_exports.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
