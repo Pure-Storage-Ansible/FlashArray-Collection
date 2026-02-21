@@ -73,10 +73,9 @@ class TestLookup:
 class TestCheckConnected:
     """Test cases for _check_connected function"""
 
-    @patch("plugins.modules.purefa_connect.LooseVersion")
-    def test_check_connected_not_connected(self, mock_loose_version):
+    @patch("plugins.modules.purefa_connect.get_with_context")
+    def test_check_connected_not_connected(self, mock_get_with_context):
         """Test _check_connected returns None when not connected"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.38" else 2.38
         mock_module = Mock()
         mock_module.params = {
             "target_url": "array2",
@@ -84,15 +83,14 @@ class TestCheckConnected:
             "context": "",
         }
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
-        mock_array.get_array_connections.return_value = Mock(items=[])
+        mock_get_with_context.return_value = Mock(status_code=200, items=[])
 
         result = _check_connected(mock_module, mock_array)
 
         assert result is None
 
-    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
-    def test_check_connected_found(self, mock_lv):
+    @patch("plugins.modules.purefa_connect.get_with_context")
+    def test_check_connected_found(self, mock_get_with_context):
         """Test _check_connected returns connection when found"""
         mock_module = Mock()
         mock_module.params = {
@@ -101,14 +99,11 @@ class TestCheckConnected:
             "context": "",
         }
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
         mock_conn = Mock()
         mock_conn.name = "array2"
         mock_conn.management_address = "192.168.1.100"
         mock_conn.status = "connected"
-        mock_array.get_array_connections.return_value = Mock(
-            status_code=200, items=[mock_conn]
-        )
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_conn])
 
         result = _check_connected(mock_module, mock_array)
 
@@ -118,18 +113,16 @@ class TestCheckConnected:
 class TestBreakConnection:
     """Test cases for break_connection function"""
 
-    @patch("plugins.modules.purefa_connect.LooseVersion")
-    def test_break_connection_check_mode(self, mock_loose_version):
+    @patch("plugins.modules.purefa_connect.get_with_context")
+    def test_break_connection_check_mode(self, mock_get_with_context):
         """Test break_connection in check mode"""
-        mock_loose_version.side_effect = lambda x: float(x) if x != "2.38" else 2.38
         mock_module = Mock()
         mock_module.check_mode = True
         mock_module.params = {"context": ""}
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
         mock_local = Mock()
         mock_local.name = "local-array"
-        mock_array.get_arrays.return_value = Mock(items=[mock_local])
+        mock_get_with_context.return_value = Mock(items=[mock_local])
         mock_target = Mock()
         mock_target.name = "target-array"
         mock_target.management_address = "192.168.1.1"
@@ -139,38 +132,39 @@ class TestBreakConnection:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_connect.check_response")
-    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
-    def test_break_connection_success(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_connect.delete_with_context")
+    @patch("plugins.modules.purefa_connect.get_with_context")
+    def test_break_connection_success(
+        self, mock_get_with_context, mock_delete_with_context, mock_check_response
+    ):
         """Test break_connection successfully breaks connection"""
         mock_module = Mock()
         mock_module.check_mode = False
         mock_module.params = {"context": ""}
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
         mock_local = Mock()
         mock_local.name = "local-array"
-        mock_array.get_arrays.return_value = Mock(items=[mock_local])
-        mock_array.delete_array_connections.return_value = Mock(status_code=200)
+        mock_get_with_context.return_value = Mock(items=[mock_local])
+        mock_delete_with_context.return_value = Mock(status_code=200)
         mock_target = Mock()
         mock_target.name = "target-array"
         mock_target.management_address = "192.168.1.1"
 
         break_connection(mock_module, mock_array, mock_target)
 
-        mock_array.delete_array_connections.assert_called_once()
+        mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
-    def test_break_connection_wrong_array(self, mock_lv):
+    @patch("plugins.modules.purefa_connect.get_with_context")
+    def test_break_connection_wrong_array(self, mock_get_with_context):
         """Test break_connection fails when called from wrong array"""
         mock_module = Mock()
         mock_module.check_mode = False
         mock_module.params = {"context": ""}
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.38"
         mock_local = Mock()
         mock_local.name = "local-array"
-        mock_array.get_arrays.return_value = Mock(items=[mock_local])
+        mock_get_with_context.return_value = Mock(items=[mock_local])
         mock_target = Mock()
         mock_target.name = "target-array"
         mock_target.management_address = None  # No management address
@@ -183,9 +177,8 @@ class TestBreakConnection:
 class TestUpdateConnection:
     """Test cases for update_connection function"""
 
-    @patch("plugins.modules.purefa_connect.check_response")
-    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
-    def test_update_connection_renew_key_check_mode(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_connect.get_with_context")
+    def test_update_connection_renew_key_check_mode(self, mock_get_with_context):
         """Test update_connection with renew_key in check mode"""
         import pytest
 
@@ -205,7 +198,7 @@ class TestUpdateConnection:
         mock_array.get_rest_version.return_value = "2.38"
         mock_local = Mock()
         mock_local.name = "local-array"
-        mock_array.get_arrays.return_value = Mock(items=[mock_local])
+        mock_get_with_context.return_value = Mock(items=[mock_local])
         mock_target = Mock()
         mock_target.name = "target-array"
 
@@ -215,8 +208,11 @@ class TestUpdateConnection:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_connect.check_response")
-    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
-    def test_update_connection_renew_key_success(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_connect.patch_with_context")
+    @patch("plugins.modules.purefa_connect.get_with_context")
+    def test_update_connection_renew_key_success(
+        self, mock_get_with_context, mock_patch_with_context, mock_check_response
+    ):
         """Test update_connection with renew_key successfully renews"""
         import pytest
 
@@ -234,22 +230,25 @@ class TestUpdateConnection:
         }
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
-        mock_array.patch_array_connections.return_value = Mock(status_code=200)
         mock_local = Mock()
         mock_local.name = "local-array"
-        mock_array.get_arrays.return_value = Mock(items=[mock_local])
+        mock_get_with_context.return_value = Mock(items=[mock_local])
+        mock_patch_with_context.return_value = Mock(status_code=200)
         mock_target = Mock()
         mock_target.name = "target-array"
 
         with pytest.raises(SystemExit):
             update_connection(mock_module, mock_array, mock_target)
 
-        mock_array.patch_array_connections.assert_called_once()
+        mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_connect.check_response")
-    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
-    def test_update_connection_refresh_success(self, mock_lv, mock_check_response):
+    @patch("plugins.modules.purefa_connect.patch_with_context")
+    @patch("plugins.modules.purefa_connect.get_with_context")
+    def test_update_connection_refresh_success(
+        self, mock_get_with_context, mock_patch_with_context, mock_check_response
+    ):
         """Test update_connection with refresh successfully refreshes"""
         import pytest
 
@@ -267,17 +266,17 @@ class TestUpdateConnection:
         }
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
-        mock_array.patch_array_connections.return_value = Mock(status_code=200)
         mock_local = Mock()
         mock_local.name = "local-array"
-        mock_array.get_arrays.return_value = Mock(items=[mock_local])
+        mock_get_with_context.return_value = Mock(items=[mock_local])
+        mock_patch_with_context.return_value = Mock(status_code=200)
         mock_target = Mock()
         mock_target.name = "target-array"
 
         with pytest.raises(SystemExit):
             update_connection(mock_module, mock_array, mock_target)
 
-        mock_array.patch_array_connections.assert_called_once()
+        mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -285,11 +284,7 @@ class TestCreateConnection:
     """Test cases for create_connection function"""
 
     @patch("plugins.modules.purefa_connect.Client")
-    @patch("plugins.modules.purefa_connect.check_response")
-    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
-    def test_create_connection_check_mode(
-        self, mock_lv, mock_check_response, mock_client
-    ):
+    def test_create_connection_check_mode(self, mock_client):
         """Test create_connection in check mode"""
         from plugins.modules.purefa_connect import create_connection
 
@@ -315,13 +310,14 @@ class TestCreateConnection:
 
         create_connection(mock_module, mock_array)
 
-        mock_array.post_array_connections.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_connect.Client")
     @patch("plugins.modules.purefa_connect.check_response")
-    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
-    def test_create_connection_success(self, mock_lv, mock_check_response, mock_client):
+    @patch("plugins.modules.purefa_connect.post_with_context")
+    def test_create_connection_success(
+        self, mock_post_with_context, mock_check_response, mock_client
+    ):
         """Test create_connection successfully creates connection"""
         from plugins.modules.purefa_connect import create_connection
 
@@ -337,7 +333,7 @@ class TestCreateConnection:
         }
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.38"
-        mock_array.post_array_connections.return_value = Mock(status_code=200)
+        mock_post_with_context.return_value = Mock(status_code=200)
 
         # Mock remote system connection key
         mock_remote = Mock()
@@ -348,14 +344,14 @@ class TestCreateConnection:
 
         create_connection(mock_module, mock_array)
 
-        mock_array.post_array_connections.assert_called_once()
+        mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_connect.Client")
     @patch("plugins.modules.purefa_connect.check_response")
-    @patch("plugins.modules.purefa_connect.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_connect.post_with_context")
     def test_create_connection_encrypted(
-        self, mock_lv, mock_check_response, mock_client
+        self, mock_post_with_context, mock_check_response, mock_client
     ):
         """Test create_connection with encryption"""
         from plugins.modules.purefa_connect import create_connection
@@ -372,7 +368,7 @@ class TestCreateConnection:
         }
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.30"  # Before ENCRYPT_VERSION
-        mock_array.post_array_connections.return_value = Mock(status_code=200)
+        mock_post_with_context.return_value = Mock(status_code=200)
 
         # Mock remote system connection key
         mock_remote = Mock()
@@ -383,5 +379,5 @@ class TestCreateConnection:
 
         create_connection(mock_module, mock_array)
 
-        mock_array.post_array_connections.assert_called_once()
+        mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
