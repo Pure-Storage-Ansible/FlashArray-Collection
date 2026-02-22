@@ -3,6 +3,7 @@
 <img src="https://cla-assistant.io/readme/badge/Pure-Storage-Ansible/FlashArray-Collection">
 <img src="https://github.com/Pure-Storage-Ansible/FLashArray-Collection/workflows/Pure%20Storage%20Ansible%20CI/badge.svg">
 <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+<img src="https://img.shields.io/badge/tests-passing-brightgreen.svg"></a>
 
 # Pure Storage FlashArray Collection
 
