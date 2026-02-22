@@ -339,10 +339,10 @@ def update_interface(module, array):
     current_state = {
         "enabled": interface.enabled,
         "mtu": interface.eth.mtu,
-        "gateway": getattr(interface, "gateway", None),
-        "address": getattr(interface, "address", None),
-        "netmask": getattr(interface, "netmask", None),
-        "services": sorted(interface["services"]),
+        "gateway": getattr(interface.eth, "gateway", None),
+        "address": getattr(interface.eth, "address", None),
+        "netmask": getattr(interface.eth, "netmask", None),
+        "services": sorted(interface.services),
         "subinterfaces": sorted(interface.eth.subinterfaces),
     }
     new_state = current_state.copy()
@@ -377,7 +377,7 @@ def update_interface(module, array):
         ]:
             if module.params["gateway"] not in IPNetwork(module.params["address"]):
                 module.fail_json(msg="Gateway and subnet are not compatible.")
-        if not module.params["gateway"] and interface["gateway"] not in [
+        if not module.params["gateway"] and interface.eth.gateway not in [
             None,
             IPNetwork(module.params["address"]),
         ]:
@@ -432,10 +432,9 @@ def update_interface(module, array):
                     )
     if new_state != current_state:
         changed = True
-        if (
+        if module.params["servicelist"] and sorted(
             module.params["servicelist"]
-            and sorted(module.params["servicelist"]) != interface["services"]
-        ):
+        ) != sorted(interface.services):
             if not module.check_mode:
                 network = NetworkInterfacePatch(services=module.params["servicelist"])
                 res = array.patch_network_interfaces(
@@ -447,8 +446,8 @@ def update_interface(module, array):
                     f"Failed to update interface service list {module.params['name']}",
                 )
         if (
-            "management" in interface["services"] or "app" in interface["services"]
-        ) and new_state["address"] in ["0.0.0.0/0", "::/0"]:
+            "management" in interface.services or "app" in interface.services
+        ) and new_state["address"] in ["0.0.0.0", "::"]:
             module.fail_json(
                 msg="Removing IP address from a management or app port is not supported"
             )
@@ -523,9 +522,7 @@ def update_interface(module, array):
                     current_state["subinterfaces"] != new_state["subinterfaces"]
                     and new_state["subinterfaces"] != []
                 ):
-                    res = array.delete_network_interfacess(
-                        names=[module.params["name"]]
-                    )
+                    res = array.delete_network_interfaces(names=[module.params["name"]])
                     check_response(
                         res,
                         module,
