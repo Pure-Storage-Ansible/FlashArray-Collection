@@ -6,8 +6,8 @@ This directory contains the test suite for the Pure Storage FlashArray Ansible C
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 1,092 |
-| **Code Coverage** | 61% |
+| **Total Tests** | 1,150 |
+| **Code Coverage** | 62% |
 | **Test Files** | 68 |
 | **Modules Tested** | 66 |
 
@@ -144,10 +144,24 @@ class TestFunctionName:
    with pytest.raises(SystemExit):
        function_under_test(mock_module, mock_array)
    ```
+6. **pypureclient objects use attribute access**, not subscript access. Mock nested attributes correctly:
+   ```python
+   # Correct - attribute access
+   mock_interface = Mock()
+   mock_interface.name = "eth0"
+   mock_interface.eth = Mock()
+   mock_interface.eth.gateway = "10.0.0.1"
+   mock_vol.member = Mock()
+   mock_vol.member.name = "volume1"
+
+   # Wrong - subscript access (will cause errors)
+   mock_interface = {"name": "eth0"}  # Don't do this
+   mock_vol.member = {"name": "volume1"}  # Don't do this
+   ```
 
 ## Coverage by Module
 
-### High Coverage (70%+)
+### High Coverage (80%+)
 
 | Module | Coverage |
 |--------|----------|
@@ -158,27 +172,26 @@ class TestFunctionName:
 | purefa_console.py | 86% |
 | purefa_eula.py | 86% |
 | purefa_hardware.py | 85% |
+| purefa_network.py | 83% |
 | purefa_phonehome.py | 80% |
 | purefa_proxy.py | 80% |
 
-### Medium Coverage (50-69%)
+### Medium Coverage (70-79%)
 
 | Module | Coverage |
 |--------|----------|
-| purefa_info.py | 68% |
-| purefa_pod_replica.py | 71% |
-| purefa_user.py | 70% |
 | purefa_vlan.py | 74% |
 | purefa_banner.py | 74% |
 | purefa_smtp.py | 73% |
 | purefa_syslog.py | 73% |
 | purefa_api_helpers.py | 73% |
+| purefa_pod_replica.py | 71% |
+| purefa_user.py | 70% |
 
 ### Priority for Improvement (<55%)
 
 | Module | Coverage | Missing Lines |
 |--------|----------|---------------|
-| purefa_network.py | 45% | 161 |
 | purefa_policy.py | 51% | 360 |
 | purefa_pod.py | 52% | 140 |
 | purefa_messages.py | 52% | 29 |
