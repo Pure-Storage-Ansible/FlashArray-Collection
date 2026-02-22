@@ -712,7 +712,7 @@ def update_pgroup(module, array):
                     ).items
                 )
             for vol in vols:
-                pgvols.append(vol.member["name"])
+                pgvols.append(vol.member.name)
             if state == "present":
                 if not all(x in pgvols for x in module.params["volume"]):
                     if not module.check_mode:
@@ -798,7 +798,7 @@ def update_pgroup(module, array):
                     ).items
                 )
             for host in hosts:
-                pghosts.append(host.member["name"])
+                pghosts.append(host.member.name)
             if state == "present":
                 if not all(x in pghosts for x in module.params["host"]):
                     if not module.check_mode:
@@ -884,7 +884,7 @@ def update_pgroup(module, array):
                     ).items
                 )
             for hostg in hostgs:
-                pghostgs.append(hostg.member["name"])
+                pghostgs.append(hostg.member.name)
             if state == "present":
                 if not all(x in pghostgs for x in module.params["hostgroup"]):
                     if not module.check_mode:

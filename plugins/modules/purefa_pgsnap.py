@@ -301,15 +301,15 @@ def get_pgroupvolume(module, array):
                     hostvols = list(
                         array.get_connections(
                             context_names=[module.params["context"]],
-                            host_names=[host.member["name"]],
+                            host_names=[host.member.name],
                         ).items
                     )
                 else:
                     hostvols = list(
-                        array.get_connections(host_names=[host.member["name"]]).items
+                        array.get_connections(host_names=[host.member.name]).items
                     )
                 for hvol in hostvols:
-                    volumes.append(hvol.volume["name"])
+                    volumes.append(hvol.volume.name)
         elif pgroup.host_group_count > 0:  # We have a hostgroup PG
             if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                 hgroup_dict = list(
@@ -330,30 +330,30 @@ def get_pgroupvolume(module, array):
                     hgvols = list(
                         array.get_connections(
                             context_names=[module.params["context"]],
-                            host_group_names=[hgentry.member["name"]],
+                            host_group_names=[hgentry.member.name],
                         ).items
                     )
                 else:
                     hgvols = list(
                         array.get_connections(
-                            host_group_names=[hgentry.member["name"]]
+                            host_group_names=[hgentry.member.name]
                         ).items
                     )
                 for hgvol in hgvols:
-                    volumes.append(hgvol.volume["name"])
+                    volumes.append(hgvol.volume.name)
             # Second check for host specific volumes
             for hgroup in hgroup_dict:
                 if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                     hg_hosts = list(
                         array.get_host_groups_hosts(
                             context_names=[module.params["context"]],
-                            group_names=[hgroup.member["name"]],
+                            group_names=[hgroup.member.name],
                         ).items
                     )
                 else:
                     hg_hosts = list(
                         array.get_host_groups_hosts(
-                            group_names=[hgroup.member["name"]]
+                            group_names=[hgroup.member.name]
                         ).items
                     )
                 for hg_host in hg_hosts:
@@ -361,17 +361,17 @@ def get_pgroupvolume(module, array):
                         host_vols = list(
                             array.get_connections(
                                 context_names=[module.params["context"]],
-                                host_names=[hg_host.member["name"]],
+                                host_names=[hg_host.member.name],
                             ).items
                         )
                     else:
                         host_vols = list(
                             array.get_connections(
-                                host_names=[hg_host.member["name"]]
+                                host_names=[hg_host.member.name]
                             ).items
                         )
                     for host_vol in host_vols:
-                        volumes.append(host_vol.volume["name"])
+                        volumes.append(host_vol.volume.name)
         else:  # We have a volume PG
             if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
                 vol_dict = list(
@@ -387,7 +387,7 @@ def get_pgroupvolume(module, array):
                     ).items
                 )
             for entry in vol_dict:
-                volumes.append(entry.member["name"])
+                volumes.append(entry.member.name)
         volumes = list(set(volumes))
         if "::" in module.params["name"]:
             restore_volume = (

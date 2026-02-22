@@ -971,14 +971,16 @@ class TestGetPgroupvolume:
 
         # Mock hosts in protection group
         mock_host = Mock()
-        mock_host.member = {"name": "host1"}
+        mock_host.member = Mock()
+        mock_host.member.name = "host1"
         mock_array.get_protection_groups_hosts.return_value = Mock(
             status_code=200, items=[mock_host]
         )
 
         # Mock volumes connected to host
         mock_connection = Mock()
-        mock_connection.volume = {"name": "vol1"}
+        mock_connection.volume = Mock()
+        mock_connection.volume.name = "vol1"
         mock_array.get_connections.return_value = Mock(
             status_code=200, items=[mock_connection]
         )
@@ -1014,21 +1016,24 @@ class TestGetPgroupvolume:
 
         # Mock hostgroups in protection group
         mock_hgroup = Mock()
-        mock_hgroup.member = {"name": "hg1"}
+        mock_hgroup.member = Mock()
+        mock_hgroup.member.name = "hg1"
         mock_array.get_protection_groups_host_groups.return_value = Mock(
             status_code=200, items=[mock_hgroup]
         )
 
         # Mock volumes connected to hostgroup
         mock_connection = Mock()
-        mock_connection.volume = {"name": "vol2"}
+        mock_connection.volume = Mock()
+        mock_connection.volume.name = "vol2"
         mock_array.get_connections.return_value = Mock(
             status_code=200, items=[mock_connection]
         )
 
         # Mock hosts in hostgroup
         mock_hg_host = Mock()
-        mock_hg_host.member = {"name": "host_in_hg"}
+        mock_hg_host.member = Mock()
+        mock_hg_host.member.name = "host_in_hg"
         mock_array.get_host_groups_hosts.return_value = Mock(
             status_code=200, items=[mock_hg_host]
         )
@@ -1061,7 +1066,8 @@ class TestGetPgroupvolume:
 
         # Mock volumes in protection group
         mock_vol_entry = Mock()
-        mock_vol_entry.member = {"name": "vol3"}
+        mock_vol_entry.member = Mock()
+        mock_vol_entry.member.name = "vol3"
         mock_array.get_protection_groups_volumes.return_value = Mock(
             status_code=200, items=[mock_vol_entry]
         )
@@ -1095,7 +1101,8 @@ class TestGetPgroupvolume:
 
         # Mock volumes in protection group - different volume
         mock_vol_entry = Mock()
-        mock_vol_entry.member = {"name": "other_vol"}
+        mock_vol_entry.member = Mock()
+        mock_vol_entry.member.name = "other_vol"
         mock_array.get_protection_groups_volumes.return_value = Mock(
             status_code=200, items=[mock_vol_entry]
         )
@@ -1147,7 +1154,8 @@ class TestGetPgroupvolume:
 
         # Mock volumes in protection group - pod volume
         mock_vol_entry = Mock()
-        mock_vol_entry.member = {"name": "pod1::vol1"}
+        mock_vol_entry.member = Mock()
+        mock_vol_entry.member.name = "pod1::vol1"
         mock_array.get_protection_groups_volumes.return_value = Mock(
             status_code=200, items=[mock_vol_entry]
         )
