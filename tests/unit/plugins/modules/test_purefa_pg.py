@@ -569,6 +569,249 @@ class TestMakePgroupSuccess:
         mock_array.post_protection_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_make_pgroup_with_volumes_context_api(self, mock_lv, mock_check_response):
+        """Test creating protection group with volumes using context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pgroup1",
+            "target": None,
+            "volume": ["vol1", "vol2"],
+            "host": None,
+            "hostgroup": None,
+            "enabled": True,
+            "context": "pod1",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_protection_groups.return_value = Mock(status_code=200)
+        mock_array.post_protection_groups_volumes.return_value = Mock(status_code=200)
+
+        make_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups.assert_called_once()
+        mock_array.post_protection_groups_volumes.assert_called_once_with(
+            group_names=["pgroup1"],
+            member_names=["vol1", "vol2"],
+            context_names=["pod1"],
+        )
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_make_pgroup_with_hosts_context_api(self, mock_lv, mock_check_response):
+        """Test creating protection group with hosts using context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pgroup1",
+            "target": None,
+            "volume": None,
+            "host": ["host1", "host2"],
+            "hostgroup": None,
+            "enabled": True,
+            "context": "pod1",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_protection_groups.return_value = Mock(status_code=200)
+        mock_array.post_protection_groups_hosts.return_value = Mock(status_code=200)
+
+        make_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups.assert_called_once()
+        mock_array.post_protection_groups_hosts.assert_called_once_with(
+            group_names=["pgroup1"],
+            member_names=["host1", "host2"],
+            context_names=["pod1"],
+        )
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_make_pgroup_with_hostgroups_context_api(
+        self, mock_lv, mock_check_response
+    ):
+        """Test creating protection group with hostgroups using context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pgroup1",
+            "target": None,
+            "volume": None,
+            "host": None,
+            "hostgroup": ["hg1", "hg2"],
+            "enabled": True,
+            "context": "pod1",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_protection_groups.return_value = Mock(status_code=200)
+        mock_array.post_protection_groups_host_groups.return_value = Mock(
+            status_code=200
+        )
+
+        make_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups.assert_called_once()
+        mock_array.post_protection_groups_host_groups.assert_called_once_with(
+            group_names=["pgroup1"],
+            member_names=["hg1", "hg2"],
+            context_names=["pod1"],
+        )
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_make_pgroup_with_safe_mode_context_api(self, mock_lv, mock_check_response):
+        """Test creating protection group with safe_mode using context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pgroup1",
+            "target": None,
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "enabled": True,
+            "context": "pod1",
+            "safe_mode": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_protection_groups.return_value = Mock(status_code=200)
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+
+        make_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups.assert_called_once()
+        mock_array.patch_protection_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_make_pgroup_with_volumes_no_context(self, mock_lv, mock_check_response):
+        """Test creating protection group with volumes without context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pgroup1",
+            "target": None,
+            "volume": ["vol1", "vol2"],
+            "host": None,
+            "hostgroup": None,
+            "enabled": True,
+            "context": None,
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Below CONTEXT_API_VERSION
+        mock_array.post_protection_groups.return_value = Mock(status_code=200)
+        mock_array.post_protection_groups_volumes.return_value = Mock(status_code=200)
+
+        make_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups.assert_called_once()
+        mock_array.post_protection_groups_volumes.assert_called_once_with(
+            group_names=["pgroup1"],
+            member_names=["vol1", "vol2"],
+        )
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_make_pgroup_with_hosts_no_context(self, mock_lv, mock_check_response):
+        """Test creating protection group with hosts without context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pgroup1",
+            "target": None,
+            "volume": None,
+            "host": ["host1", "host2"],
+            "hostgroup": None,
+            "enabled": True,
+            "context": None,
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Below CONTEXT_API_VERSION
+        mock_array.post_protection_groups.return_value = Mock(status_code=200)
+        mock_array.post_protection_groups_hosts.return_value = Mock(status_code=200)
+
+        make_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups.assert_called_once()
+        mock_array.post_protection_groups_hosts.assert_called_once_with(
+            group_names=["pgroup1"],
+            member_names=["host1", "host2"],
+        )
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_make_pgroup_with_hostgroups_no_context(self, mock_lv, mock_check_response):
+        """Test creating protection group with hostgroups without context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pgroup1",
+            "target": None,
+            "volume": None,
+            "host": None,
+            "hostgroup": ["hg1", "hg2"],
+            "enabled": True,
+            "context": None,
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Below CONTEXT_API_VERSION
+        mock_array.post_protection_groups.return_value = Mock(status_code=200)
+        mock_array.post_protection_groups_host_groups.return_value = Mock(
+            status_code=200
+        )
+
+        make_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups.assert_called_once()
+        mock_array.post_protection_groups_host_groups.assert_called_once_with(
+            group_names=["pgroup1"],
+            member_names=["hg1", "hg2"],
+        )
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_make_pgroup_with_safe_mode_no_context(self, mock_lv, mock_check_response):
+        """Test creating protection group with safe_mode without context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pgroup1",
+            "target": None,
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "enabled": True,
+            "context": None,
+            "safe_mode": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Below CONTEXT_API_VERSION
+        mock_array.post_protection_groups.return_value = Mock(status_code=200)
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+
+        make_pgroup(mock_module, mock_array)
+
+        mock_array.post_protection_groups.assert_called_once()
+        mock_array.patch_protection_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
 
 class TestUpdatePgroupSuccess:
     """Test cases for update_pgroup function success scenarios"""
