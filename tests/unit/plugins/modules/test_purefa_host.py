@@ -53,6 +53,7 @@ from plugins.modules.purefa_host import (
     _set_chap_security,
     _set_vlan,
     _update_vlan,
+    _update_preferred_array,
 )
 
 
@@ -270,6 +271,87 @@ class TestMakeMultiHosts:
         make_multi_hosts(mock_module, mock_array)
 
         mock_get_with_context.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_make_multi_hosts_with_suffix(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test make_multi_hosts with suffix"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "host",
+            "start": 1,
+            "count": 3,
+            "digits": 2,
+            "suffix": "-prod",
+            "personality": None,
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        make_multi_hosts(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        # Verify host names were created with suffix
+        call_args = mock_get_with_context.call_args
+        assert "host01-prod" in call_args.kwargs["names"]
+        assert "host02-prod" in call_args.kwargs["names"]
+        assert "host03-prod" in call_args.kwargs["names"]
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_make_multi_hosts_without_suffix(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test make_multi_hosts without suffix"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "server",
+            "start": 0,
+            "count": 2,
+            "digits": 3,
+            "suffix": None,
+            "personality": None,
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        make_multi_hosts(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
+        # Verify host names were created without suffix
+        call_args = mock_get_with_context.call_args
+        assert "server000" in call_args.kwargs["names"]
+        assert "server001" in call_args.kwargs["names"]
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_make_multi_hosts_with_personality(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test make_multi_hosts with personality set"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "esx",
+            "start": 1,
+            "count": 2,
+            "digits": 2,
+            "suffix": None,
+            "personality": "esxi",
+        }
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        make_multi_hosts(mock_module, mock_array)
+
+        mock_get_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
 
@@ -1422,4 +1504,137 @@ class TestMoveHost:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
         # In check mode, get_with_context should only be called once (to get host)
+        assert mock_get_with_context.call_count == 1
+
+
+class TestUpdatePreferredArray:
+    """Test cases for _update_preferred_array function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_preferred_array_add_to_empty(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test adding preferred array when none exist"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "preferred_array": ["array1", "array2"],
+        }
+        mock_array = Mock()
+
+        # Host has no preferred arrays currently
+        mock_host = Mock()
+        mock_host.preferred_arrays = []
+        mock_get_with_context.side_effect = [
+            Mock(status_code=200, items=[mock_host]),  # get_hosts
+            Mock(status_code=200),  # patch_hosts
+        ]
+
+        result = _update_preferred_array(mock_module, mock_array)
+
+        assert result is True
+        assert mock_get_with_context.call_count == 2
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_preferred_array_delete(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test deleting preferred array list"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "preferred_array": ["delete"],
+        }
+        mock_array = Mock()
+
+        # Host has preferred arrays currently
+        mock_ref = Mock()
+        mock_ref.name = "array1"
+        mock_host = Mock()
+        mock_host.preferred_arrays = [mock_ref]
+        mock_get_with_context.side_effect = [
+            Mock(status_code=200, items=[mock_host]),  # get_hosts
+            Mock(status_code=200),  # patch_hosts
+        ]
+
+        result = _update_preferred_array(mock_module, mock_array)
+
+        assert result is True
+        assert mock_get_with_context.call_count == 2
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_preferred_array_no_change(self, mock_get_with_context):
+        """Test no change when preferred arrays match"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "preferred_array": ["array1"],
+        }
+        mock_array = Mock()
+
+        # Host has same preferred arrays - use spec to set .name as attribute
+        mock_ref = Mock()
+        mock_ref.name = "array1"
+        mock_host = Mock()
+        mock_host.preferred_arrays = [mock_ref]
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        result = _update_preferred_array(mock_module, mock_array)
+
+        assert result is False
+        assert mock_get_with_context.call_count == 1
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_preferred_array_change_list(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test changing preferred array list"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "preferred_array": ["array2", "array3"],
+        }
+        mock_array = Mock()
+
+        # Host has different preferred arrays
+        mock_ref = Mock()
+        mock_ref.name = "array1"
+        mock_host = Mock()
+        mock_host.preferred_arrays = [mock_ref]
+        mock_get_with_context.side_effect = [
+            Mock(status_code=200, items=[mock_host]),  # get_hosts
+            Mock(status_code=200),  # patch_hosts
+        ]
+
+        result = _update_preferred_array(mock_module, mock_array)
+
+        assert result is True
+        assert mock_get_with_context.call_count == 2
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_preferred_array_delete_when_empty(self, mock_get_with_context):
+        """Test delete preferred array when already empty - no change"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "preferred_array": ["delete"],
+        }
+        mock_array = Mock()
+
+        # Host has no preferred arrays
+        mock_host = Mock()
+        mock_host.preferred_arrays = []
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_host])
+
+        result = _update_preferred_array(mock_module, mock_array)
+
+        assert result is False
         assert mock_get_with_context.call_count == 1

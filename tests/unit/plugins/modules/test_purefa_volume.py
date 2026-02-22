@@ -2010,3 +2010,167 @@ class TestUpdateVolumeQos:
         # In check mode, patch_volumes should NOT be called
         mock_array.patch_volumes.assert_not_called()
         mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_update_volume_remove_bw_qos_context_api(
+        self, mock_lv, mock_check_response, mock_h2b, mock_volfact
+    ):
+        """Test update_volume removes bandwidth QoS (bw_qos=0) with context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,
+            "bw_qos": "0",  # Zero removes the QoS limit
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "context": "pod1",
+            "with_default_protection": False,
+            "promotion_state": None,
+            "priority_operator": None,
+            "priority_value": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_vol = Mock()
+        mock_vol.provisioned = 10737418240
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 10737418240  # Current limit is 10G
+        mock_vol.qos.iops_limit = 100000000
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_h2b.return_value = 0  # bw_qos="0"
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+        mock_volfact.return_value = {"test-vol": {}}
+
+        update_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called()
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_update_volume_remove_bw_qos_no_context(
+        self, mock_lv, mock_check_response, mock_h2b, mock_volfact
+    ):
+        """Test update_volume removes bandwidth QoS without context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,
+            "bw_qos": "0",
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "context": None,
+            "with_default_protection": False,
+            "promotion_state": None,
+            "priority_operator": None,
+            "priority_value": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Below CONTEXT_API_VERSION
+        mock_vol = Mock()
+        mock_vol.provisioned = 10737418240
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 10737418240
+        mock_vol.qos.iops_limit = 100000000
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_h2b.return_value = 0
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+        mock_volfact.return_value = {"test-vol": {}}
+
+        update_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called()
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.human_to_real")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_update_volume_remove_iops_qos_context_api(
+        self, mock_lv, mock_check_response, mock_h2b, mock_h2r, mock_volfact
+    ):
+        """Test update_volume removes IOPS QoS (iops_qos=0) with context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": "0",  # Zero removes the IOPS limit
+            "pgroup": None,
+            "add_to_pgs": None,
+            "context": "pod1",
+            "with_default_protection": False,
+            "promotion_state": None,
+            "priority_operator": None,
+            "priority_value": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_vol = Mock()
+        mock_vol.provisioned = 10737418240
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 549755813888
+        mock_vol.qos.iops_limit = 50000  # Current limit
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_h2b.return_value = 549755813888
+        mock_h2r.return_value = 0
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+        mock_volfact.return_value = {"test-vol": {}}
+
+        update_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called()
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.human_to_real")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
+    def test_update_volume_change_iops_qos_context_api(
+        self, mock_lv, mock_check_response, mock_h2b, mock_h2r, mock_volfact
+    ):
+        """Test update_volume changes IOPS QoS with context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": "50K",  # Change IOPS limit
+            "pgroup": None,
+            "add_to_pgs": None,
+            "context": "pod1",
+            "with_default_protection": False,
+            "promotion_state": None,
+            "priority_operator": None,
+            "priority_value": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_vol = Mock()
+        mock_vol.provisioned = 10737418240
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 549755813888
+        mock_vol.qos.iops_limit = 100000000  # Current is max
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_h2b.return_value = 549755813888
+        mock_h2r.return_value = 50000  # 50K
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+        mock_volfact.return_value = {"test-vol": {}}
+
+        update_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called()
+        mock_module.exit_json.assert_called()

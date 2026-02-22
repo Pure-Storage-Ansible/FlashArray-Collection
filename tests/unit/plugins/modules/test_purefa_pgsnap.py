@@ -43,6 +43,8 @@ sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.error_handlers"
 ] = MagicMock()
 
+import pytest  # pylint: disable=unused-import
+
 from plugins.modules.purefa_pgsnap import (
     _check_offload,
     get_pgroup,
@@ -940,3 +942,216 @@ class TestEradicatePgSnapshot:
         call_kwargs = mock_array.delete_protection_group_snapshots.call_args[1]
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestGetPgroupvolume:
+    """Test cases for get_pgroupvolume function"""
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_get_pgroupvolume_host_pg_context_api(self, mock_lv):
+        """Test get_pgroupvolume with host PG and context API"""
+        from plugins.modules.purefa_pgsnap import get_pgroupvolume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "context": "",
+            "restore": "vol1",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock pgroup with host_count > 0
+        mock_pgroup = Mock()
+        mock_pgroup.host_count = 1
+        mock_pgroup.host_group_count = 0
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pgroup]
+        )
+
+        # Mock hosts in protection group
+        mock_host = Mock()
+        mock_host.member = {"name": "host1"}
+        mock_array.get_protection_groups_hosts.return_value = Mock(
+            status_code=200, items=[mock_host]
+        )
+
+        # Mock volumes connected to host
+        mock_connection = Mock()
+        mock_connection.volume = {"name": "vol1"}
+        mock_array.get_connections.return_value = Mock(
+            status_code=200, items=[mock_connection]
+        )
+
+        result = get_pgroupvolume(mock_module, mock_array)
+
+        assert result == "vol1"
+        mock_array.get_protection_groups.assert_called_once()
+        mock_array.get_protection_groups_hosts.assert_called_once()
+        mock_array.get_connections.assert_called_once()
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_get_pgroupvolume_hostgroup_pg_context_api(self, mock_lv):
+        """Test get_pgroupvolume with hostgroup PG and context API"""
+        from plugins.modules.purefa_pgsnap import get_pgroupvolume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "context": "",
+            "restore": "vol2",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock pgroup with host_group_count > 0
+        mock_pgroup = Mock()
+        mock_pgroup.host_count = 0
+        mock_pgroup.host_group_count = 1
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pgroup]
+        )
+
+        # Mock hostgroups in protection group
+        mock_hgroup = Mock()
+        mock_hgroup.member = {"name": "hg1"}
+        mock_array.get_protection_groups_host_groups.return_value = Mock(
+            status_code=200, items=[mock_hgroup]
+        )
+
+        # Mock volumes connected to hostgroup
+        mock_connection = Mock()
+        mock_connection.volume = {"name": "vol2"}
+        mock_array.get_connections.return_value = Mock(
+            status_code=200, items=[mock_connection]
+        )
+
+        # Mock hosts in hostgroup
+        mock_hg_host = Mock()
+        mock_hg_host.member = {"name": "host_in_hg"}
+        mock_array.get_host_groups_hosts.return_value = Mock(
+            status_code=200, items=[mock_hg_host]
+        )
+
+        result = get_pgroupvolume(mock_module, mock_array)
+
+        assert result == "vol2"
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_get_pgroupvolume_volume_pg_context_api(self, mock_lv):
+        """Test get_pgroupvolume with volume PG and context API"""
+        from plugins.modules.purefa_pgsnap import get_pgroupvolume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "context": "",
+            "restore": "vol3",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock pgroup with no hosts or hostgroups (volume PG)
+        mock_pgroup = Mock()
+        mock_pgroup.host_count = 0
+        mock_pgroup.host_group_count = 0
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pgroup]
+        )
+
+        # Mock volumes in protection group
+        mock_vol_entry = Mock()
+        mock_vol_entry.member = {"name": "vol3"}
+        mock_array.get_protection_groups_volumes.return_value = Mock(
+            status_code=200, items=[mock_vol_entry]
+        )
+
+        result = get_pgroupvolume(mock_module, mock_array)
+
+        assert result == "vol3"
+        mock_array.get_protection_groups_volumes.assert_called_once()
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_get_pgroupvolume_volume_not_found(self, mock_lv):
+        """Test get_pgroupvolume when volume is not found"""
+        from plugins.modules.purefa_pgsnap import get_pgroupvolume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "context": "",
+            "restore": "nonexistent_vol",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock pgroup with no hosts or hostgroups (volume PG)
+        mock_pgroup = Mock()
+        mock_pgroup.host_count = 0
+        mock_pgroup.host_group_count = 0
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pgroup]
+        )
+
+        # Mock volumes in protection group - different volume
+        mock_vol_entry = Mock()
+        mock_vol_entry.member = {"name": "other_vol"}
+        mock_array.get_protection_groups_volumes.return_value = Mock(
+            status_code=200, items=[mock_vol_entry]
+        )
+
+        result = get_pgroupvolume(mock_module, mock_array)
+
+        assert result is None
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_get_pgroupvolume_exception_returns_none(self, mock_lv):
+        """Test get_pgroupvolume returns None on exception"""
+        from plugins.modules.purefa_pgsnap import get_pgroupvolume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "context": "",
+            "restore": "vol1",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_protection_groups.side_effect = Exception("API error")
+
+        result = get_pgroupvolume(mock_module, mock_array)
+
+        assert result is None
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_get_pgroupvolume_pod_volume(self, mock_lv):
+        """Test get_pgroupvolume with pod volume (:: in name)"""
+        from plugins.modules.purefa_pgsnap import get_pgroupvolume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pod1::pg1",
+            "context": "",
+            "restore": "vol1",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock pgroup with no hosts or hostgroups (volume PG)
+        mock_pgroup = Mock()
+        mock_pgroup.host_count = 0
+        mock_pgroup.host_group_count = 0
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pgroup]
+        )
+
+        # Mock volumes in protection group - pod volume
+        mock_vol_entry = Mock()
+        mock_vol_entry.member = {"name": "pod1::vol1"}
+        mock_array.get_protection_groups_volumes.return_value = Mock(
+            status_code=200, items=[mock_vol_entry]
+        )
+
+        result = get_pgroupvolume(mock_module, mock_array)
+
+        assert result == "pod1::vol1"
