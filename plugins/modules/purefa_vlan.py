@@ -129,7 +129,7 @@ def _get_interface(module, array):
 
 def _get_vif(array, interface, subnet):
     """Return VLAN Interface or None"""
-    vif_name = interface["name"] + "." + str(subnet["vlan"])
+    vif_name = interface.name + "." + str(subnet.vlan)
     res = array.get_network_interfaces(names=[vif_name])
     if res.status_code != 200:
         return None
@@ -140,7 +140,7 @@ def create_vif(module, array, interface, subnet):
     """Create VLAN Interface"""
     changed = True
     if not module.check_mode:
-        vif_name = interface["name"] + "." + str(subnet["vlan"])
+        vif_name = interface.name + "." + str(subnet.vlan)
         if module.params["address"]:
             res = array.post_network_interfaces(
                 names=[vif_name],
@@ -185,9 +185,9 @@ def update_vif(module, array, interface, subnet):
     """Modify VLAN Interface settings"""
     changed = False
     vif_info = _get_vif(array, interface, subnet)
-    vif_name = vif_info["name"]
+    vif_name = vif_info.name
     if module.params["address"]:
-        if module.params["address"] != vif_info["eth"]["address"]:
+        if module.params["address"] != vif_info.eth.address:
             changed = True
             if not module.check_mode:
                 res = array.patch_network_interfaces(
@@ -202,7 +202,7 @@ def update_vif(module, array, interface, subnet):
                     f"Failed to change IP address for VLAN interface {subnet}",
                 )
 
-    if module.params["enabled"] != vif_info["enabled"]:
+    if module.params["enabled"] != vif_info.enabled:
         if module.params["enabled"]:
             changed = True
             if not module.check_mode:
@@ -229,7 +229,7 @@ def delete_vif(module, array, subnet):
     """Delete VLAN Interface"""
     changed = True
     if not module.check_mode:
-        vif_name = module.params["name"] + "." + str(subnet["vlan"])
+        vif_name = module.params["name"] + "." + str(subnet.vlan)
         res = array.delete_network_interfaces(names=[vif_name])
         check_response(res, module, f"Failed to delete VLAN interface {vif_name}")
     module.exit_json(changed=changed)
@@ -257,8 +257,8 @@ def main():
         module.fail_json(msg="Invalid subnet specified.")
     if not interface:
         module.fail_json(msg="Invalid interface specified.")
-    if subnet["vlan"]:
-        vif_name = module.params["name"] + "." + str(subnet["vlan"])
+    if subnet.vlan:
+        vif_name = module.params["name"] + "." + str(subnet.vlan)
     vif = bool(array.get_network_interfaces(names=[vif_name]).status_code == 200)
 
     if state == "present" and not vif:

@@ -120,8 +120,10 @@ class TestGetVif:
     def test_get_vif_exists(self):
         """Test _get_vif returns vif when it exists"""
         mock_array = Mock()
-        mock_interface = {"name": "ct0.eth0"}
-        mock_subnet = {"vlan": 100}
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_subnet = Mock()
+        mock_subnet.vlan = 100
         mock_vif = Mock()
         mock_vif.name = "ct0.eth0.100"
         mock_array.get_network_interfaces.return_value = Mock(
@@ -135,8 +137,10 @@ class TestGetVif:
     def test_get_vif_not_exists(self):
         """Test _get_vif returns None when vif doesn't exist"""
         mock_array = Mock()
-        mock_interface = {"name": "ct0.eth0"}
-        mock_subnet = {"vlan": 100}
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_subnet = Mock()
+        mock_subnet.vlan = 100
         mock_array.get_network_interfaces.return_value = Mock(status_code=404)
 
         result = _get_vif(mock_array, mock_interface, mock_subnet)
@@ -158,8 +162,10 @@ class TestCreateVif:
             "enabled": True,
         }
         mock_array = Mock()
-        mock_interface = {"name": "ct0.eth0"}
-        mock_subnet = {"vlan": 100}
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_subnet = Mock()
+        mock_subnet.vlan = 100
 
         create_vif(mock_module, mock_array, mock_interface, mock_subnet)
 
@@ -179,8 +185,10 @@ class TestCreateVif:
         mock_array = Mock()
         mock_array.post_network_interfaces.return_value = Mock(status_code=200)
         mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
-        mock_interface = {"name": "ct0.eth0"}
-        mock_subnet = {"vlan": 100}
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_subnet = Mock()
+        mock_subnet.vlan = 100
 
         create_vif(mock_module, mock_array, mock_interface, mock_subnet)
 
@@ -201,8 +209,10 @@ class TestCreateVif:
         mock_array = Mock()
         mock_array.post_network_interfaces.return_value = Mock(status_code=200)
         mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
-        mock_interface = {"name": "ct0.eth0"}
-        mock_subnet = {"vlan": 100}
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_subnet = Mock()
+        mock_subnet.vlan = 100
 
         create_vif(mock_module, mock_array, mock_interface, mock_subnet)
 
@@ -223,8 +233,10 @@ class TestCreateVif:
         mock_array = Mock()
         mock_array.post_network_interfaces.return_value = Mock(status_code=200)
         mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
-        mock_interface = {"name": "ct0.eth0"}
-        mock_subnet = {"vlan": 100}
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_subnet = Mock()
+        mock_subnet.vlan = 100
 
         create_vif(mock_module, mock_array, mock_interface, mock_subnet)
 
@@ -244,7 +256,8 @@ class TestDeleteVifSuccess:
         mock_module.params = {"name": "ct0.eth0", "subnet": "test-subnet"}
         mock_array = Mock()
         mock_array.delete_network_interfaces.return_value = Mock(status_code=200)
-        mock_subnet = {"vlan": 100}
+        mock_subnet = Mock()
+        mock_subnet.vlan = 100
 
         delete_vif(mock_module, mock_array, mock_subnet)
 
@@ -262,17 +275,20 @@ class TestUpdateVif:
         """Test update_vif with no changes needed"""
         from plugins.modules.purefa_vlan import update_vif
 
-        mock_get_vif.return_value = {
-            "name": "ct0.eth0.100",
-            "enabled": True,
-            "eth": {"address": "10.0.0.10"},
-        }
+        mock_vif_info = Mock()
+        mock_vif_info.name = "ct0.eth0.100"
+        mock_vif_info.enabled = True
+        mock_vif_info.eth = Mock()
+        mock_vif_info.eth.address = "10.0.0.10"
+        mock_get_vif.return_value = mock_vif_info
         mock_module = Mock()
         mock_module.check_mode = False
         mock_module.params = {"address": "10.0.0.10", "enabled": True}
         mock_array = Mock()
-        mock_interface = {"name": "ct0.eth0"}
-        mock_subnet = {"vlan": 100}
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_subnet = Mock()
+        mock_subnet.vlan = 100
 
         update_vif(mock_module, mock_array, mock_interface, mock_subnet)
 
@@ -285,18 +301,21 @@ class TestUpdateVif:
         """Test update_vif changes IP address"""
         from plugins.modules.purefa_vlan import update_vif
 
-        mock_get_vif.return_value = {
-            "name": "ct0.eth0.100",
-            "enabled": True,
-            "eth": {"address": "10.0.0.10"},
-        }
+        mock_vif_info = Mock()
+        mock_vif_info.name = "ct0.eth0.100"
+        mock_vif_info.enabled = True
+        mock_vif_info.eth = Mock()
+        mock_vif_info.eth.address = "10.0.0.10"
+        mock_get_vif.return_value = mock_vif_info
         mock_module = Mock()
         mock_module.check_mode = False
         mock_module.params = {"address": "10.0.0.20", "enabled": True}
         mock_array = Mock()
         mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
-        mock_interface = {"name": "ct0.eth0"}
-        mock_subnet = {"vlan": 100}
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_subnet = Mock()
+        mock_subnet.vlan = 100
 
         update_vif(mock_module, mock_array, mock_interface, mock_subnet)
 
@@ -309,18 +328,21 @@ class TestUpdateVif:
         """Test update_vif enables disabled interface"""
         from plugins.modules.purefa_vlan import update_vif
 
-        mock_get_vif.return_value = {
-            "name": "ct0.eth0.100",
-            "enabled": False,
-            "eth": {"address": "10.0.0.10"},
-        }
+        mock_vif_info = Mock()
+        mock_vif_info.name = "ct0.eth0.100"
+        mock_vif_info.enabled = False
+        mock_vif_info.eth = Mock()
+        mock_vif_info.eth.address = "10.0.0.10"
+        mock_get_vif.return_value = mock_vif_info
         mock_module = Mock()
         mock_module.check_mode = False
         mock_module.params = {"address": None, "enabled": True}
         mock_array = Mock()
         mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
-        mock_interface = {"name": "ct0.eth0"}
-        mock_subnet = {"vlan": 100}
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_subnet = Mock()
+        mock_subnet.vlan = 100
 
         update_vif(mock_module, mock_array, mock_interface, mock_subnet)
 
@@ -333,18 +355,21 @@ class TestUpdateVif:
         """Test update_vif disables enabled interface"""
         from plugins.modules.purefa_vlan import update_vif
 
-        mock_get_vif.return_value = {
-            "name": "ct0.eth0.100",
-            "enabled": True,
-            "eth": {"address": "10.0.0.10"},
-        }
+        mock_vif_info = Mock()
+        mock_vif_info.name = "ct0.eth0.100"
+        mock_vif_info.enabled = True
+        mock_vif_info.eth = Mock()
+        mock_vif_info.eth.address = "10.0.0.10"
+        mock_get_vif.return_value = mock_vif_info
         mock_module = Mock()
         mock_module.check_mode = False
         mock_module.params = {"address": None, "enabled": False}
         mock_array = Mock()
         mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
-        mock_interface = {"name": "ct0.eth0"}
-        mock_subnet = {"vlan": 100}
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_subnet = Mock()
+        mock_subnet.vlan = 100
 
         update_vif(mock_module, mock_array, mock_interface, mock_subnet)
 

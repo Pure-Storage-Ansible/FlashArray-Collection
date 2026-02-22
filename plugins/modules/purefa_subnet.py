@@ -186,7 +186,7 @@ def update_subnet(module, array, subnet):
         else:
             mtu = module.params["mtu"]
     if not module.params["gateway"]:
-        gateway = subnet["gateway"]
+        gateway = subnet.gateway
     else:
         if module.params["gateway"] and not (
             module.params["gateway"] in ["0.0.0.0", "::"]
