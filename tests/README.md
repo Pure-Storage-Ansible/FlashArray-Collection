@@ -6,8 +6,8 @@ This directory contains the test suite for the Pure Storage FlashArray Ansible C
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 1,150 |
-| **Code Coverage** | 62% |
+| **Total Tests** | 1,236 |
+| **Code Coverage** | 63% |
 | **Test Files** | 68 |
 | **Modules Tested** | 66 |
 
@@ -161,43 +161,76 @@ class TestFunctionName:
 
 ## Coverage by Module
 
-### High Coverage (80%+)
+*Last updated: 2026-02-22*
 
 | Module | Coverage |
 |--------|----------|
+| purefa_ad.py | 59% |
+| purefa_admin.py | 62% |
+| purefa_alert.py | 62% |
+| purefa_apiclient.py | 60% |
 | purefa_arrayname.py | 90% |
-| purefa_file.py | 90% |
-| purefa_sso.py | 89% |
-| purefa_timeout.py | 87% |
-| purefa_console.py | 86% |
-| purefa_eula.py | 86% |
-| purefa_hardware.py | 85% |
-| purefa_network.py | 83% |
-| purefa_phonehome.py | 80% |
-| purefa_proxy.py | 80% |
-
-### Medium Coverage (70-79%)
-
-| Module | Coverage |
-|--------|----------|
-| purefa_vlan.py | 74% |
+| purefa_audits.py | 57% |
 | purefa_banner.py | 74% |
-| purefa_smtp.py | 73% |
-| purefa_syslog.py | 73% |
-| purefa_api_helpers.py | 73% |
+| purefa_cbsexpand.py | 65% |
+| purefa_certs.py | 59% |
+| purefa_connect.py | 65% |
+| purefa_console.py | 86% |
+| purefa_default_protection.py | 61% |
+| purefa_directory.py | 67% |
+| purefa_dirsnap.py | 59% |
+| purefa_dns.py | 65% |
+| purefa_ds.py | 69% |
+| purefa_dsrole.py | 62% |
+| purefa_dsrole_old.py | 63% |
+| purefa_endpoint.py | 61% |
+| purefa_eradication.py | 57% |
+| purefa_eula.py | 86% |
+| purefa_export.py | 69% |
+| purefa_file.py | 90% |
+| purefa_fleet.py | 57% |
+| purefa_fs.py | 67% |
+| purefa_hardware.py | 85% |
+| purefa_hg.py | 54% |
+| purefa_host.py | 59% |
+| purefa_info.py | 68% |
+| purefa_inventory.py | 54% |
+| purefa_kmip.py | 67% |
+| purefa_logging.py | 56% |
+| purefa_maintenance.py | 64% |
+| purefa_messages.py | 52% |
+| purefa_network.py | 83% |
+| purefa_ntp.py | 63% |
+| purefa_offload.py | 60% |
+| purefa_pg.py | 55% |
+| purefa_pgsched.py | 63% |
+| purefa_pgsnap.py | 60% |
+| purefa_phonehome.py | 80% |
+| purefa_pod.py | 52% |
 | purefa_pod_replica.py | 71% |
+| purefa_policy.py | 51% |
+| purefa_proxy.py | 80% |
+| purefa_ra.py | 67% |
+| purefa_realm.py | 66% |
+| purefa_saml.py | 64% |
+| purefa_sessions.py | 53% |
+| purefa_smis.py | 64% |
+| purefa_smtp.py | 73% |
+| purefa_snap.py | 58% |
+| purefa_snmp.py | 59% |
+| purefa_snmp_agent.py | 68% |
+| purefa_sso.py | 89% |
+| purefa_subnet.py | 61% |
+| purefa_syslog.py | 73% |
+| purefa_syslog_settings.py | 68% |
+| purefa_timeout.py | 87% |
 | purefa_user.py | 70% |
-
-### Priority for Improvement (<55%)
-
-| Module | Coverage | Missing Lines |
-|--------|----------|---------------|
-| purefa_policy.py | 51% | 360 |
-| purefa_pod.py | 52% | 140 |
-| purefa_messages.py | 52% | 29 |
-| purefa_sessions.py | 53% | 34 |
-| purefa_hg.py | 54% | 105 |
-| purefa_inventory.py | 54% | 34 |
+| purefa_vg.py | 62% |
+| purefa_vlan.py | 74% |
+| purefa_vnc.py | 62% |
+| purefa_volume.py | 79% |
+| purefa_volume_tags.py | 67% |
+| purefa_workload.py | 59% |
 
 ## CI/CD Integration
 
