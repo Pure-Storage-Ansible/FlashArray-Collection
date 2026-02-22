@@ -6,8 +6,8 @@ This directory contains the test suite for the Pure Storage FlashArray Ansible C
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 1,150 |
-| **Code Coverage** | 62% |
+| **Total Tests** | 1,236 |
+| **Code Coverage** | 63% |
 | **Test Files** | 68 |
 | **Modules Tested** | 66 |
 
