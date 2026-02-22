@@ -2,18 +2,25 @@
 
 This directory contains the test suite for the Pure Storage FlashArray Ansible Collection.
 
+## Test Statistics
+
+| Metric | Value |
+|--------|-------|
+| **Total Tests** | 1,092 |
+| **Code Coverage** | 61% |
+| **Test Files** | 68 |
+| **Modules Tested** | 66 |
+
 ## Directory Structure
 
 ```
 tests/
 ├── unit/                           # Unit tests
 │   └── plugins/
-│       ├── modules/                # Module unit tests
+│       ├── modules/                # Module unit tests (66 test files)
 │       └── module_utils/           # Utility function unit tests
 │           ├── test_api_helpers.py # API helper tests
 │           └── test_common.py      # Common utilities tests
-├── integration/                    # Integration tests
-│   └── targets/                    # Integration test targets
 ├── conftest.py                     # Shared pytest fixtures
 ├── requirements.txt                # Test dependencies
 └── README.md                       # This file
@@ -32,7 +39,11 @@ pip install -r tests/requirements.txt
 ### Run All Tests
 
 ```bash
-pytest
+# Standard run
+pytest tests/unit/
+
+# Quiet mode with no traceback
+pytest tests/unit/ -p no:sugar --tb=no -q
 ```
 
 ### Run Specific Test Files
@@ -41,47 +52,33 @@ pytest
 # Run api_helpers tests
 pytest tests/unit/plugins/module_utils/test_api_helpers.py
 
-# Run common utilities tests
-pytest tests/unit/plugins/module_utils/test_common.py
+# Run a specific module's tests
+pytest tests/unit/plugins/modules/test_purefa_volume.py
 ```
 
 ### Run with Coverage
 
 ```bash
 # Generate coverage report
-pytest --cov=plugins --cov-report=html --cov-report=term
+pytest tests/unit/ --cov=plugins --cov-report=term
 
-# View HTML coverage report
-open htmlcov/index.html  # macOS/Linux
+# Generate HTML coverage report
+pytest tests/unit/ --cov=plugins --cov-report=html
 start htmlcov/index.html  # Windows
+open htmlcov/index.html   # macOS/Linux
+
+# Coverage for a specific module
+pytest tests/unit/plugins/modules/test_purefa_host.py --cov=plugins.modules.purefa_host --cov-report=term
 ```
 
 ### Run Specific Test Classes or Methods
 
 ```bash
 # Run specific test class
-pytest tests/unit/plugins/module_utils/test_api_helpers.py::TestCheckResponse
+pytest tests/unit/plugins/modules/test_purefa_volume.py::TestCreateVolume
 
 # Run specific test method
-pytest tests/unit/plugins/module_utils/test_api_helpers.py::TestCheckResponse::test_success_response
-```
-
-## Test Markers
-
-Tests can be marked with the following markers:
-
-- `@pytest.mark.unit` - Unit tests (fast, no external dependencies)
-- `@pytest.mark.integration` - Integration tests (require FlashArray access)
-- `@pytest.mark.slow` - Slow-running tests
-
-Run tests by marker:
-
-```bash
-# Run only unit tests
-pytest -m unit
-
-# Skip slow tests
-pytest -m "not slow"
+pytest tests/unit/plugins/modules/test_purefa_volume.py::TestCreateVolume::test_create_volume_success
 ```
 
 ## Writing Tests
@@ -92,57 +89,115 @@ pytest -m "not slow"
 - Test classes must start with `Test`
 - Test methods must start with `test_`
 
-### Using Fixtures
+### Test Structure
 
-Common fixtures are defined in `conftest.py`:
-
-```python
-def test_example(mock_module, mock_array):
-    """Test using shared fixtures."""
-    # mock_module provides a mock Ansible module
-    # mock_array provides a mock FlashArray client
-    pass
-```
-
-### Example Test
+Each module test file follows this structure:
 
 ```python
-import pytest
-from plugins.module_utils.api_helpers import check_response
+import sys
+from unittest.mock import Mock, MagicMock, patch
 
-class TestCheckResponse:
-    def test_success_response(self, mock_module, mock_success_response):
-        """Test that success response does not raise."""
-        # Should not raise
-        check_response(mock_success_response, mock_module, "Test operation")
+# Mock external dependencies before importing the module
+sys.modules["pypureclient"] = MagicMock()
+sys.modules["pypureclient.flasharray"] = MagicMock()
 
-    def test_error_response(self, mock_module, mock_error_response):
-        """Test that error response calls fail_json."""
-        with pytest.raises(Exception, match="fail_json"):
-            check_response(mock_error_response, mock_module, "Test operation")
+from plugins.modules.purefa_example import (
+    function_to_test,
+)
+
+
+class TestFunctionName:
+    """Test cases for function_name"""
+
+    @patch("plugins.modules.purefa_example.some_dependency")
+    def test_function_success(self, mock_dep):
+        """Test successful execution"""
+        mock_module = Mock()
+        mock_module.params = {"param1": "value1"}
+        mock_module.check_mode = False
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        result = function_to_test(mock_module, mock_array)
+
+        assert result == expected_value
+        mock_module.exit_json.assert_called_once_with(changed=True)
 ```
 
-## Coverage Goals
+### Mocking Best Practices
 
-- **Current Coverage**: ~0% (initial setup)
-- **Short-term Goal**: 50% coverage (3 months)
-- **Long-term Goal**: 80%+ coverage
+1. **Mock external dependencies** before importing the module under test
+2. **Use `@patch` decorators** to mock functions called within the tested function
+3. **Set `.name` as an attribute** on Mock objects when the code accesses `.name`:
+   ```python
+   mock_obj = Mock()
+   mock_obj.name = "example"  # Not mock_obj.name() or Mock(name="example")
+   ```
+4. **Use `side_effect`** for functions that need to return different values on successive calls:
+   ```python
+   mock_func.side_effect = [first_return, second_return, third_return]
+   ```
+5. **Use `SystemExit(1)`** for `fail_json.side_effect` when testing error paths:
+   ```python
+   mock_module.fail_json.side_effect = SystemExit(1)
+   with pytest.raises(SystemExit):
+       function_under_test(mock_module, mock_array)
+   ```
 
-### Priority Areas for Testing
+## Coverage by Module
 
-1. ⏳ `api_helpers.py` - Core API helper functions
-2. ⏳ `common.py` - Common utilities
-3. ⏳ `purefa.py` - Core connection logic
-4. ⏳ Critical modules (purefa_volume, purefa_host, etc.)
+### High Coverage (70%+)
+
+| Module | Coverage |
+|--------|----------|
+| purefa_arrayname.py | 90% |
+| purefa_file.py | 90% |
+| purefa_sso.py | 89% |
+| purefa_timeout.py | 87% |
+| purefa_console.py | 86% |
+| purefa_eula.py | 86% |
+| purefa_hardware.py | 85% |
+| purefa_phonehome.py | 80% |
+| purefa_proxy.py | 80% |
+
+### Medium Coverage (50-69%)
+
+| Module | Coverage |
+|--------|----------|
+| purefa_info.py | 68% |
+| purefa_pod_replica.py | 71% |
+| purefa_user.py | 70% |
+| purefa_vlan.py | 74% |
+| purefa_banner.py | 74% |
+| purefa_smtp.py | 73% |
+| purefa_syslog.py | 73% |
+| purefa_api_helpers.py | 73% |
+
+### Priority for Improvement (<55%)
+
+| Module | Coverage | Missing Lines |
+|--------|----------|---------------|
+| purefa_network.py | 45% | 161 |
+| purefa_policy.py | 51% | 360 |
+| purefa_pod.py | 52% | 140 |
+| purefa_messages.py | 52% | 29 |
+| purefa_sessions.py | 53% | 34 |
+| purefa_hg.py | 54% | 105 |
+| purefa_inventory.py | 54% | 34 |
 
 ## CI/CD Integration
 
 Tests are automatically run in GitHub Actions on:
-- Pull requests
+- Pull requests to master
 - Pushes to master
-- Daily schedule
 
 See `.github/workflows/main.yml` for CI configuration.
+
+The CI pipeline runs:
+```bash
+python -m pytest tests/unit/ -v --tb=short
+```
 
 ## Troubleshooting
 
@@ -152,7 +207,15 @@ If you get import errors, ensure you're running pytest from the repository root:
 
 ```bash
 cd /path/to/FlashArray-Collection
-pytest
+pytest tests/unit/
+```
+
+### Timeout Issues
+
+If tests hang or timeout, try disabling pytest-sugar:
+
+```bash
+pytest tests/unit/ -p no:sugar --tb=no -q
 ```
 
 ### Missing Dependencies
@@ -167,14 +230,17 @@ pip install -r tests/requirements.txt
 
 When adding new functionality:
 
-1. Write tests first (TDD approach recommended)
-2. Ensure tests pass: `pytest`
-3. Check coverage: `pytest --cov=plugins`
+1. Write tests for the new code
+2. Ensure all tests pass: `pytest tests/unit/`
+3. Check coverage: `pytest tests/unit/ --cov=plugins --cov-report=term`
 4. Aim for 80%+ coverage on new code
+5. Run Black formatter: `python -m black <test_file.py>`
+6. Run pylint: `python -m pylint <test_file.py>`
 
 ## Resources
 
 - [pytest documentation](https://docs.pytest.org/)
 - [pytest-cov documentation](https://pytest-cov.readthedocs.io/)
-- [Ansible Testing Guide](https://docs.ansible.com/projects/ansible/latest/dev_guide/testing.html)
+- [unittest.mock documentation](https://docs.python.org/3/library/unittest.mock.html)
+- [Ansible Testing Guide](https://docs.ansible.com/ansible/latest/dev_guide/testing.html)
 
