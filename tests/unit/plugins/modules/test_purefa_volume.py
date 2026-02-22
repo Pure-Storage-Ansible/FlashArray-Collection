@@ -54,6 +54,7 @@ from plugins.modules.purefa_volume import (
     copy_from_volume,
     rename_volume,
     _create_nguid,
+    _volfact,
     move_volume,
     get_pod,
     check_pod,
@@ -304,6 +305,151 @@ class TestCreateVolume:
 
         # In check mode, post_volumes should NOT be called
         mock_array.post_volumes.assert_not_called()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is True
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_create_volume_with_bw_qos_only(
+        self,
+        mock_qos,
+        mock_volume_post,
+        mock_loose_version,
+        mock_human_to_bytes,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test volume creation with bandwidth QoS only"""
+        mock_loose_version.side_effect = float
+        mock_human_to_bytes.return_value = 1073741824  # 1GB
+        mock_volfact.return_value = {"test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": "1G",
+            "bw_qos": "100M",  # 100MB bandwidth limit
+            "iops_qos": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "pgroup": None,
+            "context": "array1",
+        }
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volumes.return_value = mock_response
+
+        create_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        mock_qos.assert_called()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is True
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_create_volume_with_iops_qos_only(
+        self,
+        mock_qos,
+        mock_volume_post,
+        mock_loose_version,
+        mock_human_to_bytes,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test volume creation with IOPS QoS only"""
+        mock_loose_version.side_effect = float
+        mock_human_to_bytes.return_value = 1073741824  # 1GB
+        mock_volfact.return_value = {"test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": "100000",  # IOPS limit as integer string
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "pgroup": None,
+            "context": "array1",
+        }
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volumes.return_value = mock_response
+
+        create_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        mock_qos.assert_called()
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.human_to_real")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_create_volume_with_both_qos(
+        self,
+        mock_qos,
+        mock_volume_post,
+        mock_loose_version,
+        mock_human_to_real,
+        mock_human_to_bytes,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test volume creation with both bandwidth and IOPS QoS"""
+        mock_loose_version.side_effect = float
+        mock_human_to_bytes.return_value = 1073741824  # 1GB
+        mock_human_to_real.return_value = 100000  # 100K IOPS
+        mock_volfact.return_value = {"test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": "1G",
+            "bw_qos": "100M",  # 100MB bandwidth limit
+            "iops_qos": "100K",  # 100K IOPS limit
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "pgroup": None,
+            "context": "array1",
+        }
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volumes.return_value = mock_response
+
+        create_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        mock_qos.assert_called()
         mock_module.exit_json.assert_called_once()
         call_args = mock_module.exit_json.call_args[1]
         assert call_args["changed"] is True
@@ -1870,6 +2016,92 @@ class TestCopyFromVolumeExtended:
             changed=False, volume={"target-vol": {}}
         )
 
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_target")
+    @patch("plugins.modules.purefa_volume.ReferenceType")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Reference")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_copy_from_volume_with_add_to_pgs(
+        self,
+        mock_lv,
+        mock_reference,
+        mock_volume_post,
+        mock_ref_type,
+        mock_get_target,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test copy_from_volume with add_to_pgs parameter"""
+        mock_lv.side_effect = float
+        mock_get_target.return_value = None  # Target doesn't exist
+        mock_volfact.return_value = {"target-vol": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "source-vol",
+            "target": "target-vol",
+            "overwrite": False,
+            "add_to_pgs": ["pg1", "pg2"],
+            "with_default_protection": False,
+            "context": "array1",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+
+        copy_from_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+        # Verify ReferenceType was called for each protection group
+        assert mock_ref_type.call_count == 2
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_target")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Reference")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_copy_from_volume_check_mode(
+        self,
+        mock_lv,
+        mock_reference,
+        mock_volume_post,
+        mock_get_target,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test copy_from_volume in check mode"""
+        mock_lv.side_effect = float
+        mock_get_target.return_value = None  # Target doesn't exist
+        mock_volfact.return_value = {}
+
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "source-vol",
+            "target": "target-vol",
+            "overwrite": False,
+            "add_to_pgs": None,
+            "with_default_protection": True,
+            "context": "array1",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        copy_from_volume(mock_module, mock_array)
+
+        # In check mode, post_volumes should NOT be called
+        mock_array.post_volumes.assert_not_called()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is True
+
 
 class TestRenameVolumeExtended:
     """Extended test cases for rename_volume function"""
@@ -2174,3 +2406,3917 @@ class TestUpdateVolumeQos:
 
         mock_array.patch_volumes.assert_called()
         mock_module.exit_json.assert_called()
+
+
+class TestMoveVolume:
+    """Test cases for move_volume function"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Reference")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_to_pod_success(
+        self,
+        mock_lv,
+        mock_reference,
+        mock_vol_patch,
+        mock_get_endpoint,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test moving a volume to a pod successfully"""
+        mock_lv.side_effect = float
+        mock_get_endpoint.return_value = None
+        mock_volfact.return_value = {"pod1::test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "pod1",
+            "context": "",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Pod exists
+        mock_pod = Mock()
+        mock_pod.array_count = 1
+        mock_pod.link_target_count = 0
+        mock_pod.promotion_status = "promoted"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_pod])
+
+        # Volume doesn't exist at target
+        mock_array.get_volumes.return_value = Mock(status_code=400)
+
+        # Vgroup doesn't exist
+        mock_array.get_volume_groups.return_value = Mock(status_code=400)
+
+        # Patch succeeds - need items to be iterable
+        mock_moved_vol = Mock()
+        mock_moved_vol.name = "pod1::test_volume"
+        mock_array.patch_volumes.return_value = Mock(
+            status_code=200, items=[mock_moved_vol]
+        )
+
+        move_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is True
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Reference")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_to_vgroup_success(
+        self,
+        mock_lv,
+        mock_reference,
+        mock_vol_patch,
+        mock_get_endpoint,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test moving a volume to a volume group successfully"""
+        mock_lv.side_effect = float
+        mock_get_endpoint.return_value = None
+        mock_volfact.return_value = {"vgroup1/test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "vgroup1",
+            "context": "",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Pod doesn't exist
+        mock_array.get_pods.return_value = Mock(status_code=400)
+
+        # Vgroup exists
+        mock_array.get_volume_groups.return_value = Mock(status_code=200)
+
+        # Volume doesn't exist at target
+        mock_array.get_volumes.return_value = Mock(status_code=400)
+
+        # Patch succeeds - need items to be iterable
+        mock_moved_vol = Mock()
+        mock_moved_vol.name = "vgroup1/test_volume"
+        mock_array.patch_volumes.return_value = Mock(
+            status_code=200, items=[mock_moved_vol]
+        )
+
+        move_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_to_local_same_location(self, mock_lv):
+        """Test move to local fails when volume is already local"""
+        mock_lv.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",  # No :: or / means it's local
+            "move": "local",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        try:
+            move_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "cannot be the same" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_to_stretched_pod_fails(self, mock_lv):
+        """Test move to a stretched pod fails"""
+        mock_lv.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "stretched_pod",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Pod exists but is stretched (array_count > 1)
+        mock_pod = Mock()
+        mock_pod.array_count = 2  # Stretched
+        mock_pod.link_target_count = 0
+        mock_pod.promotion_status = "promoted"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_pod])
+
+        # Volume doesn't exist at target
+        mock_array.get_volumes.return_value = Mock(status_code=400)
+
+        try:
+            move_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "stretched pod" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_to_demoted_pod_fails(self, mock_lv):
+        """Test move to a demoted pod fails"""
+        mock_lv.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "demoted_pod",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Pod exists but is demoted
+        mock_pod = Mock()
+        mock_pod.array_count = 1
+        mock_pod.link_target_count = 0
+        mock_pod.promotion_status = "demoted"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_pod])
+
+        try:
+            move_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "demoted pod" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_target_exists_fails(self, mock_lv):
+        """Test move fails when target volume already exists"""
+        mock_lv.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "pod1",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Pod exists
+        mock_pod = Mock()
+        mock_pod.array_count = 1
+        mock_pod.link_target_count = 0
+        mock_pod.promotion_status = "promoted"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_pod])
+
+        # Volume already exists at target
+        mock_array.get_volumes.return_value = Mock(status_code=200)
+
+        # Vgroup doesn't exist
+        mock_array.get_volume_groups.return_value = Mock(status_code=400)
+
+        try:
+            move_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "already exists" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_location_not_exists_fails(self, mock_lv):
+        """Test move fails when move location doesn't exist"""
+        mock_lv.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "nonexistent",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Neither pod nor vgroup exists
+        mock_array.get_pods.return_value = Mock(status_code=400)
+        mock_array.get_volume_groups.return_value = Mock(status_code=400)
+
+        try:
+            move_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "does not exist" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Reference")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_check_mode(
+        self, mock_lv, mock_reference, mock_vol_patch, mock_get_endpoint
+    ):
+        """Test move volume in check mode"""
+        mock_lv.side_effect = float
+        mock_get_endpoint.return_value = None
+
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "pod1",
+            "context": "",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Pod exists
+        mock_pod = Mock()
+        mock_pod.array_count = 1
+        mock_pod.link_target_count = 0
+        mock_pod.promotion_status = "promoted"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_pod])
+
+        # Volume doesn't exist at target
+        mock_array.get_volumes.return_value = Mock(status_code=400)
+
+        # Vgroup doesn't exist
+        mock_array.get_volume_groups.return_value = Mock(status_code=400)
+
+        move_volume(mock_module, mock_array)
+
+        # In check mode, patch should not be called
+        mock_array.patch_volumes.assert_not_called()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is True
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Reference")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_from_vgroup_to_local(
+        self,
+        mock_lv,
+        mock_reference,
+        mock_vol_patch,
+        mock_get_endpoint,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test moving a volume from vgroup to local array"""
+        mock_lv.side_effect = float
+        mock_get_endpoint.return_value = None
+        mock_volfact.return_value = {"test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "vgroup1/test_volume",  # Volume is in a vgroup
+            "move": "local",
+            "context": "",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Target doesn't exist
+        mock_array.get_volumes.return_value = Mock(status_code=400)
+
+        # Patch succeeds
+        mock_moved_vol = Mock()
+        mock_moved_vol.name = "test_volume"
+        mock_array.patch_volumes.return_value = Mock(
+            status_code=200, items=[mock_moved_vol]
+        )
+
+        move_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Reference")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_from_pod_to_local(
+        self,
+        mock_lv,
+        mock_reference,
+        mock_vol_patch,
+        mock_get_endpoint,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test moving a volume from pod to local array"""
+        mock_lv.side_effect = float
+        mock_get_endpoint.return_value = None
+        mock_volfact.return_value = {"test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pod1::test_volume",  # Volume is in a pod
+            "move": "local",
+            "context": "",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Target doesn't exist
+        mock_array.get_volumes.return_value = Mock(status_code=400)
+
+        # Patch succeeds
+        mock_moved_vol = Mock()
+        mock_moved_vol.name = "test_volume"
+        mock_array.patch_volumes.return_value = Mock(
+            status_code=200, items=[mock_moved_vol]
+        )
+
+        move_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_to_linked_source_pod_fails(self, mock_lv):
+        """Test move to a linked source pod fails"""
+        mock_lv.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "linked_pod",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Pod exists but is linked
+        mock_pod = Mock()
+        mock_pod.array_count = 1
+        mock_pod.link_target_count = 1  # Has linked targets
+        mock_pod.promotion_status = "promoted"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_pod])
+
+        try:
+            move_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "linked source pod" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_both_pod_and_vgroup_exist_fails(self, mock_lv):
+        """Test move fails when move location matches both pod and vgroup"""
+        mock_lv.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "ambiguous_name",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Both pod and vgroup exist with same name
+        mock_pod = Mock()
+        mock_pod.array_count = 1
+        mock_pod.link_target_count = 0
+        mock_pod.promotion_status = "promoted"
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_pod])
+        mock_array.get_volume_groups.return_value = Mock(status_code=200)
+
+        # Volume doesn't exist at target
+        mock_array.get_volumes.return_value = Mock(status_code=400)
+
+        try:
+            move_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "both a pod and a vgroup" in call_args["msg"]
+
+
+class TestVolfact:
+    """Test cases for _volfact function"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_volfact_returns_volume_facts(self, mock_lv):
+        """Test _volfact returns correct volume facts"""
+        mock_lv.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"context": ""}
+
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_vol.serial = "ABC123DEF456GHI"
+        mock_vol.created = 1700000000000
+        mock_vol.qos = Mock()
+        mock_vol.qos.iops_limit = 100000
+        mock_vol.qos.bandwidth_limit = 1073741824
+        mock_vol.requested_promotion_state = "promoted"
+        mock_vol.promotion_status = "promoted"
+        mock_vol.priority = 50
+        mock_vol.destroyed = False
+        mock_vol.priority_adjustment = Mock()
+        mock_vol.priority_adjustment.priority_adjustment_operator = "+"
+        mock_vol.priority_adjustment.priority_adjustment_value = 10
+        mock_vol.context = Mock()
+        mock_vol.context.name = "pod1"
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+
+        result = _volfact(mock_module, mock_array, "test_volume")
+
+        assert "test_volume" in result
+        assert result["test_volume"]["size"] == 1073741824
+        assert result["test_volume"]["serial"] == "ABC123DEF456GHI"
+        assert result["test_volume"]["iops_limit"] == 100000
+        assert result["test_volume"]["bandwidth_limit"] == 1073741824
+        assert result["test_volume"]["destroyed"] is False
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_volfact_check_mode_returns_empty(self, mock_lv):
+        """Test _volfact returns empty dict in check mode"""
+        mock_lv.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {"context": ""}
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        result = _volfact(mock_module, mock_array, "test_volume")
+
+        assert result == {}
+        mock_array.get_volumes.assert_not_called()
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_volfact_with_priority_api_version(self, mock_lv):
+        """Test _volfact handles priority API version"""
+        mock_lv.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {"context": ""}
+
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_vol.serial = "ABC123DEF456GHI"
+        mock_vol.created = 1700000000000
+        mock_vol.qos = Mock()
+        mock_vol.qos.iops_limit = 100000
+        mock_vol.qos.bandwidth_limit = 1073741824
+        mock_vol.requested_promotion_state = "promoted"
+        mock_vol.promotion_status = "promoted"
+        mock_vol.priority = 50
+        mock_vol.destroyed = False
+        mock_vol.priority_adjustment = Mock()
+        mock_vol.priority_adjustment.priority_adjustment_operator = "+"
+        mock_vol.priority_adjustment.priority_adjustment_value = 10
+        mock_vol.context = Mock()
+        mock_vol.context.name = "pod1"
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = (
+            "2.38"  # Higher than PRIORITY_API_VERSION
+        )
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+
+        result = _volfact(mock_module, mock_array, "test_volume")
+
+        assert result["test_volume"]["priority_operator"] == "+"
+        assert result["test_volume"]["priority_value"] == 10
+        assert result["test_volume"]["context"] == "pod1"
+
+
+class TestCreateMultiVolumeExtended:
+    """Extended test cases for create_multi_volume function"""
+
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.check_vgroup")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    def test_create_multi_volume_vgroup_not_exists(
+        self,
+        mock_volume_post,
+        mock_lv,
+        mock_check_vgroup,
+        mock_h2b,
+        mock_check_response,
+    ):
+        """Test multi-volume creation fails when vgroup doesn't exist"""
+        import pytest
+
+        mock_lv.side_effect = float
+        mock_check_vgroup.return_value = False  # VGroup doesn't exist
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "vg1/vol",
+            "size": "1G",
+            "count": 3,
+            "start": 0,
+            "digits": 2,
+            "suffix": "",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "priority_value": None,
+            "with_default_protection": True,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        with pytest.raises(SystemExit):
+            create_multi_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "Volume Group" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.check_pod")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    def test_create_multi_volume_pod_not_exists(
+        self,
+        mock_volume_post,
+        mock_lv,
+        mock_check_pod,
+        mock_h2b,
+        mock_check_response,
+    ):
+        """Test multi-volume creation fails when pod doesn't exist"""
+        import pytest
+
+        mock_lv.side_effect = float
+        mock_check_pod.return_value = False  # Pod doesn't exist
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pod1::vol",
+            "size": "1G",
+            "count": 3,
+            "start": 0,
+            "digits": 2,
+            "suffix": "",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "priority_value": None,
+            "with_default_protection": True,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        with pytest.raises(SystemExit):
+            create_multi_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "Pod" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.check_pod")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    def test_create_multi_volume_demoted_pod_fails(
+        self,
+        mock_volume_post,
+        mock_lv,
+        mock_check_pod,
+        mock_h2b,
+        mock_check_response,
+    ):
+        """Test multi-volume creation fails when pod is demoted"""
+        import pytest
+
+        mock_lv.side_effect = float
+        mock_check_pod.return_value = True
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pod1::vol",
+            "size": "1G",
+            "count": 3,
+            "start": 0,
+            "digits": 2,
+            "suffix": "",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "priority_value": None,
+            "with_default_protection": True,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        # Mock demoted pod
+        mock_pod = Mock()
+        mock_pod.promotion_status = "demoted"
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_pods.return_value = Mock(items=[mock_pod])
+
+        with pytest.raises(SystemExit):
+            create_multi_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "demoted" in str(mock_module.fail_json.call_args)
+
+
+class TestUpdateVolumePromotionState:
+    """Test cases for update_volume with promotion_state parameter"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    def test_update_volume_change_promotion_state(
+        self, mock_vol_patch, mock_lv, mock_check_response, mock_volfact
+    ):
+        """Test update_volume changes promotion state"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"test-vol": {"promotion_status": "demoted"}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": "demoted",
+            "priority_operator": None,
+            "priority_value": None,
+            "context": "",
+        }
+
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 549755813888
+        mock_vol.qos.iops_limit = 100000000
+        mock_vol.promotion_status = "promoted"  # Current state is different
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+
+        update_volume(mock_module, mock_array)
+
+        # Verify patch_volumes was called for promotion_state change
+        mock_array.patch_volumes.assert_called()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is True
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    def test_update_volume_same_promotion_state_no_change(
+        self, mock_vol_patch, mock_lv, mock_check_response, mock_volfact
+    ):
+        """Test update_volume no change when promotion_state is same"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"test-vol": {"promotion_status": "promoted"}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": "promoted",  # Same as current
+            "priority_operator": None,
+            "priority_value": None,
+            "context": "",
+        }
+
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 549755813888
+        mock_vol.qos.iops_limit = 100000000
+        mock_vol.promotion_status = "promoted"  # Same state
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+
+        update_volume(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is False
+
+
+class TestUpdateVolumePriority:
+    """Test cases for update_volume with priority_operator parameter"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    def test_update_volume_change_priority_operator(
+        self,
+        mock_prio_adj,
+        mock_vol_patch,
+        mock_lv,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test update_volume changes priority operator"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"test-vol": {}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": "-",  # New operator
+            "priority_value": 5,
+            "context": "",
+        }
+
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 549755813888
+        mock_vol.qos.iops_limit = 100000000
+        mock_vol.priority_adjustment = Mock()
+        mock_vol.priority_adjustment.priority_adjustment_operator = "+"  # Current
+        mock_vol.priority_adjustment.priority_adjustment_value = 10
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+
+        update_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is True
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    def test_update_volume_change_priority_value(
+        self,
+        mock_prio_adj,
+        mock_vol_patch,
+        mock_lv,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test update_volume changes priority value"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"test-vol": {}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": "+",  # Same operator
+            "priority_value": 20,  # Different value
+            "context": "",
+        }
+
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 549755813888
+        mock_vol.qos.iops_limit = 100000000
+        mock_vol.priority_adjustment = Mock()
+        mock_vol.priority_adjustment.priority_adjustment_operator = "+"
+        mock_vol.priority_adjustment.priority_adjustment_value = 10  # Current value
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+
+        update_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is True
+
+
+class TestUpdateVolumeAddToPgs:
+    """Test cases for update_volume with add_to_pgs parameter"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_update_volume_add_to_new_pgs(
+        self, mock_lv, mock_check_response, mock_volfact
+    ):
+        """Test update_volume adds volume to new protection groups"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"test-vol": {}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": ["pg1", "pg2"],
+            "promotion_state": None,
+            "priority_operator": None,
+            "priority_value": None,
+            "context": "",
+        }
+
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 549755813888
+        mock_vol.qos.iops_limit = 100000000
+
+        # Currently not in any PGs
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_array.get_protection_groups_volumes.return_value = Mock(items=[])
+        mock_array.post_volumes_protection_groups.return_value = Mock(status_code=200)
+
+        update_volume(mock_module, mock_array)
+
+        mock_array.post_volumes_protection_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is True
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_update_volume_already_in_pgs_no_change(
+        self, mock_lv, mock_check_response, mock_volfact
+    ):
+        """Test update_volume no change when already in specified PGs"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"test-vol": {}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": ["pg1"],
+            "promotion_state": None,
+            "priority_operator": None,
+            "priority_value": None,
+            "context": "",
+        }
+
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 549755813888
+        mock_vol.qos.iops_limit = 100000000
+
+        # Already in pg1
+        mock_current_pg = Mock()
+        mock_current_pg.group = Mock()
+        mock_current_pg.group.name = "pg1"
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_array.get_protection_groups_volumes.return_value = Mock(
+            items=[mock_current_pg]
+        )
+
+        update_volume(mock_module, mock_array)
+
+        # Should not call post because already in PG
+        mock_array.post_volumes_protection_groups.assert_not_called()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is False
+
+
+class TestCreateVolumeExtended:
+    """Extended test cases for create_volume function"""
+
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.check_pod")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_create_volume_pod_not_exists(
+        self,
+        mock_qos,
+        mock_volume_post,
+        mock_lv,
+        mock_check_pod,
+        mock_h2b,
+        mock_check_response,
+    ):
+        """Test create_volume fails when pod doesn't exist"""
+        import pytest
+
+        mock_lv.side_effect = float
+        mock_check_pod.return_value = False
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pod1::test-vol",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        with pytest.raises(SystemExit):
+            create_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "Pod does not exist" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.check_pod")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_create_volume_demoted_pod_fails(
+        self,
+        mock_qos,
+        mock_volume_post,
+        mock_lv,
+        mock_check_pod,
+        mock_h2b,
+        mock_check_response,
+    ):
+        """Test create_volume fails when pod is demoted"""
+        import pytest
+
+        mock_lv.side_effect = float
+        mock_check_pod.return_value = True
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pod1::test-vol",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        # Mock demoted pod
+        mock_pod = Mock()
+        mock_pod.promotion_status = "demoted"
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_pods.return_value = Mock(items=[mock_pod])
+
+        with pytest.raises(SystemExit):
+            create_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "demoted" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_create_volume_no_size_fails(
+        self,
+        mock_qos,
+        mock_volume_post,
+        mock_lv,
+        mock_h2b,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test create_volume fails when no size specified"""
+        import pytest
+
+        mock_lv.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,  # No size
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        with pytest.raises(SystemExit):
+            create_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "Size" in str(mock_module.fail_json.call_args)
+
+
+class TestRecoverVolumeExtended:
+    """Extended test cases for recover_volume function"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    def test_recover_volume_old_api_version(
+        self, mock_vol_patch, mock_lv, mock_check_response, mock_volfact
+    ):
+        """Test recover_volume with old API version (no context)"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"test-vol": {"destroyed": False}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "context": "",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Old API version
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+
+        recover_volume(mock_module, mock_array)
+
+        # Should call patch_volumes without context_names
+        mock_array.patch_volumes.assert_called_once()
+        call_kwargs = mock_array.patch_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is True
+
+
+class TestDeleteVolumeExtended:
+    """Extended test cases for delete_volume function"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    def test_delete_volume_old_api_version(
+        self, mock_vol_patch, mock_lv, mock_check_response, mock_volfact
+    ):
+        """Test delete_volume with old API version (no context)"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"test-vol": {"destroyed": True}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "add_to_pgs": None,
+            "eradicate": False,
+            "context": "",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Old API version
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+
+        delete_volume(mock_module, mock_array)
+
+        # Should call patch_volumes without context_names
+        mock_array.patch_volumes.assert_called_once()
+        call_kwargs = mock_array.patch_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    def test_delete_volume_patch_fails(
+        self, mock_vol_patch, mock_lv, mock_check_response, mock_volfact
+    ):
+        """Test delete_volume when patch fails"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"test-vol": {}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "add_to_pgs": None,
+            "eradicate": False,
+            "context": "",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_volumes.return_value = Mock(status_code=400)  # Fails
+
+        delete_volume(mock_module, mock_array)
+
+        # Should call check_response due to non-200 status
+        mock_check_response.assert_called()
+
+
+class TestEradicateVolumeExtended:
+    """Extended test cases for eradicate_volume function"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_eradicate_volume_old_api_version(
+        self, mock_lv, mock_check_response, mock_volfact
+    ):
+        """Test eradicate_volume with old API version (no context)"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"test-vol": {"destroyed": True}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "eradicate": True,
+            "context": "",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Old API version
+        mock_array.delete_volumes.return_value = Mock(status_code=200)
+
+        eradicate_volume(mock_module, mock_array)
+
+        # Should call delete_volumes without context_names
+        mock_array.delete_volumes.assert_called_once()
+        call_kwargs = mock_array.delete_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_eradicate_volume_no_eradicate_flag(self, mock_lv, mock_volfact):
+        """Test eradicate_volume when eradicate flag is False"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"test-vol": {"destroyed": True}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "eradicate": False,  # Not set to eradicate
+            "context": "",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        eradicate_volume(mock_module, mock_array)
+
+        # Should NOT call delete_volumes since eradicate is False
+        mock_array.delete_volumes.assert_not_called()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is False
+
+
+class TestCreateVolumeWithPromotionState:
+    """Test cases for create_volume with promotion_state parameter"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_create_volume_with_promotion_state_success(
+        self,
+        mock_qos,
+        mock_vol_patch,
+        mock_vol_post,
+        mock_lv,
+        mock_h2b,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test create_volume with promotion_state parameter succeeds"""
+        mock_lv.side_effect = float
+        mock_h2b.return_value = 1073741824
+        mock_volfact.return_value = {"test-vol": {"promotion_state": "promoted"}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": "promoted",
+            "priority_operator": None,
+            "context": "",
+            "with_default_protection": True,
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+
+        create_volume(mock_module, mock_array)
+
+        # Should call post_volumes and patch_volumes for promotion_state
+        mock_array.post_volumes.assert_called_once()
+        mock_array.patch_volumes.assert_called()
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_create_volume_with_promotion_state_fails_cleanup(
+        self,
+        mock_qos,
+        mock_vol_patch,
+        mock_vol_post,
+        mock_lv,
+        mock_h2b,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test create_volume with promotion_state fails and cleans up volume"""
+        import pytest
+
+        mock_lv.side_effect = float
+        mock_h2b.return_value = 1073741824
+        mock_volfact.return_value = {}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": "demoted",
+            "priority_operator": None,
+            "context": "",
+            "with_default_protection": True,
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        # First call succeeds (create), second call fails (set promotion_state)
+        mock_error = Mock()
+        mock_error.message = "Cannot set promotion state"
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+        mock_array.patch_volumes.return_value = Mock(
+            status_code=400, errors=[mock_error]
+        )
+        mock_array.delete_volumes.return_value = Mock(status_code=200)
+
+        with pytest.raises(SystemExit):
+            create_volume(mock_module, mock_array)
+
+        # Should fail and clean up the volume
+        mock_module.fail_json.assert_called_once()
+        assert "Promotion State" in str(mock_module.fail_json.call_args)
+
+
+class TestCreateVolumeWithPriorityOperator:
+    """Test cases for create_volume with priority_operator parameter"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Qos")
+    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    def test_create_volume_with_priority_operator_success(
+        self,
+        mock_priority_adj,
+        mock_qos,
+        mock_vol_patch,
+        mock_vol_post,
+        mock_lv,
+        mock_h2b,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test create_volume with priority_operator parameter succeeds"""
+        mock_lv.side_effect = float
+        mock_h2b.return_value = 1073741824
+        mock_volfact.return_value = {"test-vol": {"priority": 10}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": "+",
+            "priority_value": 10,
+            "context": "",
+            "with_default_protection": True,
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+
+        create_volume(mock_module, mock_array)
+
+        # Should call post_volumes and patch_volumes for priority
+        mock_array.post_volumes.assert_called_once()
+        mock_array.patch_volumes.assert_called()
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Qos")
+    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    def test_create_volume_with_priority_operator_fails_cleanup(
+        self,
+        mock_priority_adj,
+        mock_qos,
+        mock_vol_patch,
+        mock_vol_post,
+        mock_lv,
+        mock_h2b,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test create_volume with priority_operator fails and cleans up"""
+        import pytest
+
+        mock_lv.side_effect = float
+        mock_h2b.return_value = 1073741824
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": "+",
+            "priority_value": 10,
+            "context": "",
+            "with_default_protection": True,
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_error = Mock()
+        mock_error.message = "Cannot set DMM priority"
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+        mock_array.patch_volumes.return_value = Mock(
+            status_code=400, errors=[mock_error]
+        )
+        mock_array.delete_volumes.return_value = Mock(status_code=200)
+
+        with pytest.raises(SystemExit):
+            create_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "DMM Priority" in str(mock_module.fail_json.call_args)
+
+
+class TestCreateVolumeWithPgroup:
+    """Test cases for create_volume with pgroup parameter"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Qos")
+    @patch("plugins.modules.purefa_volume.ReferenceType")
+    def test_create_volume_with_pgroup_success(
+        self,
+        mock_ref_type,
+        mock_qos,
+        mock_vol_post,
+        mock_lv,
+        mock_h2b,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test create_volume with pgroup parameter succeeds"""
+        mock_lv.side_effect = float
+        mock_h2b.return_value = 1073741824
+        mock_volfact.return_value = {"test-vol": {"pgroup": "pg1"}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": "pg1",
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "context": "",
+            "with_default_protection": True,
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+
+        create_volume(mock_module, mock_array)
+
+        # Should call post_volumes and patch_volumes for pgroup
+        mock_array.post_volumes.assert_called_once()
+        mock_array.patch_volumes.assert_called()
+        mock_module.exit_json.assert_called_once()
+
+
+class TestMoveVolumeExtended:
+    """Extended test cases for move_volume function"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Reference")
+    def test_move_volume_from_stretched_pod_fails(
+        self,
+        mock_ref,
+        mock_vol_patch,
+        mock_lv,
+        mock_get_endpoint,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test move_volume fails when source pod is stretched"""
+        import pytest
+
+        mock_lv.side_effect = float
+        mock_get_endpoint.return_value = False
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pod1::test-vol",
+            "move": "dest-pod",  # Moving to another pod
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        # Mock stretched pod (array_count > 1)
+        mock_stretched_pod = Mock()
+        mock_stretched_pod.array_count = 2
+        mock_stretched_pod.linked_target_count = 0
+        mock_stretched_pod.promotion_status = "promoted"
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # First call gets dest-pod, second call gets pod1 (source)
+        mock_array.get_pods.return_value = Mock(
+            status_code=200, items=[mock_stretched_pod]
+        )
+        mock_array.get_volumes.return_value = Mock(
+            status_code=400
+        )  # Target doesn't exist
+        mock_array.get_volume_groups.return_value = Mock(status_code=400)
+
+        with pytest.raises(SystemExit):
+            move_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "stretched pod" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Reference")
+    def test_move_volume_from_linked_pod_fails(
+        self,
+        mock_ref,
+        mock_vol_patch,
+        mock_lv,
+        mock_get_endpoint,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test move_volume fails when source pod has linked targets"""
+        import pytest
+
+        mock_lv.side_effect = float
+        mock_get_endpoint.return_value = False
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pod1::test-vol",
+            "move": "dest-pod",  # Moving to another pod
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        # Mock pod with linked targets
+        mock_linked_pod = Mock()
+        mock_linked_pod.array_count = 1
+        mock_linked_pod.linked_target_count = 2  # Has linked targets
+        mock_linked_pod.promotion_status = "promoted"
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_pods.return_value = Mock(
+            status_code=200, items=[mock_linked_pod]
+        )
+        mock_array.get_volumes.return_value = Mock(status_code=400)
+        mock_array.get_volume_groups.return_value = Mock(status_code=400)
+
+        with pytest.raises(SystemExit):
+            move_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "linked source pod" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Reference")
+    def test_move_volume_to_protocol_endpoint_fails(
+        self,
+        mock_ref,
+        mock_vol_patch,
+        mock_lv,
+        mock_get_endpoint,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test move_volume fails when target is a protocol endpoint"""
+        import pytest
+
+        mock_lv.side_effect = float
+        mock_get_endpoint.return_value = True  # Target is a protocol endpoint
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "move": "endpoint-target",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(status_code=400)
+        mock_array.get_volume_groups.return_value = Mock(status_code=200)  # Must exist
+        mock_array.get_pods.return_value = Mock(status_code=400)
+
+        with pytest.raises(SystemExit):
+            move_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        # Note: The code has a typo "protocol-endpoinnt"
+        assert "protocol-endpoin" in str(mock_module.fail_json.call_args).lower()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Reference")
+    def test_move_volume_vgroup_same_location_fails(
+        self,
+        mock_ref,
+        mock_vol_patch,
+        mock_lv,
+        mock_get_endpoint,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test move_volume fails when source vgroup equals destination"""
+        import pytest
+
+        mock_lv.side_effect = float
+        mock_get_endpoint.return_value = False
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "vgroup1/test-vol",
+            "move": "vgroup1",  # Same as source vgroup
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(status_code=400)
+        mock_array.get_volume_groups.return_value = Mock(
+            status_code=200
+        )  # vgroup exists
+        mock_array.get_pods.return_value = Mock(status_code=400)
+
+        with pytest.raises(SystemExit):
+            move_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "same" in str(mock_module.fail_json.call_args).lower()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Reference")
+    def test_move_volume_local_from_vgroup_old_api(
+        self,
+        mock_ref,
+        mock_vol_patch,
+        mock_lv,
+        mock_get_endpoint,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test move_volume from vgroup to local with old API version"""
+        mock_lv.side_effect = float
+        mock_get_endpoint.return_value = False
+        mock_volfact.return_value = {"test-vol": {}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "vgroup1/test-vol",
+            "move": "local",
+            "context": "",
+        }
+
+        mock_moved_vol = Mock()
+        mock_moved_vol.name = "test-vol"
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Old API
+        mock_array.get_volumes.return_value = Mock(
+            status_code=400
+        )  # Target doesn't exist
+        mock_array.get_volume_groups.return_value = Mock(status_code=400)
+        mock_array.get_pods.return_value = Mock(status_code=400)
+        mock_array.patch_volumes.return_value = Mock(
+            status_code=200, items=[mock_moved_vol]
+        )
+
+        move_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        call_kwargs = mock_array.patch_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Reference")
+    def test_move_volume_local_from_pod_old_api(
+        self,
+        mock_ref,
+        mock_vol_patch,
+        mock_lv,
+        mock_get_endpoint,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test move_volume from pod to local with old API version"""
+        mock_lv.side_effect = float
+        mock_get_endpoint.return_value = False
+        mock_volfact.return_value = {"test-vol": {}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pod1::test-vol",
+            "move": "local",
+            "context": "",
+        }
+
+        # Mock pod that allows moving
+        mock_pod = Mock()
+        mock_pod.array_count = 1
+        mock_pod.linked_target_count = 0
+        mock_pod.promotion_status = "promoted"
+
+        mock_moved_vol = Mock()
+        mock_moved_vol.name = "test-vol"
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Old API
+        mock_array.get_volumes.return_value = Mock(
+            status_code=400
+        )  # Target doesn't exist
+        mock_array.get_volume_groups.return_value = Mock(status_code=400)
+        mock_array.get_pods.return_value = Mock(items=[mock_pod])
+        mock_array.patch_volumes.return_value = Mock(
+            status_code=200, items=[mock_moved_vol]
+        )
+
+        move_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        call_kwargs = mock_array.patch_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+
+class TestCopyVolumeOverwrite:
+    """Test cases for copy_from_volume with overwrite parameter"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Reference")
+    def test_copy_volume_overwrite_success(
+        self,
+        mock_ref,
+        mock_vol_post,
+        mock_lv,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test copy_from_volume with overwrite=True when target exists"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"target-vol": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "source-vol",
+            "target": "target-vol",
+            "overwrite": True,
+            "add_to_pgs": None,
+            "context": "",
+        }
+
+        mock_target = Mock()
+        mock_target.name = "target-vol"
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_target])
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+
+        copy_from_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        call_kwargs = mock_array.post_volumes.call_args[1]
+        assert call_kwargs["overwrite"] is True
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Reference")
+    def test_copy_volume_overwrite_old_api(
+        self,
+        mock_ref,
+        mock_vol_post,
+        mock_lv,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test copy_from_volume with overwrite using old API version"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"target-vol": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "source-vol",
+            "target": "target-vol",
+            "overwrite": True,
+            "add_to_pgs": None,
+            "context": "",
+        }
+
+        mock_target = Mock()
+        mock_target.name = "target-vol"
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Old API
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_target])
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+
+        copy_from_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        call_kwargs = mock_array.post_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Reference")
+    def test_copy_volume_target_not_exists_old_api(
+        self,
+        mock_ref,
+        mock_vol_post,
+        mock_lv,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test copy_from_volume when target doesn't exist using old API"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"target-vol": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "source-vol",
+            "target": "target-vol",
+            "overwrite": False,
+            "add_to_pgs": None,
+            "with_default_protection": True,
+            "context": "",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Old API
+        mock_array.get_volumes.return_value = Mock(
+            status_code=400
+        )  # Target doesn't exist
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+
+        copy_from_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        call_kwargs = mock_array.post_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+
+class TestCreateMultiVolumePromotionState:
+    """Test cases for create_multi_volume with promotion_state parameter"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_create_multi_volume_with_promotion_state_check_mode(
+        self,
+        mock_qos,
+        mock_vol_patch,
+        mock_vol_post,
+        mock_lv,
+        mock_h2b,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test create_multi_volume with promotion_state in check_mode"""
+        mock_lv.side_effect = float
+        mock_h2b.return_value = 1073741824
+        mock_volfact.return_value = {}
+
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-vol",
+            "size": "1G",
+            "count": 2,
+            "start": 0,
+            "digits": 1,
+            "suffix": "",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": "demoted",
+            "priority_operator": None,
+            "context": "",
+            "with_default_protection": True,
+        }
+
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(
+            status_code=400
+        )  # Volumes don't exist
+        mock_array.get_volume_groups.return_value = Mock(status_code=400)
+        mock_array.get_pods.return_value = Mock(status_code=400)
+        mock_array.get_arrays.return_value = Mock(items=[mock_array_info])
+
+        create_multi_volume(mock_module, mock_array)
+
+        # In check_mode, no actual API calls should be made
+        mock_array.post_volumes.assert_not_called()
+        mock_module.exit_json.assert_called_once()
+        call_kwargs = mock_module.exit_json.call_args[1]
+        assert call_kwargs["changed"] is True
+
+
+class TestCreateMultiVolumePriorityOperator:
+    """Test cases for create_multi_volume with priority_operator parameter"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Qos")
+    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    def test_create_multi_volume_with_priority_operator_fails(
+        self,
+        mock_priority_adj,
+        mock_qos,
+        mock_vol_patch,
+        mock_vol_post,
+        mock_lv,
+        mock_h2b,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test create_multi_volume with priority_operator failure"""
+        import pytest
+
+        mock_lv.side_effect = float
+        mock_h2b.return_value = 1073741824
+        mock_volfact.return_value = {}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": "1G",
+            "count": 2,
+            "start": 0,
+            "digits": 1,
+            "suffix": "",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": "+",
+            "priority_value": 10,
+            "context": "",
+            "with_default_protection": True,
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+
+        # Mock successful create but failed priority_operator
+        mock_error = Mock()
+        mock_error.message = "Cannot set DMM priority"
+        mock_vol1 = Mock()
+        mock_vol1.name = "test-vol0"
+        mock_vol2 = Mock()
+        mock_vol2.name = "test-vol1"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = Mock(status_code=400)
+        mock_array.get_volume_groups.return_value = Mock(status_code=400)
+        mock_array.get_pods.return_value = Mock(status_code=400)
+        mock_array.get_arrays.return_value = Mock(items=[mock_array_info])
+        mock_array.post_volumes.return_value = Mock(
+            status_code=200, items=[mock_vol1, mock_vol2]
+        )
+        mock_array.patch_volumes.return_value = Mock(
+            status_code=400, errors=[mock_error]
+        )
+        mock_array.delete_volumes.return_value = Mock(status_code=200)
+
+        with pytest.raises(SystemExit):
+            create_multi_volume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "DMM Priority" in str(mock_module.fail_json.call_args)
+
+
+class TestUpdateVolumeOldApi:
+    """Test cases for update_volume with old API version"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    def test_update_volume_resize_old_api(
+        self,
+        mock_vol_patch,
+        mock_lv,
+        mock_h2b,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test update_volume resize with old API version (no context)"""
+        mock_lv.side_effect = float
+        mock_h2b.return_value = 2147483648  # 2G
+        mock_volfact.return_value = {"test-vol": {"size": 2147483648}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": "2G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "context": "",
+        }
+
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824  # 1G
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 549755813888
+        mock_vol.qos.iops_limit = 100000000
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Old API
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+
+        update_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called()
+        call_kwargs = mock_array.patch_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    def test_update_volume_add_to_pgs_old_api(
+        self,
+        mock_vol_patch,
+        mock_lv,
+        mock_h2b,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test update_volume with add_to_pgs using old API version"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"test-vol": {"pgs": ["pg1"]}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": ["pg1"],
+            "promotion_state": None,
+            "priority_operator": None,
+            "context": "",
+        }
+
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 549755813888
+        mock_vol.qos.iops_limit = 100000000
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Old API
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_array.get_protection_groups_volumes.return_value = Mock(items=[])
+        mock_array.post_volumes_protection_groups.return_value = Mock(status_code=200)
+
+        update_volume(mock_module, mock_array)
+
+        mock_array.post_volumes_protection_groups.assert_called_once()
+        call_kwargs = mock_array.post_volumes_protection_groups.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    def test_update_volume_priority_old_api(
+        self,
+        mock_priority_adj,
+        mock_vol_patch,
+        mock_lv,
+        mock_h2b,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test update_volume with priority_operator using old API version"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"test-vol": {"priority": 10}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": None,
+            "pgroup": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": "+",
+            "priority_value": 10,
+            "context": "",
+        }
+
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_vol.qos = Mock()
+        mock_vol.qos.bandwidth_limit = 549755813888
+        mock_vol.qos.iops_limit = 100000000
+        mock_vol.priority_adjustment = Mock()
+        mock_vol.priority_adjustment.priority_adjustment_operator = "="
+        mock_vol.priority_adjustment.priority_adjustment_value = 0
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Old API
+        mock_array.get_volumes.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+
+        update_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called()
+        call_kwargs = mock_array.patch_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+
+class TestRenameVolumeOldApi:
+    """Test cases for rename_volume with old API version"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    def test_rename_volume_old_api(
+        self, mock_vol_patch, mock_lv, mock_check_response, mock_volfact
+    ):
+        """Test rename_volume with old API version (no context)"""
+        mock_lv.side_effect = float
+        mock_volfact.return_value = {"new-vol": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "old-vol",
+            "rename": "new-vol",
+            "context": "",
+        }
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Old API
+        mock_array.get_volumes.return_value = Mock(
+            status_code=400
+        )  # Target doesn't exist
+        mock_array.patch_volumes.return_value = Mock(status_code=200)
+
+        rename_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        call_kwargs = mock_array.patch_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+
+class TestDeleteVolumeWithAddToPgs:
+    """Test cases for delete_volume with add_to_pgs parameter"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_delete_volume_remove_from_pgs_old_api(
+        self,
+        mock_loose_version,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test delete_volume removes volume from PGs using old API"""
+        mock_loose_version.side_effect = float
+        mock_volfact.return_value = {}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "add_to_pgs": ["pg1", "pg2"],
+            "eradicate": False,
+            "context": "array1",
+        }
+
+        # Mock current PGs response
+        mock_pg1 = Mock()
+        mock_pg1.group = Mock()
+        mock_pg1.group.name = "pg1"
+        mock_pg2 = Mock()
+        mock_pg2.group = Mock()
+        mock_pg2.group.name = "pg2"
+
+        mock_get_pgs_response = Mock()
+        mock_get_pgs_response.items = [mock_pg1, mock_pg2]
+
+        mock_delete_response = Mock()
+        mock_delete_response.status_code = 200
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.get_protection_groups_volumes.return_value = mock_get_pgs_response
+        mock_array.delete_volumes_protection_groups.return_value = mock_delete_response
+
+        delete_volume(mock_module, mock_array)
+
+        # Verify delete_volumes_protection_groups was called without context_names
+        mock_array.delete_volumes_protection_groups.assert_called_once()
+        call_kwargs = mock_array.delete_volumes_protection_groups.call_args[1]
+        assert "context_names" not in call_kwargs
+        assert call_kwargs["member_names"] == ["test_volume"]
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_delete_volume_no_matching_pgs(
+        self,
+        mock_loose_version,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test delete_volume when volume is not in any of the specified PGs"""
+        mock_loose_version.side_effect = float
+        mock_volfact.return_value = {}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "add_to_pgs": ["pg1", "pg2"],
+            "eradicate": False,
+            "context": "array1",
+        }
+
+        # Mock current PGs response - volume is in different PGs
+        mock_pg = Mock()
+        mock_pg.group = Mock()
+        mock_pg.group.name = "other_pg"
+
+        mock_get_pgs_response = Mock()
+        mock_get_pgs_response.items = [mock_pg]
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_protection_groups_volumes.return_value = mock_get_pgs_response
+
+        delete_volume(mock_module, mock_array)
+
+        # Should not call delete_volumes_protection_groups since no matching PGs
+        mock_array.delete_volumes_protection_groups.assert_not_called()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is False
+
+
+class TestDeleteVolumeEradicateOldApi:
+    """Test cases for delete_volume with eradicate using old API"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    def test_delete_and_eradicate_volume_old_api(
+        self,
+        mock_volume_patch,
+        mock_loose_version,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test delete and eradicate volume using old API"""
+        mock_loose_version.side_effect = float
+        mock_volfact.return_value = {}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "add_to_pgs": None,
+            "eradicate": True,
+            "context": "array1",
+        }
+        # Make exit_json raise SystemExit to stop execution after first call
+        mock_module.exit_json.side_effect = SystemExit("exit_json called")
+
+        mock_patch_response = Mock()
+        mock_patch_response.status_code = 200
+
+        mock_delete_response = Mock()
+        mock_delete_response.status_code = 200
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.patch_volumes.return_value = mock_patch_response
+        mock_array.delete_volumes.return_value = mock_delete_response
+
+        try:
+            delete_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        # Verify both patch_volumes and delete_volumes were called without context_names
+        mock_array.patch_volumes.assert_called_once()
+        patch_kwargs = mock_array.patch_volumes.call_args[1]
+        assert "context_names" not in patch_kwargs
+
+        mock_array.delete_volumes.assert_called_once()
+        delete_kwargs = mock_array.delete_volumes.call_args[1]
+        assert "context_names" not in delete_kwargs
+        mock_module.exit_json.assert_called_once()
+
+
+class TestUpdateVolumePriorityEdgeCases:
+    """Test cases for update_volume priority adjustment edge cases"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    def test_update_volume_reset_priority_value_to_zero(
+        self,
+        mock_priority_adjustment,
+        mock_volume_patch,
+        mock_loose_version,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test update_volume resets priority_value to 0 when not specified"""
+        mock_loose_version.side_effect = float
+        mock_volfact.return_value = {"test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": None,
+            "add_to_pgs": None,
+            "pgroup": None,
+            "promotion_state": None,
+            "priority_operator": "+",  # Operator specified
+            "priority_value": None,  # Value not specified - should reset to 0
+            "context": "array1",
+        }
+
+        # Mock existing volume with non-zero priority value
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_qos = Mock(spec=[])
+        mock_vol.qos = mock_qos
+        mock_priority = Mock()
+        mock_priority.priority_adjustment_operator = "+"
+        mock_priority.priority_adjustment_value = 10  # Non-zero value
+        mock_vol.priority_adjustment = mock_priority
+
+        mock_get_response = Mock()
+        mock_get_response.status_code = 200
+        mock_get_response.items = [mock_vol]
+
+        mock_patch_response = Mock()
+        mock_patch_response.status_code = 200
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = mock_get_response
+        mock_array.patch_volumes.return_value = mock_patch_response
+
+        update_volume(mock_module, mock_array)
+
+        # Verify PriorityAdjustment was called with value=0
+        mock_priority_adjustment.assert_called_once()
+        call_kwargs = mock_priority_adjustment.call_args[1]
+        assert call_kwargs["priority_adjustment_value"] == 0
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    def test_update_volume_priority_no_change_needed(
+        self,
+        mock_priority_adjustment,
+        mock_volume_patch,
+        mock_loose_version,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test update_volume when priority is already at desired value"""
+        mock_loose_version.side_effect = float
+        mock_volfact.return_value = {"test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": None,
+            "add_to_pgs": None,
+            "pgroup": None,
+            "promotion_state": None,
+            "priority_operator": "+",
+            "priority_value": None,  # Not specified, current is 0
+            "context": "array1",
+        }
+
+        # Mock existing volume with priority value already 0
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_qos = Mock(spec=[])
+        mock_vol.qos = mock_qos
+        mock_priority = Mock()
+        mock_priority.priority_adjustment_operator = "+"
+        mock_priority.priority_adjustment_value = 0  # Already 0
+        mock_vol.priority_adjustment = mock_priority
+
+        mock_get_response = Mock()
+        mock_get_response.status_code = 200
+        mock_get_response.items = [mock_vol]
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = mock_get_response
+
+        update_volume(mock_module, mock_array)
+
+        # Should not call patch_volumes since no change needed
+        mock_array.patch_volumes.assert_not_called()
+        mock_module.exit_json.assert_called_once()
+        call_args = mock_module.exit_json.call_args[1]
+        assert call_args["changed"] is False
+
+
+class TestCreateVolumeQosOldApi:
+    """Test cases for create_volume with QoS using old API"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.check_vgroup")
+    @patch("plugins.modules.purefa_volume.check_pod")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_create_volume_bw_qos_old_api(
+        self,
+        mock_qos,
+        mock_volume_post,
+        mock_loose_version,
+        mock_check_pod,
+        mock_check_vgroup,
+        mock_human_to_bytes,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test volume creation with bandwidth QoS using old API"""
+        mock_loose_version.side_effect = float
+        mock_human_to_bytes.return_value = 1073741824  # 1GB
+        mock_check_vgroup.return_value = True
+        mock_check_pod.return_value = True
+        mock_volfact.return_value = {"test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": "1G",
+            "bw_qos": "100M",
+            "iops_qos": None,
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "pgroup": None,
+            "context": "array1",
+        }
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.post_volumes.return_value = mock_response
+
+        create_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        call_kwargs = mock_array.post_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.check_vgroup")
+    @patch("plugins.modules.purefa_volume.check_pod")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_create_volume_iops_qos_old_api(
+        self,
+        mock_qos,
+        mock_volume_post,
+        mock_loose_version,
+        mock_check_pod,
+        mock_check_vgroup,
+        mock_human_to_bytes,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test volume creation with IOPS QoS using old API"""
+        mock_loose_version.side_effect = float
+        mock_human_to_bytes.return_value = 1073741824  # 1GB
+        mock_check_vgroup.return_value = True
+        mock_check_pod.return_value = True
+        mock_volfact.return_value = {"test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": "100000",
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "pgroup": None,
+            "context": "array1",
+        }
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.post_volumes.return_value = mock_response
+
+        create_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        call_kwargs = mock_array.post_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.human_to_real")
+    @patch("plugins.modules.purefa_volume.check_vgroup")
+    @patch("plugins.modules.purefa_volume.check_pod")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_create_volume_both_qos_old_api(
+        self,
+        mock_qos,
+        mock_volume_post,
+        mock_loose_version,
+        mock_check_pod,
+        mock_check_vgroup,
+        mock_human_to_real,
+        mock_human_to_bytes,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test volume creation with both QoS using old API"""
+        mock_loose_version.side_effect = float
+        mock_human_to_bytes.return_value = 1073741824  # 1GB
+        mock_human_to_real.return_value = 100000
+        mock_check_vgroup.return_value = True
+        mock_check_pod.return_value = True
+        mock_volfact.return_value = {"test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": "1G",
+            "bw_qos": "100M",
+            "iops_qos": "100K",
+            "add_to_pgs": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "pgroup": None,
+            "context": "array1",
+        }
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.post_volumes.return_value = mock_response
+
+        create_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        call_kwargs = mock_array.post_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+
+class TestUpdateVolumeQosOldApi:
+    """Test cases for update_volume QoS with old API"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_update_volume_bw_qos_old_api(
+        self,
+        mock_qos,
+        mock_volume_patch,
+        mock_loose_version,
+        mock_human_to_bytes,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test update_volume bandwidth QoS using old API"""
+        mock_loose_version.side_effect = float
+        mock_human_to_bytes.return_value = 104857600  # 100MB
+        mock_volfact.return_value = {"test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": None,
+            "bw_qos": "100M",
+            "iops_qos": None,
+            "add_to_pgs": None,
+            "pgroup": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "context": "array1",
+        }
+
+        # Mock existing volume
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_qos_obj = Mock()
+        mock_qos_obj.bandwidth_limit = 52428800  # Current 50MB
+        mock_qos_obj.iops_limit = 100000000
+        mock_vol.qos = mock_qos_obj
+
+        mock_get_response = Mock()
+        mock_get_response.status_code = 200
+        mock_get_response.items = [mock_vol]
+
+        mock_patch_response = Mock()
+        mock_patch_response.status_code = 200
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.get_volumes.return_value = mock_get_response
+        mock_array.patch_volumes.return_value = mock_patch_response
+
+        update_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        call_kwargs = mock_array.patch_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.human_to_real")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Qos")
+    def test_update_volume_iops_qos_old_api(
+        self,
+        mock_qos,
+        mock_volume_patch,
+        mock_loose_version,
+        mock_human_to_real,
+        mock_human_to_bytes,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test update_volume IOPS QoS using old API"""
+        mock_loose_version.side_effect = float
+        mock_human_to_bytes.return_value = 0
+        mock_human_to_real.return_value = 50000  # 50K IOPS
+        mock_volfact.return_value = {"test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": "50K",
+            "add_to_pgs": None,
+            "pgroup": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "context": "array1",
+        }
+
+        # Mock existing volume
+        mock_vol = Mock()
+        mock_vol.provisioned = 1073741824
+        mock_qos_obj = Mock()
+        mock_qos_obj.bandwidth_limit = 549755813888
+        mock_qos_obj.iops_limit = 100000  # Current 100K
+        mock_vol.qos = mock_qos_obj
+
+        mock_get_response = Mock()
+        mock_get_response.status_code = 200
+        mock_get_response.items = [mock_vol]
+
+        mock_patch_response = Mock()
+        mock_patch_response.status_code = 200
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.get_volumes.return_value = mock_get_response
+        mock_array.patch_volumes.return_value = mock_patch_response
+
+        update_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        call_kwargs = mock_array.patch_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+
+class TestCopyFromVolumeOldApi:
+    """Test cases for copy_from_volume using old API"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_target")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Reference")
+    def test_copy_volume_no_add_to_pgs_old_api(
+        self,
+        mock_reference,
+        mock_volume_post,
+        mock_loose_version,
+        mock_get_target,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test copy_from_volume without add_to_pgs using old API"""
+        mock_loose_version.side_effect = float
+        mock_get_target.return_value = None  # Target doesn't exist
+        mock_volfact.return_value = {"target_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "source_volume",
+            "target": "target_volume",
+            "overwrite": False,
+            "add_to_pgs": None,
+            "with_default_protection": True,
+            "context": "array1",
+        }
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.post_volumes.return_value = mock_response
+
+        copy_from_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        call_kwargs = mock_array.post_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_target")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.Reference")
+    def test_copy_volume_with_add_to_pgs_old_api(
+        self,
+        mock_reference,
+        mock_volume_post,
+        mock_loose_version,
+        mock_get_target,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test copy_from_volume with add_to_pgs using old API"""
+        mock_loose_version.side_effect = float
+        mock_get_target.return_value = None  # Target doesn't exist
+        mock_volfact.return_value = {"target_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "source_volume",
+            "target": "target_volume",
+            "overwrite": False,
+            "add_to_pgs": ["pg1", "pg2"],
+            "with_default_protection": True,
+            "context": "array1",
+        }
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.post_volumes.return_value = mock_response
+
+        copy_from_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        call_kwargs = mock_array.post_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+
+class TestMoveVolumeValidation:
+    """Test cases for move_volume validation paths"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_target_exists_fails(
+        self,
+        mock_loose_version,
+        mock_get_endpoint,
+        mock_volfact,
+    ):
+        """Test move_volume fails when target volume already exists (pod move)"""
+        mock_loose_version.side_effect = float
+        mock_get_endpoint.return_value = None
+        mock_volfact.return_value = {}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "pod1",
+            "context": "array1",
+        }
+        mock_module.fail_json.side_effect = SystemExit("fail_json called")
+
+        # Pod exists
+        mock_pod = Mock()
+        mock_pod.array_count = 1
+        mock_pod.link_target_count = 0
+        mock_pod.promotion_status = "promoted"
+
+        mock_get_pods_response = Mock()
+        mock_get_pods_response.status_code = 200
+        mock_get_pods_response.items = [mock_pod]
+
+        # Target volume exists
+        mock_get_volumes_response = Mock()
+        mock_get_volumes_response.status_code = 200
+
+        # Volume group doesn't exist
+        mock_get_vgroups_response = Mock()
+        mock_get_vgroups_response.status_code = 400
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_pods.return_value = mock_get_pods_response
+        mock_array.get_volumes.return_value = mock_get_volumes_response
+        mock_array.get_volume_groups.return_value = mock_get_vgroups_response
+
+        try:
+            move_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "already exists" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_into_stretched_pod_fails(
+        self,
+        mock_loose_version,
+        mock_get_endpoint,
+        mock_volfact,
+    ):
+        """Test move_volume fails when moving into stretched pod"""
+        mock_loose_version.side_effect = float
+        mock_get_endpoint.return_value = None
+        mock_volfact.return_value = {}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "pod1",
+            "context": "array1",
+        }
+        mock_module.fail_json.side_effect = SystemExit("fail_json called")
+
+        # Stretched pod (array_count > 1)
+        mock_pod = Mock()
+        mock_pod.array_count = 2  # Stretched
+        mock_pod.link_target_count = 0
+        mock_pod.promotion_status = "promoted"
+
+        mock_get_pods_response = Mock()
+        mock_get_pods_response.status_code = 200
+        mock_get_pods_response.items = [mock_pod]
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_pods.return_value = mock_get_pods_response
+
+        try:
+            move_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "stretched pod" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_into_linked_pod_fails(
+        self,
+        mock_loose_version,
+        mock_get_endpoint,
+        mock_volfact,
+    ):
+        """Test move_volume fails when moving into linked source pod"""
+        mock_loose_version.side_effect = float
+        mock_get_endpoint.return_value = None
+        mock_volfact.return_value = {}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "pod1",
+            "context": "array1",
+        }
+        mock_module.fail_json.side_effect = SystemExit("fail_json called")
+
+        # Linked pod
+        mock_pod = Mock()
+        mock_pod.array_count = 1
+        mock_pod.link_target_count = 1  # Linked
+        mock_pod.promotion_status = "promoted"
+
+        mock_get_pods_response = Mock()
+        mock_get_pods_response.status_code = 200
+        mock_get_pods_response.items = [mock_pod]
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_pods.return_value = mock_get_pods_response
+
+        try:
+            move_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "linked source pod" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_into_demoted_pod_fails(
+        self,
+        mock_loose_version,
+        mock_get_endpoint,
+        mock_volfact,
+    ):
+        """Test move_volume fails when moving into demoted pod"""
+        mock_loose_version.side_effect = float
+        mock_get_endpoint.return_value = None
+        mock_volfact.return_value = {}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "pod1",
+            "context": "array1",
+        }
+        mock_module.fail_json.side_effect = SystemExit("fail_json called")
+
+        # Demoted pod
+        mock_pod = Mock()
+        mock_pod.array_count = 1
+        mock_pod.link_target_count = 0
+        mock_pod.promotion_status = "demoted"  # Demoted
+
+        mock_get_pods_response = Mock()
+        mock_get_pods_response.status_code = 200
+        mock_get_pods_response.items = [mock_pod]
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_pods.return_value = mock_get_pods_response
+
+        try:
+            move_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "demoted pod" in call_args["msg"]
+
+
+class TestMoveVolumeOldApiPaths:
+    """Test cases for move_volume using old API paths"""
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Reference")
+    def test_move_volume_to_pod_old_api(
+        self,
+        mock_reference,
+        mock_volume_patch,
+        mock_loose_version,
+        mock_get_endpoint,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test move_volume to pod using old API"""
+        mock_loose_version.side_effect = float
+        mock_get_endpoint.return_value = None
+        mock_volfact.return_value = {"pod1::test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "pod1",
+            "context": "array1",
+        }
+
+        # Pod exists with old API
+        mock_pod = Mock()
+        mock_pod.array_count = 1
+        mock_pod.link_target_count = 0
+        mock_pod.promotion_status = "promoted"
+
+        mock_get_pods_response = Mock()
+        mock_get_pods_response.status_code = 200
+        mock_get_pods_response.items = [mock_pod]
+
+        # Target volume doesn't exist
+        mock_get_volumes_response = Mock()
+        mock_get_volumes_response.status_code = 400
+
+        # Volume group doesn't exist
+        mock_get_vgroups_response = Mock()
+        mock_get_vgroups_response.status_code = 400
+
+        mock_patch_response = Mock()
+        mock_patch_response.status_code = 200
+        mock_vol_item = Mock()
+        mock_vol_item.name = "pod1::test_volume"
+        mock_patch_response.items = [mock_vol_item]
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.get_pods.return_value = mock_get_pods_response
+        mock_array.get_volumes.return_value = mock_get_volumes_response
+        mock_array.get_volume_groups.return_value = mock_get_vgroups_response
+        mock_array.patch_volumes.return_value = mock_patch_response
+
+        move_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        call_kwargs = mock_array.patch_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume._volfact")
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch("plugins.modules.purefa_volume.Reference")
+    def test_move_volume_to_vgroup_old_api(
+        self,
+        mock_reference,
+        mock_volume_patch,
+        mock_loose_version,
+        mock_get_endpoint,
+        mock_check_response,
+        mock_volfact,
+    ):
+        """Test move_volume to volume group using old API"""
+        mock_loose_version.side_effect = float
+        mock_get_endpoint.return_value = None
+        mock_volfact.return_value = {"vgroup1/test_volume": {"size": 1073741824}}
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "move": "vgroup1",
+            "context": "array1",
+        }
+
+        # Pod doesn't exist
+        mock_get_pods_response = Mock()
+        mock_get_pods_response.status_code = 400
+
+        # Target volume doesn't exist
+        mock_get_volumes_response = Mock()
+        mock_get_volumes_response.status_code = 400
+
+        # Volume group exists
+        mock_get_vgroups_response = Mock()
+        mock_get_vgroups_response.status_code = 200
+
+        mock_patch_response = Mock()
+        mock_patch_response.status_code = 200
+        mock_vol_item = Mock()
+        mock_vol_item.name = "vgroup1/test_volume"
+        mock_patch_response.items = [mock_vol_item]
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.get_pods.return_value = mock_get_pods_response
+        mock_array.get_volumes.return_value = mock_get_volumes_response
+        mock_array.get_volume_groups.return_value = mock_get_vgroups_response
+        mock_array.patch_volumes.return_value = mock_patch_response
+
+        move_volume(mock_module, mock_array)
+
+        mock_array.patch_volumes.assert_called_once()
+        call_kwargs = mock_array.patch_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+
+class TestGetDestroyedVolumeOldApi:
+    """Test cases for get_destroyed_volume with old API"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_get_destroyed_volume_old_api(self, mock_loose_version):
+        """Test get_destroyed_volume using old API"""
+        mock_loose_version.side_effect = float
+        mock_module = Mock()
+        mock_module.params = {"name": "deleted_volume", "context": "array1"}
+
+        mock_volume = Mock()
+        mock_volume.destroyed = True
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.items = [mock_volume]
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.get_volumes.return_value = mock_response
+
+        result = get_destroyed_volume(mock_module, mock_array)
+
+        assert result == mock_volume
+        mock_array.get_volumes.assert_called_once()
+        call_kwargs = mock_array.get_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+
+
+class TestCreateVolumeValidation:
+    """Test cases for create_volume validation paths"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_create_volume_add_to_pgs_old_api_fails(self, mock_loose_version):
+        """Test create_volume fails when add_to_pgs is used with old API"""
+        mock_loose_version.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "add_to_pgs": ["pg1"],  # add_to_pgs not supported on old API
+            "context": "array1",
+        }
+        mock_module.fail_json.side_effect = SystemExit("fail_json called")
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+
+        try:
+            create_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "pgroup parameter" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume.check_vgroup")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_create_volume_vgroup_not_exists(
+        self, mock_loose_version, mock_check_vgroup
+    ):
+        """Test create_volume fails when volume group doesn't exist"""
+        mock_loose_version.side_effect = float
+        mock_check_vgroup.return_value = False
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "vgroup1/test_volume",  # Volume in vgroup
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "add_to_pgs": None,
+            "context": "array1",
+        }
+        mock_module.fail_json.side_effect = SystemExit("fail_json called")
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        try:
+            create_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "Volume Group does not exist" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume.check_pod")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_create_volume_pod_not_exists(self, mock_loose_version, mock_check_pod):
+        """Test create_volume fails when pod doesn't exist"""
+        mock_loose_version.side_effect = float
+        mock_check_pod.return_value = False
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pod1::test_volume",  # Volume in pod
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "add_to_pgs": None,
+            "context": "array1",
+        }
+        mock_module.fail_json.side_effect = SystemExit("fail_json called")
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        try:
+            create_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "Pod does not exist" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume.check_pod")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_create_volume_in_demoted_pod_fails(
+        self, mock_loose_version, mock_check_pod
+    ):
+        """Test create_volume fails when pod is demoted"""
+        mock_loose_version.side_effect = float
+        mock_check_pod.return_value = True
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pod1::test_volume",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "add_to_pgs": None,
+            "context": "array1",
+        }
+        mock_module.fail_json.side_effect = SystemExit("fail_json called")
+
+        # Pod is demoted
+        mock_pod = Mock()
+        mock_pod.promotion_status = "demoted"
+
+        mock_get_pods_response = Mock()
+        mock_get_pods_response.status_code = 200
+        mock_get_pods_response.items = [mock_pod]
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_pods.return_value = mock_get_pods_response
+
+        try:
+            create_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "demoted pod" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume.check_pod")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_create_volume_in_pod_old_api(self, mock_loose_version, mock_check_pod):
+        """Test create_volume in pod using old API path"""
+        mock_loose_version.side_effect = float
+        mock_check_pod.return_value = True
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pod1::test_volume",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "add_to_pgs": None,
+            "context": "array1",
+        }
+        mock_module.fail_json.side_effect = SystemExit("fail_json called")
+
+        # Pod is demoted (to trigger fail path and verify old API path was used)
+        mock_pod = Mock()
+        mock_pod.promotion_status = "demoted"
+
+        mock_get_pods_response = Mock()
+        mock_get_pods_response.status_code = 200
+        mock_get_pods_response.items = [mock_pod]
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.get_pods.return_value = mock_get_pods_response
+
+        try:
+            create_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        # Verify get_pods was called without context_names
+        mock_array.get_pods.assert_called()
+        call_kwargs = mock_array.get_pods.call_args[1]
+        assert "context_names" not in call_kwargs
+
+
+class TestCheckVgroupOldApi:
+    """Test cases for check_vgroup with old API"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_check_vgroup_old_api(self, mock_loose_version):
+        """Test check_vgroup using old API"""
+        mock_loose_version.side_effect = float
+        mock_module = Mock()
+        mock_module.params = {"name": "vgroup1/volume1", "context": "array1"}
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.get_volume_groups.return_value = mock_response
+
+        result = check_vgroup(mock_module, mock_array)
+
+        assert result is True
+        mock_array.get_volume_groups.assert_called_once()
+        call_kwargs = mock_array.get_volume_groups.call_args[1]
+        assert "context_names" not in call_kwargs
+
+
+class TestCheckPodOldApi:
+    """Test cases for check_pod with old API"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_check_pod_old_api(self, mock_loose_version):
+        """Test check_pod using old API"""
+        mock_loose_version.side_effect = float
+        mock_module = Mock()
+        mock_module.params = {"name": "pod1::volume1", "context": "array1"}
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.get_pods.return_value = mock_response
+
+        result = check_pod(mock_module, mock_array)
+
+        assert result is True
+        mock_array.get_pods.assert_called_once()
+        call_kwargs = mock_array.get_pods.call_args[1]
+        assert "context_names" not in call_kwargs
+
+
+class TestUpdateVolumeParamValidation:
+    """Test cases for update_volume parameter validation"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_update_volume_pgroup_on_new_api_fails(self, mock_loose_version):
+        """Test update_volume fails when pgroup is used with new API"""
+        mock_loose_version.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": None,
+            "add_to_pgs": None,
+            "pgroup": "pg1",  # pgroup not supported on new API
+            "promotion_state": None,
+            "priority_operator": None,
+            "context": "array1",
+        }
+        mock_module.fail_json.side_effect = SystemExit("fail_json called")
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"  # New API version
+
+        try:
+            update_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "add_to_pgs parameter" in call_args["msg"]
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_update_volume_add_to_pgs_on_old_api_fails(self, mock_loose_version):
+        """Test update_volume fails when add_to_pgs is used with old API"""
+        mock_loose_version.side_effect = float
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": None,
+            "bw_qos": None,
+            "iops_qos": None,
+            "add_to_pgs": ["pg1"],  # add_to_pgs not supported on old API
+            "pgroup": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "context": "array1",
+        }
+        mock_module.fail_json.side_effect = SystemExit("fail_json called")
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+
+        try:
+            update_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "pgroup parameter" in call_args["msg"]
+
+
+class TestGetTargetOldApi:
+    """Test cases for get_target with old API"""
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_get_target_old_api(self, mock_loose_version):
+        """Test get_target using old API"""
+        mock_loose_version.side_effect = float
+        mock_module = Mock()
+        mock_module.params = {"target": "target_volume", "context": "array1"}
+
+        mock_volume = Mock()
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.items = [mock_volume]
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.get_volumes.return_value = mock_response
+
+        result = get_target(mock_module, mock_array)
+
+        assert result == mock_volume
+        mock_array.get_volumes.assert_called_once()
+        call_kwargs = mock_array.get_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_get_target_not_found(self, mock_loose_version):
+        """Test get_target returns None when target not found"""
+        mock_loose_version.side_effect = float
+        mock_module = Mock()
+        mock_module.params = {"target": "nonexistent_volume", "context": "array1"}
+
+        mock_response = Mock()
+        mock_response.status_code = 400
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volumes.return_value = mock_response
+
+        result = get_target(mock_module, mock_array)
+
+        assert result is None
+
+
+class TestCreateVolumeOldApiPaths:
+    """Test cases for create_volume old API paths"""
+
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    def test_create_volume_basic_old_api(
+        self,
+        mock_volume_post,
+        mock_loose_version,
+        mock_human_to_bytes,
+        mock_check_response,
+    ):
+        """Test create_volume basic creation with old API"""
+        mock_loose_version.side_effect = float
+        mock_human_to_bytes.return_value = 1073741824  # 1GB
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "add_to_pgs": None,
+            "pgroup": None,
+            "promotion_state": None,
+            "priority_operator": None,
+            "context": "array1",
+        }
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+
+        # Mock get_volumes for _volfact
+        mock_vol = Mock()
+        mock_vol.name = "test_volume"
+        mock_vol.size = 1073741824
+        mock_vol.serial = "ABC123"
+        mock_vol.created = 1234567890
+        mock_vol.provisioned = 1073741824
+        mock_vol.space = Mock()
+        mock_vol.space.total_provisioned = 1073741824
+        mock_get_response = Mock()
+        mock_get_response.status_code = 200
+        mock_get_response.items = [mock_vol]
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.post_volumes.return_value = mock_response
+        mock_array.get_volumes.return_value = mock_get_response
+
+        create_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        call_kwargs = mock_array.post_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_volume.check_response")
+    @patch("plugins.modules.purefa_volume.human_to_bytes")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch("plugins.modules.purefa_volume.VolumePatch")
+    def test_create_volume_with_promotion_state_old_api(
+        self,
+        mock_volume_patch,
+        mock_volume_post,
+        mock_loose_version,
+        mock_human_to_bytes,
+        mock_check_response,
+    ):
+        """Test create_volume with promotion_state using old API"""
+        mock_loose_version.side_effect = float
+        mock_human_to_bytes.return_value = 1073741824  # 1GB
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test_volume",
+            "size": "1G",
+            "bw_qos": None,
+            "iops_qos": None,
+            "add_to_pgs": None,
+            "pgroup": None,
+            "promotion_state": "demoted",
+            "priority_operator": None,
+            "context": "array1",
+        }
+
+        mock_post_response = Mock()
+        mock_post_response.status_code = 200
+
+        mock_patch_response = Mock()
+        mock_patch_response.status_code = 200
+
+        # Mock get_volumes for _volfact
+        mock_vol = Mock()
+        mock_vol.name = "test_volume"
+        mock_vol.size = 1073741824
+        mock_vol.serial = "ABC123"
+        mock_vol.created = 1234567890
+        mock_vol.provisioned = 1073741824
+        mock_vol.space = Mock()
+        mock_vol.space.total_provisioned = 1073741824
+        mock_get_response = Mock()
+        mock_get_response.status_code = 200
+        mock_get_response.items = [mock_vol]
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.post_volumes.return_value = mock_post_response
+        mock_array.patch_volumes.return_value = mock_patch_response
+        mock_array.get_volumes.return_value = mock_get_response
+
+        create_volume(mock_module, mock_array)
+
+        # Verify post_volumes and patch_volumes called without context_names
+        post_call_kwargs = mock_array.post_volumes.call_args[1]
+        assert "context_names" not in post_call_kwargs
+        patch_call_kwargs = mock_array.patch_volumes.call_args[1]
+        assert "context_names" not in patch_call_kwargs
+        mock_module.exit_json.assert_called_once()
+
+
+class TestMoveVolumeTargetExists:
+    """Test cases for move_volume when target already exists"""
+
+    @patch("plugins.modules.purefa_volume.get_endpoint")
+    @patch("plugins.modules.purefa_volume.LooseVersion")
+    def test_move_volume_target_already_exists_old_api(
+        self, mock_loose_version, mock_get_endpoint
+    ):
+        """Test move_volume fails when target volume exists on old API"""
+        mock_loose_version.side_effect = float
+        mock_get_endpoint.return_value = None
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "source_volume",
+            "move": "vgroup1",
+            "rename": None,
+            "context": "array1",
+        }
+        mock_module.fail_json.side_effect = SystemExit("fail_json called")
+
+        # Volume group exists
+        mock_vgroup_response = Mock()
+        mock_vgroup_response.status_code = 200
+
+        # Target volume already exists
+        mock_vol_response = Mock()
+        mock_vol_response.status_code = 200
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Old API version
+        mock_array.get_volume_groups.return_value = mock_vgroup_response
+        mock_array.get_volumes.return_value = mock_vol_response
+
+        try:
+            move_volume(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args[1]
+        assert "already exists" in call_args["msg"]
