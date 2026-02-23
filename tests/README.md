@@ -6,7 +6,7 @@ This directory contains the test suite for the Pure Storage FlashArray Ansible C
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 1,236 |
+| **Total Tests** | 1,263 |
 | **Code Coverage** | 63% |
 | **Test Files** | 68 |
 | **Modules Tested** | 66 |
@@ -161,7 +161,7 @@ class TestFunctionName:
 
 ## Coverage by Module
 
-*Last updated: 2026-02-22*
+*Last updated: 2026-02-23*
 
 ### High Coverage (80%+)
 
@@ -217,6 +217,7 @@ class TestFunctionName:
 | purefa_admin.py | 62% |
 | purefa_alert.py | 62% |
 | purefa_dsrole.py | 62% |
+| purefa_policy.py | 62% |
 | purefa_vg.py | 62% |
 | purefa_vnc.py | 62% |
 | purefa_default_protection.py | 61% |
@@ -247,7 +248,6 @@ class TestFunctionName:
 | purefa_sessions.py | 53% | 34 |
 | purefa_messages.py | 52% | 29 |
 | purefa_pod.py | 52% | 140 |
-| purefa_policy.py | 51% | 360 |
 
 ## CI/CD Integration
 
