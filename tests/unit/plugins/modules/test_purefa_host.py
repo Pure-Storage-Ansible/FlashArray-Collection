@@ -54,6 +54,10 @@ from plugins.modules.purefa_host import (
     _set_vlan,
     _update_vlan,
     _update_preferred_array,
+    _set_host_initiators,
+    _update_host_initiators,
+    _update_host_personality,
+    _update_chap_security,
 )
 
 
@@ -954,8 +958,8 @@ class TestUpdateHostInitiators:
         assert result is False
 
 
-class TestDeleteHostSuccess:
-    """Test cases for delete_host success paths"""
+class TestDeleteHostSuccessExtended:
+    """Test cases for delete_host success paths - extended"""
 
     @patch("plugins.modules.purefa_host.check_response")
     @patch("plugins.modules.purefa_host.get_with_context")
@@ -1289,8 +1293,8 @@ class TestConnectVolume:
         mock_array.post_connections.assert_not_called()
 
 
-class TestDisconnectVolume:
-    """Test cases for _disconnect_volume function"""
+class TestDisconnectVolumeExtended:
+    """Test cases for _disconnect_volume function - extended"""
 
     @patch("plugins.modules.purefa_host.check_response")
     @patch("plugins.modules.purefa_host.get_with_context")
@@ -1332,8 +1336,8 @@ class TestDisconnectVolume:
         mock_array.delete_connections.assert_not_called()
 
 
-class TestMoveHost:
-    """Test cases for move_host function"""
+class TestMoveHostExtended:
+    """Test cases for move_host function - extended"""
 
     def test_move_host_context_not_supported(self):
         """Test move_host fails when context is provided"""
@@ -1638,3 +1642,735 @@ class TestUpdatePreferredArray:
 
         assert result is False
         assert mock_get_with_context.call_count == 1
+
+
+class TestSetHostInitiators:
+    """Test cases for _set_host_initiators function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    def test_set_host_initiators_nqn(self, mock_host_patch, mock_get, mock_check):
+        """Test setting NQN initiators"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-host",
+            "nqn": ["nqn.2014-08.org.nvmexpress:uuid:test"],
+            "iqn": None,
+            "wwns": None,
+        }
+        mock_array = Mock()
+        mock_get.return_value = Mock(status_code=200)
+
+        _set_host_initiators(mock_module, mock_array)
+
+        mock_get.assert_called_once()
+        mock_check.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    def test_set_host_initiators_iqn(self, mock_host_patch, mock_get, mock_check):
+        """Test setting IQN initiators"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-host",
+            "nqn": None,
+            "iqn": ["iqn.2021-01.com.example:test"],
+            "wwns": None,
+        }
+        mock_array = Mock()
+        mock_get.return_value = Mock(status_code=200)
+
+        _set_host_initiators(mock_module, mock_array)
+
+        mock_get.assert_called_once()
+        mock_check.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    def test_set_host_initiators_wwns(self, mock_host_patch, mock_get, mock_check):
+        """Test setting WWN initiators"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-host",
+            "nqn": None,
+            "iqn": None,
+            "wwns": ["50:00:00:00:00:00:00:01"],
+        }
+        mock_array = Mock()
+        mock_get.return_value = Mock(status_code=200)
+
+        _set_host_initiators(mock_module, mock_array)
+
+        mock_get.assert_called_once()
+        mock_check.assert_called_once()
+
+
+class TestUpdateHostInitiatorsExtended:
+    """Extended test cases for _update_host_initiators function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    def test_update_nqn_change(self, mock_host_patch, mock_get, mock_check):
+        """Test updating NQN when different"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "nqn": ["nqn.2014-08.org.nvmexpress:uuid:new"],
+            "iqn": None,
+            "wwns": None,
+        }
+        mock_array = Mock()
+
+        mock_host = Mock()
+        mock_host.nqns = ["nqn.2014-08.org.nvmexpress:uuid:old"]
+        mock_host.iqns = []
+        mock_host.wwns = []
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),
+            Mock(status_code=200),
+        ]
+
+        result = _update_host_initiators(mock_module, mock_array)
+
+        assert result is True
+        assert mock_get.call_count == 2
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    def test_update_nqn_remove(self, mock_host_patch, mock_get, mock_check):
+        """Test removing NQN when empty string provided"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "nqn": [""],
+            "iqn": None,
+            "wwns": None,
+        }
+        mock_array = Mock()
+
+        mock_host = Mock()
+        mock_host.nqns = ["nqn.2014-08.org.nvmexpress:uuid:old"]
+        mock_host.iqns = []
+        mock_host.wwns = []
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),
+            Mock(status_code=200),
+        ]
+
+        result = _update_host_initiators(mock_module, mock_array)
+
+        assert result is True
+        assert mock_get.call_count == 2
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    def test_update_iqn_change(self, mock_host_patch, mock_get, mock_check):
+        """Test updating IQN when different"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "nqn": None,
+            "iqn": ["iqn.2021-01.com.example:new"],
+            "wwns": None,
+        }
+        mock_array = Mock()
+
+        mock_host = Mock()
+        mock_host.nqns = []
+        mock_host.iqns = ["iqn.2021-01.com.example:old"]
+        mock_host.wwns = []
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),
+            Mock(status_code=200),
+        ]
+
+        result = _update_host_initiators(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    def test_update_iqn_remove(self, mock_host_patch, mock_get, mock_check):
+        """Test removing IQN when empty string provided"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "nqn": None,
+            "iqn": [""],
+            "wwns": None,
+        }
+        mock_array = Mock()
+
+        mock_host = Mock()
+        mock_host.nqns = []
+        mock_host.iqns = ["iqn.2021-01.com.example:old"]
+        mock_host.wwns = []
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),
+            Mock(status_code=200),
+        ]
+
+        result = _update_host_initiators(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    def test_update_wwns_change(self, mock_host_patch, mock_get, mock_check):
+        """Test updating WWNs when different"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "nqn": None,
+            "iqn": None,
+            "wwns": ["50:00:00:00:00:00:00:02"],
+        }
+        mock_array = Mock()
+
+        mock_host = Mock()
+        mock_host.nqns = []
+        mock_host.iqns = []
+        mock_host.wwns = ["5000000000000001"]
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),
+            Mock(status_code=200),
+        ]
+
+        result = _update_host_initiators(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    def test_update_wwns_remove(self, mock_host_patch, mock_get):
+        """Test removing WWNs when empty string provided"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "nqn": None,
+            "iqn": None,
+            "wwns": [""],
+        }
+        mock_array = Mock()
+
+        mock_host = Mock()
+        mock_host.nqns = []
+        mock_host.iqns = []
+        mock_host.wwns = ["5000000000000001"]
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),
+            Mock(status_code=200),
+        ]
+
+        result = _update_host_initiators(mock_module, mock_array)
+
+        assert result is True
+
+
+class TestUpdateHostPersonalityExtended:
+    """Extended test cases for _update_host_personality function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    def test_update_personality_add_new(self, mock_host_patch, mock_get, mock_check):
+        """Test adding personality when host has none"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "personality": "windows",
+        }
+        mock_array = Mock()
+
+        mock_host = Mock(spec=[])  # No personality attribute
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),
+            Mock(status_code=200),
+        ]
+
+        result = _update_host_personality(mock_module, mock_array)
+
+        assert result is True
+        assert mock_get.call_count == 2
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    def test_update_personality_delete(self, mock_host_patch, mock_get, mock_check):
+        """Test deleting personality when host has one"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "personality": "delete",
+        }
+        mock_array = Mock()
+
+        mock_host = Mock()
+        mock_host.personality = "windows"
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),
+            Mock(status_code=200),
+        ]
+
+        result = _update_host_personality(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    def test_update_personality_change(self, mock_host_patch, mock_get, mock_check):
+        """Test changing personality"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "personality": "linux",
+        }
+        mock_array = Mock()
+
+        mock_host = Mock()
+        mock_host.personality = "windows"
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),
+            Mock(status_code=200),
+        ]
+
+        result = _update_host_personality(mock_module, mock_array)
+
+        assert result is True
+
+
+class TestUpdateChapSecurityExtended:
+    """Extended test cases for _update_chap_security function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch("plugins.modules.purefa_host.Chap")
+    def test_update_chap_set_host_user(
+        self, mock_chap, mock_host_patch, mock_get, mock_check
+    ):
+        """Test setting CHAP host username and password"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "host_user": "chapuser",
+            "host_password": "chapassword123",  # 13 chars, valid
+            "target_user": None,
+            "target_password": None,
+        }
+        mock_array = Mock()
+
+        mock_host_chap = Mock(spec=[])  # No host_user attribute
+        mock_host = Mock()
+        mock_host.chap = mock_host_chap
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),
+            Mock(status_code=200),
+        ]
+
+        result = _update_chap_security(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch("plugins.modules.purefa_host.Chap")
+    def test_update_chap_clear_host_password(
+        self, mock_chap, mock_host_patch, mock_get, mock_check
+    ):
+        """Test clearing CHAP host password"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "host_user": "chapuser",
+            "host_password": "clear",
+            "target_user": None,
+            "target_password": None,
+        }
+        mock_array = Mock()
+
+        mock_host_chap = Mock()
+        mock_host_chap.host_user = "chapuser"
+        mock_host = Mock()
+        mock_host.chap = mock_host_chap
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),
+            Mock(status_code=200),
+        ]
+
+        result = _update_chap_security(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch("plugins.modules.purefa_host.Chap")
+    def test_update_chap_set_target_user(
+        self, mock_chap, mock_host_patch, mock_get, mock_check
+    ):
+        """Test setting CHAP target username and password"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "host_user": None,
+            "host_password": None,
+            "target_user": "targetuser",
+            "target_password": "targetpass1234",  # 14 chars, valid
+        }
+        mock_array = Mock()
+
+        mock_host_chap = Mock(spec=[])  # No target_user attribute
+        mock_host = Mock()
+        mock_host.chap = mock_host_chap
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),
+            Mock(status_code=200),
+        ]
+
+        result = _update_chap_security(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch("plugins.modules.purefa_host.Chap")
+    def test_update_chap_clear_target_password(
+        self, mock_chap, mock_host_patch, mock_get, mock_check
+    ):
+        """Test clearing CHAP target password"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "host_user": None,
+            "host_password": None,
+            "target_user": "targetuser",
+            "target_password": "clear",
+        }
+        mock_array = Mock()
+
+        mock_host_chap = Mock()
+        mock_host_chap.target_user = "targetuser"
+        mock_host = Mock()
+        mock_host.chap = mock_host_chap
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),
+            Mock(status_code=200),
+        ]
+
+        result = _update_chap_security(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch("plugins.modules.purefa_host.Chap")
+    def test_update_chap_invalid_host_password(
+        self, mock_chap, mock_host_patch, mock_get
+    ):
+        """Test CHAP update fails with invalid host password"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json = Mock(side_effect=SystemExit(1))
+        mock_module.params = {
+            "name": "test-host",
+            "host_user": "chapuser",
+            "host_password": "short",  # Too short
+            "target_user": None,
+            "target_password": None,
+        }
+        mock_array = Mock()
+
+        mock_host_chap = Mock(spec=[])
+        mock_host = Mock()
+        mock_host.chap = mock_host_chap
+        mock_get.return_value = Mock(status_code=200, items=[mock_host])
+
+        import pytest
+
+        with pytest.raises(SystemExit):
+            _update_chap_security(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch("plugins.modules.purefa_host.Chap")
+    def test_update_chap_invalid_target_password(
+        self, mock_chap, mock_host_patch, mock_get
+    ):
+        """Test CHAP update fails with invalid target password"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json = Mock(side_effect=SystemExit(1))
+        mock_module.params = {
+            "name": "test-host",
+            "host_user": None,
+            "host_password": None,
+            "target_user": "targetuser",
+            "target_password": "short",  # Too short
+        }
+        mock_array = Mock()
+
+        mock_host_chap = Mock(spec=[])
+        mock_host = Mock()
+        mock_host.chap = mock_host_chap
+        mock_get.return_value = Mock(status_code=200, items=[mock_host])
+
+        import pytest
+
+        with pytest.raises(SystemExit):
+            _update_chap_security(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestMakeHostWithVolume:
+    """Test cases for make_host with volume connection"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPost")
+    @patch("plugins.modules.purefa_host.ConnectionPost")
+    def test_make_host_with_volume_and_lun(
+        self, mock_conn_post, mock_host_post, mock_get, mock_check
+    ):
+        """Test creating host with volume and LUN"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "context": "",
+            "vlan": None,
+            "nqn": None,
+            "iqn": None,
+            "wwns": None,
+            "personality": None,
+            "preferred_array": None,
+            "host_user": None,
+            "target_user": None,
+            "volume": "test-volume",
+            "lun": 10,
+        }
+        mock_array = Mock()
+        mock_get.return_value = Mock(status_code=200)
+
+        make_host(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        # Should call post for connections with LUN
+        assert mock_get.call_count >= 2
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPost")
+    def test_make_host_with_volume_no_lun(self, mock_host_post, mock_get, mock_check):
+        """Test creating host with volume but no LUN"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "context": "",
+            "vlan": None,
+            "nqn": None,
+            "iqn": None,
+            "wwns": None,
+            "personality": None,
+            "preferred_array": None,
+            "host_user": None,
+            "target_user": None,
+            "volume": "test-volume",
+            "lun": None,
+        }
+        mock_array = Mock()
+        mock_get.return_value = Mock(status_code=200)
+
+        make_host(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateHostRename:
+    """Test cases for update_host with rename"""
+
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
+    )
+    @patch("plugins.modules.purefa_host.rename_exists")
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
+    def test_update_host_rename_success(
+        self,
+        mock_lv,
+        mock_host_patch,
+        mock_get,
+        mock_check,
+        mock_rename_exists,
+        mock_api,
+    ):
+        """Test renaming a host successfully"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "old-host",
+            "state": "present",
+            "rename": "new-host",
+            "vlan": None,
+            "iqn": None,
+            "wwns": None,
+            "nqn": None,
+            "volume": None,
+            "personality": None,
+            "preferred_array": None,
+            "target_user": None,
+            "host_user": None,
+        }
+        mock_array = Mock()
+        mock_api.return_value = "2.38"
+        mock_rename_exists.return_value = False
+        mock_get.side_effect = [
+            Mock(status_code=200),  # patch_hosts (rename)
+            Mock(status_code=200, items=[]),  # get_connections
+        ]
+
+        update_host(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
+    )
+    @patch("plugins.modules.purefa_host.rename_exists")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
+    def test_update_host_rename_target_exists(
+        self, mock_lv, mock_get, mock_rename_exists, mock_api
+    ):
+        """Test renaming host when target already exists"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.warn = Mock()
+        mock_module.params = {
+            "name": "old-host",
+            "state": "present",
+            "rename": "existing-host",
+            "vlan": None,
+            "iqn": None,
+            "wwns": None,
+            "nqn": None,
+            "volume": None,
+            "personality": None,
+            "preferred_array": None,
+            "target_user": None,
+            "host_user": None,
+        }
+        mock_array = Mock()
+        mock_api.return_value = "2.38"
+        mock_rename_exists.return_value = True
+        mock_get.return_value = Mock(status_code=200, items=[])
+
+        update_host(mock_module, mock_array)
+
+        mock_module.warn.assert_called_once()
+
+
+class TestUpdateHostDisconnectVolume:
+    """Test cases for update_host disconnecting a volume"""
+
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
+    )
+    @patch("plugins.modules.purefa_host._disconnect_volume")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
+    def test_update_host_disconnect_volume(
+        self, mock_lv, mock_get, mock_disconnect, mock_api
+    ):
+        """Test disconnecting a volume from host"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "state": "absent",
+            "rename": None,
+            "vlan": None,
+            "iqn": None,
+            "wwns": None,
+            "nqn": None,
+            "volume": "test-volume",
+            "personality": None,
+            "preferred_array": None,
+            "target_user": None,
+            "host_user": None,
+        }
+        mock_array = Mock()
+        mock_api.return_value = "2.38"
+
+        mock_vol = Mock()
+        mock_vol.volume = Mock()
+        mock_vol.volume.name = "test-volume"
+        mock_get.return_value = Mock(status_code=200, items=[mock_vol])
+        mock_disconnect.return_value = True
+
+        update_host(mock_module, mock_array)
+
+        mock_disconnect.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteHostWithHostGroup:
+    """Test cases for delete_host when host is in a host group"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_delete_host_in_hostgroup(self, mock_get, mock_check):
+        """Test deleting host that belongs to a host group"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "context": "",
+        }
+        mock_array = Mock()
+
+        mock_hg = Mock()
+        mock_hg.name = "test-hg"
+        mock_host = Mock()
+        mock_host.host_group = mock_hg
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),  # get_hosts
+            Mock(status_code=200),  # delete_host_groups_hosts
+            Mock(status_code=200, items=[]),  # get_connections
+            Mock(status_code=200),  # delete_hosts
+        ]
+
+        delete_host(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        assert mock_get.call_count == 4
