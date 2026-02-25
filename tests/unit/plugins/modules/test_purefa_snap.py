@@ -95,6 +95,26 @@ class TestCheckOffload:
 
         assert result is False
 
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_check_offload_with_context_api(self, mock_lv):
+        """Test _check_offload with context API version"""
+        mock_module = Mock()
+        mock_module.params = {"offload": "nfs-target", "context": "pod1"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_offload = Mock()
+        mock_offload.status = "connected"
+        mock_array.get_offloads.return_value = Mock(
+            status_code=200, items=[mock_offload]
+        )
+
+        result = _check_offload(mock_module, mock_array)
+
+        assert result is True
+        mock_array.get_offloads.assert_called_once_with(
+            names=["nfs-target"], context_names=["pod1"]
+        )
+
 
 class TestCheckTarget:
     """Test cases for _check_target function"""
@@ -116,6 +136,39 @@ class TestCheckTarget:
         result = _check_target(mock_module, mock_array)
 
         assert result is True
+
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_check_target_with_context_api(self, mock_lv):
+        """Test _check_target with context API version"""
+        mock_module = Mock()
+        mock_module.params = {"offload": "array-target", "context": "pod1"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_conn = Mock()
+        mock_conn.status = "connected"
+        mock_array.get_array_connections.return_value = Mock(
+            status_code=200, items=[mock_conn]
+        )
+
+        result = _check_target(mock_module, mock_array)
+
+        assert result is True
+        mock_array.get_array_connections.assert_called_once_with(
+            names=["array-target"], context_names=["pod1"]
+        )
+
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_check_target_not_connected(self, mock_lv):
+        """Test _check_target returns False when target not connected"""
+        mock_module = Mock()
+        mock_module.params = {"offload": "array-target", "context": ""}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_array_connections.return_value = Mock(status_code=404)
+
+        result = _check_target(mock_module, mock_array)
+
+        assert result is False
 
 
 class TestGetVolume:
@@ -386,6 +439,128 @@ class TestGetDeletedSnapshot:
         # get_deleted_snapshot returns bool, not None
         assert result is False
 
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_get_deleted_snapshot_offload_remote_context(
+        self, mock_lv, mock_check_offload
+    ):
+        """Test get_deleted_snapshot with offload and context API"""
+        mock_check_offload.return_value = True
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_arr_item = Mock()
+        mock_arr_item.name = "local-array"
+        mock_array.get_arrays.return_value = Mock(items=[mock_arr_item])
+        mock_array.get_remote_volume_snapshots.return_value = Mock(status_code=200)
+
+        result = get_deleted_snapshot(mock_module, mock_array)
+
+        assert result is True
+        mock_array.get_remote_volume_snapshots.assert_called_once()
+
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_get_deleted_snapshot_offload_remote_no_context(
+        self, mock_lv, mock_check_offload
+    ):
+        """Test get_deleted_snapshot with offload, no context API"""
+        mock_check_offload.return_value = True
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_arr_item = Mock()
+        mock_arr_item.name = "local-array"
+        mock_array.get_arrays.return_value = Mock(items=[mock_arr_item])
+        mock_array.get_remote_volume_snapshots.return_value = Mock(status_code=200)
+
+        result = get_deleted_snapshot(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_get_deleted_snapshot_offload_local_context(
+        self, mock_lv, mock_check_offload
+    ):
+        """Test get_deleted_snapshot with offload but local snapshot using context API"""
+        mock_check_offload.return_value = False  # Not an offload target
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_arr_item = Mock()
+        mock_arr_item.name = "local-array"
+        mock_array.get_arrays.return_value = Mock(items=[mock_arr_item])
+        mock_array.get_volume_snapshots.return_value = Mock(status_code=200)
+
+        result = get_deleted_snapshot(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_get_deleted_snapshot_offload_local_no_context(
+        self, mock_lv, mock_check_offload
+    ):
+        """Test get_deleted_snapshot with offload but local snapshot, no context API"""
+        mock_check_offload.return_value = False
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_arr_item = Mock()
+        mock_arr_item.name = "local-array"
+        mock_array.get_arrays.return_value = Mock(items=[mock_arr_item])
+        mock_array.get_volume_snapshots.return_value = Mock(status_code=200)
+
+        result = get_deleted_snapshot(mock_module, mock_array)
+
+        assert result is True
+
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_get_deleted_snapshot_with_context_api(self, mock_lv):
+        """Test get_deleted_snapshot with context API version"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": None,
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_volume_snapshots.return_value = Mock(status_code=200)
+
+        result = get_deleted_snapshot(mock_module, mock_array)
+
+        assert result is True
+        mock_array.get_volume_snapshots.assert_called_once_with(
+            names=["test-vol.snap1"], context_names=["pod1"], destroyed=True
+        )
+
 
 class TestCreateFromSnapshot:
     """Test cases for create_from_snapshot function"""
@@ -463,6 +638,156 @@ class TestCreateSnapshotSuccess:
 
         mock_array.post_volume_snapshots.assert_called_once()
         # exit_json is called with changed=True and suffix
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_create_snapshot_offload_context_api(self, mock_lv, mock_check_response):
+        """Test create_snapshot with offload using context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_remote_volume_snapshots.return_value = Mock(status_code=200)
+
+        create_snapshot(mock_module, mock_array)
+
+        mock_array.post_remote_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_create_snapshot_offload_no_context_with_suffix(
+        self, mock_lv, mock_check_response
+    ):
+        """Test create_snapshot with offload, no context API, with suffix"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "",
+        }
+        mock_array = Mock()
+        # Version must be >= SNAPSHOT_SUFFIX_API (2.28) and < CONTEXT_API_VERSION (2.38)
+        mock_array.get_rest_version.return_value = "2.30"
+        mock_array.post_remote_volume_snapshots.return_value = Mock(status_code=200)
+
+        create_snapshot(mock_module, mock_array)
+
+        mock_array.post_remote_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_create_snapshot_offload_no_context_no_suffix(
+        self, mock_lv, mock_check_response
+    ):
+        """Test create_snapshot with offload, no context API, no suffix (old API)"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",  # Will be set to None by the code
+            "offload": "nfs-target",
+            "context": "",
+        }
+        mock_array = Mock()
+        # Version < SNAPSHOT_SUFFIX_API (2.28) - suffix will be nulled and set from response
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_snap_item = Mock()
+        mock_snap_item.name = "test-vol.auto-suffix"
+        mock_array.post_remote_volume_snapshots.return_value = Mock(
+            status_code=200, items=[mock_snap_item]
+        )
+
+        create_snapshot(mock_module, mock_array)
+
+        mock_array.post_remote_volume_snapshots.assert_called_once()
+        # Suffix is extracted from response
+        assert mock_module.params["suffix"] == "auto-suffix"
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_create_snapshot_offload_old_api_returns_suffix(
+        self, mock_lv, mock_check_response
+    ):
+        """Test create_snapshot with offload on old API extracting suffix"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "",
+        }
+        mock_array = Mock()
+        # SNAPSHOT_SUFFIX_API is 2.28, so using 2.20 is older
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_snap_item = Mock()
+        mock_snap_item.name = "test-vol.auto-generated-suffix"
+        mock_array.post_remote_volume_snapshots.return_value = Mock(
+            status_code=200, items=[mock_snap_item]
+        )
+
+        create_snapshot(mock_module, mock_array)
+
+        mock_array.post_remote_volume_snapshots.assert_called_once()
+        assert mock_module.params["suffix"] == "auto-generated-suffix"
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_create_snapshot_local_no_throttle_api(self, mock_lv, mock_check_response):
+        """Test create_snapshot local when throttle API is not available"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": None,
+            "throttle": False,
+            "context": "",
+        }
+        mock_array = Mock()
+        # THROTTLE_API is 2.25, so using 2.20 is older
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_array.post_volume_snapshots.return_value = Mock(status_code=200)
+
+        create_snapshot(mock_module, mock_array)
+
+        mock_array.post_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_create_snapshot_local_throttle_no_context(
+        self, mock_lv, mock_check_response
+    ):
+        """Test create_snapshot local with throttle API but no context"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": None,
+            "throttle": True,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_array.post_volume_snapshots.return_value = Mock(status_code=200)
+
+        create_snapshot(mock_module, mock_array)
+
+        mock_array.post_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
 
@@ -893,5 +1218,292 @@ class TestDeleteSnapshotTarget:
         delete_snapshot(mock_module, mock_array)
 
         mock_array.patch_volume_snapshots.assert_called_once()
+        mock_array.delete_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestRecoverSnapshotPaths:
+    """Test cases for recover_snapshot function with different paths"""
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_recover_snapshot_offload_context_api(
+        self, mock_lv, mock_check_offload, mock_check_response
+    ):
+        """Test recover_snapshot with offload using context API"""
+        mock_check_offload.return_value = True
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_arr_item = Mock()
+        mock_arr_item.name = "local-array"
+        mock_array.get_arrays.return_value = Mock(items=[mock_arr_item])
+        mock_array.patch_remote_volume_snapshots.return_value = Mock(status_code=200)
+
+        recover_snapshot(mock_module, mock_array)
+
+        mock_array.patch_remote_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_recover_snapshot_offload_no_context(
+        self, mock_lv, mock_check_offload, mock_check_response
+    ):
+        """Test recover_snapshot with offload, no context API"""
+        mock_check_offload.return_value = True
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_arr_item = Mock()
+        mock_arr_item.name = "local-array"
+        mock_array.get_arrays.return_value = Mock(items=[mock_arr_item])
+        mock_array.patch_remote_volume_snapshots.return_value = Mock(status_code=200)
+
+        recover_snapshot(mock_module, mock_array)
+
+        mock_array.patch_remote_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_recover_snapshot_local_context_api(self, mock_lv):
+        """Test recover_snapshot local with context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": None,
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_volume_snapshot.return_value = Mock(status_code=200)
+
+        recover_snapshot(mock_module, mock_array)
+
+        mock_array.patch_volume_snapshot.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_recover_snapshot_local_no_context(self, mock_lv):
+        """Test recover_snapshot local without context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_array.patch_volume_snapshot.return_value = Mock(status_code=200)
+
+        recover_snapshot(mock_module, mock_array)
+
+        mock_array.patch_volume_snapshot.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_recover_snapshot_local_failure(self, mock_lv):
+        """Test recover_snapshot local when API returns error"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": None,
+            "context": "",
+        }
+        mock_module.fail_json = Mock(side_effect=SystemExit(1))
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_error = Mock()
+        mock_error.message = "Snapshot not found"
+        mock_array.patch_volume_snapshot.return_value = Mock(
+            status_code=400, errors=[mock_error]
+        )
+
+        import pytest
+
+        with pytest.raises(SystemExit):
+            recover_snapshot(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestEradicateSnapshotPaths:
+    """Test cases for eradicate_snapshot function with different paths"""
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_snapshot_offload_context_api(
+        self, mock_lv, mock_check_offload, mock_check_response
+    ):
+        """Test eradicate_snapshot with offload using context API"""
+        mock_check_offload.return_value = True
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "pod1",
+            "ignore_repl": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_arr_item = Mock()
+        mock_arr_item.name = "local-array"
+        mock_array.get_arrays.return_value = Mock(items=[mock_arr_item])
+        mock_array.delete_remote_volume_snapshots.return_value = Mock(status_code=200)
+
+        eradicate_snapshot(mock_module, mock_array)
+
+        mock_array.delete_remote_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_snapshot_offload_no_context(
+        self, mock_lv, mock_check_offload, mock_check_response
+    ):
+        """Test eradicate_snapshot with offload, no context API"""
+        mock_check_offload.return_value = True
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "",
+            "ignore_repl": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_arr_item = Mock()
+        mock_arr_item.name = "local-array"
+        mock_array.get_arrays.return_value = Mock(items=[mock_arr_item])
+        mock_array.delete_remote_volume_snapshots.return_value = Mock(status_code=200)
+
+        eradicate_snapshot(mock_module, mock_array)
+
+        mock_array.delete_remote_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap._check_target")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_snapshot_target_context_api(
+        self, mock_lv, mock_check_target, mock_check_offload, mock_check_response
+    ):
+        """Test eradicate_snapshot via target with context API"""
+        mock_check_offload.return_value = False
+        mock_check_target.return_value = True
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "array-target",
+            "context": "pod1",
+            "ignore_repl": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_volume_snapshots.return_value = Mock(status_code=200)
+
+        eradicate_snapshot(mock_module, mock_array)
+
+        mock_array.delete_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch("plugins.modules.purefa_snap._check_target")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_snapshot_target_no_context(
+        self, mock_lv, mock_check_target, mock_check_offload, mock_check_response
+    ):
+        """Test eradicate_snapshot via target without context API"""
+        mock_check_offload.return_value = False
+        mock_check_target.return_value = True
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": "array-target",
+            "context": "",
+            "ignore_repl": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_array.delete_volume_snapshots.return_value = Mock(status_code=200)
+
+        eradicate_snapshot(mock_module, mock_array)
+
+        mock_array.delete_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_snapshot_local_context_api(self, mock_lv, mock_check_response):
+        """Test eradicate_snapshot local with context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": None,
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_volume_snapshots.return_value = Mock(status_code=200)
+
+        eradicate_snapshot(mock_module, mock_array)
+
+        mock_array.delete_volume_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_snap.check_response")
+    @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_snapshot_local_no_context(self, mock_lv, mock_check_response):
+        """Test eradicate_snapshot local without context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vol",
+            "suffix": "snap1",
+            "offload": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_array.delete_volume_snapshots.return_value = Mock(status_code=200)
+
+        eradicate_snapshot(mock_module, mock_array)
+
         mock_array.delete_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
