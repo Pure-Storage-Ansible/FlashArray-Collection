@@ -2705,3 +2705,172 @@ class TestUpdateInterfaceEmptyGatewayException:
             update_interface(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateInterfaceGatewayOnlyBugFixes:
+    """Test cases for gateway-only operations that previously caused AddrFormatError"""
+
+    @patch("plugins.modules.purefa_network.check_response")
+    def test_set_gateway_only_no_existing_address(self, mock_check_response):
+        """Test setting gateway when no IP address is configured - should not crash"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "ct0.eth0",
+            "state": "present",
+            "address": None,
+            "gateway": "10.0.0.1",
+            "mtu": 1500,
+            "servicelist": None,
+            "enabled": True,
+            "subinterfaces": None,
+            "subordinates": None,
+        }
+        mock_array = Mock()
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_interface.eth = Mock()
+        mock_interface.eth.address = None  # No existing address
+        mock_interface.eth.netmask = None
+        mock_interface.eth.gateway = None  # No existing gateway
+        mock_interface.eth.mtu = 1500
+        mock_interface.eth.subinterfaces = []
+        mock_interface.eth.subordinates = None
+        mock_interface.services = ["replication"]
+        mock_interface.enabled = True
+        mock_array.get_network_interfaces.return_value = Mock(
+            status_code=200, items=[mock_interface]
+        )
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+
+        # Should not raise AddrFormatError
+        update_interface(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_network.valid_ipv4")
+    @patch("plugins.modules.purefa_network.IPNetwork")
+    @patch("plugins.modules.purefa_network.check_response")
+    def test_clear_ipv4_address_without_gateway(
+        self, mock_check_response, mock_ipnetwork, mock_valid_ipv4
+    ):
+        """Test clearing IPv4 address with 0.0.0.0/0 without specifying gateway - should not crash"""
+        mock_valid_ipv4.return_value = True
+        mock_net = Mock()
+        mock_net.netmask = "0.0.0.0"
+        mock_ipnetwork.return_value = mock_net
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "ct0.eth0",
+            "state": "present",
+            "address": "0.0.0.0/0",  # Clear address
+            "gateway": None,  # No gateway specified
+            "mtu": 1500,
+            "servicelist": None,
+            "enabled": True,
+            "subinterfaces": None,
+            "subordinates": None,
+        }
+        mock_array = Mock()
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_interface.eth = Mock()
+        mock_interface.eth.address = "10.0.0.5"  # Existing address
+        mock_interface.eth.netmask = "255.255.255.0"
+        mock_interface.eth.gateway = "10.0.0.1"  # Existing gateway
+        mock_interface.eth.mtu = 1500
+        mock_interface.eth.subinterfaces = []
+        mock_interface.eth.subordinates = None
+        mock_interface.services = ["replication"]  # Not management/app, so allowed
+        mock_interface.enabled = True
+        mock_array.get_network_interfaces.return_value = Mock(
+            status_code=200, items=[mock_interface]
+        )
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+
+        # Should not raise AddrFormatError: failed to detect a valid IP address from ''
+        update_interface(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_network.valid_ipv4")
+    @patch("plugins.modules.purefa_network.IPNetwork")
+    @patch("plugins.modules.purefa_network.check_response")
+    def test_clear_ipv6_address_without_gateway(
+        self, mock_check_response, mock_ipnetwork, mock_valid_ipv4
+    ):
+        """Test clearing IPv6 address with ::/0 without specifying gateway - should work"""
+        mock_valid_ipv4.return_value = False  # IPv6
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "ct0.eth0",
+            "state": "present",
+            "address": "::/0",  # Clear IPv6 address
+            "gateway": None,  # No gateway specified
+            "mtu": 1500,
+            "servicelist": None,
+            "enabled": True,
+            "subinterfaces": None,
+            "subordinates": None,
+        }
+        mock_array = Mock()
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_interface.eth = Mock()
+        mock_interface.eth.address = "2001:db8::5"  # Existing IPv6 address
+        mock_interface.eth.netmask = "64"
+        mock_interface.eth.gateway = "2001:db8::1"  # Existing gateway
+        mock_interface.eth.mtu = 1500
+        mock_interface.eth.subinterfaces = []
+        mock_interface.eth.subordinates = None
+        mock_interface.services = ["replication"]
+        mock_interface.enabled = True
+        mock_array.get_network_interfaces.return_value = Mock(
+            status_code=200, items=[mock_interface]
+        )
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+
+        update_interface(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_network.check_response")
+    def test_set_ipv6_gateway_only_no_existing_address(self, mock_check_response):
+        """Test setting IPv6 gateway when no IP address is configured"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "ct0.eth0",
+            "state": "present",
+            "address": None,
+            "gateway": "2001:db8::1",  # IPv6 gateway
+            "mtu": 1500,
+            "servicelist": None,
+            "enabled": True,
+            "subinterfaces": None,
+            "subordinates": None,
+        }
+        mock_array = Mock()
+        mock_interface = Mock()
+        mock_interface.name = "ct0.eth0"
+        mock_interface.eth = Mock()
+        mock_interface.eth.address = None
+        mock_interface.eth.netmask = None
+        mock_interface.eth.gateway = None
+        mock_interface.eth.mtu = 1500
+        mock_interface.eth.subinterfaces = []
+        mock_interface.eth.subordinates = None
+        mock_interface.services = ["replication"]
+        mock_interface.enabled = True
+        mock_array.get_network_interfaces.return_value = Mock(
+            status_code=200, items=[mock_interface]
+        )
+        mock_array.patch_network_interfaces.return_value = Mock(status_code=200)
+
+        update_interface(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)

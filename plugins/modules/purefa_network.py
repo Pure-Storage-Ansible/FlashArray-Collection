@@ -407,13 +407,19 @@ def update_interface(module, array):
 
     if module.params["gateway"] and module.params["gateway"] in ["0.0.0.0", "::"]:
         new_state["gateway"] = ""
-    elif new_state["address"] and valid_ipv4(new_state["address"]):
-        cidr = str(IPAddress(new_state["netmask"]).netmask_bits())
-        full_addr = new_state["address"] + "/" + cidr
-        if module.params["gateway"] not in IPNetwork(full_addr):
-            module.fail_json(msg="Gateway and subnet are not compatible.")
-        new_state["gateway"] = module.params["gateway"]
-    else:
+    elif module.params["gateway"]:
+        # Only validate gateway against subnet if we have a valid address and netmask
+        # Skip validation if address is being cleared (0.0.0.0 or ::) or netmask is empty
+        if (
+            new_state["address"]
+            and new_state["address"] not in ["0.0.0.0", "::"]
+            and new_state["netmask"]
+            and valid_ipv4(new_state["address"])
+        ):
+            cidr = str(IPAddress(new_state["netmask"]).netmask_bits())
+            full_addr = new_state["address"] + "/" + cidr
+            if module.params["gateway"] not in IPNetwork(full_addr):
+                module.fail_json(msg="Gateway and subnet are not compatible.")
         new_state["gateway"] = module.params["gateway"]
 
     if new_state["address"]:
