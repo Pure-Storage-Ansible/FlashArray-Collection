@@ -2013,7 +2013,8 @@ def update_policy(module, array, api_version, all_squash):
         }
         new_pwd_policy = current_pwd_policy.copy()
         if (
-            module.params["enforce_dictionary_check"]
+            module.params["enforce_dictionary_check"] is not None
+            and module.params["enforce_dictionary_check"]
             != current_pwd_policy["enforce_dictionary_check"]
         ):
             new_pwd_policy["enforce_dictionary_check"] = module.params[
@@ -2021,7 +2022,8 @@ def update_policy(module, array, api_version, all_squash):
             ]
             changed = True
         if (
-            module.params["enforce_username_check"]
+            module.params["enforce_username_check"] is not None
+            and module.params["enforce_username_check"]
             != current_pwd_policy["enforce_username_check"]
         ):
             new_pwd_policy["enforce_username_check"] = module.params[
@@ -2029,7 +2031,8 @@ def update_policy(module, array, api_version, all_squash):
             ]
             changed = True
         if (
-            module.params["min_character_groups"]
+            module.params["min_character_groups"] is not None
+            and module.params["min_character_groups"]
             != current_pwd_policy["min_character_groups"]
         ):
             new_pwd_policy["min_character_groups"] = module.params[
@@ -2037,7 +2040,8 @@ def update_policy(module, array, api_version, all_squash):
             ]
             changed = True
         if (
-            module.params["min_characters_per_group"]
+            module.params["min_characters_per_group"] is not None
+            and module.params["min_characters_per_group"]
             != current_pwd_policy["min_characters_per_group"]
         ):
             new_pwd_policy["min_characters_per_group"] = module.params[
@@ -2045,7 +2049,8 @@ def update_policy(module, array, api_version, all_squash):
             ]
             changed = True
         if (
-            module.params["min_password_length"]
+            module.params["min_password_length"] is not None
+            and module.params["min_password_length"]
             != current_pwd_policy["min_password_length"]
         ):
             new_pwd_policy["min_password_length"] = module.params["min_password_length"]
@@ -2081,7 +2086,7 @@ def update_policy(module, array, api_version, all_squash):
                 module.params["lockout_duration"] * 1000
                 != current_pwd_policy["lockout_duration"]
             ):
-                current_pwd_policy["lockout_duration"] = (
+                new_pwd_policy["lockout_duration"] = (
                     module.params["lockout_duration"] * 1000
                 )
                 changed = True
@@ -2265,7 +2270,7 @@ def update_policy(module, array, api_version, all_squash):
                         new_rule_config["quota"] = quota
                     if module.params["quota_notifications"]:
                         if "none" in module.params["quota_notifications"]:
-                            module.params["quota_notifications"] == ["none"]
+                            module.params["quota_notifications"] = ["none"]
                         new_notifications = ",".join(
                             sorted(module.params["quota_notifications"], reverse=True)
                         )
@@ -2307,7 +2312,7 @@ def update_policy(module, array, api_version, all_squash):
                             current_notifications = "none"
                         else:
                             if "none" in module.params["quota_notifications"]:
-                                module.params["quota_notifications"] == ["none"]
+                                module.params["quota_notifications"] = ["none"]
                             current_notifications = ",".join(
                                 module.params["quota_notifications"]
                             )
@@ -2324,7 +2329,7 @@ def update_policy(module, array, api_version, all_squash):
                                 msg="Only one enforced rule can be defined per policy"
                             )
                         if "none" in module.params["quota_notifications"]:
-                            module.params["quota_notifications"] == ["none"]
+                            module.params["quota_notifications"] = ["none"]
                         notifications = ",".join(module.params["quota_notifications"])
                         rules = PolicyrulequotapostRules(
                             enforced=module.params["quota_enforced"],
