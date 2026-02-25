@@ -1,0 +1,5 @@
+bugfixes:
+  - purefa_policy - Fixed lockout_duration not being applied when updating password policy
+  - purefa_policy - Fixed quota_notifications normalization using wrong operator
+  - purefa_policy - Fixed password policy params being set to None when updating other params
+

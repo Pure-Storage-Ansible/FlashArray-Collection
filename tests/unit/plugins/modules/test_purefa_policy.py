@@ -3951,3 +3951,357 @@ class TestDeleteQuotaPolicyNoRulesNoDirectory:
 
         mock_delete.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdatePasswordPolicyBugFixes:
+    """Test cases for password policy bug fixes - lockout_duration and None checks"""
+
+    @patch("plugins.modules.purefa_policy.check_response")
+    @patch("plugins.modules.purefa_policy.patch_with_context")
+    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPassword")
+    def test_update_lockout_duration_only(
+        self, mock_pwd, mock_lv, mock_get, mock_patch, mock_check
+    ):
+        """Test updating only lockout_duration doesn't set other params to None.
+        Bug fix: lockout_duration was updating current_pwd_policy instead of new_pwd_policy
+        """
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "password_policy",
+            "policy": "password",
+            "enabled": True,
+            # Only lockout_duration provided, others are None
+            "enforce_dictionary_check": None,
+            "enforce_username_check": None,
+            "min_character_groups": None,
+            "min_characters_per_group": None,
+            "min_password_length": None,
+            "min_password_age": None,
+            "max_password_age": None,
+            "max_login_attempts": None,
+            "lockout_duration": 1200,  # User wants to change this from 600 to 1200
+            "password_history": None,
+            "directory": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock current password policy
+        mock_policy = Mock()
+        mock_policy.enabled = True
+        mock_policy.enforce_dictionary_check = True  # Current value
+        mock_policy.enforce_username_check = True
+        mock_policy.min_character_groups = 2
+        mock_policy.min_characters_per_group = 1
+        mock_policy.min_password_length = 12
+        mock_policy.min_password_age = 0
+        mock_policy.max_password_age = 0
+        mock_policy.max_login_attempts = 5
+        mock_policy.lockout_duration = 600000  # 600 seconds in ms
+        mock_policy.password_history = 0
+
+        mock_get.return_value = Mock(status_code=200, items=[mock_policy])
+        mock_patch.return_value = Mock(status_code=200)
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        # Verify patch was called with the new lockout_duration value
+        mock_patch.assert_called()
+        # Verify PolicyPassword was constructed with correct values
+        mock_pwd.assert_called_once()
+        call_kwargs = mock_pwd.call_args[1]
+        # lockout_duration should be 1200 * 1000 = 1200000 ms
+        assert call_kwargs["lockout_duration"] == 1200000
+        # Other params should retain current values (not None)
+        assert call_kwargs["enforce_dictionary_check"] is True
+        assert call_kwargs["enforce_username_check"] is True
+        assert call_kwargs["min_character_groups"] == 2
+        assert call_kwargs["min_characters_per_group"] == 1
+        assert call_kwargs["min_password_length"] == 12
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.check_response")
+    @patch("plugins.modules.purefa_policy.patch_with_context")
+    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPassword")
+    def test_update_enforce_dictionary_check_false(
+        self, mock_pwd, mock_lv, mock_get, mock_patch, mock_check
+    ):
+        """Test explicitly setting enforce_dictionary_check to False works correctly.
+        Bug fix: params without None check could be set to None unintentionally
+        """
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "password_policy",
+            "policy": "password",
+            "enabled": True,
+            "enforce_dictionary_check": False,  # Explicitly setting to False
+            "enforce_username_check": None,
+            "min_character_groups": None,
+            "min_characters_per_group": None,
+            "min_password_length": None,
+            "min_password_age": None,
+            "max_password_age": None,
+            "max_login_attempts": None,
+            "lockout_duration": None,
+            "password_history": None,
+            "directory": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        mock_policy = Mock()
+        mock_policy.enabled = True
+        mock_policy.enforce_dictionary_check = True  # Currently True
+        mock_policy.enforce_username_check = True
+        mock_policy.min_character_groups = 2
+        mock_policy.min_characters_per_group = 1
+        mock_policy.min_password_length = 12
+        mock_policy.min_password_age = 0
+        mock_policy.max_password_age = 0
+        mock_policy.max_login_attempts = 5
+        mock_policy.lockout_duration = 600000
+        mock_policy.password_history = 0
+
+        mock_get.return_value = Mock(status_code=200, items=[mock_policy])
+        mock_patch.return_value = Mock(status_code=200)
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        mock_pwd.assert_called_once()
+        call_kwargs = mock_pwd.call_args[1]
+        # enforce_dictionary_check should be False (changed)
+        assert call_kwargs["enforce_dictionary_check"] is False
+        # Other params should retain current values
+        assert call_kwargs["enforce_username_check"] is True
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.check_response")
+    @patch("plugins.modules.purefa_policy.patch_with_context")
+    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyPassword")
+    def test_update_min_password_length_only(
+        self, mock_pwd, mock_lv, mock_get, mock_patch, mock_check
+    ):
+        """Test updating only min_password_length preserves other params.
+        Bug fix: min_password_length didn't have None check
+        """
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "password_policy",
+            "policy": "password",
+            "enabled": True,
+            "enforce_dictionary_check": None,
+            "enforce_username_check": None,
+            "min_character_groups": None,
+            "min_characters_per_group": None,
+            "min_password_length": 16,  # Changing from 12 to 16
+            "min_password_age": None,
+            "max_password_age": None,
+            "max_login_attempts": None,
+            "lockout_duration": None,
+            "password_history": None,
+            "directory": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        mock_policy = Mock()
+        mock_policy.enabled = True
+        mock_policy.enforce_dictionary_check = True
+        mock_policy.enforce_username_check = True
+        mock_policy.min_character_groups = 2
+        mock_policy.min_characters_per_group = 1
+        mock_policy.min_password_length = 12  # Current value
+        mock_policy.min_password_age = 0
+        mock_policy.max_password_age = 0
+        mock_policy.max_login_attempts = 5
+        mock_policy.lockout_duration = 600000
+        mock_policy.password_history = 0
+
+        mock_get.return_value = Mock(status_code=200, items=[mock_policy])
+        mock_patch.return_value = Mock(status_code=200)
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        mock_pwd.assert_called_once()
+        call_kwargs = mock_pwd.call_args[1]
+        assert call_kwargs["min_password_length"] == 16
+        # Other params should retain current values
+        assert call_kwargs["enforce_dictionary_check"] is True
+        assert call_kwargs["min_character_groups"] == 2
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    def test_no_change_when_all_params_none(self, mock_lv, mock_get):
+        """Test no change is made when all password params are None.
+        Bug fix: ensure None params don't trigger changes
+        """
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "password_policy",
+            "policy": "password",
+            "enabled": True,  # Same as current
+            # All password params are None
+            "enforce_dictionary_check": None,
+            "enforce_username_check": None,
+            "min_character_groups": None,
+            "min_characters_per_group": None,
+            "min_password_length": None,
+            "min_password_age": None,
+            "max_password_age": None,
+            "max_login_attempts": None,
+            "lockout_duration": None,
+            "password_history": None,
+            "directory": None,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        mock_policy = Mock()
+        mock_policy.enabled = True
+        mock_policy.enforce_dictionary_check = True
+        mock_policy.enforce_username_check = True
+        mock_policy.min_character_groups = 2
+        mock_policy.min_characters_per_group = 1
+        mock_policy.min_password_length = 12
+        mock_policy.min_password_age = 0
+        mock_policy.max_password_age = 0
+        mock_policy.max_login_attempts = 5
+        mock_policy.lockout_duration = 600000
+        mock_policy.password_history = 0
+
+        mock_get.return_value = Mock(status_code=200, items=[mock_policy])
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        # No patch should be called - no changes
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestUpdateQuotaPolicyBugFixes:
+    """Test cases for quota policy bug fixes - quota_notifications assignment"""
+
+    @patch("plugins.modules.purefa_policy.check_response")
+    @patch("plugins.modules.purefa_policy.patch_with_context")
+    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyRuleQuotaPatch")
+    @patch("plugins.modules.purefa_policy.PolicyrulequotapatchRules")
+    @patch("plugins.modules.purefa_policy.human_to_bytes")
+    def test_update_quota_notifications_with_none_value(
+        self,
+        mock_human,
+        mock_rules,
+        mock_rule_patch,
+        mock_lv,
+        mock_get,
+        mock_patch,
+        mock_check,
+    ):
+        """Test quota_notifications with 'none' in list normalizes to ['none'].
+        Bug fix: code used == instead of = for assignment
+        """
+        mock_human.return_value = 100 * 1024 * 1024 * 1024  # 100GB
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "quota_policy",
+            "policy": "quota",
+            "enabled": True,
+            "quota_limit": "100G",
+            "quota_enforced": True,
+            "quota_notifications": ["none", "warning"],  # Contains 'none'
+            "directory": None,
+            "ignore_usage": False,
+            "rule_name": "rule1",  # Required for rule update path
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        mock_policy = Mock()
+        mock_policy.enabled = True
+
+        mock_rule_item = Mock()
+        mock_rule_item.name = "rule1"
+        mock_rule_item.quota_limit = 100 * 1024 * 1024 * 1024  # 100GB
+        mock_rule_item.enforced = True
+        mock_rule_item.notifications = "warning"  # Different from 'none'
+
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_policy]),  # get_policies_quota
+            Mock(
+                status_code=200, items=[mock_rule_item]
+            ),  # get_policies_quota_rules (for current_rules)
+            Mock(
+                status_code=200, items=[mock_rule_item]
+            ),  # get_policies_quota_rules (for rule_name filter)
+        ]
+        mock_patch.return_value = Mock(status_code=200)
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        # After the fix, quota_notifications should be normalized to ['none']
+        # The patch should be called to update the rule
+        mock_patch.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_policy.check_response")
+    @patch("plugins.modules.purefa_policy.post_with_context")
+    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_policy.PolicyrulequotapostRules")
+    @patch("plugins.modules.purefa_policy.PolicyRuleQuotaPost")
+    def test_create_quota_rule_with_none_notification(
+        self, mock_rule_post, mock_rules, mock_lv, mock_get, mock_post, mock_check
+    ):
+        """Test creating quota rule with 'none' in notifications.
+        Bug fix: code used == instead of = when creating new rule
+        """
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "quota_policy",
+            "policy": "quota",
+            "enabled": True,
+            "quota_limit": "100G",
+            "quota_enforced": True,
+            "quota_notifications": ["none"],  # 'none' notification
+            "directory": None,
+            "ignore_usage": False,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        mock_policy = Mock()
+        mock_policy.enabled = True
+
+        # No existing rule
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_policy]),  # get_policies_quota
+            Mock(status_code=200, items=[]),  # get_directories_policies_quota
+            Mock(status_code=200, items=[]),  # get_policies_quota_rules (empty)
+        ]
+        mock_post.return_value = Mock(status_code=200)
+
+        update_policy(mock_module, mock_array, "2.38", False)
+
+        # Should create a new rule with 'none' notification
+        mock_post.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
