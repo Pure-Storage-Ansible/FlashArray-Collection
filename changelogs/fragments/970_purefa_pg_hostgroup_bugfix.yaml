@@ -1,0 +1,3 @@
+bugfixes:
+  - purefa_pg - Fixed adding hostgroups to empty protection group using wrong parameter
+

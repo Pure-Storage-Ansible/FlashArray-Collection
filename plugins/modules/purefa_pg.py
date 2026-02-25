@@ -856,12 +856,12 @@ def update_pgroup(module, array):
                     res = array.post_protection_groups_host_groups(
                         group_names=[module.params["name"]],
                         context_names=[module.params["context"]],
-                        member_names=module.params["host"],
+                        member_names=module.params["hostgroup"],
                     )
                 else:
                     res = array.post_protection_groups_host_groups(
                         group_names=[module.params["name"]],
-                        member_names=module.params["host"],
+                        member_names=module.params["hostgroup"],
                     )
                 check_response(
                     res,
