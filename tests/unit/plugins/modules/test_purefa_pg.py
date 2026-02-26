@@ -1292,3 +1292,156 @@ class TestEradicatePgroupExtended:
         call_kwargs = mock_array.delete_protection_groups.call_args[1]
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdatePgroupHostgroupBugFix:
+    """Test case for hostgroup bug fix - was using host param instead of hostgroup"""
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_add_hostgroup_to_empty_pgroup_uses_hostgroup_param(
+        self, mock_lv, mock_check_response, mock_get_pgroup_sched
+    ):
+        """Test adding hostgroup to empty pgroup uses hostgroup param not host
+
+        Bug: When adding hostgroups to an existing empty protection group,
+        the code was passing module.params["host"] instead of module.params["hostgroup"]
+        causing 'Missing or invalid parameter' error.
+        """
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": None,
+            "host": None,  # host is None
+            "hostgroup": ["hg1", "hg2"],  # hostgroup is set
+            "target": None,
+            "priority": None,
+            "priority_adjustment": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Empty protection group
+        mock_pg = Mock()
+        mock_pg.volume_count = 0
+        mock_pg.host_count = 0
+        mock_pg.host_group_count = 0
+        mock_pg.retention_lock = "unlocked"
+        mock_get_pgroup_sched.return_value = Mock()
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+        mock_array.post_protection_groups_host_groups.return_value = Mock(
+            status_code=200
+        )
+
+        update_pgroup(mock_module, mock_array)
+
+        # Verify hostgroup param was used, not host param
+        mock_array.post_protection_groups_host_groups.assert_called_once()
+        call_kwargs = mock_array.post_protection_groups_host_groups.call_args[1]
+        assert call_kwargs["member_names"] == ["hg1", "hg2"]
+        assert call_kwargs["member_names"] is not None  # Would be None if using host
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_add_host_to_empty_pgroup_uses_host_param(
+        self, mock_lv, mock_check_response, mock_get_pgroup_sched
+    ):
+        """Test adding host to empty pgroup correctly uses host param"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": None,
+            "host": ["host1", "host2"],  # host is set
+            "hostgroup": None,  # hostgroup is None
+            "target": None,
+            "priority": None,
+            "priority_adjustment": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Empty protection group
+        mock_pg = Mock()
+        mock_pg.volume_count = 0
+        mock_pg.host_count = 0
+        mock_pg.host_group_count = 0
+        mock_pg.retention_lock = "unlocked"
+        mock_get_pgroup_sched.return_value = Mock()
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+        mock_array.post_protection_groups_hosts.return_value = Mock(status_code=200)
+
+        update_pgroup(mock_module, mock_array)
+
+        # Verify host param was used correctly
+        mock_array.post_protection_groups_hosts.assert_called_once()
+        call_kwargs = mock_array.post_protection_groups_hosts.call_args[1]
+        assert call_kwargs["member_names"] == ["host1", "host2"]
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_add_volume_to_empty_pgroup_uses_volume_param(
+        self, mock_lv, mock_check_response, mock_get_pgroup_sched
+    ):
+        """Test adding volume to empty pgroup correctly uses volume param"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": ["vol1", "vol2"],  # volume is set
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "priority": None,
+            "priority_adjustment": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Empty protection group
+        mock_pg = Mock()
+        mock_pg.volume_count = 0
+        mock_pg.host_count = 0
+        mock_pg.host_group_count = 0
+        mock_pg.retention_lock = "unlocked"
+        mock_get_pgroup_sched.return_value = Mock()
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+        mock_array.post_protection_groups_volumes.return_value = Mock(status_code=200)
+
+        update_pgroup(mock_module, mock_array)
+
+        # Verify volume param was used correctly
+        mock_array.post_protection_groups_volumes.assert_called_once()
+        call_kwargs = mock_array.post_protection_groups_volumes.call_args[1]
+        assert call_kwargs["member_names"] == ["vol1", "vol2"]
+        mock_module.exit_json.assert_called()
