@@ -2374,3 +2374,470 @@ class TestDeleteHostWithHostGroup:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
         assert mock_get.call_count == 4
+
+
+class TestSetChapSecurityValidation:
+    """Test cases for CHAP password validation in _set_chap_security"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_host_password_too_short_fails(self, mock_get, mock_check):
+        """Test that host_password < 12 characters fails validation"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-host",
+            "host_user": "user1",
+            "host_password": "short",  # < 12 chars
+            "target_user": None,
+            "target_password": None,
+            "context": "",
+        }
+        mock_array = Mock()
+
+        _set_chap_security(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "12" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_target_password_too_short_fails(self, mock_get, mock_check):
+        """Test that target_password < 12 characters fails validation"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-host",
+            "host_user": None,
+            "host_password": None,
+            "target_user": "target1",
+            "target_password": "tooshort",  # < 12 chars
+            "context": "",
+        }
+        mock_array = Mock()
+
+        _set_chap_security(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "12" in str(mock_module.fail_json.call_args)
+
+
+class TestSetVlanFailure:
+    """Test cases for VLAN set failure path"""
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_set_vlan_failure_warns(self, mock_get):
+        """Test that failed VLAN set triggers warning"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-host",
+            "vlan": "100",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_error = Mock()
+        mock_error.message = "VLAN not supported"
+        mock_get.return_value = Mock(status_code=400, errors=[mock_error])
+
+        _set_vlan(mock_module, mock_array)
+
+        mock_module.warn.assert_called_once()
+        assert "VLAN" in str(mock_module.warn.call_args)
+
+
+class TestUpdateVlanPaths:
+    """Test cases for _update_vlan function"""
+
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_vlan_changes_value(self, mock_get, mock_check):
+        """Test VLAN update when value differs"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "vlan": "200",
+            "context": "",
+        }
+        mock_array = Mock()
+
+        # Current host has vlan=100
+        mock_host = Mock()
+        mock_host.vlan = "100"
+        mock_get.side_effect = [
+            Mock(status_code=200, items=[mock_host]),  # get_hosts
+            Mock(status_code=200),  # patch_hosts
+        ]
+
+        result = _update_vlan(mock_module, mock_array)
+
+        assert result is True
+        assert mock_get.call_count == 2
+
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_update_vlan_no_change(self, mock_get):
+        """Test VLAN update when value is the same"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "vlan": "100",
+            "context": "",
+        }
+        mock_array = Mock()
+
+        # Current host already has vlan=100
+        mock_host = Mock()
+        mock_host.vlan = "100"
+        mock_get.return_value = Mock(status_code=200, items=[mock_host])
+
+        result = _update_vlan(mock_module, mock_array)
+
+        assert result is False
+        mock_get.assert_called_once()
+
+
+class TestMakeHostWithAllOptions:
+    """Test cases for make_host with personality, preferred_array, and CHAP"""
+
+    @patch("plugins.modules.purefa_host._set_chap_security")
+    @patch("plugins.modules.purefa_host._set_preferred_array")
+    @patch("plugins.modules.purefa_host._set_host_personality")
+    @patch("plugins.modules.purefa_host._set_host_initiators")
+    @patch("plugins.modules.purefa_host._set_vlan")
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_make_host_with_personality(
+        self,
+        mock_get,
+        mock_check,
+        mock_set_vlan,
+        mock_set_init,
+        mock_set_pers,
+        mock_set_pref,
+        mock_set_chap,
+    ):
+        """Test make_host calls _set_host_personality when personality is set"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "vlan": None,
+            "personality": "esxi",
+            "preferred_array": None,
+            "host_user": None,
+            "target_user": None,
+            "volume": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get.return_value = Mock(status_code=200)
+
+        make_host(mock_module, mock_array)
+
+        mock_set_pers.assert_called_once()
+        mock_set_pref.assert_not_called()
+        mock_set_chap.assert_not_called()
+
+    @patch("plugins.modules.purefa_host._set_chap_security")
+    @patch("plugins.modules.purefa_host._set_preferred_array")
+    @patch("plugins.modules.purefa_host._set_host_personality")
+    @patch("plugins.modules.purefa_host._set_host_initiators")
+    @patch("plugins.modules.purefa_host._set_vlan")
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_make_host_with_preferred_array(
+        self,
+        mock_get,
+        mock_check,
+        mock_set_vlan,
+        mock_set_init,
+        mock_set_pers,
+        mock_set_pref,
+        mock_set_chap,
+    ):
+        """Test make_host calls _set_preferred_array when preferred_array is set"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "vlan": None,
+            "personality": None,
+            "preferred_array": ["array1"],
+            "host_user": None,
+            "target_user": None,
+            "volume": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get.return_value = Mock(status_code=200)
+
+        make_host(mock_module, mock_array)
+
+        mock_set_pers.assert_not_called()
+        mock_set_pref.assert_called_once()
+        mock_set_chap.assert_not_called()
+
+    @patch("plugins.modules.purefa_host._set_chap_security")
+    @patch("plugins.modules.purefa_host._set_preferred_array")
+    @patch("plugins.modules.purefa_host._set_host_personality")
+    @patch("plugins.modules.purefa_host._set_host_initiators")
+    @patch("plugins.modules.purefa_host._set_vlan")
+    @patch("plugins.modules.purefa_host.check_response")
+    @patch("plugins.modules.purefa_host.get_with_context")
+    def test_make_host_with_chap(
+        self,
+        mock_get,
+        mock_check,
+        mock_set_vlan,
+        mock_set_init,
+        mock_set_pers,
+        mock_set_pref,
+        mock_set_chap,
+    ):
+        """Test make_host calls _set_chap_security when CHAP is set"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "vlan": None,
+            "personality": None,
+            "preferred_array": None,
+            "host_user": "user1",
+            "target_user": None,
+            "volume": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_get.return_value = Mock(status_code=200)
+
+        make_host(mock_module, mock_array)
+
+        mock_set_pers.assert_not_called()
+        mock_set_pref.assert_not_called()
+        mock_set_chap.assert_called_once()
+
+
+class TestUpdateHostWithAllOptions:
+    """Test cases for update_host with all update paths"""
+
+    @patch("plugins.modules.purefa_host._update_vlan")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
+    )
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
+    def test_update_host_with_vlan(
+        self, mock_lv, mock_get, mock_api_version, mock_update_vlan
+    ):
+        """Test update_host calls _update_vlan when vlan is set"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "rename": None,
+            "state": "present",
+            "vlan": "100",
+            "iqn": None,
+            "wwns": None,
+            "nqn": None,
+            "volume": None,
+            "personality": None,
+            "preferred_array": None,
+            "host_user": None,
+            "target_user": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_api_version.return_value = "2.38"
+        mock_get.return_value = Mock(status_code=200, items=[])
+        mock_update_vlan.return_value = True
+
+        update_host(mock_module, mock_array)
+
+        mock_update_vlan.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_host._update_host_initiators")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
+    )
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
+    def test_update_host_with_initiators(
+        self, mock_lv, mock_get, mock_api_version, mock_update_init
+    ):
+        """Test update_host calls _update_host_initiators when IQN is set"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "rename": None,
+            "state": "present",
+            "vlan": None,
+            "iqn": ["iqn.2020-01.com.example:host1"],
+            "wwns": None,
+            "nqn": None,
+            "volume": None,
+            "personality": None,
+            "preferred_array": None,
+            "host_user": None,
+            "target_user": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_api_version.return_value = "2.38"
+        mock_get.return_value = Mock(status_code=200, items=[])
+        mock_update_init.return_value = True
+
+        update_host(mock_module, mock_array)
+
+        mock_update_init.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_host._connect_new_volume")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
+    )
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
+    def test_update_host_connect_new_volume(
+        self, mock_lv, mock_get, mock_api_version, mock_connect
+    ):
+        """Test update_host calls _connect_new_volume when volume not connected"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "rename": None,
+            "state": "present",
+            "vlan": None,
+            "iqn": None,
+            "wwns": None,
+            "nqn": None,
+            "volume": "new-vol",
+            "personality": None,
+            "preferred_array": None,
+            "host_user": None,
+            "target_user": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_api_version.return_value = "2.38"
+        # No existing volume connections
+        mock_get.return_value = Mock(status_code=200, items=[])
+        mock_connect.return_value = True
+
+        update_host(mock_module, mock_array)
+
+        mock_connect.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_host._update_host_personality")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
+    )
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
+    def test_update_host_with_personality(
+        self, mock_lv, mock_get, mock_api_version, mock_update_pers
+    ):
+        """Test update_host calls _update_host_personality when personality is set"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "rename": None,
+            "state": "present",
+            "vlan": None,
+            "iqn": None,
+            "wwns": None,
+            "nqn": None,
+            "volume": None,
+            "personality": "esxi",
+            "preferred_array": None,
+            "host_user": None,
+            "target_user": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_api_version.return_value = "2.38"
+        mock_get.return_value = Mock(status_code=200, items=[])
+        mock_update_pers.return_value = True
+
+        update_host(mock_module, mock_array)
+
+        mock_update_pers.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_host._update_preferred_array")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
+    )
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
+    def test_update_host_with_preferred_array(
+        self, mock_lv, mock_get, mock_api_version, mock_update_pref
+    ):
+        """Test update_host calls _update_preferred_array when preferred_array is set"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "rename": None,
+            "state": "present",
+            "vlan": None,
+            "iqn": None,
+            "wwns": None,
+            "nqn": None,
+            "volume": None,
+            "personality": None,
+            "preferred_array": ["array1"],
+            "host_user": None,
+            "target_user": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_api_version.return_value = "2.38"
+        mock_get.return_value = Mock(status_code=200, items=[])
+        mock_update_pref.return_value = True
+
+        update_host(mock_module, mock_array)
+
+        mock_update_pref.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_host._update_chap_security")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
+    )
+    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
+    def test_update_host_with_chap(
+        self, mock_lv, mock_get, mock_api_version, mock_update_chap
+    ):
+        """Test update_host calls _update_chap_security when CHAP is set"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-host",
+            "rename": None,
+            "state": "present",
+            "vlan": None,
+            "iqn": None,
+            "wwns": None,
+            "nqn": None,
+            "volume": None,
+            "personality": None,
+            "preferred_array": None,
+            "host_user": "user1",
+            "target_user": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_api_version.return_value = "2.38"
+        mock_get.return_value = Mock(status_code=200, items=[])
+        mock_update_chap.return_value = True
+
+        update_host(mock_module, mock_array)
+
+        mock_update_chap.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)

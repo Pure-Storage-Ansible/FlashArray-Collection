@@ -6,8 +6,8 @@ This directory contains the test suite for the Pure Storage FlashArray Ansible C
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 1,292 |
-| **Code Coverage** | 63% |
+| **Total Tests** | 1,333 |
+| **Code Coverage** | 67% |
 | **Test Files** | 68 |
 | **Modules Tested** | 66 |
 
@@ -161,7 +161,7 @@ class TestFunctionName:
 
 ## Coverage by Module
 
-*Last updated: 2026-02-23*
+*Last updated: 2026-02-25*
 
 ### High Coverage (80%+)
 
@@ -183,8 +183,9 @@ class TestFunctionName:
 | Module | Coverage |
 |--------|----------|
 | purefa_volume.py | 79% |
+| purefa_hg.py | 78% |
+| purefa_host.py | 78% |
 | purefa_banner.py | 74% |
-| purefa_host.py | 74% |
 | purefa_vlan.py | 74% |
 | purefa_smtp.py | 73% |
 | purefa_syslog.py | 73% |
@@ -209,6 +210,7 @@ class TestFunctionName:
 | purefa_cbsexpand.py | 65% |
 | purefa_connect.py | 65% |
 | purefa_dns.py | 65% |
+| purefa_policy.py | 65% |
 | purefa_maintenance.py | 64% |
 | purefa_saml.py | 64% |
 | purefa_smis.py | 64% |
@@ -218,7 +220,6 @@ class TestFunctionName:
 | purefa_admin.py | 62% |
 | purefa_alert.py | 62% |
 | purefa_dsrole.py | 62% |
-| purefa_policy.py | 62% |
 | purefa_vg.py | 62% |
 | purefa_vnc.py | 62% |
 | purefa_default_protection.py | 61% |
@@ -243,7 +244,6 @@ class TestFunctionName:
 | purefa_fleet.py | 57% | 60 |
 | purefa_logging.py | 56% | 21 |
 | purefa_pg.py | 55% | 181 |
-| purefa_hg.py | 54% | 105 |
 | purefa_inventory.py | 54% | 34 |
 | purefa_sessions.py | 53% | 34 |
 | purefa_messages.py | 52% | 29 |
