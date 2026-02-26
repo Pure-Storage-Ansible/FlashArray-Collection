@@ -721,3 +721,672 @@ class TestUpdateHostgroupAddHosts:
 
         mock_array.patch_hosts.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestMakeHostgroupWithVolumes:
+    """Test cases for make_hostgroup with volume connections"""
+
+    @patch("plugins.modules.purefa_hg.ConnectionPost")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_make_hostgroup_with_single_volume_and_lun(
+        self, mock_lv, mock_check_response, mock_connection_post
+    ):
+        """Test making hostgroup with single volume and LUN ID"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "host": None,
+            "volume": ["vol1"],
+            "lun": 100,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_host_groups.return_value = Mock(status_code=200)
+        mock_array.post_connections.return_value = Mock(status_code=200)
+
+        make_hostgroup(mock_module, mock_array)
+
+        mock_array.post_host_groups.assert_called_once()
+        mock_array.post_connections.assert_called_once()
+        call_kwargs = mock_array.post_connections.call_args[1]
+        assert call_kwargs["volume_names"] == ["vol1"]
+        # Verify ConnectionPost was called with lun parameter
+        mock_connection_post.assert_called_once_with(lun=100)
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_make_hostgroup_with_multiple_volumes_no_lun(
+        self, mock_lv, mock_check_response
+    ):
+        """Test making hostgroup with multiple volumes without LUN ID"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "host": None,
+            "volume": ["vol1", "vol2", "vol3"],
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_host_groups.return_value = Mock(status_code=200)
+        mock_array.post_connections.return_value = Mock(status_code=200)
+
+        make_hostgroup(mock_module, mock_array)
+
+        mock_array.post_connections.assert_called_once()
+        call_kwargs = mock_array.post_connections.call_args[1]
+        assert call_kwargs["volume_names"] == ["vol1", "vol2", "vol3"]
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_make_hostgroup_with_host_and_volume(self, mock_lv, mock_check_response):
+        """Test making hostgroup with both hosts and volumes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "host": ["host1"],
+            "volume": ["vol1"],
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_host_groups.return_value = Mock(status_code=200)
+        mock_array.post_host_groups_hosts.return_value = Mock(status_code=200)
+        mock_array.post_connections.return_value = Mock(status_code=200)
+
+        make_hostgroup(mock_module, mock_array)
+
+        mock_array.post_host_groups.assert_called_once()
+        mock_array.post_host_groups_hosts.assert_called_once()
+        mock_array.post_connections.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_make_hostgroup_rename_fails(self, mock_lv, mock_check_response):
+        """Test make_hostgroup fails when rename is specified"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": "new-name",
+            "host": None,
+            "volume": None,
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        make_hostgroup(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestUpdateHostgroupAddVolumes:
+    """Test cases for update_hostgroup adding volumes"""
+
+    @patch("plugins.modules.purefa_hg.ConnectionPost")
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_add_single_volume_with_lun_to_existing(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts, mock_connection_post
+    ):
+        """Test adding single volume with LUN to hostgroup with existing volumes"""
+        mock_get_hg_hosts.return_value = []
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "state": "present",
+            "host": None,
+            "volume": ["vol2"],
+            "lun": 50,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Existing volume connection - properly set name attribute
+        mock_vol = Mock()
+        mock_vol.volume.name = "vol1"
+        mock_array.get_connections.return_value = Mock(
+            status_code=200, items=[mock_vol]
+        )
+        mock_array.post_connections.return_value = Mock(status_code=200)
+
+        update_hostgroup(mock_module, mock_array)
+
+        mock_array.post_connections.assert_called_once()
+        call_kwargs = mock_array.post_connections.call_args[1]
+        assert call_kwargs["volume_names"] == ["vol2"]
+        mock_connection_post.assert_called_once_with(lun=50)
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_add_multiple_volumes_to_existing(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts
+    ):
+        """Test adding multiple volumes to hostgroup with existing volumes"""
+        mock_get_hg_hosts.return_value = []
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "state": "present",
+            "host": None,
+            "volume": ["vol2", "vol3"],
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Existing volume connection
+        mock_vol = Mock()
+        mock_vol.volume = Mock(name="vol1")
+        mock_array.get_connections.return_value = Mock(
+            status_code=200, items=[mock_vol]
+        )
+        mock_array.post_connections.return_value = Mock(status_code=200)
+
+        update_hostgroup(mock_module, mock_array)
+
+        # Should be called twice, once per new volume
+        assert mock_array.post_connections.call_count == 2
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.ConnectionPost")
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_add_volume_to_empty_hostgroup_with_lun(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts, mock_connection_post
+    ):
+        """Test adding volume with LUN to empty hostgroup (no existing volumes)"""
+        mock_get_hg_hosts.return_value = []
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "state": "present",
+            "host": None,
+            "volume": ["vol1"],
+            "lun": 100,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # No existing volumes
+        mock_array.get_connections.return_value = Mock(status_code=200, items=[])
+        mock_array.post_connections.return_value = Mock(status_code=200)
+
+        update_hostgroup(mock_module, mock_array)
+
+        mock_array.post_connections.assert_called_once()
+        mock_connection_post.assert_called_once_with(lun=100)
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_add_volumes_to_empty_hostgroup_no_lun(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts
+    ):
+        """Test adding volumes to empty hostgroup without LUN"""
+        mock_get_hg_hosts.return_value = []
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "state": "present",
+            "host": None,
+            "volume": ["vol1", "vol2"],
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_connections.return_value = Mock(status_code=200, items=[])
+        mock_array.post_connections.return_value = Mock(status_code=200)
+
+        update_hostgroup(mock_module, mock_array)
+
+        # Should be called twice, once per volume
+        assert mock_array.post_connections.call_count == 2
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateHostgroupAbsentState:
+    """Test cases for update_hostgroup with state=absent (removing hosts/volumes)"""
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_remove_hosts_from_hostgroup(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts
+    ):
+        """Test removing hosts from hostgroup (state=absent with host param)"""
+        # Existing hosts in hostgroup - properly set name attribute
+        mock_host1 = Mock()
+        mock_host1.member.name = "host1"
+        mock_host2 = Mock()
+        mock_host2.member.name = "host2"
+        mock_get_hg_hosts.return_value = [mock_host1, mock_host2]
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "state": "absent",
+            "host": ["host1"],  # Remove host1
+            "volume": None,
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_connections.return_value = Mock(status_code=200, items=[])
+        mock_array.delete_host_groups_hosts.return_value = Mock(status_code=200)
+
+        update_hostgroup(mock_module, mock_array)
+
+        mock_array.delete_host_groups_hosts.assert_called_once()
+        call_kwargs = mock_array.delete_host_groups_hosts.call_args[1]
+        assert "host1" in call_kwargs["member_names"]
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_remove_volumes_from_hostgroup(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts
+    ):
+        """Test removing volumes from hostgroup (state=absent with volume param)"""
+        mock_get_hg_hosts.return_value = []
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "state": "absent",
+            "host": None,
+            "volume": ["vol1", "vol2"],  # Remove volumes
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Existing volume connections - properly set name attribute
+        mock_vol1 = Mock()
+        mock_vol1.volume.name = "vol1"
+        mock_vol2 = Mock()
+        mock_vol2.volume.name = "vol2"
+        mock_vol3 = Mock()
+        mock_vol3.volume.name = "vol3"
+        mock_array.get_connections.return_value = Mock(
+            status_code=200, items=[mock_vol1, mock_vol2, mock_vol3]
+        )
+        mock_array.delete_connections.return_value = Mock(status_code=200)
+
+        update_hostgroup(mock_module, mock_array)
+
+        mock_array.delete_connections.assert_called_once()
+        call_kwargs = mock_array.delete_connections.call_args[1]
+        assert set(call_kwargs["volume_names"]) == {"vol1", "vol2"}
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_remove_nonexistent_host_no_change(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts
+    ):
+        """Test removing host that doesn't exist in hostgroup results in no change"""
+        mock_host = Mock()
+        mock_host.member.name = "host1"
+        mock_get_hg_hosts.return_value = [mock_host]
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "state": "absent",
+            "host": ["host999"],  # Not in hostgroup
+            "volume": None,
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_connections.return_value = Mock(status_code=200, items=[])
+
+        update_hostgroup(mock_module, mock_array)
+
+        mock_array.delete_host_groups_hosts.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestDeleteHostgroupPaths:
+    """Test cases for delete_hostgroup additional paths"""
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_delete_hostgroup_with_volumes(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts
+    ):
+        """Test deleting hostgroup that has volume connections"""
+        mock_get_hg_hosts.return_value = []
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Hostgroup has volumes connected
+        mock_vol = Mock()
+        mock_vol.volume = Mock(name="vol1")
+        mock_array.get_connections.return_value = Mock(
+            status_code=200, items=[mock_vol]
+        )
+        mock_array.delete_connections.return_value = Mock(status_code=200)
+        mock_array.delete_host_groups.return_value = Mock(status_code=200)
+
+        delete_hostgroup(mock_module, mock_array)
+
+        mock_array.delete_connections.assert_called_once()
+        mock_array.delete_host_groups.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_delete_hostgroup_check_mode(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts
+    ):
+        """Test delete_hostgroup in check mode"""
+        mock_get_hg_hosts.return_value = []
+
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-hg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_vol = Mock()
+        mock_vol.volume = Mock(name="vol1")
+        mock_array.get_connections.return_value = Mock(
+            status_code=200, items=[mock_vol]
+        )
+
+        delete_hostgroup(mock_module, mock_array)
+
+        mock_array.delete_connections.assert_not_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestOldApiVersionPaths:
+    """Test cases for older API version paths (without context support)"""
+
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_make_hostgroup_old_api_with_volume(self, mock_lv, mock_check_response):
+        """Test make_hostgroup with old API version (no context)"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "host": None,
+            "volume": ["vol1"],
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Old API
+        mock_array.post_host_groups.return_value = Mock(status_code=200)
+        mock_array.post_connections.return_value = Mock(status_code=200)
+
+        make_hostgroup(mock_module, mock_array)
+
+        # Verify no context_names in call
+        call_kwargs = mock_array.post_connections.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_make_hostgroup_old_api_with_hosts(self, mock_lv, mock_check_response):
+        """Test make_hostgroup with old API version adding hosts"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "host": ["host1"],
+            "volume": None,
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Old API
+        mock_array.post_host_groups.return_value = Mock(status_code=200)
+        mock_array.post_host_groups_hosts.return_value = Mock(status_code=200)
+
+        make_hostgroup(mock_module, mock_array)
+
+        # Verify no context_names in call
+        call_kwargs = mock_array.post_host_groups_hosts.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_update_hostgroup_old_api_add_hosts(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts
+    ):
+        """Test update_hostgroup with old API version adding hosts"""
+        mock_get_hg_hosts.return_value = []
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "state": "present",
+            "host": ["host1"],
+            "volume": None,
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Old API
+        mock_array.get_connections.return_value = Mock(status_code=200, items=[])
+        mock_array.patch_hosts.return_value = Mock(status_code=200)
+
+        update_hostgroup(mock_module, mock_array)
+
+        call_kwargs = mock_array.patch_hosts.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.rename_exists")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_update_hostgroup_old_api_rename(
+        self, mock_lv, mock_check_response, mock_rename_exists, mock_get_hg_hosts
+    ):
+        """Test update_hostgroup with old API version renaming"""
+        mock_get_hg_hosts.return_value = []
+        mock_rename_exists.return_value = False
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": "new-hg",
+            "state": "present",
+            "host": None,
+            "volume": None,
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Old API
+        mock_array.get_connections.return_value = Mock(status_code=200, items=[])
+        mock_array.patch_host_groups.return_value = Mock(status_code=200)
+
+        update_hostgroup(mock_module, mock_array)
+
+        call_kwargs = mock_array.patch_host_groups.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_delete_hostgroup_old_api(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts
+    ):
+        """Test delete_hostgroup with old API version"""
+        mock_get_hg_hosts.return_value = []
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Old API
+        mock_array.get_connections.return_value = Mock(status_code=200, items=[])
+        mock_array.delete_host_groups.return_value = Mock(status_code=200)
+
+        delete_hostgroup(mock_module, mock_array)
+
+        call_kwargs = mock_array.delete_host_groups.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_delete_hostgroup_old_api_with_hosts(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts
+    ):
+        """Test delete_hostgroup with old API removing hosts"""
+        mock_host = Mock()
+        mock_host.member.name = "host1"
+        mock_host.group.name = "test-hg"
+        mock_get_hg_hosts.return_value = [mock_host]
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Old API
+        mock_array.get_connections.return_value = Mock(status_code=200, items=[])
+        mock_array.delete_host_groups_hosts.return_value = Mock(status_code=200)
+        mock_array.delete_host_groups.return_value = Mock(status_code=200)
+
+        delete_hostgroup(mock_module, mock_array)
+
+        call_kwargs = mock_array.delete_host_groups_hosts.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_update_hostgroup_old_api_remove_hosts(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts
+    ):
+        """Test update_hostgroup with old API removing hosts"""
+        mock_host = Mock()
+        mock_host.member.name = "host1"
+        mock_get_hg_hosts.return_value = [mock_host]
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "state": "absent",
+            "host": ["host1"],
+            "volume": None,
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Old API
+        mock_array.get_connections.return_value = Mock(status_code=200, items=[])
+        mock_array.delete_host_groups_hosts.return_value = Mock(status_code=200)
+
+        update_hostgroup(mock_module, mock_array)
+
+        call_kwargs = mock_array.delete_host_groups_hosts.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
+    @patch("plugins.modules.purefa_hg.check_response")
+    @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
+    def test_update_hostgroup_old_api_remove_volumes(
+        self, mock_lv, mock_check_response, mock_get_hg_hosts
+    ):
+        """Test update_hostgroup with old API removing volumes"""
+        mock_get_hg_hosts.return_value = []
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-hg",
+            "rename": None,
+            "state": "absent",
+            "host": None,
+            "volume": ["vol1"],
+            "lun": None,
+            "context": "",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Old API
+        mock_vol = Mock()
+        mock_vol.volume.name = "vol1"
+        mock_array.get_connections.return_value = Mock(
+            status_code=200, items=[mock_vol]
+        )
+        mock_array.delete_connections.return_value = Mock(status_code=200)
+
+        update_hostgroup(mock_module, mock_array)
+
+        call_kwargs = mock_array.delete_connections.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
