@@ -50,7 +50,7 @@ options:
     description:
     - Provide a time in 12-hour AM/PM format, eg. 11AM
     - Only valid if I(replicate_frequency) is an exact multiple of 86400, ie 1 day.
-    - Set to an empty string "" to clear an existing at value.
+    - Set to an empty string "" to clear an existing at value (sends -1 to the API).
     - Automatically cleared when I(replicate_frequency) changes to a non-day multiple.
     type: str
   blackout_start:
@@ -73,7 +73,7 @@ options:
     description:
     - Provide a time in 12-hour AM/PM format, eg. 11AM
     - Only valid if I(snap_frequency) is an exact multiple of 86400, ie 1 day.
-    - Set to an empty string "" to clear an existing at value.
+    - Set to an empty string "" to clear an existing at value (sends -1 to the API).
     - Automatically cleared when I(snap_frequency) changes to a non-day multiple.
     type: str
   snap_frequency:
@@ -380,14 +380,10 @@ def update_schedule(module, array, snap_time, repl_time):
             if freq_is_days and snap_at is not None:
                 # Day frequency with at value set
                 schedule = SnapshotSchedule(frequency=snap_frequency, at=snap_at)
-            elif (
-                freq_is_days and snap_at is None and current_snap["snap_at"] is not None
-            ):
-                # Day frequency but clearing at value - explicitly set at=0
-                schedule = SnapshotSchedule(frequency=snap_frequency, at=0)
             else:
-                # Non-day frequency or no at value change needed
-                schedule = SnapshotSchedule(frequency=snap_frequency)
+                # Non-day frequency, or clearing at value (snap_at is None)
+                # Send at=-1 to clear the value on the array
+                schedule = SnapshotSchedule(frequency=snap_frequency, at=-1)
             res = get_with_context(
                 array,
                 "patch_protection_groups",
@@ -514,16 +510,10 @@ def update_schedule(module, array, snap_time, repl_time):
                 schedule = ReplicationSchedule(
                     frequency=replicate_frequency, at=replicate_at
                 )
-            elif (
-                freq_is_days
-                and replicate_at is None
-                and current_repl["replicate_at"] is not None
-            ):
-                # Day frequency but clearing at value - explicitly set at=0
-                schedule = ReplicationSchedule(frequency=replicate_frequency, at=0)
             else:
-                # Non-day frequency or no at value change needed
-                schedule = ReplicationSchedule(frequency=replicate_frequency)
+                # Non-day frequency, or clearing at value (replicate_at is None)
+                # Send at=-1 to clear the value on the array
+                schedule = ReplicationSchedule(frequency=replicate_frequency, at=-1)
             res = get_with_context(
                 array,
                 "patch_protection_groups",
