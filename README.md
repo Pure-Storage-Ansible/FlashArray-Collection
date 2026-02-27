@@ -5,16 +5,16 @@
 <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 <img src="https://img.shields.io/badge/tests-passing-brightgreen.svg"></a>
 
-# Pure Storage FlashArray Collection
+# Everpure FlashArray Collection
 
 ## Description
 
-The Pure Storage FlashArray collection consists of the latest versions of the FlashArray modules and also includes support for Cloud Block Store
+The Everpure FlashArray collection consists of the latest versions of the FlashArray modules and also includes support for Cloud Block Store
 
 ## Requirements
 
 - Ansible 2.15 or later
-- Pure Storage FlashArray system running Purity 6.1.0 or later
+- Everpure FlashArray system running Purity 6.1.0 or later
     - some modules require higher versions of Purity
 - Some modules require specific Purity versions
 - distro
@@ -83,7 +83,7 @@ Only the latest release of this collection is supported.
 
 As Red Hat Ansible Certified Content, this collection is entitled to support through the Ansible Automation Platform (AAP) using the **Create issue** button on the top right corner. If a support case cannot be opened with Red Hat and the collection has been obtained either from Galaxy or GitHub, you can raise a GitHub Issue directly with the developers [here](https://github.com/Pure-Storage-Ansible/FlashArray-Collection/issues) or get community help available on the [Ansible Forum](https://forum.ansible.com/).
 
-If you are a Pure Storage customer, you may log a support call with the Pure Storage Support team ([support\@purestorage.com](mailto:support@purestorage.com?subject=FlashArray-Ansible-Collection))
+If you are a Everpure customer, you may log a support call with the Everpure Support team ([support\@purestorage.com](mailto:support@purestorage.com?subject=FlashArray-Ansible-Collection))
 
 ## Release Notes
 
@@ -100,7 +100,7 @@ All modules are idempotent with the exception of modules that change or set pass
 ### Available Modules
 
 - purefa_ad - manage FlashArray Active Directoy accounts
-- purefa_admin - Configure Pure Storage FlashArray Global Admin settings
+- purefa_admin - Configure Everpure FlashArray Global Admin settings
 - purefa_alert - manage email alert settings on the FlashArray
 - purefa_apiclient - manage FlashArray API clients
 - purefa_arrayname - manage the name of the FlashArray
@@ -173,4 +173,4 @@ All modules are idempotent with the exception of modules that change or set pass
 
 ## Author
 
-This collection was created in 2019 by [Simon Dodsley](@sdodsley) for, and on behalf of, the [Pure Storage Ansible Team](pure-ansible-team@purestorage.com)
+This collection was created in 2019 by [Simon Dodsley](@sdodsley) for, and on behalf of, the [Everpure Ansible Team](pure-ansible-team@purestorage.com)
