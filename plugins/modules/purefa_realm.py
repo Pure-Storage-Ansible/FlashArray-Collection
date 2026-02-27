@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_realm
 version_added: '1.33.0'
-short_description: Manage realms on Pure Storage FlashArrays
+short_description: Manage realms on Everpure FlashArrays
 description:
-- Create, delete or modify realms on Pure Storage FlashArrays.
+- Create, delete or modify realms on Everpure FlashArrays.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

@@ -18,14 +18,14 @@ DOCUMENTATION = r"""
 ---
 module: purefa_pg
 version_added: '1.0.0'
-short_description: Manage protection groups on Pure Storage FlashArrays
+short_description: Manage protection groups on Everpure FlashArrays
 description:
-- Create, delete or modify protection groups on Pure Storage FlashArrays.
+- Create, delete or modify protection groups on Everpure FlashArrays.
 - If a protection group exists and you try to add non-valid types, eg. a host
   to a volume protection group the module will ignore the invalid types.
 - Protection Groups on Offload targets are supported.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

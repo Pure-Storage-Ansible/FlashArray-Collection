@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_admin
 version_added: '1.12.0'
-short_description: Configure Pure Storage FlashArray Global Admin settings
+short_description: Configure Everpure FlashArray Global Admin settings
 description:
 - Set global admin settings for the FlashArray
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   sso:
     description:

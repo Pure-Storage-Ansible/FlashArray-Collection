@@ -24,7 +24,7 @@ description:
 - Only available for FlashArray running Purity//FA 6.6.2 or lower
 - Please use ``purefa_dsrole`` for FlashArrays running Purity//FA 6.6.3 or higher
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

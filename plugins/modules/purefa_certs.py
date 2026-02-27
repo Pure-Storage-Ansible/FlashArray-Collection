@@ -22,7 +22,7 @@ short_description: Manage FlashArray SSL Certificates
 description:
 - Create, delete, import and export FlashArray SSL Certificates
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

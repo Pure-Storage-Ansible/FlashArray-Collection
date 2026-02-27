@@ -26,7 +26,7 @@ description:
 - To modify an existing directory service configuration you must first delete
   an existing configuration and then recreate with new settings.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     type: str

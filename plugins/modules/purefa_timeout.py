@@ -18,12 +18,12 @@ DOCUMENTATION = r"""
 ---
 module: purefa_timeout
 version_added: '1.0.0'
-short_description: Configure Pure Storage FlashArray GUI idle timeout
+short_description: Configure Everpure FlashArray GUI idle timeout
 description:
-- Configure GUI idle timeout for Pure Storage FlashArrays.
+- Configure GUI idle timeout for Everpure FlashArrays.
 - This does not affect existing GUI sessions.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

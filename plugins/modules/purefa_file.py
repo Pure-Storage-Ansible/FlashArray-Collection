@@ -22,7 +22,7 @@ short_description: Manage FlashArray File Copies
 description:
 - Copy FlashArray File from one filesystem to another
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   source_file:
     description:

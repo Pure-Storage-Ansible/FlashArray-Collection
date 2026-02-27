@@ -23,7 +23,7 @@ description:
 - Create or delete an API token for an existing admin user.
 - Uses username/password to create/delete the API token.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:
@@ -173,7 +173,7 @@ def get_session(module):
             system.get()
         except Exception:
             module.fail_json(
-                msg="Pure Storage FlashArray authentication failed. Check your credentials"
+                msg="Everpure FlashArray authentication failed. Check your credentials"
             )
     else:
         module.fail_json(msg="purestorage SDK is not installed.")

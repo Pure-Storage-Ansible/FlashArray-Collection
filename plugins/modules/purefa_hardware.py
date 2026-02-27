@@ -22,7 +22,7 @@ short_description: Manage FlashArray Hardware Identification
 description:
 - Enable or disable FlashArray visual identification lights
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

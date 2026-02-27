@@ -22,7 +22,7 @@ short_description: Manage FlashArray SAML2 service and identity providers
 description:
 - Enable or disable FlashArray SAML2 providers
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

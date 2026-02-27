@@ -19,7 +19,7 @@ DOCUMENTATION = r"""
 module: purefa_proxy
 version_added: '1.0.0'
 author:
-  - Pure Storage ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+  - Everpure ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 short_description: Configure FlashArray phonehome HTTPs proxy settings
 description:
 - Set or erase configuration for the HTTPS phonehome proxy settings.

@@ -18,13 +18,13 @@ DOCUMENTATION = r"""
 ---
 module: purefa_default_protection
 version_added: '1.14.0'
-short_description:  Manage SafeMode default protection for a Pure Storage FlashArray
+short_description:  Manage SafeMode default protection for a Everpure FlashArray
 description:
 - Configure automatic protection group membership for new volumes and copied volumes
   array wide, or at the pod level.
 - Requires a minimum of Purity 6.3.4
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   scope:
     description:

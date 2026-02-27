@@ -22,7 +22,7 @@ short_description: Manage FlashArray KMIP server objects
 description:
 - Manage FlashArray KMIP Server objects
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:
