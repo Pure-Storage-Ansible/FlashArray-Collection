@@ -22,7 +22,7 @@ short_description: Manage FlashArray syslog servers settings
 description:
 - Manage FlashArray syslog servers settings
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   severity:
     description:

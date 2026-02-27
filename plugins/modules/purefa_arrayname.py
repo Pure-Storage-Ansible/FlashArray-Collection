@@ -18,12 +18,12 @@ DOCUMENTATION = r"""
 ---
 module: purefa_arrayname
 version_added: '1.0.0'
-short_description: Configure Pure Storage FlashArray array name
+short_description: Configure Everpure FlashArray array name
 description:
-- Configure name of array for Pure Storage FlashArrays.
+- Configure name of array for Everpure FlashArrays.
 - Ideal for Day 0 initial configuration.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

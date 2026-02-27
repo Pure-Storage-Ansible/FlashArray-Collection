@@ -22,7 +22,7 @@ short_description: Enable or Disable VNC port for installed apps
 description:
 - Enablke or Disable VNC access for installed apps
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

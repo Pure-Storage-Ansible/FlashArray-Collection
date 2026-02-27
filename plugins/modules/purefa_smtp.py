@@ -19,13 +19,13 @@ DOCUMENTATION = r"""
 module: purefa_smtp
 version_added: '1.0.0'
 author:
-  - Pure Storage ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+  - Everpure ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 short_description: Configure FlashArray SMTP settings
 description:
 - Set or erase configuration for the SMTP settings.
 - If username/password are set this will always force a change as there is
   no way to see if the password is different from the current SMTP configuration.
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

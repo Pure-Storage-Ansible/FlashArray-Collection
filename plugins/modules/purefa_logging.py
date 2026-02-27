@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_logging
 version_added: '1.19.0'
-short_description: Manage Pure Storage FlashArray Audit and Session logs
+short_description: Manage Everpure FlashArray Audit and Session logs
 description:
 - view the FlashArray audit trail oe session logs, newest to oldest based on (start) time
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   log_type:
     description:

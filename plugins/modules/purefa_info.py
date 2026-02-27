@@ -18,15 +18,15 @@ DOCUMENTATION = r"""
 ---
 module: purefa_info
 version_added: '1.0.0'
-short_description: Collect information from Pure Storage FlashArray
+short_description: Collect information from Everpure FlashArray
 description:
-  - Collect information from a Pure Storage Flasharray running the
+  - Collect information from a Everpure Flasharray running the
     Purity//FA operating system. By default, the module will collect basic
     information including hosts, host groups, protection
     groups and volume counts. Additional information can be collected
     based on the configured set of arguments.
 author:
-  - Pure Storage ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+  - Everpure ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   gather_subset:
     description:

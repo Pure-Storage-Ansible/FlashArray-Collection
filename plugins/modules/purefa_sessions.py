@@ -22,7 +22,7 @@ short_description: List FlashArray Sessions
 description:
 - List sessions based on filters provided
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   start:
     description:

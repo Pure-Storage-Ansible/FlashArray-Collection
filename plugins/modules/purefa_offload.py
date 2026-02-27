@@ -23,7 +23,7 @@ description:
 - Create, modify and delete NFS, S3, Azure or GCP offload targets.
 - You must have a correctly configured offload app installed and a correctly configured offload network for offload to work.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

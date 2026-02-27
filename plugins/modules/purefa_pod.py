@@ -17,12 +17,12 @@ ANSIBLE_METADATA = {
 DOCUMENTATION = r"""
 ---
 module: purefa_pod
-short_description:  Manage AC pods in Pure Storage FlashArrays
+short_description:  Manage AC pods in Everpure FlashArrays
 version_added: '1.0.0'
 description:
-- Manage AC pods in a Pure Storage FlashArray.
+- Manage AC pods in a Everpure FlashArray.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

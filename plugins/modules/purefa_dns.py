@@ -25,7 +25,7 @@ description:
 - From Purity//FA 6.3.3 DNS setting for FA-File can be configured separately
   to the management DNS settings
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:
