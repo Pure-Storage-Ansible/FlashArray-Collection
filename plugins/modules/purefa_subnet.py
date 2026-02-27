@@ -20,10 +20,10 @@ DOCUMENTATION = """
 ---
 module: purefa_subnet
 version_added: '1.0.0'
-short_description:  Manage network subnets in a Pure Storage FlashArray
+short_description:  Manage network subnets in a Everpure FlashArray
 description:
-    - This module manages the network subnets on a Pure Storage FlashArray.
-author: Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+    - This module manages the network subnets on a Everpure FlashArray.
+author: Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

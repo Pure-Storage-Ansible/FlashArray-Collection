@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_ra
 version_added: '1.0.0'
-short_description: Enable or Disable Pure Storage FlashArray Remote Assist
+short_description: Enable or Disable Everpure FlashArray Remote Assist
 description:
-- Enable or Disable Remote Assist for a Pure Storage FlashArray.
+- Enable or Disable Remote Assist for a Everpure FlashArray.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

@@ -22,7 +22,7 @@ short_description: Enable or disable FlashArray SMI-S features
 description:
 - Enable or disable FlashArray SMI-S Provider and/or SLP
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   slp:
     description:

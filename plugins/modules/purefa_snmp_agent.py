@@ -20,11 +20,11 @@ module: purefa_snmp_agent
 version_added: '1.16.0'
 short_description: Configure the FlashArray SNMP Agent
 description:
-- Manage the I(localhost) SNMP Agent on a Pure Storage FlashArray.
+- Manage the I(localhost) SNMP Agent on a Everpure FlashArray.
 - This module is not idempotent and will always modify the SNMP Agent
   due to hidden parameters that cannot be compared to the task parameters.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     type: str

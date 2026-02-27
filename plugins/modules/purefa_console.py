@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_console
 version_added: '1.0.0'
-short_description: Enable or Disable Pure Storage FlashArray Console Lock
+short_description: Enable or Disable Everpure FlashArray Console Lock
 description:
-- Enablke or Disable root lockout from the array at the physical console for a Pure Storage FlashArray.
+- Enablke or Disable root lockout from the array at the physical console for a Everpure FlashArray.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_eula
 version_added: '1.0.0'
-short_description: Sign Pure Storage FlashArray EULA
+short_description: Sign Everpure FlashArray EULA
 description:
 - Sign the FlashArray EULA for Day 0 config, or change signatory.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   company:
     description:

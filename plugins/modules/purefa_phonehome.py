@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_phonehome
 version_added: '1.0.0'
-short_description: Enable or Disable Pure Storage FlashArray Phonehome
+short_description: Enable or Disable Everpure FlashArray Phonehome
 description:
-- Enablke or Disable Phonehome for a Pure Storage FlashArray.
+- Enablke or Disable Phonehome for a Everpure FlashArray.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

@@ -18,12 +18,12 @@ DOCUMENTATION = r"""
 ---
 module: purefa_volume_tags
 version_added: '1.0.0'
-short_description:  Manage volume tags on Pure Storage FlashArrays
+short_description:  Manage volume tags on Everpure FlashArrays
 description:
-- Manage volume tags for volumes on Pure Storage FlashArray.
+- Manage volume tags for volumes on Everpure FlashArray.
 - Requires a minimum of Purity 6.0.0
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

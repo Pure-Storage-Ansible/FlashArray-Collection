@@ -22,7 +22,7 @@ short_description: Manage FlashArray File System Policies
 description:
 - Manage FlashArray file system policies for NFS, SMB and snapshot
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

@@ -20,9 +20,9 @@ module: purefa_user
 version_added: '1.0.0'
 short_description: Create, modify or delete FlashArray local user account
 description:
-- Create, modify or delete local users on a Pure Storage FlashArray.
+- Create, modify or delete local users on a Everpure FlashArray.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

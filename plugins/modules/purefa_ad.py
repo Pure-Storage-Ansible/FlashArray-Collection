@@ -24,7 +24,7 @@ description:
 - FlashArray allows the creation of one AD computer account, or joining of an
   existing AD computer account.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

@@ -19,14 +19,14 @@ ANSIBLE_METADATA = {
 DOCUMENTATION = """
 ---
 module: purefa_network
-short_description:  Manage network interfaces in a Pure Storage FlashArray
+short_description:  Manage network interfaces in a Everpure FlashArray
 version_added: '1.0.0'
 description:
-    - This module manages the physical and virtual network interfaces on a Pure Storage FlashArray.
+    - This module manages the physical and virtual network interfaces on a Everpure FlashArray.
     - To manage VLAN interfaces use the I(purestorage.flasharray.purefa_vlan) module.
     - To manage network subnets use the I(purestorage.flasharray.purefa_subnet) module.
     - To remove an IP address from a non-management port use 0.0.0.0/0
-author: Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+author: Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

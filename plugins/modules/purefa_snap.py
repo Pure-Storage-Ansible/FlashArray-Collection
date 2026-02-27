@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_snap
 version_added: '1.0.0'
-short_description: Manage volume snapshots on Pure Storage FlashArrays
+short_description: Manage volume snapshots on Everpure FlashArrays
 description:
-- Create or delete volumes and volume snapshots on Pure Storage FlashArray.
+- Create or delete volumes and volume snapshots on Everpure FlashArray.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

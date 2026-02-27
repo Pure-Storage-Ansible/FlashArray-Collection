@@ -17,12 +17,12 @@ ANSIBLE_METADATA = {
 DOCUMENTATION = r"""
 ---
 module: purefa_pgsched
-short_description: Manage protection groups replication schedules on Pure Storage FlashArrays
+short_description: Manage protection groups replication schedules on Everpure FlashArrays
 version_added: '1.0.0'
 description:
-- Modify or delete protection groups replication schedules on Pure Storage FlashArrays.
+- Modify or delete protection groups replication schedules on Everpure FlashArrays.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:
