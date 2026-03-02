@@ -872,9 +872,9 @@ def generate_clients_dict(array):
     return clients_info
 
 
-def generate_admin_dict(blade):
+def generate_admin_dict(array):
     admin_info = {}
-    admins = list(blade.get_admins().items)
+    admins = list(array.get_admins().items)
     for admin in admins:
         admin_name = admin.name
         admin_info[admin_name] = {
