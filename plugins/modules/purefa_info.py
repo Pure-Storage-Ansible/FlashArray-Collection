@@ -872,24 +872,32 @@ def generate_clients_dict(array):
     return clients_info
 
 
-def generate_admin_dict(array):
+def generate_admin_dict(blade):
     admin_info = {}
-    admins = list(array.get_admins().items)
+    admins = list(blade.get_admins().items)
     for admin in admins:
         admin_name = admin.name
         admin_info[admin_name] = {
-            "type": ("remote", "local")[admin.is_local],
+            "public_key": admin.public_key,
+            "local": admin.is_local,
+            "role": admin.role.name,
             "locked": admin.locked,
-            "role": getattr(admin.role, "name", None),
-            "management_access_policy": None,
+            "lockout_remaining": getattr(admin, "lockout_remaining", None),
         }
-        if admin.is_local and LooseVersion(array.get_rest_version()) >= LooseVersion(
-            DSROLE_POLICY_API_VERSION
-        ):
-            if hasattr(admin, "management_access_policies"):
-                admin_info[admin_name]["management_access_policy"] = getattr(
-                    admin.management_access_policies[0], "name", None
-                )
+        if hasattr(admin.api_token, "expires_at"):
+            if admin.api_token.expires_at:
+                admin_info[admin_name]["token_expires"] = datetime.fromtimestamp(
+                    admin.api_token.expires_at / 1000
+                ).strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            admin_info[admin_name]["token_expires"] = None
+        if hasattr(admin.api_token, "created_at"):
+            if admin.api_token.created_at:
+                admin_info[admin_name]["token_created"] = datetime.fromtimestamp(
+                    admin.api_token.created_at / 1000
+                ).strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            admin_info[admin_name]["token_created"] = None
     return admin_info
 
 
