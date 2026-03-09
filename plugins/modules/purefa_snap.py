@@ -823,6 +823,13 @@ def main():
         update_snapshot(module, array)
     elif state == "copy" and snap:
         create_from_snapshot(module, array)
+    elif state == "copy" and not snap:
+        snapname = module.params["name"] + "." + module.params["suffix"]
+        module.fail_json(
+            msg="Snapshot {0} not found. Cannot copy non-existent snapshot.".format(
+                snapname
+            )
+        )
     elif state == "absent" and snap and not destroyed:
         delete_snapshot(module, array)
     elif state == "absent" and destroyed and module.params["eradicate"]:
