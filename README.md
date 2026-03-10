@@ -1,7 +1,7 @@
-<a href="https://github.com/Pure-Storage-Ansible/FlashArray-Collection/releases/latest"><img src="https://img.shields.io/github/v/tag/Pure-Storage-Ansible/FlashArray-Collection?label=release">
+<a href="https://github.com/Everpure-Ansible/FlashArray-Collection/releases/latest"><img src="https://img.shields.io/github/v/tag/Everpure-Ansible/FlashArray-Collection?label=release">
 <a href="COPYING.GPLv3"><img src="https://img.shields.io/badge/license-GPL%20v3.0-brightgreen.svg"></a>
-<img src="https://cla-assistant.io/readme/badge/Pure-Storage-Ansible/FlashArray-Collection">
-<img src="https://github.com/Pure-Storage-Ansible/FLashArray-Collection/workflows/Pure%20Storage%20Ansible%20CI/badge.svg">
+<img src="https://cla-assistant.io/readme/badge/Everpure-Ansible/FlashArray-Collection">
+<img src="https://github.com/Everpure-Ansible/FLashArray-Collection/workflows/Pure%20Storage%20Ansible%20CI/badge.svg">
 <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 <img src="https://img.shields.io/badge/tests-passing-brightgreen.svg"></a>
 
@@ -81,13 +81,13 @@ There are many ways in which you can participate in the project, for example:
 
 Only the latest release of this collection is supported.
 
-As Red Hat Ansible Certified Content, this collection is entitled to support through the Ansible Automation Platform (AAP) using the **Create issue** button on the top right corner. If a support case cannot be opened with Red Hat and the collection has been obtained either from Galaxy or GitHub, you can raise a GitHub Issue directly with the developers [here](https://github.com/Pure-Storage-Ansible/FlashArray-Collection/issues) or get community help available on the [Ansible Forum](https://forum.ansible.com/).
+As Red Hat Ansible Certified Content, this collection is entitled to support through the Ansible Automation Platform (AAP) using the **Create issue** button on the top right corner. If a support case cannot be opened with Red Hat and the collection has been obtained either from Galaxy or GitHub, you can raise a GitHub Issue directly with the developers [here](https://github.com/Everpure-Ansible/FlashArray-Collection/issues) or get community help available on the [Ansible Forum](https://forum.ansible.com/).
 
 If you are a Everpure customer, you may log a support call with the Everpure Support team ([support\@purestorage.com](mailto:support@purestorage.com?subject=FlashArray-Ansible-Collection))
 
 ## Release Notes
 
-Release notes for this collection can be found [here](https://github.com/Pure-Storage-Ansible/FlashArray-Collection/releases)
+Release notes for this collection can be found [here](https://github.com/Everpure-Ansible/FlashArray-Collection/releases)
 
 ## Related Information
 ### Known Issues
