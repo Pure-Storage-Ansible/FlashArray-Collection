@@ -197,10 +197,16 @@ class TestUpdateScheduleClearAtValue:
 
     @patch("plugins.modules.purefa_pgsched.get_with_context")
     @patch("plugins.modules.purefa_pgsched.check_response")
+    @patch("plugins.modules.purefa_pgsched.SnapshotSchedule")
+    @patch("plugins.modules.purefa_pgsched.ProtectionGroup")
     def test_clear_snap_at_with_empty_string(
-        self, mock_check_response, mock_get_with_context
+        self,
+        mock_protection_group,
+        mock_snapshot_schedule,
+        mock_check_response,
+        mock_get_with_context,
     ):
-        """Test clearing snap_at by providing empty string"""
+        """Test clearing snap_at by providing empty string sends at=-1 to API"""
         mock_module = Mock()
         mock_module.params = {
             "name": "test-pg",
@@ -236,15 +242,21 @@ class TestUpdateScheduleClearAtValue:
 
         # Verify that get_with_context was called
         assert mock_get_with_context.called
-        # The function should complete successfully with empty string snap_at
-        # The actual at=0 clearing is handled in the module logic
+        # Verify SnapshotSchedule was called with at=-1 to clear the value
+        mock_snapshot_schedule.assert_called_with(frequency=86400000, at=-1)
 
     @patch("plugins.modules.purefa_pgsched.get_with_context")
     @patch("plugins.modules.purefa_pgsched.check_response")
+    @patch("plugins.modules.purefa_pgsched.ReplicationSchedule")
+    @patch("plugins.modules.purefa_pgsched.ProtectionGroup")
     def test_clear_replicate_at_with_empty_string(
-        self, mock_check_response, mock_get_with_context
+        self,
+        mock_protection_group,
+        mock_replication_schedule,
+        mock_check_response,
+        mock_get_with_context,
     ):
-        """Test clearing replicate_at by providing empty string"""
+        """Test clearing replicate_at by providing empty string sends at=-1 to API"""
         mock_module = Mock()
         mock_module.params = {
             "name": "test-pg",
@@ -284,13 +296,21 @@ class TestUpdateScheduleClearAtValue:
 
         # Verify that get_with_context was called
         assert mock_get_with_context.called
+        # Verify ReplicationSchedule was called with at=-1 to clear the value
+        mock_replication_schedule.assert_called_with(frequency=86400000, at=-1)
 
     @patch("plugins.modules.purefa_pgsched.get_with_context")
     @patch("plugins.modules.purefa_pgsched.check_response")
+    @patch("plugins.modules.purefa_pgsched.SnapshotSchedule")
+    @patch("plugins.modules.purefa_pgsched.ProtectionGroup")
     def test_auto_clear_snap_at_when_frequency_changes_to_hourly(
-        self, mock_check_response, mock_get_with_context
+        self,
+        mock_protection_group,
+        mock_snapshot_schedule,
+        mock_check_response,
+        mock_get_with_context,
     ):
-        """Test automatic clearing of snap_at when changing from daily to hourly"""
+        """Test automatic clearing of snap_at when changing from daily to hourly sends at=-1"""
         mock_module = Mock()
         mock_module.params = {
             "name": "test-pg",
@@ -324,8 +344,9 @@ class TestUpdateScheduleClearAtValue:
 
         result = update_schedule(mock_module, mock_array, current_snap, current_repl)
 
-        # Should have made API call without at parameter (non-day frequency)
+        # Should have made API call with at=-1 to clear (non-day frequency)
         assert mock_get_with_context.called
+        mock_snapshot_schedule.assert_called_with(frequency=3600000, at=-1)
 
     @patch("plugins.modules.purefa_pgsched.get_with_context")
     @patch("plugins.modules.purefa_pgsched.check_response")
