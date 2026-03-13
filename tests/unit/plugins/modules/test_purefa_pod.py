@@ -1799,3 +1799,116 @@ class TestDeletePodSuccess:
         mock_patch_with_context.assert_called_once()
         mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestGetUndoPod:
+    """Test cases for get_undo_pod function"""
+
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_get_undo_pod_found(self, mock_get_with_context):
+        """Test get_undo_pod returns pods when found"""
+        mock_module = Mock()
+        mock_module.params = {"name": "test-pod", "context": ""}
+        mock_array = Mock()
+        mock_pod = Mock()
+        mock_pod.name = "test-pod.undo-demote.1"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_pod])
+
+        result = get_undo_pod(mock_module, mock_array)
+
+        assert result == [mock_pod]
+
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_get_undo_pod_empty_list_returns_none(self, mock_get_with_context):
+        """Test get_undo_pod returns None when API returns empty list"""
+        mock_module = Mock()
+        mock_module.params = {"name": "test-pod", "context": ""}
+        mock_array = Mock()
+        # API returns 200 but with empty items list
+        mock_get_with_context.return_value = Mock(status_code=200, items=[])
+
+        result = get_undo_pod(mock_module, mock_array)
+
+        assert result is None
+
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    def test_get_undo_pod_not_found(self, mock_get_with_context):
+        """Test get_undo_pod returns None when not found"""
+        mock_module = Mock()
+        mock_module.params = {"name": "test-pod", "context": ""}
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=404)
+
+        result = get_undo_pod(mock_module, mock_array)
+
+        assert result is None
+
+
+class TestUpdatePodIdempotency:
+    """Test cases for update_pod idempotency with promote/demote"""
+
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_promote_already_promoted_pod_is_idempotent(
+        self, mock_lv, mock_get_with_context
+    ):
+        """Test that promoting an already promoted pod doesn't change anything"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purestorage",
+            "promote": True,
+            "undo": None,
+            "quiesce": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purestorage"
+        mock_config.array_count = 1
+        mock_config.promotion_status = "promoted"  # Already promoted
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+
+        update_pod(mock_module, mock_array)
+
+        # Should exit without changes since already promoted
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_demote_already_demoted_pod_is_idempotent(
+        self, mock_lv, mock_get_with_context
+    ):
+        """Test that demoting an already demoted pod doesn't change anything"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purestorage",
+            "promote": False,  # Demote
+            "undo": None,
+            "quiesce": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purestorage"
+        mock_config.array_count = 1
+        mock_config.promotion_status = "demoted"  # Already demoted
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+
+        update_pod(mock_module, mock_array)
+
+        # Should exit without changes since already demoted
+        mock_module.exit_json.assert_called_once_with(changed=False)
