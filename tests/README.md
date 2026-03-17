@@ -6,8 +6,8 @@ This directory contains the test suite for the Pure Storage FlashArray Ansible C
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 1,405 |
-| **Code Coverage** | 69% |
+| **Total Tests** | 1,514 |
+| **Code Coverage** | 73% |
 | **Test Files** | 68 |
 | **Modules Tested** | 66 |
 
@@ -163,13 +163,30 @@ class TestFunctionName:
 
 *Last updated: 2026-03-17*
 
-### High Coverage (80%+)
+### Excellent Coverage (90%+)
 
 | Module | Coverage |
 |--------|----------|
+| purefa_inventory.py | 99% |
+| purefa_logging.py | 98% |
+| purefa_messages.py | 98% |
+| purefa_ad.py | 96% |
+| purefa_sessions.py | 96% |
+| purefa_audits.py | 95% |
+| purefa_eradication.py | 94% |
+| purefa_snmp.py | 93% |
 | purefa_arrayname.py | 90% |
+| purefa_certs.py | 90% |
+| purefa_dirsnap.py | 90% |
 | purefa_file.py | 90% |
+
+### High Coverage (80-89%)
+
+| Module | Coverage |
+|--------|----------|
+| purefa_workload.py | 89% |
 | purefa_sso.py | 89% |
+| purefa_fleet.py | 88% |
 | purefa_timeout.py | 87% |
 | purefa_console.py | 86% |
 | purefa_eula.py | 86% |
@@ -233,23 +250,6 @@ class TestFunctionName:
 | purefa_apiclient.py | 60% |
 | purefa_offload.py | 60% |
 | purefa_pgsnap.py | 60% |
-
-### Needs Improvement (<60%)
-
-| Module | Coverage | Missing Lines |
-|--------|----------|---------------|
-| purefa_ad.py | 59% | 32 |
-| purefa_certs.py | 59% | 75 |
-| purefa_dirsnap.py | 59% | 60 |
-| purefa_snmp.py | 59% | 51 |
-| purefa_workload.py | 59% | 68 |
-| purefa_audits.py | 57% | 26 |
-| purefa_eradication.py | 57% | 30 |
-| purefa_fleet.py | 57% | 60 |
-| purefa_logging.py | 56% | 21 |
-| purefa_inventory.py | 54% | 34 |
-| purefa_sessions.py | 53% | 34 |
-| purefa_messages.py | 52% | 29 |
 
 ## CI/CD Integration
 
