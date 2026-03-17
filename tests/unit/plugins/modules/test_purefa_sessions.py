@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
-import datetime
 from unittest.mock import Mock, MagicMock, patch
 
 # Mock pytz before importing module
