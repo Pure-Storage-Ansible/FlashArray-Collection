@@ -378,3 +378,337 @@ class TestUpdateManager:
 
         mock_array.patch_snmp_managers.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateManagerV3:
+    """Test cases for create_manager function with v3"""
+
+    @patch("plugins.modules.purefa_snmp.check_response")
+    def test_create_manager_v3_auth_and_privacy(self, mock_check_response):
+        """Test create_manager v3 with both auth and privacy protocols"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "snmp1",
+            "version": "v3",
+            "host": "192.168.1.100",
+            "notification": "trap",
+            "auth_protocol": "SHA",
+            "auth_passphrase": "authpass123",
+            "privacy_protocol": "AES",
+            "privacy_passphrase": "privpass123",
+            "user": "snmpuser",
+        }
+        mock_array = Mock()
+        mock_array.post_snmp_managers.return_value = Mock(status_code=200)
+
+        create_manager(mock_module, mock_array)
+
+        mock_array.post_snmp_managers.assert_called_once()
+        mock_module.exit_json.assert_called_with(changed=True)
+
+    @patch("plugins.modules.purefa_snmp.check_response")
+    def test_create_manager_v3_auth_only(self, mock_check_response):
+        """Test create_manager v3 with only auth protocol"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "snmp1",
+            "version": "v3",
+            "host": "192.168.1.100",
+            "notification": "trap",
+            "auth_protocol": "SHA",
+            "auth_passphrase": "authpass123",
+            "privacy_protocol": None,
+            "user": "snmpuser",
+        }
+        mock_array = Mock()
+        mock_array.post_snmp_managers.return_value = Mock(status_code=200)
+
+        create_manager(mock_module, mock_array)
+
+        mock_array.post_snmp_managers.assert_called_once()
+        mock_module.exit_json.assert_called_with(changed=True)
+
+    @patch("plugins.modules.purefa_snmp.check_response")
+    def test_create_manager_v3_privacy_only(self, mock_check_response):
+        """Test create_manager v3 with only privacy protocol"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "snmp1",
+            "version": "v3",
+            "host": "192.168.1.100",
+            "notification": "trap",
+            "auth_protocol": None,
+            "privacy_protocol": "AES",
+            "privacy_passphrase": "privpass123",
+            "user": "snmpuser",
+        }
+        mock_array = Mock()
+        mock_array.post_snmp_managers.return_value = Mock(status_code=200)
+
+        create_manager(mock_module, mock_array)
+
+        mock_array.post_snmp_managers.assert_called_once()
+        mock_module.exit_json.assert_called_with(changed=True)
+
+    @patch("plugins.modules.purefa_snmp.check_response")
+    def test_create_manager_v3_no_auth_no_privacy(self, mock_check_response):
+        """Test create_manager v3 with no auth and no privacy protocols"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "snmp1",
+            "version": "v3",
+            "host": "192.168.1.100",
+            "notification": "trap",
+            "auth_protocol": None,
+            "privacy_protocol": None,
+            "user": "snmpuser",
+        }
+        mock_array = Mock()
+        mock_array.post_snmp_managers.return_value = Mock(status_code=200)
+
+        create_manager(mock_module, mock_array)
+
+        mock_array.post_snmp_managers.assert_called_once()
+        mock_module.exit_json.assert_called_with(changed=True)
+
+
+class TestMain:
+    """Test cases for main() function"""
+
+    @patch("plugins.modules.purefa_snmp.get_array")
+    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
+    def test_main_no_purestorage_sdk(self, mock_ansible_module, mock_get_array):
+        """Test main() fails when purestorage SDK not available"""
+        import pytest
+        from plugins.modules.purefa_snmp import main
+
+        with patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", False):
+            mock_module = Mock()
+            mock_module.params = {}
+            mock_module.fail_json.side_effect = SystemExit(1)
+            mock_ansible_module.return_value = mock_module
+
+            with pytest.raises(SystemExit):
+                main()
+
+            mock_module.fail_json.assert_called()
+
+    @patch("plugins.modules.purefa_snmp.get_array")
+    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
+    def test_main_no_host(self, mock_ansible_module, mock_get_array):
+        """Test main() fails when host is not provided"""
+        import pytest
+        from plugins.modules.purefa_snmp import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snmp1",
+            "state": "present",
+            "version": "v2c",
+            "host": None,
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_snmp_managers.return_value = Mock(items=[])
+        mock_get_array.return_value = mock_array
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called()
+
+    @patch("plugins.modules.purefa_snmp.get_array")
+    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
+    def test_main_v3_no_user(self, mock_ansible_module, mock_get_array):
+        """Test main() fails when v3 and user is not provided"""
+        import pytest
+        from plugins.modules.purefa_snmp import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snmp1",
+            "state": "present",
+            "version": "v3",
+            "host": "192.168.1.100",
+            "user": None,
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_snmp_managers.return_value = Mock(items=[])
+        mock_get_array.return_value = mock_array
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called()
+
+    @patch("plugins.modules.purefa_snmp.get_array")
+    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
+    def test_main_v2c_no_community(self, mock_ansible_module, mock_get_array):
+        """Test main() fails when v2c and community is not provided"""
+        import pytest
+        from plugins.modules.purefa_snmp import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snmp1",
+            "state": "present",
+            "version": "v2c",
+            "host": "192.168.1.100",
+            "community": None,
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_snmp_managers.return_value = Mock(items=[])
+        mock_get_array.return_value = mock_array
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called()
+
+    @patch("plugins.modules.purefa_snmp.delete_manager")
+    @patch("plugins.modules.purefa_snmp.get_array")
+    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
+    def test_main_delete_existing(self, mock_ansible_module, mock_get_array, mock_delete):
+        """Test main() calls delete_manager when state=absent and manager exists"""
+        from plugins.modules.purefa_snmp import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snmp1",
+            "state": "absent",
+            "version": "v2c",
+            "host": "192.168.1.100",
+            "community": "public",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_mgr = Mock()
+        mock_mgr.name = "snmp1"
+        mock_array = Mock()
+        mock_array.get_snmp_managers.return_value = Mock(items=[mock_mgr])
+        mock_get_array.return_value = mock_array
+
+        main()
+
+        mock_delete.assert_called_once()
+
+    @patch("plugins.modules.purefa_snmp.update_manager")
+    @patch("plugins.modules.purefa_snmp.get_array")
+    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
+    def test_main_update_existing(self, mock_ansible_module, mock_get_array, mock_update):
+        """Test main() calls update_manager when state=present and manager exists"""
+        from plugins.modules.purefa_snmp import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snmp1",
+            "state": "present",
+            "version": "v2c",
+            "host": "192.168.1.100",
+            "community": "public",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_mgr = Mock()
+        mock_mgr.name = "snmp1"
+        mock_array = Mock()
+        mock_array.get_snmp_managers.return_value = Mock(items=[mock_mgr])
+        mock_get_array.return_value = mock_array
+
+        main()
+
+        mock_update.assert_called_once()
+
+    @patch("plugins.modules.purefa_snmp.create_manager")
+    @patch("plugins.modules.purefa_snmp.get_array")
+    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
+    def test_main_create_new(self, mock_ansible_module, mock_get_array, mock_create):
+        """Test main() calls create_manager when state=present and manager doesn't exist"""
+        from plugins.modules.purefa_snmp import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snmp1",
+            "state": "present",
+            "version": "v2c",
+            "host": "192.168.1.100",
+            "community": "public",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_snmp_managers.return_value = Mock(items=[])  # No existing managers
+        mock_get_array.return_value = mock_array
+
+        main()
+
+        mock_create.assert_called_once()
+
+    @patch("plugins.modules.purefa_snmp.test_manager")
+    @patch("plugins.modules.purefa_snmp.get_array")
+    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
+    def test_main_test_existing(self, mock_ansible_module, mock_get_array, mock_test):
+        """Test main() calls test_manager when state=test and manager exists"""
+        from plugins.modules.purefa_snmp import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snmp1",
+            "state": "test",
+            "version": "v2c",
+            "host": "192.168.1.100",
+            "community": "public",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_mgr = Mock()
+        mock_mgr.name = "snmp1"
+        mock_array = Mock()
+        mock_array.get_snmp_managers.return_value = Mock(items=[mock_mgr])
+        mock_get_array.return_value = mock_array
+
+        main()
+
+        mock_test.assert_called_once()
+
+    @patch("plugins.modules.purefa_snmp.get_array")
+    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
+    def test_main_no_change(self, mock_ansible_module, mock_get_array):
+        """Test main() exits with no change when nothing to do"""
+        from plugins.modules.purefa_snmp import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "snmp1",
+            "state": "absent",  # Want to delete
+            "version": "v2c",
+            "host": "192.168.1.100",
+            "community": "public",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_snmp_managers.return_value = Mock(items=[])  # Manager doesn't exist
+        mock_get_array.return_value = mock_array
+
+        main()
+
+        mock_module.exit_json.assert_called_with(changed=False)
