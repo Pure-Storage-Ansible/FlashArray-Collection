@@ -6,8 +6,8 @@ This directory contains the test suite for the Pure Storage FlashArray Ansible C
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 1,514 |
-| **Code Coverage** | 73% |
+| **Total Tests** | 1,569 |
+| **Code Coverage** | 74% |
 | **Test Files** | 68 |
 | **Modules Tested** | 66 |
 
@@ -168,6 +168,7 @@ class TestFunctionName:
 | Module | Coverage |
 |--------|----------|
 | purefa_inventory.py | 99% |
+| purefa_fs.py | 98% |
 | purefa_logging.py | 98% |
 | purefa_messages.py | 98% |
 | purefa_ad.py | 96% |
@@ -192,6 +193,8 @@ class TestFunctionName:
 | purefa_eula.py | 86% |
 | purefa_hardware.py | 85% |
 | purefa_network.py | 83% |
+| purefa_pgsched.py | 82% |
+| purefa_vg.py | 81% |
 | purefa_phonehome.py | 80% |
 | purefa_proxy.py | 80% |
 | purefa_pg.py | 80% |
@@ -204,6 +207,7 @@ class TestFunctionName:
 | purefa_hg.py | 78% |
 | purefa_host.py | 78% |
 | purefa_snap.py | 76% |
+| purefa_subnet.py | 75% |
 | purefa_banner.py | 74% |
 | purefa_vlan.py | 74% |
 | purefa_api_helpers.py | 73% |
@@ -223,7 +227,6 @@ class TestFunctionName:
 | purefa_snmp_agent.py | 68% |
 | purefa_syslog_settings.py | 68% |
 | purefa_directory.py | 67% |
-| purefa_fs.py | 67% |
 | purefa_kmip.py | 67% |
 | purefa_ra.py | 67% |
 | purefa_volume_tags.py | 67% |
@@ -237,16 +240,13 @@ class TestFunctionName:
 | purefa_smis.py | 64% |
 | purefa_dsrole_old.py | 63% |
 | purefa_ntp.py | 63% |
-| purefa_pgsched.py | 63% |
 | purefa_admin.py | 62% |
 | purefa_alert.py | 62% |
 | purefa_dsrole.py | 62% |
-| purefa_vg.py | 62% |
 | purefa_vnc.py | 62% |
 | purefa_common.py | 61% |
 | purefa_default_protection.py | 61% |
 | purefa_endpoint.py | 61% |
-| purefa_subnet.py | 61% |
 | purefa_apiclient.py | 60% |
 | purefa_offload.py | 60% |
 | purefa_pgsnap.py | 60% |

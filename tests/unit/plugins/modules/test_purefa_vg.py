@@ -622,3 +622,506 @@ class TestUpdateVgroupSuccess:
         update_vgroup(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_vg.human_to_real")
+    def test_update_vgroup_iops_qos_change(
+        self, mock_human_to_real, mock_lv, mock_check_response
+    ):
+        """Test update_vgroup changing IOPS QoS"""
+        mock_human_to_real.return_value = 50000
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "bw_qos": None,
+            "iops_qos": "50K",
+            "priority_operator": None,
+            "priority_value": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_vg = Mock()
+        mock_vg.priority_adjustment = Mock()
+        mock_vg.priority_adjustment.priority_adjustment_operator = "+"
+        mock_vg.priority_adjustment.priority_adjustment_value = 0
+        mock_vg.qos = Mock()
+        mock_vg.qos.iops_limit = 100000000  # Default MAX
+        mock_array.get_volume_groups.return_value = Mock(items=[mock_vg])
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        update_vgroup(mock_module, mock_array)
+
+        mock_array.patch_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_vg.human_to_real")
+    def test_update_vgroup_iops_qos_disable(
+        self, mock_human_to_real, mock_lv, mock_check_response
+    ):
+        """Test update_vgroup disabling IOPS QoS with 0"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "bw_qos": None,
+            "iops_qos": "0",
+            "priority_operator": None,
+            "priority_value": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_vg = Mock()
+        mock_vg.priority_adjustment = Mock()
+        mock_vg.priority_adjustment.priority_adjustment_operator = "+"
+        mock_vg.priority_adjustment.priority_adjustment_value = 0
+        mock_vg.qos = Mock()
+        mock_vg.qos.iops_limit = 50000  # Current limit
+        mock_array.get_volume_groups.return_value = Mock(items=[mock_vg])
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        update_vgroup(mock_module, mock_array)
+
+        mock_array.patch_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    def test_update_vgroup_bw_qos_disable(
+        self, mock_human_to_bytes, mock_lv, mock_check_response
+    ):
+        """Test update_vgroup disabling bandwidth QoS with 0"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "bw_qos": "0",
+            "iops_qos": None,
+            "priority_operator": None,
+            "priority_value": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_vg = Mock()
+        mock_vg.priority_adjustment = Mock()
+        mock_vg.priority_adjustment.priority_adjustment_operator = "+"
+        mock_vg.priority_adjustment.priority_adjustment_value = 0
+        mock_vg.qos = Mock()
+        mock_vg.qos.bandwidth_limit = 1073741824  # Current limit
+        mock_array.get_volume_groups.return_value = Mock(items=[mock_vg])
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        update_vgroup(mock_module, mock_array)
+
+        mock_array.patch_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    def test_update_vgroup_priority_operator_change(self, mock_lv, mock_check_response):
+        """Test update_vgroup changing priority operator"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "bw_qos": None,
+            "iops_qos": None,
+            "priority_operator": "-",
+            "priority_value": 10,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_vg = Mock()
+        mock_vg.priority_adjustment = Mock()
+        mock_vg.priority_adjustment.priority_adjustment_operator = "+"
+        mock_vg.priority_adjustment.priority_adjustment_value = 0
+        mock_vg.qos = Mock()
+        mock_array.get_volume_groups.return_value = Mock(items=[mock_vg])
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        update_vgroup(mock_module, mock_array)
+
+        mock_array.patch_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestMakeVgroupComplex:
+    """Test cases for make_vgroup with complex QoS scenarios"""
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    @patch("plugins.modules.purefa_vg.human_to_real")
+    def test_make_vgroup_both_qos(
+        self, mock_human_to_real, mock_human_to_bytes, mock_lv, mock_check_response
+    ):
+        """Test make_vgroup with both BW and IOPS QoS"""
+        mock_human_to_bytes.return_value = 1073741824  # 1GB
+        mock_human_to_real.return_value = 50000
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "bw_qos": "1G",
+            "iops_qos": "50K",
+            "priority_operator": "+",
+            "priority_value": 0,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.11"
+        mock_array.post_volume_groups.return_value = Mock(status_code=200)
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        make_vgroup(mock_module, mock_array)
+
+        mock_array.post_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    @patch("plugins.modules.purefa_vg.human_to_real")
+    def test_make_vgroup_both_qos_with_context(
+        self, mock_human_to_real, mock_human_to_bytes, mock_lv, mock_check_response
+    ):
+        """Test make_vgroup with both QoS and context"""
+        mock_human_to_bytes.return_value = 2147483648  # 2GB
+        mock_human_to_real.return_value = 100000
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "fleet-context",
+            "bw_qos": "2G",
+            "iops_qos": "100K",
+            "priority_operator": "+",
+            "priority_value": 10,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volume_groups.return_value = Mock(status_code=200)
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        make_vgroup(mock_module, mock_array)
+
+        mock_array.post_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    @patch("plugins.modules.purefa_vg.human_to_real")
+    def test_make_vgroup_both_qos_out_of_range(
+        self, mock_human_to_real, mock_human_to_bytes, mock_lv
+    ):
+        """Test make_vgroup with QoS values out of range"""
+        mock_human_to_bytes.return_value = 100  # Too small
+        mock_human_to_real.return_value = 10  # Too small
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "bw_qos": "100",
+            "iops_qos": "10",
+            "priority_operator": "+",
+            "priority_value": 0,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.11"
+
+        make_vgroup(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    def test_make_vgroup_no_qos_with_context(self, mock_lv, mock_check_response):
+        """Test make_vgroup with no QoS but with context"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "fleet-context",
+            "bw_qos": None,
+            "iops_qos": None,
+            "priority_operator": "+",
+            "priority_value": 0,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volume_groups.return_value = Mock(status_code=200)
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        make_vgroup(mock_module, mock_array)
+
+        mock_array.post_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestMakeMultiVgroupsQoS:
+    """Test cases for make_multi_vgroups with QoS"""
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    def test_make_multi_vgroups_bw_qos(
+        self, mock_human_to_bytes, mock_lv, mock_check_response
+    ):
+        """Test make_multi_vgroups with bandwidth QoS"""
+        mock_human_to_bytes.return_value = 1073741824  # 1GB
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "count": 3,
+            "start": 0,
+            "digits": 2,
+            "suffix": "",
+            "bw_qos": "1G",
+            "iops_qos": None,
+            "priority_operator": "+",
+            "priority_value": 0,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.11"
+        mock_array.post_volume_groups.return_value = Mock(status_code=200)
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        make_multi_vgroups(mock_module, mock_array)
+
+        mock_array.post_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_vg.human_to_real")
+    def test_make_multi_vgroups_iops_qos(
+        self, mock_human_to_real, mock_lv, mock_check_response
+    ):
+        """Test make_multi_vgroups with IOPS QoS"""
+        mock_human_to_real.return_value = 50000
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "count": 3,
+            "start": 1,
+            "digits": 3,
+            "suffix": "-data",
+            "bw_qos": None,
+            "iops_qos": "50K",
+            "priority_operator": "+",
+            "priority_value": 0,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.11"
+        mock_array.post_volume_groups.return_value = Mock(status_code=200)
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        make_multi_vgroups(mock_module, mock_array)
+
+        mock_array.post_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    @patch("plugins.modules.purefa_vg.human_to_real")
+    def test_make_multi_vgroups_both_qos(
+        self, mock_human_to_real, mock_human_to_bytes, mock_lv, mock_check_response
+    ):
+        """Test make_multi_vgroups with both QoS types"""
+        mock_human_to_bytes.return_value = 2147483648  # 2GB
+        mock_human_to_real.return_value = 100000
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "count": 5,
+            "start": 0,
+            "digits": 2,
+            "suffix": "",
+            "bw_qos": "2G",
+            "iops_qos": "100K",
+            "priority_operator": "-",
+            "priority_value": 10,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.11"
+        mock_array.post_volume_groups.return_value = Mock(status_code=200)
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        make_multi_vgroups(mock_module, mock_array)
+
+        mock_array.post_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    @patch("plugins.modules.purefa_vg.human_to_real")
+    def test_make_multi_vgroups_both_qos_with_context(
+        self, mock_human_to_real, mock_human_to_bytes, mock_lv, mock_check_response
+    ):
+        """Test make_multi_vgroups with both QoS and context"""
+        mock_human_to_bytes.return_value = 1073741824
+        mock_human_to_real.return_value = 50000
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "fleet-context",
+            "count": 2,
+            "start": 0,
+            "digits": 1,
+            "suffix": "",
+            "bw_qos": "1G",
+            "iops_qos": "50K",
+            "priority_operator": "+",
+            "priority_value": 10,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.post_volume_groups.return_value = Mock(status_code=200)
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        make_multi_vgroups(mock_module, mock_array)
+
+        mock_array.post_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    def test_make_multi_vgroups_bw_qos_out_of_range(self, mock_human_to_bytes, mock_lv):
+        """Test make_multi_vgroups with bandwidth QoS out of range"""
+        mock_human_to_bytes.return_value = 100  # Too small
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "count": 2,
+            "start": 0,
+            "digits": 1,
+            "suffix": "",
+            "bw_qos": "100",
+            "iops_qos": None,
+            "priority_operator": "+",
+            "priority_value": 0,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.11"
+
+        make_multi_vgroups(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_vg.human_to_real")
+    def test_make_multi_vgroups_iops_qos_out_of_range(
+        self, mock_human_to_real, mock_lv
+    ):
+        """Test make_multi_vgroups with IOPS QoS out of range"""
+        mock_human_to_real.return_value = 10  # Too small
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "",
+            "count": 2,
+            "start": 0,
+            "digits": 1,
+            "suffix": "",
+            "bw_qos": None,
+            "iops_qos": "10",
+            "priority_operator": "+",
+            "priority_value": 0,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.11"
+
+        make_multi_vgroups(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestRecoverVgroup:
+    """Test cases for recover_vgroup function"""
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    def test_recover_vgroup_with_context(self, mock_lv, mock_check_response):
+        """Test recover_vgroup with context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "fleet-context",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        recover_vgroup(mock_module, mock_array)
+
+        mock_array.patch_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestEradicateVgroup:
+    """Test cases for eradicate_vgroup function"""
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    def test_eradicate_vgroup_with_context(self, mock_lv, mock_check_response):
+        """Test eradicate_vgroup with context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "fleet-context",
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.delete_volume_groups.return_value = Mock(status_code=200)
+
+        eradicate_vgroup(mock_module, mock_array)
+
+        mock_array.delete_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteVgroup:
+    """Test cases for delete_vgroup function"""
+
+    @patch("plugins.modules.purefa_vg.check_response")
+    @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
+    def test_delete_vgroup_with_context(self, mock_lv, mock_check_response):
+        """Test delete_vgroup with context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-vg",
+            "context": "fleet-context",
+            "eradicate": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_volume_groups.return_value = Mock(status_code=200)
+
+        delete_vgroup(mock_module, mock_array)
+
+        mock_array.patch_volume_groups.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
