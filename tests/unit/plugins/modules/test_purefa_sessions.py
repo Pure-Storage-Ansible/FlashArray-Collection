@@ -194,9 +194,7 @@ class TestMain:
             "plugins.modules.purefa_sessions.AnsibleModule"
         ) as mock_ansible_module:
             with patch("plugins.modules.purefa_sessions.get_array") as mock_get_array:
-                with patch(
-                    "plugins.modules.purefa_sessions.datetime"
-                ) as mock_datetime:
+                with patch("plugins.modules.purefa_sessions.datetime") as mock_datetime:
                     mock_datetime.datetime.now.return_value = _mock_datetime_now()
                     mock_datetime.datetime.fromtimestamp.return_value = (
                         _mock_datetime_now()
@@ -269,9 +267,7 @@ class TestMain:
             "plugins.modules.purefa_sessions.AnsibleModule"
         ) as mock_ansible_module:
             with patch("plugins.modules.purefa_sessions.get_array") as mock_get_array:
-                with patch(
-                    "plugins.modules.purefa_sessions.datetime"
-                ) as mock_datetime:
+                with patch("plugins.modules.purefa_sessions.datetime") as mock_datetime:
                     mock_datetime.datetime.now.return_value = _mock_datetime_now()
                     mock_datetime.datetime.fromtimestamp.return_value = (
                         _mock_datetime_now()
@@ -304,9 +300,7 @@ class TestMain:
             "plugins.modules.purefa_sessions.AnsibleModule"
         ) as mock_ansible_module:
             with patch("plugins.modules.purefa_sessions.get_array") as mock_get_array:
-                with patch(
-                    "plugins.modules.purefa_sessions.datetime"
-                ) as mock_datetime:
+                with patch("plugins.modules.purefa_sessions.datetime") as mock_datetime:
                     mock_datetime.datetime.now.return_value = _mock_datetime_now()
 
                     mock_module = Mock()
@@ -339,9 +333,7 @@ class TestMain:
             "plugins.modules.purefa_sessions.AnsibleModule"
         ) as mock_ansible_module:
             with patch("plugins.modules.purefa_sessions.get_array") as mock_get_array:
-                with patch(
-                    "plugins.modules.purefa_sessions.datetime"
-                ) as mock_datetime:
+                with patch("plugins.modules.purefa_sessions.datetime") as mock_datetime:
                     mock_datetime.datetime.now.return_value = _mock_datetime_now()
                     mock_datetime.datetime.fromtimestamp.return_value = (
                         _mock_datetime_now()
@@ -385,9 +377,7 @@ class TestMain:
             "plugins.modules.purefa_sessions.AnsibleModule"
         ) as mock_ansible_module:
             with patch("plugins.modules.purefa_sessions.get_array") as mock_get_array:
-                with patch(
-                    "plugins.modules.purefa_sessions.datetime"
-                ) as mock_datetime:
+                with patch("plugins.modules.purefa_sessions.datetime") as mock_datetime:
                     mock_datetime.datetime.now.return_value = _mock_datetime_now()
 
                     mock_module = Mock()
@@ -421,9 +411,7 @@ class TestMain:
             "plugins.modules.purefa_sessions.AnsibleModule"
         ) as mock_ansible_module:
             with patch("plugins.modules.purefa_sessions.get_array") as mock_get_array:
-                with patch(
-                    "plugins.modules.purefa_sessions.datetime"
-                ) as mock_datetime:
+                with patch("plugins.modules.purefa_sessions.datetime") as mock_datetime:
                     mock_datetime.datetime.now.return_value = _mock_datetime_now()
                     mock_datetime.datetime.strptime.return_value = _mock_datetime_now()
                     mock_datetime.datetime.timestamp.return_value = 1704067200

@@ -340,7 +340,9 @@ class TestAddFleetMembersSuccess:
         # Mock fleet key generation
         mock_key = Mock()
         mock_key.fleet_key = "test-fleet-key"
-        mock_array.post_fleets_fleet_key.return_value = Mock(status_code=200, items=[mock_key])
+        mock_array.post_fleets_fleet_key.return_value = Mock(
+            status_code=200, items=[mock_key]
+        )
 
         # Mock remote system
         mock_remote = Mock()
@@ -364,7 +366,9 @@ class TestAddFleetMembersSuccess:
     @patch("plugins.modules.purefa_fleet.flasharray")
     @patch("plugins.modules.purefa_fleet.HAS_DISTRO", False)
     @patch("plugins.modules.purefa_fleet.HAS_URLLIB3", False)
-    def test_add_fleet_members_already_exists(self, mock_flasharray, mock_check_response):
+    def test_add_fleet_members_already_exists(
+        self, mock_flasharray, mock_check_response
+    ):
         """Test add_fleet_members when member already in fleet"""
         from plugins.modules.purefa_fleet import add_fleet_members
 
@@ -382,7 +386,9 @@ class TestAddFleetMembersSuccess:
         # Mock fleet key generation
         mock_key = Mock()
         mock_key.fleet_key = "test-fleet-key"
-        mock_array.post_fleets_fleet_key.return_value = Mock(status_code=200, items=[mock_key])
+        mock_array.post_fleets_fleet_key.return_value = Mock(
+            status_code=200, items=[mock_key]
+        )
 
         # Mock remote system
         mock_remote = Mock()
@@ -423,7 +429,9 @@ class TestAddFleetMembersSuccess:
         # Mock fleet key generation
         mock_key = Mock()
         mock_key.fleet_key = "test-fleet-key"
-        mock_array.post_fleets_fleet_key.return_value = Mock(status_code=200, items=[mock_key])
+        mock_array.post_fleets_fleet_key.return_value = Mock(
+            status_code=200, items=[mock_key]
+        )
 
         # Mock remote system
         mock_remote = Mock()
@@ -454,7 +462,9 @@ class TestAddFleetMembersSuccess:
     @patch("plugins.modules.purefa_fleet.flashblade")
     @patch("plugins.modules.purefa_fleet.HAS_DISTRO", False)
     @patch("plugins.modules.purefa_fleet.HAS_URLLIB3", False)
-    def test_add_fleet_members_flashblade_api_version_too_old(self, mock_flashblade, mock_flasharray):
+    def test_add_fleet_members_flashblade_api_version_too_old(
+        self, mock_flashblade, mock_flasharray
+    ):
         """Test add_fleet_members fails when adding FlashBlade to old FA version"""
         import pytest
         from plugins.modules.purefa_fleet import add_fleet_members
@@ -474,7 +484,9 @@ class TestAddFleetMembersSuccess:
         # Mock fleet key generation
         mock_key = Mock()
         mock_key.fleet_key = "test-fleet-key"
-        mock_array.post_fleets_fleet_key.return_value = Mock(status_code=200, items=[mock_key])
+        mock_array.post_fleets_fleet_key.return_value = Mock(
+            status_code=200, items=[mock_key]
+        )
 
         with pytest.raises(SystemExit):
             add_fleet_members(mock_module, mock_array)
@@ -489,7 +501,9 @@ class TestMain:
     @patch("plugins.modules.purefa_fleet.get_array")
     @patch("plugins.modules.purefa_fleet.AnsibleModule")
     @patch("plugins.modules.purefa_fleet.HAS_PURESTORAGE", True)
-    def test_main_no_purestorage_sdk(self, mock_ansible_module, mock_get_array, mock_loose_version):
+    def test_main_no_purestorage_sdk(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
         """Test main() fails when purestorage SDK not available"""
         import pytest
         from plugins.modules.purefa_fleet import main
@@ -508,7 +522,9 @@ class TestMain:
     @patch("plugins.modules.purefa_fleet.get_array")
     @patch("plugins.modules.purefa_fleet.AnsibleModule")
     @patch("plugins.modules.purefa_fleet.HAS_PURESTORAGE", True)
-    def test_main_api_version_too_old(self, mock_ansible_module, mock_get_array, mock_loose_version):
+    def test_main_api_version_too_old(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
         """Test main() fails when API version is too old"""
         import pytest
         from plugins.modules.purefa_fleet import main
@@ -531,7 +547,9 @@ class TestMain:
     @patch("plugins.modules.purefa_fleet.get_array")
     @patch("plugins.modules.purefa_fleet.AnsibleModule")
     @patch("plugins.modules.purefa_fleet.HAS_PURESTORAGE", True)
-    def test_main_fusion_not_enabled(self, mock_ansible_module, mock_get_array, mock_loose_version):
+    def test_main_fusion_not_enabled(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
         """Test main() fails when Fusion not enabled"""
         import pytest
         from plugins.modules.purefa_fleet import main
@@ -557,7 +575,9 @@ class TestMain:
     @patch("plugins.modules.purefa_fleet.get_array")
     @patch("plugins.modules.purefa_fleet.AnsibleModule")
     @patch("plugins.modules.purefa_fleet.HAS_PURESTORAGE", True)
-    def test_main_state_create(self, mock_ansible_module, mock_get_array, mock_loose_version, mock_create_fleet):
+    def test_main_state_create(
+        self, mock_ansible_module, mock_get_array, mock_loose_version, mock_create_fleet
+    ):
         """Test main() calls create_fleet when state=create"""
         from plugins.modules.purefa_fleet import main
 
@@ -571,7 +591,9 @@ class TestMain:
         mock_ansible_module.return_value = mock_module
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.40"
-        mock_array.get_fleets.return_value = Mock(status_code=200, items=[])  # No fleet exists
+        mock_array.get_fleets.return_value = Mock(
+            status_code=200, items=[]
+        )  # No fleet exists
         mock_get_array.return_value = mock_array
 
         main()
@@ -583,7 +605,9 @@ class TestMain:
     @patch("plugins.modules.purefa_fleet.get_array")
     @patch("plugins.modules.purefa_fleet.AnsibleModule")
     @patch("plugins.modules.purefa_fleet.HAS_PURESTORAGE", True)
-    def test_main_state_absent(self, mock_ansible_module, mock_get_array, mock_loose_version, mock_delete_fleet):
+    def test_main_state_absent(
+        self, mock_ansible_module, mock_get_array, mock_loose_version, mock_delete_fleet
+    ):
         """Test main() calls delete_fleet when state=absent"""
         from plugins.modules.purefa_fleet import main
 
@@ -610,7 +634,9 @@ class TestMain:
     @patch("plugins.modules.purefa_fleet.get_array")
     @patch("plugins.modules.purefa_fleet.AnsibleModule")
     @patch("plugins.modules.purefa_fleet.HAS_PURESTORAGE", True)
-    def test_main_no_change(self, mock_ansible_module, mock_get_array, mock_loose_version):
+    def test_main_no_change(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
         """Test main() exits with no change when no action needed"""
         from plugins.modules.purefa_fleet import main
 

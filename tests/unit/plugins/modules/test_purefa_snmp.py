@@ -582,7 +582,9 @@ class TestMain:
     @patch("plugins.modules.purefa_snmp.get_array")
     @patch("plugins.modules.purefa_snmp.AnsibleModule")
     @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
-    def test_main_delete_existing(self, mock_ansible_module, mock_get_array, mock_delete):
+    def test_main_delete_existing(
+        self, mock_ansible_module, mock_get_array, mock_delete
+    ):
         """Test main() calls delete_manager when state=absent and manager exists"""
         from plugins.modules.purefa_snmp import main
 
@@ -610,7 +612,9 @@ class TestMain:
     @patch("plugins.modules.purefa_snmp.get_array")
     @patch("plugins.modules.purefa_snmp.AnsibleModule")
     @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
-    def test_main_update_existing(self, mock_ansible_module, mock_get_array, mock_update):
+    def test_main_update_existing(
+        self, mock_ansible_module, mock_get_array, mock_update
+    ):
         """Test main() calls update_manager when state=present and manager exists"""
         from plugins.modules.purefa_snmp import main
 
@@ -653,7 +657,9 @@ class TestMain:
         mock_ansible_module.return_value = mock_module
 
         mock_array = Mock()
-        mock_array.get_snmp_managers.return_value = Mock(items=[])  # No existing managers
+        mock_array.get_snmp_managers.return_value = Mock(
+            items=[]
+        )  # No existing managers
         mock_get_array.return_value = mock_array
 
         main()
@@ -706,7 +712,9 @@ class TestMain:
         mock_ansible_module.return_value = mock_module
 
         mock_array = Mock()
-        mock_array.get_snmp_managers.return_value = Mock(items=[])  # Manager doesn't exist
+        mock_array.get_snmp_managers.return_value = Mock(
+            items=[]
+        )  # Manager doesn't exist
         mock_get_array.return_value = mock_array
 
         main()

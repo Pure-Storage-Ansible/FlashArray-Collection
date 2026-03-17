@@ -544,7 +544,9 @@ class TestMain:
     @patch("plugins.modules.purefa_dirsnap.get_array")
     @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
-    def test_main_no_purestorage_sdk(self, mock_ansible_module, mock_get_array, mock_loose_version):
+    def test_main_no_purestorage_sdk(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
         """Test main() fails when purestorage SDK not available"""
         import pytest
         from plugins.modules.purefa_dirsnap import main
@@ -564,7 +566,9 @@ class TestMain:
     @patch("plugins.modules.purefa_dirsnap.get_array")
     @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
-    def test_main_rename_without_new_values(self, mock_ansible_module, mock_get_array, mock_loose_version):
+    def test_main_rename_without_new_values(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
         """Test main() fails when rename is True but no new_client or new_suffix"""
         import pytest
         from plugins.modules.purefa_dirsnap import main
@@ -587,7 +591,9 @@ class TestMain:
     @patch("plugins.modules.purefa_dirsnap.get_array")
     @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
-    def test_main_api_version_too_old(self, mock_ansible_module, mock_get_array, mock_loose_version):
+    def test_main_api_version_too_old(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
         """Test main() fails when API version is too old"""
         import pytest
         from plugins.modules.purefa_dirsnap import main
@@ -635,7 +641,9 @@ class TestMain:
         mock_module.fail_json.side_effect = SystemExit(1)
         mock_ansible_module.return_value = mock_module
         mock_array = Mock()
-        mock_array.get_rest_version.return_value = "2.9"  # Good for base (>=2.2), but <2.10 for rename
+        mock_array.get_rest_version.return_value = (
+            "2.9"  # Good for base (>=2.2), but <2.10 for rename
+        )
         mock_get_array.return_value = mock_array
 
         with pytest.raises(SystemExit):
@@ -647,7 +655,9 @@ class TestMain:
     @patch("plugins.modules.purefa_dirsnap.get_array")
     @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
-    def test_main_invalid_suffix_pattern(self, mock_ansible_module, mock_get_array, mock_loose_version):
+    def test_main_invalid_suffix_pattern(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
         """Test main() fails with invalid suffix pattern"""
         import pytest
         from plugins.modules.purefa_dirsnap import main
@@ -673,7 +683,9 @@ class TestMain:
     @patch("plugins.modules.purefa_dirsnap.get_array")
     @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
-    def test_main_invalid_new_suffix_pattern(self, mock_ansible_module, mock_get_array, mock_loose_version):
+    def test_main_invalid_new_suffix_pattern(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
         """Test main() fails with invalid new_suffix pattern"""
         import pytest
         from plugins.modules.purefa_dirsnap import main
@@ -699,7 +711,9 @@ class TestMain:
     @patch("plugins.modules.purefa_dirsnap.get_array")
     @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
-    def test_main_invalid_client_pattern(self, mock_ansible_module, mock_get_array, mock_loose_version):
+    def test_main_invalid_client_pattern(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
         """Test main() fails with invalid client pattern"""
         import pytest
         from plugins.modules.purefa_dirsnap import main
@@ -726,7 +740,13 @@ class TestMain:
     @patch("plugins.modules.purefa_dirsnap.get_array")
     @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
-    def test_main_directory_not_found(self, mock_ansible_module, mock_get_array, mock_loose_version, mock_get_with_context):
+    def test_main_directory_not_found(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_loose_version,
+        mock_get_with_context,
+    ):
         """Test main() fails when directory does not exist"""
         import pytest
         from plugins.modules.purefa_dirsnap import main
@@ -764,7 +784,14 @@ class TestMain:
     @patch("plugins.modules.purefa_dirsnap.get_array")
     @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
-    def test_main_create_snap(self, mock_ansible_module, mock_get_array, mock_loose_version, mock_get_with_context, mock_create_snap):
+    def test_main_create_snap(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_loose_version,
+        mock_get_with_context,
+        mock_create_snap,
+    ):
         """Test main() calls create_snap when state=present and snapshot doesn't exist"""
         from plugins.modules.purefa_dirsnap import main
 
@@ -797,7 +824,9 @@ class TestMain:
     @patch("plugins.modules.purefa_dirsnap.get_array")
     @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
-    def test_main_no_change(self, mock_ansible_module, mock_get_array, mock_loose_version):
+    def test_main_no_change(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
         """Test main() exits with no change when no action needed"""
         from plugins.modules.purefa_dirsnap import main
 
@@ -818,9 +847,13 @@ class TestMain:
         mock_array = Mock()
         mock_array.get_rest_version.return_value = "2.20"
         # Directory exists
-        mock_array.get_directories.return_value = Mock(status_code=200, total_item_count=1)
+        mock_array.get_directories.return_value = Mock(
+            status_code=200, total_item_count=1
+        )
         # Snapshot doesn't exist - nothing to delete
-        mock_array.get_directory_snapshots.return_value = Mock(status_code=200, total_item_count=0)
+        mock_array.get_directory_snapshots.return_value = Mock(
+            status_code=200, total_item_count=0
+        )
         mock_get_array.return_value = mock_array
 
         main()

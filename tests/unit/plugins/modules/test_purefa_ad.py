@@ -364,9 +364,7 @@ class TestMain:
 
         with patch("plugins.modules.purefa_ad.AnsibleModule") as mock_ansible_module:
             with patch("plugins.modules.purefa_ad.get_array") as mock_get_array:
-                with patch(
-                    "plugins.modules.purefa_ad.update_account"
-                ) as mock_update:
+                with patch("plugins.modules.purefa_ad.update_account") as mock_update:
                     mock_module = Mock()
                     mock_module.params = {
                         "state": "present",
@@ -393,9 +391,7 @@ class TestMain:
 
         with patch("plugins.modules.purefa_ad.AnsibleModule") as mock_ansible_module:
             with patch("plugins.modules.purefa_ad.get_array") as mock_get_array:
-                with patch(
-                    "plugins.modules.purefa_ad.delete_account"
-                ) as mock_delete:
+                with patch("plugins.modules.purefa_ad.delete_account") as mock_delete:
                     mock_module = Mock()
                     mock_module.params = {
                         "state": "absent",
@@ -421,9 +417,7 @@ class TestMain:
 
         with patch("plugins.modules.purefa_ad.AnsibleModule") as mock_ansible_module:
             with patch("plugins.modules.purefa_ad.get_array") as mock_get_array:
-                with patch(
-                    "plugins.modules.purefa_ad.delete_account"
-                ) as mock_delete:
+                with patch("plugins.modules.purefa_ad.delete_account") as mock_delete:
                     mock_module = Mock()
                     mock_module.params = {
                         "state": "absent",
@@ -514,9 +508,7 @@ class TestMain:
 
         with patch("plugins.modules.purefa_ad.AnsibleModule") as mock_ansible_module:
             with patch("plugins.modules.purefa_ad.get_array") as mock_get_array:
-                with patch(
-                    "plugins.modules.purefa_ad.update_account"
-                ) as mock_update:
+                with patch("plugins.modules.purefa_ad.update_account") as mock_update:
                     mock_module = Mock()
                     mock_module.params = {
                         "state": "present",

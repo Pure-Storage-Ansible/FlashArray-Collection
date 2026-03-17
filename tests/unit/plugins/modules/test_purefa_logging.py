@@ -287,7 +287,9 @@ class TestLoggingSessionRetrieval:
         mock_ansible_module.return_value = mock_module
 
         # Mock session entry without start_time/end_time attributes
-        mock_session = Mock(spec=["location", "user", "event", "event_count", "user_interface"])
+        mock_session = Mock(
+            spec=["location", "user", "event", "event_count", "user_interface"]
+        )
         mock_session.location = "192.168.1.1"
         mock_session.user = "admin"
         mock_session.event = "logout"
@@ -327,7 +329,16 @@ class TestLoggingSessionRetrieval:
         mock_ansible_module.return_value = mock_module
 
         # Mock session entry with only start_time
-        mock_session = Mock(spec=["start_time", "location", "user", "event", "event_count", "user_interface"])
+        mock_session = Mock(
+            spec=[
+                "start_time",
+                "location",
+                "user",
+                "event",
+                "event_count",
+                "user_interface",
+            ]
+        )
         mock_session.start_time = 1700000000000
         mock_session.location = "10.0.0.1"
         mock_session.user = "pureuser"
