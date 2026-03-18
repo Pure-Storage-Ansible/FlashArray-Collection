@@ -272,7 +272,7 @@ def get_pod(module, array):
 
 
 def get_undo_pod(module, array):
-    """Return Undo Pod or None"""
+    """Return list of Undo Pods or None if none exist"""
     res = get_with_context(
         array,
         "get_pods",
@@ -281,7 +281,8 @@ def get_undo_pod(module, array):
         names=[module.params["name"] + ".undo-demote.*"],
     )
     if res.status_code == 200:
-        return list(res.items)
+        pods = list(res.items)
+        return pods if pods else None
     return None
 
 
@@ -676,12 +677,26 @@ def update_pod(module, array):
                 )
             )
         else:
-            changed = True
-            if not module.check_mode:
-                if (
-                    current_config.promotion_status == "demoted"
-                    and module.params["promote"]
-                ):
+            # Check if pod is already in desired state (idempotency)
+            if (
+                module.params["promote"]
+                and current_config.promotion_status == "promoted"
+            ):
+                # Already promoted, nothing to do
+                pass
+            elif (
+                not module.params["promote"]
+                and current_config.promotion_status == "demoted"
+            ):
+                # Already demoted, nothing to do
+                pass
+            elif (
+                current_config.promotion_status == "demoted"
+                and module.params["promote"]
+            ):
+                # Promote a demoted pod
+                changed = True
+                if not module.check_mode:
                     if module.params["undo"] is None:
                         module.params["undo"] = True
                     if current_config.promotion_status == "quiescing":
@@ -716,7 +731,14 @@ def update_pod(module, array):
                                 module.warn(
                                     f"undo-demote pod(s) remaining for {module.params['name']}. Consider eradicating."
                                 )
+                            check_response(
+                                res,
+                                module,
+                                f"Failed to promote pod {module.params['name']}",
+                            )
                         else:
+                            # No undo-demote pod found, but undo=True was requested
+                            # Cannot promote without undo-demote pod when undo=True
                             changed = False
                             module.warn(
                                 f"undo-demote pod(s) missing for {module.params['name']}. Check use of `undo` parameter."
@@ -730,17 +752,22 @@ def update_pod(module, array):
                             names=[module.params["name"]],
                             pod=PodPatch(requested_promotion_state="promoted"),
                         )
-                    check_response(
-                        res, module, f"Failed to promote pod {module.params['name']}"
-                    )
-                elif (
-                    current_config.promotion_status != "demoted"
-                    and not module.params["promote"]
-                ):
-                    if get_undo_pod(module, array):
-                        module.fail_json(
-                            msg=f"Cannot demote pod {module.params['name']} due to associated undo-demote pod not being eradicated"
+                        check_response(
+                            res,
+                            module,
+                            f"Failed to promote pod {module.params['name']}",
                         )
+            elif (
+                current_config.promotion_status != "demoted"
+                and not module.params["promote"]
+            ):
+                # Demote a promoted pod
+                if get_undo_pod(module, array):
+                    module.fail_json(
+                        msg=f"Cannot demote pod {module.params['name']} due to associated undo-demote pod not being eradicated"
+                    )
+                changed = True
+                if not module.check_mode:
                     if module.params["quiesce"] is None:
                         module.params["quiesce"] = True
                     if current_config["link_target_count"] == 0:
