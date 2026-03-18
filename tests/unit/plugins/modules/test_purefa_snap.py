@@ -1507,3 +1507,56 @@ class TestEradicateSnapshotPaths:
 
         mock_array.delete_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestStateCopySnapshotNotFound:
+    """Test cases for state=copy when snapshot does not exist (issue #978)"""
+
+    @patch("plugins.modules.purefa_snap.get_deleted_snapshot")
+    @patch("plugins.modules.purefa_snap.get_snapshot")
+    @patch("plugins.modules.purefa_snap.get_volume")
+    @patch("plugins.modules.purefa_snap._check_target")
+    @patch("plugins.modules.purefa_snap.get_array")
+    @patch("plugins.modules.purefa_snap.AnsibleModule")
+    def test_state_copy_snapshot_not_found_fails(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_check_target,
+        mock_get_volume,
+        mock_get_snapshot,
+        mock_get_deleted_snapshot,
+    ):
+        """Test that state=copy fails with error when snapshot doesn't exist"""
+        from plugins.modules.purefa_snap import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-volume",
+            "suffix": "snap1",
+            "target": "new-volume",
+            "state": "copy",
+            "offload": None,
+            "context": "",
+            "overwrite": True,
+            "eradicate": False,
+        }
+        mock_module.check_mode = False
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_array.return_value = mock_array
+
+        mock_check_target.return_value = True
+        mock_get_volume.return_value = Mock()  # Volume exists
+        mock_get_snapshot.return_value = False  # Snapshot does NOT exist
+        mock_get_deleted_snapshot.return_value = False  # Not in trash either
+
+        main()
+
+        # Should fail with error message about snapshot not found
+        mock_module.fail_json.assert_called_once()
+        call_args = mock_module.fail_json.call_args
+        assert "test-volume.snap1" in call_args[1]["msg"]
+        assert "not found" in call_args[1]["msg"].lower()
