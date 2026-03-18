@@ -6,8 +6,8 @@ This directory contains the test suite for the Pure Storage FlashArray Ansible C
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 1,333 |
-| **Code Coverage** | 67% |
+| **Total Tests** | 1,569 |
+| **Code Coverage** | 74% |
 | **Test Files** | 68 |
 | **Modules Tested** | 66 |
 
@@ -161,22 +161,43 @@ class TestFunctionName:
 
 ## Coverage by Module
 
-*Last updated: 2026-02-25*
+*Last updated: 2026-03-17*
 
-### High Coverage (80%+)
+### Excellent Coverage (90%+)
 
 | Module | Coverage |
 |--------|----------|
+| purefa_inventory.py | 99% |
+| purefa_fs.py | 98% |
+| purefa_logging.py | 98% |
+| purefa_messages.py | 98% |
+| purefa_ad.py | 96% |
+| purefa_sessions.py | 96% |
+| purefa_audits.py | 95% |
+| purefa_eradication.py | 94% |
+| purefa_snmp.py | 93% |
 | purefa_arrayname.py | 90% |
+| purefa_certs.py | 90% |
+| purefa_dirsnap.py | 90% |
 | purefa_file.py | 90% |
+
+### High Coverage (80-89%)
+
+| Module | Coverage |
+|--------|----------|
+| purefa_workload.py | 89% |
 | purefa_sso.py | 89% |
+| purefa_fleet.py | 88% |
 | purefa_timeout.py | 87% |
 | purefa_console.py | 86% |
 | purefa_eula.py | 86% |
 | purefa_hardware.py | 85% |
 | purefa_network.py | 83% |
+| purefa_pgsched.py | 82% |
+| purefa_vg.py | 81% |
 | purefa_phonehome.py | 80% |
 | purefa_proxy.py | 80% |
+| purefa_pg.py | 80% |
 
 ### Good Coverage (70-79%)
 
@@ -185,8 +206,11 @@ class TestFunctionName:
 | purefa_volume.py | 79% |
 | purefa_hg.py | 78% |
 | purefa_host.py | 78% |
+| purefa_snap.py | 76% |
+| purefa_subnet.py | 75% |
 | purefa_banner.py | 74% |
 | purefa_vlan.py | 74% |
+| purefa_api_helpers.py | 73% |
 | purefa_smtp.py | 73% |
 | purefa_syslog.py | 73% |
 | purefa_pod_replica.py | 71% |
@@ -199,10 +223,10 @@ class TestFunctionName:
 | purefa_ds.py | 69% |
 | purefa_export.py | 69% |
 | purefa_info.py | 68% |
+| purefa_pod.py | 68% |
 | purefa_snmp_agent.py | 68% |
 | purefa_syslog_settings.py | 68% |
 | purefa_directory.py | 67% |
-| purefa_fs.py | 67% |
 | purefa_kmip.py | 67% |
 | purefa_ra.py | 67% |
 | purefa_volume_tags.py | 67% |
@@ -216,38 +240,16 @@ class TestFunctionName:
 | purefa_smis.py | 64% |
 | purefa_dsrole_old.py | 63% |
 | purefa_ntp.py | 63% |
-| purefa_pgsched.py | 63% |
 | purefa_admin.py | 62% |
 | purefa_alert.py | 62% |
 | purefa_dsrole.py | 62% |
-| purefa_vg.py | 62% |
 | purefa_vnc.py | 62% |
+| purefa_common.py | 61% |
 | purefa_default_protection.py | 61% |
 | purefa_endpoint.py | 61% |
-| purefa_subnet.py | 61% |
 | purefa_apiclient.py | 60% |
 | purefa_offload.py | 60% |
 | purefa_pgsnap.py | 60% |
-
-### Needs Improvement (<60%)
-
-| Module | Coverage | Missing Lines |
-|--------|----------|---------------|
-| purefa_ad.py | 59% | 32 |
-| purefa_certs.py | 59% | 75 |
-| purefa_dirsnap.py | 59% | 60 |
-| purefa_snmp.py | 59% | 51 |
-| purefa_workload.py | 59% | 68 |
-| purefa_snap.py | 58% | 126 |
-| purefa_audits.py | 57% | 26 |
-| purefa_eradication.py | 57% | 30 |
-| purefa_fleet.py | 57% | 60 |
-| purefa_logging.py | 56% | 21 |
-| purefa_pg.py | 55% | 181 |
-| purefa_inventory.py | 54% | 34 |
-| purefa_sessions.py | 53% | 34 |
-| purefa_messages.py | 52% | 29 |
-| purefa_pod.py | 52% | 140 |
 
 ## CI/CD Integration
 
