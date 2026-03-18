@@ -485,3 +485,750 @@ class TestMoveFs:
 
         mock_array.patch_file_systems.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    def test_move_fs_target_exists_fails(self, mock_get_with_context):
+        """Test move_fs fails when target filesystem already exists"""
+        import pytest
+        from plugins.modules.purefa_fs import move_fs
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "mypod::test-fs",  # Must be in a pod to move to local
+            "move": "local",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        # Target filesystem exists
+        mock_get_with_context.return_value = Mock(
+            status_code=200,
+            items=[Mock()],
+        )
+
+        with pytest.raises(SystemExit):
+            move_fs(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "already exists" in mock_module.fail_json.call_args[1]["msg"]
+
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    def test_move_fs_to_linked_pod_fails(self, mock_get_with_context):
+        """Test move_fs fails when moving to a linked source pod"""
+        import pytest
+        from plugins.modules.purefa_fs import move_fs
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-fs",
+            "move": "linked-pod",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(
+            status_code=200,
+            items=[
+                Mock(
+                    arrays=[Mock()],
+                    link_target_count=1,  # Has link targets
+                    promotion_status="promoted",
+                )
+            ],
+        )
+
+        with pytest.raises(SystemExit):
+            move_fs(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "linked source pod" in mock_module.fail_json.call_args[1]["msg"]
+
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    def test_move_fs_to_demoted_pod_fails(self, mock_get_with_context):
+        """Test move_fs fails when moving to a demoted pod"""
+        import pytest
+        from plugins.modules.purefa_fs import move_fs
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-fs",
+            "move": "demoted-pod",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(
+            status_code=200,
+            items=[
+                Mock(
+                    arrays=[Mock()],
+                    link_target_count=0,
+                    promotion_status="demoted",
+                )
+            ],
+        )
+
+        with pytest.raises(SystemExit):
+            move_fs(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "demoted pod" in mock_module.fail_json.call_args[1]["msg"]
+
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    def test_move_fs_pod_not_exists_fails(self, mock_get_with_context):
+        """Test move_fs fails when target pod doesn't exist"""
+        import pytest
+        from plugins.modules.purefa_fs import move_fs
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-fs",
+            "move": "nonexistent-pod",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        # Pod doesn't exist
+        mock_get_with_context.return_value = Mock(status_code=404)
+
+        with pytest.raises(SystemExit):
+            move_fs(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "does not exist" in mock_module.fail_json.call_args[1]["msg"]
+
+
+class TestMoveFsFromPod:
+    """Test cases for moving filesystem out of a pod
+
+    Note: The module code on lines 310-316 queries module.params["move"] (target pod)
+    instead of the source pod name, so tests must match this behavior. Both get_pods
+    calls use the same target pod name.
+    """
+
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    def test_move_fs_out_of_stretched_pod_fails(self, mock_get_with_context):
+        """Test move_fs fails when checking pod for stretched status (out of pod path)"""
+        import pytest
+        from plugins.modules.purefa_fs import move_fs
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "mypod::test-fs",  # Filesystem in a pod
+            "move": "target-pod",  # Moving to another pod
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        # Both calls use module.params["move"] ("target-pod")
+        # First call: lines 288-294 - check target pod for "into" validation
+        # Second call: lines 310-316 - check again for "out of" validation
+        mock_get_with_context.side_effect = [
+            Mock(
+                status_code=200,
+                items=[
+                    Mock(
+                        arrays=[Mock()],  # Single array - passes "into" check
+                        link_target_count=0,
+                        promotion_status="promoted",
+                    )
+                ],
+            ),  # First call passes
+            Mock(
+                status_code=200,
+                items=[
+                    Mock(
+                        arrays=[Mock(), Mock()],  # Multiple arrays - stretched
+                        linked_target_count=0,
+                        promotion_status="promoted",
+                    )
+                ],
+            ),  # Second call - stretched pod for "out of" check
+        ]
+
+        with pytest.raises(SystemExit):
+            move_fs(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "stretched pod" in mock_module.fail_json.call_args[1]["msg"]
+
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    def test_move_fs_out_of_linked_pod_fails(self, mock_get_with_context):
+        """Test move_fs fails when checking pod for linked status (out of pod path)"""
+        import pytest
+        from plugins.modules.purefa_fs import move_fs
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "mypod::test-fs",
+            "move": "target-pod",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_get_with_context.side_effect = [
+            Mock(
+                status_code=200,
+                items=[
+                    Mock(
+                        arrays=[Mock()],
+                        link_target_count=0,
+                        promotion_status="promoted",
+                    )
+                ],
+            ),  # First call passes
+            Mock(
+                status_code=200,
+                items=[
+                    Mock(
+                        arrays=[Mock()],
+                        linked_target_count=1,  # Has link targets
+                        promotion_status="promoted",
+                    )
+                ],
+            ),  # Second call - linked pod for "out of" check
+        ]
+
+        with pytest.raises(SystemExit):
+            move_fs(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "linked source pod" in mock_module.fail_json.call_args[1]["msg"]
+
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    def test_move_fs_out_of_demoted_pod_fails(self, mock_get_with_context):
+        """Test move_fs fails when checking pod for demoted status (out of pod path)"""
+        import pytest
+        from plugins.modules.purefa_fs import move_fs
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "mypod::test-fs",
+            "move": "target-pod",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_get_with_context.side_effect = [
+            Mock(
+                status_code=200,
+                items=[
+                    Mock(
+                        arrays=[Mock()],
+                        link_target_count=0,
+                        promotion_status="promoted",
+                    )
+                ],
+            ),  # First call passes
+            Mock(
+                status_code=200,
+                items=[
+                    Mock(
+                        arrays=[Mock()],
+                        linked_target_count=0,
+                        promotion_status="demoted",  # Demoted pod
+                    )
+                ],
+            ),  # Second call - demoted pod for "out of" check
+        ]
+
+        with pytest.raises(SystemExit):
+            move_fs(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "demoted pod" in mock_module.fail_json.call_args[1]["msg"]
+
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    def test_move_fs_second_pod_check_not_exists_fails(self, mock_get_with_context):
+        """Test move_fs fails when second pod check returns 404"""
+        import pytest
+        from plugins.modules.purefa_fs import move_fs
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "mypod::test-fs",
+            "move": "target-pod",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_get_with_context.side_effect = [
+            Mock(
+                status_code=200,
+                items=[
+                    Mock(
+                        arrays=[Mock()],
+                        link_target_count=0,
+                        promotion_status="promoted",
+                    )
+                ],
+            ),  # First call passes
+            Mock(status_code=404),  # Second pod check fails
+        ]
+
+        with pytest.raises(SystemExit):
+            move_fs(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "does not exist" in mock_module.fail_json.call_args[1]["msg"]
+
+
+class TestMain:
+    """Test cases for main function"""
+
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch("plugins.modules.purefa_fs.get_array")
+    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    def test_main_no_purestorage_sdk(
+        self, mock_ansible_module, mock_get_array, mock_get_with_context
+    ):
+        """Test main fails when pypureclient is not available"""
+        import pytest
+        import plugins.modules.purefa_fs as purefa_fs_module
+
+        # Save original value
+        original_value = purefa_fs_module.HAS_PURESTORAGE
+        purefa_fs_module.HAS_PURESTORAGE = False
+
+        mock_module = Mock()
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+
+        try:
+            with pytest.raises(SystemExit):
+                purefa_fs_module.main()
+
+            mock_module.fail_json.assert_called_once()
+            assert "sdk is required" in mock_module.fail_json.call_args[1]["msg"]
+        finally:
+            purefa_fs_module.HAS_PURESTORAGE = original_value
+
+    @patch("plugins.modules.purefa_fs.LooseVersion")
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch("plugins.modules.purefa_fs.get_array")
+    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    def test_main_api_version_too_low(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_loose_version,
+    ):
+        """Test main fails when API version is too low"""
+        import pytest
+        import plugins.modules.purefa_fs as purefa_fs_module
+
+        mock_module = Mock()
+        mock_module.params = {"name": "test-fs", "state": "present", "context": ""}
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "1.0"  # Very old version
+        mock_get_array.return_value = mock_array
+
+        # Make LooseVersion comparison return True (min > current)
+        mock_loose_version.side_effect = lambda v: Mock(
+            __gt__=lambda self, other: v == "2.2"
+        )
+
+        with pytest.raises(SystemExit):
+            purefa_fs_module.main()
+
+        mock_module.fail_json.assert_called_once()
+        assert "not supported" in mock_module.fail_json.call_args[1]["msg"]
+
+    @patch("plugins.modules.purefa_fs.LooseVersion")
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch("plugins.modules.purefa_fs.get_array")
+    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    def test_main_repl_api_version_too_low(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_loose_version,
+    ):
+        """Test main fails when using pod notation with old API"""
+        import pytest
+        import plugins.modules.purefa_fs as purefa_fs_module
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "mypod::test-fs",
+            "state": "present",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.10"
+        mock_get_array.return_value = mock_array
+
+        # First comparison passes, second comparison fails (for replication API)
+        call_count = [0]
+
+        def version_side_effect(v):
+            call_count[0] += 1
+            if call_count[0] <= 2:
+                # First comparison: MIN_REQUIRED > api_version - return False (passes)
+                return Mock(__gt__=lambda self, other: False)
+            else:
+                # Second comparison: REPL_SUPPORT > api_version - return True (fails)
+                return Mock(__gt__=lambda self, other: True)
+
+        mock_loose_version.side_effect = version_side_effect
+
+        with pytest.raises(SystemExit):
+            purefa_fs_module.main()
+
+        mock_module.fail_json.assert_called_once()
+        assert "Replication" in mock_module.fail_json.call_args[1]["msg"]
+
+    @patch("plugins.modules.purefa_fs.LooseVersion")
+    @patch("plugins.modules.purefa_fs.create_fs")
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch("plugins.modules.purefa_fs.get_array")
+    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    def test_main_create_new_fs(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_create_fs,
+        mock_loose_version,
+    ):
+        """Test main creates filesystem when it doesn't exist"""
+        import plugins.modules.purefa_fs as purefa_fs_module
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "new-fs",
+            "state": "present",
+            "move": None,
+            "rename": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.33"
+        mock_get_array.return_value = mock_array
+
+        # All version checks pass
+        mock_loose_version.side_effect = lambda v: Mock(
+            __gt__=lambda self, other: False
+        )
+
+        # Filesystem doesn't exist
+        mock_get_with_context.return_value = Mock(status_code=404)
+
+        purefa_fs_module.main()
+
+        mock_create_fs.assert_called_once_with(mock_module, mock_array)
+
+    @patch("plugins.modules.purefa_fs.LooseVersion")
+    @patch("plugins.modules.purefa_fs.move_fs")
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch("plugins.modules.purefa_fs.get_array")
+    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    def test_main_move_fs(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_move_fs,
+        mock_loose_version,
+    ):
+        """Test main moves filesystem when move param is set"""
+        import plugins.modules.purefa_fs as purefa_fs_module
+
+        mock_fs = Mock()
+        mock_fs.destroyed = False
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "existing-fs",
+            "state": "present",
+            "move": "target-pod",
+            "rename": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.33"
+        mock_get_array.return_value = mock_array
+
+        mock_loose_version.side_effect = lambda v: Mock(
+            __gt__=lambda self, other: False
+        )
+
+        # Filesystem exists
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_fs])
+
+        purefa_fs_module.main()
+
+        mock_move_fs.assert_called_once_with(mock_module, mock_array)
+
+    @patch("plugins.modules.purefa_fs.LooseVersion")
+    @patch("plugins.modules.purefa_fs.rename_fs")
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch("plugins.modules.purefa_fs.get_array")
+    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    def test_main_rename_fs(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_rename_fs,
+        mock_loose_version,
+    ):
+        """Test main renames filesystem when rename param is set"""
+        import plugins.modules.purefa_fs as purefa_fs_module
+
+        mock_fs = Mock()
+        mock_fs.destroyed = False
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "old-fs",
+            "state": "present",
+            "move": None,
+            "rename": "new-fs",
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.33"
+        mock_get_array.return_value = mock_array
+
+        mock_loose_version.side_effect = lambda v: Mock(
+            __gt__=lambda self, other: False
+        )
+
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_fs])
+
+        purefa_fs_module.main()
+
+        mock_rename_fs.assert_called_once_with(mock_module, mock_array)
+
+    @patch("plugins.modules.purefa_fs.LooseVersion")
+    @patch("plugins.modules.purefa_fs.recover_fs")
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch("plugins.modules.purefa_fs.get_array")
+    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    def test_main_recover_fs(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_recover_fs,
+        mock_loose_version,
+    ):
+        """Test main recovers destroyed filesystem"""
+        import plugins.modules.purefa_fs as purefa_fs_module
+
+        mock_fs = Mock()
+        mock_fs.destroyed = True
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "deleted-fs",
+            "state": "present",
+            "move": None,
+            "rename": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.33"
+        mock_get_array.return_value = mock_array
+
+        mock_loose_version.side_effect = lambda v: Mock(
+            __gt__=lambda self, other: False
+        )
+
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_fs])
+
+        purefa_fs_module.main()
+
+        mock_recover_fs.assert_called_once_with(mock_module, mock_array)
+
+    @patch("plugins.modules.purefa_fs.LooseVersion")
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch("plugins.modules.purefa_fs.get_array")
+    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    def test_main_move_destroyed_fs_fails(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_loose_version,
+    ):
+        """Test main fails when trying to move a destroyed filesystem"""
+        import pytest
+        import plugins.modules.purefa_fs as purefa_fs_module
+
+        mock_fs = Mock()
+        mock_fs.destroyed = True
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "deleted-fs",
+            "state": "present",
+            "move": "target-pod",
+            "rename": None,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.33"
+        mock_get_array.return_value = mock_array
+
+        mock_loose_version.side_effect = lambda v: Mock(
+            __gt__=lambda self, other: False
+        )
+
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_fs])
+
+        with pytest.raises(SystemExit):
+            purefa_fs_module.main()
+
+        mock_module.fail_json.assert_called_once()
+        assert "destroyed state" in mock_module.fail_json.call_args[1]["msg"]
+
+    @patch("plugins.modules.purefa_fs.LooseVersion")
+    @patch("plugins.modules.purefa_fs.delete_fs")
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch("plugins.modules.purefa_fs.get_array")
+    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    def test_main_delete_fs(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_delete_fs,
+        mock_loose_version,
+    ):
+        """Test main deletes filesystem when state is absent"""
+        import plugins.modules.purefa_fs as purefa_fs_module
+
+        mock_fs = Mock()
+        mock_fs.destroyed = False
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-fs",
+            "state": "absent",
+            "eradicate": False,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.33"
+        mock_get_array.return_value = mock_array
+
+        mock_loose_version.side_effect = lambda v: Mock(
+            __gt__=lambda self, other: False
+        )
+
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_fs])
+
+        purefa_fs_module.main()
+
+        mock_delete_fs.assert_called_once_with(mock_module, mock_array)
+
+    @patch("plugins.modules.purefa_fs.LooseVersion")
+    @patch("plugins.modules.purefa_fs.eradicate_fs")
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch("plugins.modules.purefa_fs.get_array")
+    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    def test_main_eradicate_fs(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_eradicate_fs,
+        mock_loose_version,
+    ):
+        """Test main eradicates destroyed filesystem"""
+        import plugins.modules.purefa_fs as purefa_fs_module
+
+        mock_fs = Mock()
+        mock_fs.destroyed = True
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "deleted-fs",
+            "state": "absent",
+            "eradicate": True,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.33"
+        mock_get_array.return_value = mock_array
+
+        mock_loose_version.side_effect = lambda v: Mock(
+            __gt__=lambda self, other: False
+        )
+
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_fs])
+
+        purefa_fs_module.main()
+
+        mock_eradicate_fs.assert_called_once_with(mock_module, mock_array)
+
+    @patch("plugins.modules.purefa_fs.LooseVersion")
+    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch("plugins.modules.purefa_fs.get_array")
+    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    def test_main_no_change_needed(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_loose_version,
+    ):
+        """Test main returns no change when no action is needed"""
+        import plugins.modules.purefa_fs as purefa_fs_module
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "nonexistent-fs",
+            "state": "absent",
+            "eradicate": False,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.33"
+        mock_get_array.return_value = mock_array
+
+        mock_loose_version.side_effect = lambda v: Mock(
+            __gt__=lambda self, other: False
+        )
+
+        # Filesystem doesn't exist
+        mock_get_with_context.return_value = Mock(status_code=404)
+
+        purefa_fs_module.main()
+
+        mock_module.exit_json.assert_called_once_with(changed=False)

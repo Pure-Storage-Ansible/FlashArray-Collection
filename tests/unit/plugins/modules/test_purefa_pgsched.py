@@ -570,3 +570,284 @@ class TestUpdateSchedule:
         update_schedule(mock_module, mock_array, None, None)
 
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestUpdateScheduleSnapshotEnabled:
+    """Test cases for update_schedule with snapshot enabled changes"""
+
+    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch("plugins.modules.purefa_pgsched.check_response")
+    def test_update_schedule_snapshot_enabled_change(
+        self, mock_check_response, mock_get_with_context
+    ):
+        """Test update_schedule when snapshot enabled state changes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "schedule": "snapshot",
+            "context": "",
+            "enabled": False,
+            "snap_frequency": None,
+            "snap_at": None,
+            "days": None,
+            "per_day": None,
+            "all_for": None,
+        }
+        mock_array = Mock()
+        # Create proper mock schedule
+        mock_schedule = create_mock_protection_group(snap_enabled=True)
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_schedule]
+        )
+
+        update_schedule(mock_module, mock_array, None, None)
+
+        # Should have called patch to update enabled state
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateScheduleRetention:
+    """Test cases for update_schedule with retention changes"""
+
+    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch("plugins.modules.purefa_pgsched.check_response")
+    def test_update_schedule_snapshot_retention_change(
+        self, mock_check_response, mock_get_with_context
+    ):
+        """Test update_schedule when snapshot retention changes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "schedule": "snapshot",
+            "context": "",
+            "enabled": None,
+            "snap_frequency": None,
+            "snap_at": None,
+            "days": 14,  # Changed from 7
+            "per_day": 8,  # Changed from 4
+            "all_for": 172800,  # Changed from 86400
+        }
+        mock_array = Mock()
+        # Create proper mock schedule
+        mock_schedule = create_mock_protection_group(days=7, per_day=4, all_for=86400)
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_schedule]
+        )
+
+        update_schedule(mock_module, mock_array, None, None)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateScheduleReplication:
+    """Test cases for update_schedule with replication schedule changes"""
+
+    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch("plugins.modules.purefa_pgsched.check_response")
+    def test_update_schedule_replicate_enabled_change(
+        self, mock_check_response, mock_get_with_context
+    ):
+        """Test update_schedule when replication enabled state changes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "schedule": "replication",
+            "context": "",
+            "enabled": False,
+            "replicate_frequency": None,
+            "replicate_at": None,
+            "target_days": None,
+            "target_per_day": None,
+            "target_all_for": None,
+            "blackout_start": None,
+            "blackout_end": None,
+        }
+        mock_array = Mock()
+        # Create proper mock schedule
+        mock_schedule = create_mock_protection_group(repl_enabled=True)
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_schedule]
+        )
+
+        update_schedule(mock_module, mock_array, None, None)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch("plugins.modules.purefa_pgsched.check_response")
+    def test_update_schedule_blackout_change(
+        self, mock_check_response, mock_get_with_context
+    ):
+        """Test update_schedule when blackout window changes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "schedule": "replication",
+            "context": "",
+            "enabled": None,
+            "replicate_frequency": None,
+            "replicate_at": None,
+            "target_days": None,
+            "target_per_day": None,
+            "target_all_for": None,
+            "blackout_start": "11PM",
+            "blackout_end": "5AM",
+        }
+        mock_array = Mock()
+        # Create proper mock schedule
+        mock_schedule = create_mock_protection_group(blackout_start=0, blackout_end=0)
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_schedule]
+        )
+
+        update_schedule(mock_module, mock_array, None, None)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch("plugins.modules.purefa_pgsched.check_response")
+    def test_update_schedule_target_retention_change(
+        self, mock_check_response, mock_get_with_context
+    ):
+        """Test update_schedule when target retention changes"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "schedule": "replication",
+            "context": "",
+            "enabled": None,
+            "replicate_frequency": None,
+            "replicate_at": None,
+            "target_days": 30,  # Changed from 7
+            "target_per_day": 12,  # Changed from 4
+            "target_all_for": 259200,  # Changed from 86400
+            "blackout_start": None,
+            "blackout_end": None,
+        }
+        mock_array = Mock()
+        # Create proper mock schedule
+        mock_schedule = create_mock_protection_group(
+            target_days=7, target_per_day=4, target_all_for=86400
+        )
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_schedule]
+        )
+
+        update_schedule(mock_module, mock_array, None, None)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch("plugins.modules.purefa_pgsched.check_response")
+    def test_update_schedule_replicate_frequency_change_with_at(
+        self, mock_check_response, mock_get_with_context
+    ):
+        """Test update_schedule when replication frequency changes with at value"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "schedule": "replication",
+            "context": "",
+            "enabled": None,
+            "replicate_frequency": 172800,  # 2 days
+            "replicate_at": "6PM",  # New at value
+            "target_days": None,
+            "target_per_day": None,
+            "target_all_for": None,
+            "blackout_start": None,
+            "blackout_end": None,
+        }
+        mock_array = Mock()
+        # Create proper mock schedule
+        mock_schedule = create_mock_protection_group(
+            repl_frequency=86400000, repl_at=54000
+        )
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_schedule]
+        )
+
+        update_schedule(mock_module, mock_array, None, None)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestDeleteScheduleEnabled:
+    """Test cases for delete_schedule when schedules are enabled"""
+
+    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch("plugins.modules.purefa_pgsched.check_response")
+    def test_delete_schedule_replication_enabled(
+        self, mock_check_response, mock_get_with_context
+    ):
+        """Test delete_schedule when replication schedule is enabled"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "schedule": "replication",
+            "context": "",
+        }
+        mock_array = Mock()
+        # Replication schedule enabled
+        mock_schedule = Mock()
+        mock_schedule.replication_schedule.enabled = True
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_schedule]
+        )
+
+        delete_schedule(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch("plugins.modules.purefa_pgsched.check_response")
+    def test_delete_schedule_snapshot_enabled(
+        self, mock_check_response, mock_get_with_context
+    ):
+        """Test delete_schedule when snapshot schedule is enabled"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "schedule": "snapshot",
+            "context": "",
+        }
+        mock_array = Mock()
+        # Snapshot schedule enabled
+        mock_schedule = Mock()
+        mock_schedule.snapshot_schedule.enabled = True
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_schedule]
+        )
+
+        delete_schedule(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    def test_delete_schedule_snapshot_check_mode(self, mock_get_with_context):
+        """Test delete_schedule snapshot in check mode"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "test-pg",
+            "schedule": "snapshot",
+            "context": "",
+        }
+        mock_array = Mock()
+        # Snapshot schedule enabled
+        mock_schedule = Mock()
+        mock_schedule.snapshot_schedule.enabled = True
+        mock_get_with_context.return_value = Mock(
+            status_code=200, items=[mock_schedule]
+        )
+
+        delete_schedule(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)

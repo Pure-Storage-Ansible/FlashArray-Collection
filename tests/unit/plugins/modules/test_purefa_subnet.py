@@ -8,7 +8,48 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import sys
+import ipaddress
 from unittest.mock import Mock, MagicMock, patch
+
+
+# Create a mock IPNetwork class that behaves like netaddr.IPNetwork
+class MockIPNetwork:
+    """Mock IPNetwork class for testing"""
+
+    def __init__(self, cidr):
+        self.network = ipaddress.ip_network(cidr, strict=False)
+
+    def __contains__(self, item):
+        try:
+            return ipaddress.ip_address(item) in self.network
+        except ValueError:
+            return False
+
+
+def mock_valid_ipv4(addr):
+    """Mock valid_ipv4 function"""
+    try:
+        ip = ipaddress.ip_address(addr)
+        return ip.version == 4
+    except ValueError:
+        return False
+
+
+def mock_valid_ipv6(addr):
+    """Mock valid_ipv6 function"""
+    try:
+        ip = ipaddress.ip_address(addr)
+        return ip.version == 6
+    except ValueError:
+        return False
+
+
+# Create mock netaddr module
+mock_netaddr = MagicMock()
+mock_netaddr.IPNetwork = MockIPNetwork
+mock_netaddr.valid_ipv4 = mock_valid_ipv4
+mock_netaddr.valid_ipv6 = mock_valid_ipv6
+sys.modules["netaddr"] = mock_netaddr
 
 # Mock external dependencies before importing module
 sys.modules["grp"] = MagicMock()
@@ -440,3 +481,351 @@ class TestUpdateSubnet:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.patch_subnets.assert_called()
+
+
+class TestUpdateSubnetGateway:
+    """Tests for update_subnet function gateway validation"""
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_with_gateway(self, mock_check_response):
+        """Test update_subnet with gateway change"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "prefix": "10.0.0.0/24",
+            "vlan": None,
+            "mtu": None,
+            "gateway": "10.0.0.254",
+            "enabled": True,
+        }
+
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "10.0.0.0/24"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = 100
+        mock_subnet.gateway = "10.0.0.1"
+        mock_subnet.enabled = True
+
+        mock_array = Mock()
+        mock_array.patch_subnets.return_value = Mock(status_code=200)
+
+        update_subnet(mock_module, mock_array, mock_subnet)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        mock_array.patch_subnets.assert_called()
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_gateway_incompatible(self, mock_check_response):
+        """Test update_subnet fails with incompatible gateway"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "prefix": "10.0.0.0/24",
+            "vlan": None,
+            "mtu": None,
+            "gateway": "192.168.1.1",  # Not in subnet
+            "enabled": True,
+        }
+
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "10.0.0.0/24"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = 100
+        mock_subnet.gateway = "10.0.0.1"
+        mock_subnet.enabled = True
+
+        mock_array = Mock()
+
+        with pytest.raises(SystemExit):
+            update_subnet(mock_module, mock_array, mock_subnet)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_prefix_change_with_new_gateway(self, mock_check_response):
+        """Test update_subnet when prefix changes with a new gateway provided"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "prefix": "192.168.1.0/24",  # New prefix
+            "vlan": None,
+            "mtu": None,
+            "gateway": "192.168.1.1",  # New gateway matching new prefix
+            "enabled": True,
+        }
+
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "10.0.0.0/24"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = 100
+        mock_subnet.gateway = "10.0.0.1"
+        mock_subnet.enabled = True
+
+        mock_array = Mock()
+        mock_array.patch_subnets.return_value = Mock(status_code=200)
+
+        update_subnet(mock_module, mock_array, mock_subnet)
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+        mock_array.patch_subnets.assert_called()
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_no_gateway_ipv4_sets_default(self, mock_check_response):
+        """Test update_subnet with no gateway for IPv4 subnet sets default 0.0.0.0"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "prefix": None,
+            "vlan": None,
+            "mtu": None,
+            "gateway": None,
+            "enabled": True,
+        }
+
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "10.0.0.0/24"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = 100
+        mock_subnet.gateway = None  # No gateway set - will be set to 0.0.0.0
+        mock_subnet.enabled = True
+
+        mock_array = Mock()
+        mock_array.patch_subnets.return_value = Mock(status_code=200)
+
+        update_subnet(mock_module, mock_array, mock_subnet)
+
+        # Changed is True because gateway is set from None to 0.0.0.0
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_no_gateway_ipv6_sets_default(self, mock_check_response):
+        """Test update_subnet with no gateway for IPv6 subnet sets default ::"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "prefix": None,
+            "vlan": None,
+            "mtu": None,
+            "gateway": None,
+            "enabled": True,
+        }
+
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "2001:db8::/64"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = 100
+        mock_subnet.gateway = None  # No gateway set - will be set to ::
+        mock_subnet.enabled = True
+
+        mock_array = Mock()
+        mock_array.patch_subnets.return_value = Mock(status_code=200)
+
+        update_subnet(mock_module, mock_array, mock_subnet)
+
+        # Changed is True because gateway is set from None to ::
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_already_has_ipv4_gateway(self, mock_check_response):
+        """Test update_subnet with existing IPv4 gateway - no change"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "prefix": None,
+            "vlan": None,
+            "mtu": None,
+            "gateway": None,
+            "enabled": True,
+        }
+
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "10.0.0.0/24"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = 100
+        mock_subnet.gateway = "10.0.0.1"  # Has existing gateway
+        mock_subnet.enabled = True
+
+        mock_array = Mock()
+
+        update_subnet(mock_module, mock_array, mock_subnet)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+        mock_array.patch_subnets.assert_not_called()
+
+
+class TestCreateSubnetGateway:
+    """Tests for create_subnet function with gateway"""
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_create_subnet_gateway_incompatible(self, mock_check_response):
+        """Test create_subnet fails with incompatible gateway"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_module.params = {
+            "name": "subnet1",
+            "prefix": "10.0.0.0/24",
+            "gateway": "192.168.1.1",  # Not in subnet
+            "vlan": None,
+            "mtu": None,
+            "enabled": True,
+        }
+        mock_array = Mock()
+
+        with pytest.raises(SystemExit):
+            create_subnet(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_create_subnet_with_valid_vlan(self, mock_check_response):
+        """Test create_subnet with valid VLAN"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "subnet1",
+            "prefix": "10.0.0.0/24",
+            "gateway": None,
+            "vlan": 100,  # Valid VLAN
+            "mtu": None,
+            "enabled": True,
+        }
+        mock_array = Mock()
+        mock_array.post_subnets.return_value = Mock(status_code=200)
+
+        create_subnet(mock_module, mock_array)
+
+        mock_array.post_subnets.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_create_subnet_with_valid_mtu(self, mock_check_response):
+        """Test create_subnet with valid MTU"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "subnet1",
+            "prefix": "10.0.0.0/24",
+            "gateway": None,
+            "vlan": None,
+            "mtu": 9000,  # Valid MTU
+            "enabled": True,
+        }
+        mock_array = Mock()
+        mock_array.post_subnets.return_value = Mock(status_code=200)
+
+        create_subnet(mock_module, mock_array)
+
+        mock_array.post_subnets.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_create_subnet_with_gateway(self, mock_check_response):
+        """Test create_subnet with valid gateway"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "subnet1",
+            "prefix": "10.0.0.0/24",
+            "gateway": "10.0.0.1",  # Valid gateway in subnet
+            "vlan": None,
+            "mtu": None,
+            "enabled": True,
+        }
+        mock_array = Mock()
+        mock_array.post_subnets.return_value = Mock(status_code=200)
+
+        create_subnet(mock_module, mock_array)
+
+        mock_array.post_subnets.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestUpdateSubnetVlan:
+    """Tests for update_subnet function with VLAN handling"""
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_update_subnet_vlan_not_set_normalizes_to_zero(self, mock_check_response):
+        """Test update_subnet when vlan is not set normalizes None to 0"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "prefix": None,
+            "vlan": None,  # Not changing
+            "mtu": None,
+            "gateway": None,
+            "enabled": True,
+        }
+
+        mock_subnet = Mock()
+        mock_subnet.name = "subnet1"
+        mock_subnet.prefix = "10.0.0.0/24"
+        mock_subnet.mtu = 1500
+        mock_subnet.vlan = None  # VLAN not set - will be normalized to 0
+        mock_subnet.gateway = "10.0.0.1"
+        mock_subnet.enabled = True
+
+        mock_array = Mock()
+        mock_array.patch_subnets.return_value = Mock(status_code=200)
+
+        update_subnet(mock_module, mock_array, mock_subnet)
+
+        # Changed is True because vlan is normalized from None to 0
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateSubnetGatewayValidation:
+    """Additional tests for create_subnet gateway validation"""
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_create_subnet_gateway_with_zero_address(self, mock_check_response):
+        """Test create_subnet with zero gateway address"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "subnet1",
+            "prefix": "10.0.0.0/24",
+            "gateway": "0.0.0.0",  # Zero gateway - should be allowed
+            "vlan": None,
+            "mtu": None,
+            "enabled": True,
+        }
+        mock_array = Mock()
+        mock_array.post_subnets.return_value = Mock(status_code=200)
+
+        create_subnet(mock_module, mock_array)
+
+        mock_array.post_subnets.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_subnet.check_response")
+    def test_create_subnet_gateway_ipv6_zero(self, mock_check_response):
+        """Test create_subnet with IPv6 zero gateway"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "subnet1",
+            "prefix": "2001:db8::/64",
+            "gateway": "::",  # IPv6 zero gateway
+            "vlan": None,
+            "mtu": None,
+            "enabled": True,
+        }
+        mock_array = Mock()
+        mock_array.post_subnets.return_value = Mock(status_code=200)
+
+        create_subnet(mock_module, mock_array)
+
+        mock_array.post_subnets.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
