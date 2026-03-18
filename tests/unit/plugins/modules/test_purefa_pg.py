@@ -57,6 +57,7 @@ from plugins.modules.purefa_pg import (
     update_pgroup,
     rename_exists,
     check_pg_on_offload,
+    main,
 )
 
 
@@ -1445,3 +1446,993 @@ class TestUpdatePgroupHostgroupBugFix:
         call_kwargs = mock_array.post_protection_groups_volumes.call_args[1]
         assert call_kwargs["member_names"] == ["vol1", "vol2"]
         mock_module.exit_json.assert_called()
+
+
+class TestUpdatePgroupRemoveMembers:
+    """Test cases for update_pgroup removing members from existing protection groups"""
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_remove_volumes_from_pgroup_context_api(
+        self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
+    ):
+        """Test removing volumes from protection group with context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": ["vol1"],
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "eradicate": False,
+            "state": "absent",  # state=absent removes volumes
+            "enabled": None,
+            "context": "pod1",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        # Mock pgroup with volumes
+        mock_pg = Mock()
+        mock_pg.host_count = 0
+        mock_pg.host_group_count = 0
+        mock_pg.volume_count = 2
+        mock_pg.retention_lock = "unlocked"
+        mock_get_pgroup.return_value = mock_pg
+        mock_get_pgroup_sched.return_value = Mock()
+        # Mock existing volumes
+        mock_vol = Mock()
+        mock_vol.member.name = "vol1"
+        mock_array.get_protection_groups_volumes.return_value = Mock(items=[mock_vol])
+        mock_array.delete_protection_groups_volumes.return_value = Mock(status_code=200)
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.delete_protection_groups_volumes.assert_called_once()
+        call_kwargs = mock_array.delete_protection_groups_volumes.call_args[1]
+        assert call_kwargs["context_names"] == ["pod1"]
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_remove_volumes_from_pgroup_no_context(
+        self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
+    ):
+        """Test removing volumes from protection group without context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": ["vol1"],
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "eradicate": False,
+            "state": "absent",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Below CONTEXT_API_VERSION
+        mock_pg = Mock()
+        mock_pg.host_count = 0
+        mock_pg.host_group_count = 0
+        mock_pg.volume_count = 1
+        mock_pg.retention_lock = "unlocked"
+        mock_get_pgroup.return_value = mock_pg
+        mock_get_pgroup_sched.return_value = Mock()
+        mock_vol = Mock()
+        mock_vol.member.name = "vol1"
+        mock_array.get_protection_groups_volumes.return_value = Mock(items=[mock_vol])
+        mock_array.delete_protection_groups_volumes.return_value = Mock(status_code=200)
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.delete_protection_groups_volumes.assert_called_once()
+        call_kwargs = mock_array.delete_protection_groups_volumes.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_remove_hosts_from_pgroup_context_api(
+        self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
+    ):
+        """Test removing hosts from protection group with context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": None,
+            "host": ["host1"],
+            "hostgroup": None,
+            "target": None,
+            "eradicate": False,
+            "state": "absent",
+            "enabled": None,
+            "context": "pod1",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_pg = Mock()
+        mock_pg.volume_count = 0
+        mock_pg.host_count = 2
+        mock_pg.host_group_count = 0
+        mock_pg.retention_lock = "unlocked"
+        mock_get_pgroup.return_value = mock_pg
+        mock_get_pgroup_sched.return_value = Mock()
+        mock_host = Mock()
+        mock_host.member.name = "host1"
+        mock_array.get_protection_groups_hosts.return_value = Mock(items=[mock_host])
+        mock_array.delete_protection_groups_hosts.return_value = Mock(status_code=200)
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.delete_protection_groups_hosts.assert_called_once()
+        call_kwargs = mock_array.delete_protection_groups_hosts.call_args[1]
+        assert call_kwargs["context_names"] == ["pod1"]
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_remove_hosts_from_pgroup_no_context(
+        self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
+    ):
+        """Test removing hosts from protection group without context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": None,
+            "host": ["host1"],
+            "hostgroup": None,
+            "target": None,
+            "eradicate": False,
+            "state": "absent",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_pg = Mock()
+        mock_pg.volume_count = 0
+        mock_pg.host_count = 1
+        mock_pg.host_group_count = 0
+        mock_pg.retention_lock = "unlocked"
+        mock_get_pgroup.return_value = mock_pg
+        mock_get_pgroup_sched.return_value = Mock()
+        mock_host = Mock()
+        mock_host.member.name = "host1"
+        mock_array.get_protection_groups_hosts.return_value = Mock(items=[mock_host])
+        mock_array.delete_protection_groups_hosts.return_value = Mock(status_code=200)
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.delete_protection_groups_hosts.assert_called_once()
+        call_kwargs = mock_array.delete_protection_groups_hosts.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_remove_hostgroups_from_pgroup_context_api(
+        self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
+    ):
+        """Test removing hostgroups from protection group with context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": None,
+            "host": None,
+            "hostgroup": ["hg1"],
+            "target": None,
+            "eradicate": False,
+            "state": "absent",
+            "enabled": None,
+            "context": "pod1",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_pg = Mock()
+        mock_pg.volume_count = 0
+        mock_pg.host_count = 0
+        mock_pg.host_group_count = 2
+        mock_pg.retention_lock = "unlocked"
+        mock_get_pgroup.return_value = mock_pg
+        mock_get_pgroup_sched.return_value = Mock()
+        mock_hg = Mock()
+        mock_hg.member.name = "hg1"
+        mock_array.get_protection_groups_host_groups.return_value = Mock(
+            items=[mock_hg]
+        )
+        mock_array.delete_protection_groups_host_groups.return_value = Mock(
+            status_code=200
+        )
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.delete_protection_groups_host_groups.assert_called_once()
+        call_kwargs = mock_array.delete_protection_groups_host_groups.call_args[1]
+        assert call_kwargs["context_names"] == ["pod1"]
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_remove_hostgroups_from_pgroup_no_context(
+        self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
+    ):
+        """Test removing hostgroups from protection group without context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "volume": None,
+            "host": None,
+            "hostgroup": ["hg1"],
+            "target": None,
+            "eradicate": False,
+            "state": "absent",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_pg = Mock()
+        mock_pg.volume_count = 0
+        mock_pg.host_count = 0
+        mock_pg.host_group_count = 1
+        mock_pg.retention_lock = "unlocked"
+        mock_get_pgroup.return_value = mock_pg
+        mock_get_pgroup_sched.return_value = Mock()
+        mock_hg = Mock()
+        mock_hg.member.name = "hg1"
+        mock_array.get_protection_groups_host_groups.return_value = Mock(
+            items=[mock_hg]
+        )
+        mock_array.delete_protection_groups_host_groups.return_value = Mock(
+            status_code=200
+        )
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.delete_protection_groups_host_groups.assert_called_once()
+        call_kwargs = mock_array.delete_protection_groups_host_groups.call_args[1]
+        assert "context_names" not in call_kwargs
+        mock_module.exit_json.assert_called()
+
+
+class TestUpdatePgroupRename:
+    """Test cases for update_pgroup rename functionality"""
+
+    @patch("plugins.modules.purefa_pg.rename_exists")
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_rename_pgroup_context_api(
+        self, mock_lv, mock_check_response, mock_get_pgroup_sched, mock_rename_exists
+    ):
+        """Test renaming protection group with context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "old-pg",
+            "rename": "new-pg",
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+            "context": "pod1",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_rename_exists.return_value = False
+        mock_pg = Mock()
+        mock_pg.retention_lock = "unlocked"
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+        mock_get_pgroup_sched.return_value = Mock()
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.patch_protection_groups.assert_called()
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.rename_exists")
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_rename_pgroup_no_context(
+        self, mock_lv, mock_check_response, mock_get_pgroup_sched, mock_rename_exists
+    ):
+        """Test renaming protection group without context API"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "old-pg",
+            "rename": "new-pg",
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_rename_exists.return_value = False
+        mock_pg = Mock()
+        mock_pg.retention_lock = "unlocked"
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+        mock_get_pgroup_sched.return_value = Mock()
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.patch_protection_groups.assert_called()
+        # Verify no context_names in non-context API call
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.rename_exists")
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_rename_pgroup_in_pod_container(
+        self, mock_lv, mock_get_pgroup_sched, mock_rename_exists
+    ):
+        """Test renaming protection group in pod container (::)"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pod1::old-pg",
+            "rename": "new-pg",
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_rename_exists.return_value = False
+        mock_pg = Mock()
+        mock_pg.retention_lock = "unlocked"
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+        mock_get_pgroup_sched.return_value = Mock()
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.patch_protection_groups.assert_called()
+        # Check that rename includes container prefix
+        assert mock_module.params["name"] == "pod1::new-pg"
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.rename_exists")
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_rename_pgroup_in_single_colon_container(
+        self, mock_lv, mock_get_pgroup_sched, mock_rename_exists
+    ):
+        """Test renaming protection group in single colon container (:)"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "array1:old-pg",
+            "rename": "new-pg",
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_rename_exists.return_value = False
+        mock_pg = Mock()
+        mock_pg.retention_lock = "unlocked"
+        mock_array.patch_protection_groups.return_value = Mock(status_code=200)
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+        mock_get_pgroup_sched.return_value = Mock()
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.patch_protection_groups.assert_called()
+        # Check that rename includes container prefix with single colon
+        assert mock_module.params["name"] == "array1:new-pg"
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.rename_exists")
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_rename_pgroup_target_exists_warns(
+        self, mock_lv, mock_get_pgroup_sched, mock_rename_exists
+    ):
+        """Test rename warns when target already exists"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "old-pg",
+            "rename": "existing-pg",
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_rename_exists.return_value = True  # Target exists
+        mock_pg = Mock()
+        mock_pg.retention_lock = "unlocked"
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+        mock_get_pgroup_sched.return_value = Mock()
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_module.warn.assert_called()
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.rename_exists")
+    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    def test_rename_pgroup_check_mode(
+        self, mock_lv, mock_get_pgroup_sched, mock_rename_exists
+    ):
+        """Test rename in check mode doesn't make changes"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "name": "old-pg",
+            "rename": "new-pg",
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "eradicate": False,
+            "state": "present",
+            "enabled": None,
+            "context": "",
+            "safe_mode": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_rename_exists.return_value = False
+        mock_pg = Mock()
+        mock_pg.retention_lock = "unlocked"
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+        mock_get_pgroup_sched.return_value = Mock()
+
+        update_pgroup(mock_module, mock_array)
+
+        mock_array.patch_protection_groups.assert_not_called()
+        mock_module.exit_json.assert_called()
+
+
+class TestMain:
+    """Test cases for main() function - module entry point"""
+
+    @patch("plugins.modules.purefa_pg.get_pod")
+    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.get_array")
+    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    def test_main_invalid_rename_name(
+        self, mock_ansible, mock_get_array, mock_get_pg, mock_get_pending, mock_get_pod
+    ):
+        """Test main fails with invalid rename value"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": "invalid!name",  # Invalid character
+            "state": "present",
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "safe_mode": False,
+            "eradicate": False,
+            "enabled": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_array.return_value = mock_array
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called()
+        assert "does not conform to naming convention" in str(
+            mock_module.fail_json.call_args
+        )
+
+    @patch("plugins.modules.purefa_pg.get_pod")
+    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.get_array")
+    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    def test_main_invalid_pgname_in_pod(
+        self, mock_ansible, mock_get_array, mock_get_pg, mock_get_pending, mock_get_pod
+    ):
+        """Test main fails with invalid pgroup name in pod (::)"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pod1::invalid!pg",  # Invalid character in pgroup name
+            "rename": None,
+            "state": "present",
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "safe_mode": False,
+            "eradicate": False,
+            "enabled": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_array.return_value = mock_array
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.get_pod")
+    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.get_array")
+    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    def test_main_invalid_pgname_single_colon(
+        self, mock_ansible, mock_get_array, mock_get_pg, mock_get_pending, mock_get_pod
+    ):
+        """Test main fails with invalid pgroup name with single colon container"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "array1:invalid!pg",  # Invalid character
+            "rename": None,
+            "state": "present",
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "safe_mode": False,
+            "eradicate": False,
+            "enabled": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_array.return_value = mock_array
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.get_pod")
+    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.get_array")
+    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    def test_main_invalid_pgname_standalone(
+        self, mock_ansible, mock_get_array, mock_get_pg, mock_get_pending, mock_get_pod
+    ):
+        """Test main fails with invalid standalone pgroup name"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "invalid!pg",  # Invalid character
+            "rename": None,
+            "state": "present",
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "safe_mode": False,
+            "eradicate": False,
+            "enabled": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_array.return_value = mock_array
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called()
+
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_pg.get_pod")
+    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.get_array")
+    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    def test_main_safe_mode_old_api(
+        self,
+        mock_ansible,
+        mock_get_array,
+        mock_get_pg,
+        mock_get_pending,
+        mock_get_pod,
+        mock_lv,
+    ):
+        """Test main fails when safe_mode requested but API too old"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "state": "present",
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "safe_mode": True,  # SafeMode requires API >= 2.13
+            "eradicate": False,
+            "enabled": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.10"  # Too old for SafeMode
+        mock_get_array.return_value = mock_array
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called()
+        assert "SafeMode" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.get_pod")
+    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.get_array")
+    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    def test_main_pod_not_exists(
+        self,
+        mock_ansible,
+        mock_get_array,
+        mock_get_pg,
+        mock_get_pending,
+        mock_get_pod,
+        mock_check_response,
+    ):
+        """Test main fails when pod doesn't exist for pgroup in pod"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "nonexistent-pod::test-pg",
+            "rename": None,
+            "state": "present",
+            "volume": None,
+            "host": None,
+            "hostgroup": None,
+            "target": None,
+            "safe_mode": False,
+            "eradicate": False,
+            "enabled": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_array.return_value = mock_array
+        mock_get_pg.return_value = None
+        mock_get_pending.return_value = None
+        mock_get_pod.return_value = None  # Pod doesn't exist
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called()
+        assert "does not exist" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.get_pod")
+    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.get_array")
+    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    def test_main_host_validation_context_api(
+        self,
+        mock_ansible,
+        mock_get_array,
+        mock_get_pg,
+        mock_get_pending,
+        mock_get_pod,
+        mock_check_response,
+        mock_lv,
+    ):
+        """Test main validates hosts with context API"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "state": "present",
+            "volume": None,
+            "host": ["host1", "host2"],
+            "hostgroup": None,
+            "target": None,
+            "safe_mode": False,
+            "eradicate": False,
+            "enabled": True,
+            "context": "pod1",
+        }
+        mock_module.check_mode = False
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_hosts.return_value = Mock(status_code=200)
+        mock_get_array.return_value = mock_array
+        mock_get_pg.return_value = Mock()  # pgroup exists
+        mock_get_pending.return_value = None
+
+        # update_pgroup will be called - mock to exit
+        with patch("plugins.modules.purefa_pg.update_pgroup") as mock_update:
+            mock_update.side_effect = SystemExit(0)
+            try:
+                main()
+            except SystemExit:
+                pass
+
+        mock_array.get_hosts.assert_called_once()
+        call_kwargs = mock_array.get_hosts.call_args[1]
+        assert call_kwargs["context_names"] == ["pod1"]
+
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.get_pod")
+    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.get_array")
+    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    def test_main_hostgroup_validation_context_api(
+        self,
+        mock_ansible,
+        mock_get_array,
+        mock_get_pg,
+        mock_get_pending,
+        mock_get_pod,
+        mock_check_response,
+        mock_lv,
+    ):
+        """Test main validates hostgroups with context API"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "state": "present",
+            "volume": None,
+            "host": None,
+            "hostgroup": ["hg1"],
+            "target": None,
+            "safe_mode": False,
+            "eradicate": False,
+            "enabled": True,
+            "context": "pod1",
+        }
+        mock_module.check_mode = False
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.get_host_groups.return_value = Mock(status_code=200)
+        mock_get_array.return_value = mock_array
+        mock_get_pg.return_value = Mock()
+        mock_get_pending.return_value = None
+
+        with patch("plugins.modules.purefa_pg.update_pgroup") as mock_update:
+            mock_update.side_effect = SystemExit(0)
+            try:
+                main()
+            except SystemExit:
+                pass
+
+        mock_array.get_host_groups.assert_called_once()
+        call_kwargs = mock_array.get_host_groups.call_args[1]
+        assert call_kwargs["context_names"] == ["pod1"]
+
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.get_pod")
+    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.get_array")
+    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    def test_main_host_validation_no_context(
+        self,
+        mock_ansible,
+        mock_get_array,
+        mock_get_pg,
+        mock_get_pending,
+        mock_get_pod,
+        mock_check_response,
+        mock_lv,
+    ):
+        """Test main validates hosts without context API"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "state": "present",
+            "volume": None,
+            "host": ["host1"],
+            "hostgroup": None,
+            "target": None,
+            "safe_mode": False,
+            "eradicate": False,
+            "enabled": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"  # Below CONTEXT_API_VERSION
+        mock_array.get_hosts.return_value = Mock(status_code=200)
+        mock_get_array.return_value = mock_array
+        mock_get_pg.return_value = Mock()
+        mock_get_pending.return_value = None
+
+        with patch("plugins.modules.purefa_pg.update_pgroup") as mock_update:
+            mock_update.side_effect = SystemExit(0)
+            try:
+                main()
+            except SystemExit:
+                pass
+
+        mock_array.get_hosts.assert_called_once()
+        call_kwargs = mock_array.get_hosts.call_args[1]
+        assert "context_names" not in call_kwargs
+
+    @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
+    @patch("plugins.modules.purefa_pg.check_response")
+    @patch("plugins.modules.purefa_pg.get_pod")
+    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
+    @patch("plugins.modules.purefa_pg.get_pgroup")
+    @patch("plugins.modules.purefa_pg.get_array")
+    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    def test_main_hostgroup_validation_no_context(
+        self,
+        mock_ansible,
+        mock_get_array,
+        mock_get_pg,
+        mock_get_pending,
+        mock_get_pod,
+        mock_check_response,
+        mock_lv,
+    ):
+        """Test main validates hostgroups without context API"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-pg",
+            "rename": None,
+            "state": "present",
+            "volume": None,
+            "host": None,
+            "hostgroup": ["hg1"],
+            "target": None,
+            "safe_mode": False,
+            "eradicate": False,
+            "enabled": True,
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.20"
+        mock_array.get_host_groups.return_value = Mock(status_code=200)
+        mock_get_array.return_value = mock_array
+        mock_get_pg.return_value = Mock()
+        mock_get_pending.return_value = None
+
+        with patch("plugins.modules.purefa_pg.update_pgroup") as mock_update:
+            mock_update.side_effect = SystemExit(0)
+            try:
+                main()
+            except SystemExit:
+                pass
+
+        mock_array.get_host_groups.assert_called_once()
+        call_kwargs = mock_array.get_host_groups.call_args[1]
+        assert "context_names" not in call_kwargs

@@ -568,3 +568,363 @@ class TestConnectOrDisconnectVolumesSuccess:
 
         mock_disconnect_volumes.assert_called_once_with(mock_module, mock_array)
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestCreateVolume:
+    """Test cases for _create_volume helper function"""
+
+    @patch("plugins.modules.purefa_workload.check_response")
+    @patch("plugins.modules.purefa_workload.VolumePost")
+    @patch("plugins.modules.purefa_workload.WorkloadConfigurationReference")
+    def test_create_volume_success(
+        self, mock_workload_config, mock_volume_post, mock_check_response
+    ):
+        """Test _create_volume creates a volume"""
+        from plugins.modules.purefa_workload import _create_volume
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-workload",
+            "volume_configuration": "vol-config",
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+
+        _create_volume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        mock_check_response.assert_called_once()
+
+
+class TestDisconnectVolumes:
+    """Test cases for _disconnect_volumes helper function"""
+
+    @patch("plugins.modules.purefa_workload.check_response")
+    def test_disconnect_volumes_success(self, mock_check_response):
+        """Test _disconnect_volumes disconnects all workload volumes"""
+        from plugins.modules.purefa_workload import _disconnect_volumes
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-workload",
+            "host": "host1",
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        mock_vol = Mock()
+        mock_vol.name = "vol1"
+        mock_array.get_volumes.return_value = Mock(items=[mock_vol])
+        mock_array.delete_connections.return_value = Mock(status_code=200)
+
+        _disconnect_volumes(mock_module, mock_array)
+
+        mock_array.get_volumes.assert_called_once()
+        mock_array.delete_connections.assert_called_once_with(
+            host_names=["host1"],
+            context_names=["pod1"],
+            volume_names=["vol1"],
+        )
+
+
+class TestConnectVolumes:
+    """Test cases for _connect_volumes helper function"""
+
+    @patch("plugins.modules.purefa_workload.check_response")
+    @patch("plugins.modules.purefa_workload.ConnectionPost")
+    def test_connect_volumes_success(self, mock_connection_post, mock_check_response):
+        """Test _connect_volumes connects all workload volumes"""
+        from plugins.modules.purefa_workload import _connect_volumes
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-workload",
+            "host": "host1",
+            "context": "pod1",
+        }
+        mock_array = Mock()
+        mock_vol = Mock()
+        mock_vol.name = "vol1"
+        mock_array.get_volumes.return_value = Mock(items=[mock_vol])
+        mock_array.post_connections.return_value = Mock(status_code=200)
+
+        _connect_volumes(mock_module, mock_array)
+
+        mock_array.get_volumes.assert_called_once()
+        mock_array.post_connections.assert_called_once()
+
+
+class TestMain:
+    """Test cases for main() function"""
+
+    @patch("plugins.modules.purefa_workload.LooseVersion")
+    @patch("plugins.modules.purefa_workload.get_array")
+    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
+    def test_main_no_purestorage_sdk(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
+        """Test main() fails when purestorage SDK not available"""
+        import pytest
+        from plugins.modules.purefa_workload import main
+
+        # Need to patch at module level to override HAS_PURESTORAGE
+        with patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", False):
+            mock_module = Mock()
+            mock_module.fail_json.side_effect = SystemExit(1)
+            mock_ansible_module.return_value = mock_module
+
+            with pytest.raises(SystemExit):
+                main()
+
+            mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_workload.LooseVersion")
+    @patch("plugins.modules.purefa_workload.get_array")
+    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
+    def test_main_api_version_too_old(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
+        """Test main() fails when API version is too old"""
+        import pytest
+        from plugins.modules.purefa_workload import main
+
+        mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
+
+        mock_module = Mock()
+        mock_module.params = {"volume_count": None}
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.0"  # Too old (needs 2.40)
+        mock_get_array.return_value = mock_array
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called()
+
+    @patch("plugins.modules.purefa_workload.LooseVersion")
+    @patch("plugins.modules.purefa_workload.get_array")
+    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
+    def test_main_invalid_volume_count(
+        self, mock_ansible_module, mock_get_array, mock_loose_version
+    ):
+        """Test main() fails when volume_count is not positive"""
+        import pytest
+        from plugins.modules.purefa_workload import main
+
+        mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
+
+        mock_module = Mock()
+        mock_module.params = {
+            "volume_count": -1,
+            "state": "present",
+            "preset": "test-preset",
+            "context": "",
+            "name": "test-workload",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.40"
+        mock_get_array.return_value = mock_array
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called()
+
+    @patch("plugins.modules.purefa_workload.create_workload")
+    @patch("plugins.modules.purefa_workload.LooseVersion")
+    @patch("plugins.modules.purefa_workload.check_response")
+    @patch("plugins.modules.purefa_workload.get_array")
+    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
+    def test_main_fleet_check_fails(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_check_response,
+        mock_loose_version,
+        mock_create_workload,
+    ):
+        """Test main() calls check_response for fleet"""
+        from plugins.modules.purefa_workload import main
+
+        mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
+
+        mock_module = Mock()
+        mock_module.params = {
+            "volume_count": None,
+            "state": "present",
+            "preset": "test-preset",
+            "context": "",
+            "name": "test-workload",
+            "rename": None,
+            "host": "",
+            "recommendation": False,
+            "placement": None,
+            "eradicate": False,
+        }
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.40"
+        mock_fleet_response = Mock(status_code=200)
+        mock_fleet = Mock()
+        mock_fleet.name = "test-fleet"
+        mock_fleet_response.items = [mock_fleet]
+        mock_array.get_fleets.return_value = mock_fleet_response
+        mock_array.get_workloads.return_value = Mock(status_code=404)
+        mock_preset_config = Mock()
+        mock_array.get_presets_workload.return_value = Mock(
+            status_code=200, items=[mock_preset_config]
+        )
+        mock_get_array.return_value = mock_array
+
+        main()
+
+        mock_check_response.assert_called()
+
+    @patch("plugins.modules.purefa_workload.delete_workload")
+    @patch("plugins.modules.purefa_workload.LooseVersion")
+    @patch("plugins.modules.purefa_workload.check_response")
+    @patch("plugins.modules.purefa_workload.get_array")
+    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
+    def test_main_state_absent_delete(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_check_response,
+        mock_loose_version,
+        mock_delete_workload,
+    ):
+        """Test main() calls delete_workload when state=absent"""
+        from plugins.modules.purefa_workload import main
+
+        mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
+
+        mock_module = Mock()
+        mock_module.params = {
+            "volume_count": None,
+            "state": "absent",
+            "preset": "test-preset",
+            "context": "",
+            "name": "test-workload",
+            "host": "",
+            "eradicate": False,
+        }
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.40"
+        mock_fleet_response = Mock(status_code=200)
+        mock_fleet = Mock()
+        mock_fleet.name = "test-fleet"
+        mock_fleet_response.items = [mock_fleet]
+        mock_array.get_fleets.return_value = mock_fleet_response
+        # Workload exists and not destroyed
+        mock_workload = Mock()
+        mock_workload.destroyed = False
+        mock_array.get_workloads.return_value = Mock(
+            status_code=200, items=[mock_workload]
+        )
+        mock_get_array.return_value = mock_array
+
+        main()
+
+        mock_delete_workload.assert_called_once()
+
+    @patch("plugins.modules.purefa_workload.eradicate_workload")
+    @patch("plugins.modules.purefa_workload.LooseVersion")
+    @patch("plugins.modules.purefa_workload.check_response")
+    @patch("plugins.modules.purefa_workload.get_array")
+    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
+    def test_main_state_absent_eradicate(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_check_response,
+        mock_loose_version,
+        mock_eradicate_workload,
+    ):
+        """Test main() calls eradicate_workload when state=absent and eradicate=true"""
+        from plugins.modules.purefa_workload import main
+
+        mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
+
+        mock_module = Mock()
+        mock_module.params = {
+            "volume_count": None,
+            "state": "absent",
+            "preset": "test-preset",
+            "context": "",
+            "name": "test-workload",
+            "host": "",
+            "eradicate": True,
+        }
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.40"
+        mock_fleet_response = Mock(status_code=200)
+        mock_fleet = Mock()
+        mock_fleet.name = "test-fleet"
+        mock_fleet_response.items = [mock_fleet]
+        mock_array.get_fleets.return_value = mock_fleet_response
+        # Workload exists and is destroyed
+        mock_workload = Mock()
+        mock_workload.destroyed = True
+        mock_array.get_workloads.return_value = Mock(
+            status_code=200, items=[mock_workload]
+        )
+        mock_get_array.return_value = mock_array
+
+        main()
+
+        mock_eradicate_workload.assert_called_once()
+
+    @patch("plugins.modules.purefa_workload.LooseVersion")
+    @patch("plugins.modules.purefa_workload.check_response")
+    @patch("plugins.modules.purefa_workload.get_array")
+    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
+    def test_main_no_change(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_check_response,
+        mock_loose_version,
+    ):
+        """Test main() exits with no change when no action needed"""
+        from plugins.modules.purefa_workload import main
+
+        mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
+
+        mock_module = Mock()
+        mock_module.params = {
+            "volume_count": None,
+            "state": "absent",
+            "preset": "test-preset",
+            "context": "",
+            "name": "test-workload",
+            "host": "",
+            "eradicate": False,
+        }
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.40"
+        mock_fleet_response = Mock(status_code=200)
+        mock_fleet = Mock()
+        mock_fleet.name = "test-fleet"
+        mock_fleet_response.items = [mock_fleet]
+        mock_array.get_fleets.return_value = mock_fleet_response
+        # Workload does not exist - nothing to delete
+        mock_array.get_workloads.return_value = Mock(status_code=404)
+        mock_get_array.return_value = mock_array
+
+        main()
+
+        mock_module.exit_json.assert_called_once_with(changed=False)

@@ -1,4 +1,4 @@
-name: Pure Storage Ansible CI
+name: Everpure Ansible CI
 
 "on":
   pull_request:
