@@ -196,3 +196,214 @@ class TestCreateClient:
 
         mock_array.post_api_clients.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_apiclient.check_response")
+    def test_create_client_with_enabled_true(self, mock_check_response):
+        """Test create_client with enabled=True triggers patch"""
+        from plugins.modules.purefa_apiclient import create_client
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "new-client",
+            "token_ttl": 3600,
+            "issuer": "my-issuer",
+            "role": "readonly",
+            "public_key": "ssh-rsa AAAA...",
+            "enabled": True,
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_array.post_api_clients.return_value = Mock(status_code=200)
+        mock_array.patch_api_clients.return_value = Mock(status_code=200)
+
+        create_client(mock_module, mock_array)
+
+        mock_array.post_api_clients.assert_called_once()
+        mock_array.patch_api_clients.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    def test_create_client_enable_fails(self):
+        """Test create_client when enabling fails - should delete and fail"""
+        import pytest
+        from plugins.modules.purefa_apiclient import create_client
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "new-client",
+            "token_ttl": 3600,
+            "issuer": "my-issuer",
+            "role": "readonly",
+            "public_key": "ssh-rsa AAAA...",
+            "enabled": True,
+        }
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.post_api_clients.return_value = Mock(status_code=200)
+        mock_error = Mock()
+        mock_error.message = "Enable failed"
+        mock_array.patch_api_clients.return_value = Mock(
+            status_code=400, errors=[mock_error]
+        )
+
+        with pytest.raises(SystemExit):
+            create_client(mock_module, mock_array)
+
+        mock_array.post_api_clients.assert_called_once()
+        mock_array.patch_api_clients.assert_called_once()
+        mock_array.delete_api_clients.assert_called_once_with(names=["new-client"])
+        mock_module.fail_json.assert_called_once()
+
+    def test_create_client_ttl_zero_out_of_range(self):
+        """Test create_client fails when token_ttl is 0"""
+        import pytest
+        from plugins.modules.purefa_apiclient import create_client
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "new-client",
+            "token_ttl": 0,
+        }
+        mock_module.check_mode = False
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+
+        with pytest.raises(SystemExit):
+            create_client(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+
+
+class TestMainFunction:
+    """Tests for main function"""
+
+    @patch("plugins.modules.purefa_apiclient.AnsibleModule")
+    @patch("plugins.modules.purefa_apiclient.get_array")
+    @patch("plugins.modules.purefa_apiclient.create_client")
+    def test_main_create_client(self, mock_create, mock_get_array, mock_ansible_module):
+        """Test main() creates client when not exists"""
+        from plugins.modules.purefa_apiclient import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-client",
+            "state": "present",
+        }
+        mock_module.check_mode = False
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.10"
+        mock_array.get_api_clients.return_value = Mock(items=[])
+        mock_get_array.return_value = mock_array
+
+        main()
+
+        mock_create.assert_called_once()
+
+    @patch("plugins.modules.purefa_apiclient.AnsibleModule")
+    @patch("plugins.modules.purefa_apiclient.get_array")
+    @patch("plugins.modules.purefa_apiclient.update_client")
+    def test_main_update_client(self, mock_update, mock_get_array, mock_ansible_module):
+        """Test main() updates client when exists"""
+        from plugins.modules.purefa_apiclient import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-client",
+            "state": "present",
+        }
+        mock_module.check_mode = False
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.10"
+        mock_client = Mock()
+        mock_client.name = "test-client"
+        mock_array.get_api_clients.return_value = Mock(items=[mock_client])
+        mock_get_array.return_value = mock_array
+
+        main()
+
+        mock_update.assert_called_once()
+
+    @patch("plugins.modules.purefa_apiclient.AnsibleModule")
+    @patch("plugins.modules.purefa_apiclient.get_array")
+    @patch("plugins.modules.purefa_apiclient.delete_client")
+    def test_main_delete_client(self, mock_delete, mock_get_array, mock_ansible_module):
+        """Test main() deletes client when exists and state=absent"""
+        from plugins.modules.purefa_apiclient import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-client",
+            "state": "absent",
+        }
+        mock_module.check_mode = False
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.10"
+        mock_client = Mock()
+        mock_client.name = "test-client"
+        mock_array.get_api_clients.return_value = Mock(items=[mock_client])
+        mock_get_array.return_value = mock_array
+
+        main()
+
+        mock_delete.assert_called_once()
+
+    @patch("plugins.modules.purefa_apiclient.AnsibleModule")
+    @patch("plugins.modules.purefa_apiclient.get_array")
+    def test_main_absent_not_exists(self, mock_get_array, mock_ansible_module):
+        """Test main() does nothing when state=absent and client doesn't exist"""
+        from plugins.modules.purefa_apiclient import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "test-client",
+            "state": "absent",
+        }
+        mock_module.check_mode = False
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.10"
+        mock_array.get_api_clients.return_value = Mock(items=[])
+        mock_get_array.return_value = mock_array
+
+        main()
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_apiclient.HAS_PURESTORAGE", False)
+    @patch("plugins.modules.purefa_apiclient.AnsibleModule")
+    def test_main_no_purestorage(self, mock_ansible_module):
+        """Test main() fails when py-pure-client is not installed"""
+        import pytest
+        from plugins.modules.purefa_apiclient import main
+
+        mock_module = Mock()
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_apiclient.AnsibleModule")
+    @patch("plugins.modules.purefa_apiclient.get_array")
+    def test_main_api_version_too_low(self, mock_get_array, mock_ansible_module):
+        """Test main() fails when API version is too low"""
+        import pytest
+        from plugins.modules.purefa_apiclient import main
+
+        mock_module = Mock()
+        mock_module.params = {"name": "test-client", "state": "present"}
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "1.0"
+        mock_get_array.return_value = mock_array
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_module.fail_json.assert_called_once()
