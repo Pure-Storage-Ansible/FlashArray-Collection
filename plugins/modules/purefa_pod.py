@@ -677,6 +677,13 @@ def update_pod(module, array):
                 )
             )
         else:
+            # Check if pod is quiescing - cannot promote/demote during transition
+            if current_config.promotion_status == "quiescing":
+                module.fail_json(
+                    msg="Cannot promote pod {0} as it is still quiesing".format(
+                        module.params["name"]
+                    )
+                )
             # Check if pod is already in desired state (idempotency)
             if (
                 module.params["promote"]
@@ -699,13 +706,7 @@ def update_pod(module, array):
                 if not module.check_mode:
                     if module.params["undo"] is None:
                         module.params["undo"] = True
-                    if current_config.promotion_status == "quiescing":
-                        module.fail_json(
-                            msg="Cannot promote pod {0} as it is still quiesing".format(
-                                module.params["name"]
-                            )
-                        )
-                    elif module.params["undo"]:
+                    if module.params["undo"]:
                         undo_pod = get_undo_pod(module, array)
                         if undo_pod:
                             if len(undo_pod) == 1:
@@ -1093,20 +1094,18 @@ def main():
     if module.params["failover"] or module.params["failover"] != "auto":
         check_arrays(module, array)
 
-    if state == "present" and not pod:
+    if state == "present" and destroyed:
+        recover_pod(module, array)
+    elif state == "present" and not pod:
         create_pod(module, array)
     elif pod and module.params["stretch"]:
         stretch_pod(module, array)
-    elif state == "present" and pod and module.params["target"]:
-        clone_pod(module, array)
     elif state == "present" and pod and module.params["target"]:
         clone_pod(module, array)
     elif state == "present" and pod:
         update_pod(module, array)
     elif state == "absent" and pod and not module.params["stretch"]:
         delete_pod(module, array)
-    elif state == "present" and destroyed:
-        recover_pod(module, array)
     elif state == "absent" and destroyed:
         eradicate_pod(module, array)
     elif state == "absent" and not pod:

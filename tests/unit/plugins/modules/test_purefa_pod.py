@@ -1912,3 +1912,756 @@ class TestUpdatePodIdempotency:
 
         # Should exit without changes since already demoted
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestPromoteDemotePod:
+    """Test promote/demote pod logic with quiesce options"""
+
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch("plugins.modules.purefa_pod.get_undo_pod")
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_promote_demoted_pod_with_undo(
+        self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
+    ):
+        """Test promoting a demoted pod with undo-demote pods"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purestorage",
+            "promote": True,
+            "undo": None,
+            "quiesce": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purestorage"
+        mock_config.array_count = 1
+        mock_config.promotion_status = "demoted"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+
+        # Undo pod exists
+        mock_undo = Mock()
+        mock_undo.name = "test-pod.undo-demote.1"
+        mock_get_undo_pod.return_value = [mock_undo]
+        mock_patch_with_context.return_value = Mock(status_code=200)
+
+        update_pod(mock_module, mock_array)
+
+        mock_patch_with_context.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch("plugins.modules.purefa_pod.get_undo_pod")
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_promote_demoted_pod_multiple_undo_pods(
+        self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
+    ):
+        """Test promoting a demoted pod with multiple undo-demote pods"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purestorage",
+            "promote": True,
+            "undo": None,
+            "quiesce": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purestorage"
+        mock_config.array_count = 1
+        mock_config.promotion_status = "demoted"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+
+        # Multiple undo pods
+        mock_undo1 = Mock()
+        mock_undo1.name = "test-pod.undo-demote.1"
+        mock_undo2 = Mock()
+        mock_undo2.name = "test-pod.undo-demote.2"
+        mock_get_undo_pod.return_value = [mock_undo1, mock_undo2]
+        mock_patch_with_context.return_value = Mock(status_code=200)
+
+        update_pod(mock_module, mock_array)
+
+        mock_patch_with_context.assert_called()
+        mock_module.warn.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch("plugins.modules.purefa_pod.get_undo_pod")
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_promote_no_undo_pod_but_undo_true(
+        self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
+    ):
+        """Test promoting when undo=True but no undo pods exist"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purestorage",
+            "promote": True,
+            "undo": True,
+            "quiesce": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purestorage"
+        mock_config.array_count = 1
+        mock_config.promotion_status = "demoted"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+
+        # No undo pods
+        mock_get_undo_pod.return_value = []
+
+        update_pod(mock_module, mock_array)
+
+        mock_module.warn.assert_called()
+        # Changed should be False since we can't promote without undo pods
+        mock_module.exit_json.assert_called()
+
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch("plugins.modules.purefa_pod.get_undo_pod")
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_promote_without_undo(
+        self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
+    ):
+        """Test promoting without undo flag"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purestorage",
+            "promote": True,
+            "undo": False,
+            "quiesce": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purestorage"
+        mock_config.array_count = 1
+        mock_config.promotion_status = "demoted"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+
+        mock_get_undo_pod.return_value = []
+        mock_patch_with_context.return_value = Mock(status_code=200)
+
+        update_pod(mock_module, mock_array)
+
+        mock_patch_with_context.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.get_undo_pod")
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_demote_promoted_pod_has_undo_pods_fails(
+        self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_check_response
+    ):
+        """Test demoting when undo pods exist fails"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purestorage",
+            "promote": False,
+            "undo": None,
+            "quiesce": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        # Make fail_json exit
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purestorage"
+        mock_config.array_count = 1
+        mock_config.promotion_status = "promoted"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+
+        # Undo pod exists
+        mock_undo = Mock()
+        mock_undo.name = "test-pod.undo-demote.1"
+        mock_get_undo_pod.return_value = [mock_undo]
+
+        try:
+            update_pod(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        assert "undo-demote pod not being eradicated" in str(
+            mock_module.fail_json.call_args
+        )
+
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch("plugins.modules.purefa_pod.get_undo_pod")
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_demote_pod_with_skip_quiesce(
+        self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
+    ):
+        """Test demoting a pod with skip_quiesce (quiesce=False)"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purestorage",
+            "promote": False,
+            "undo": None,
+            "quiesce": False,  # Skip quiesce
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purestorage"
+        mock_config.array_count = 1
+        mock_config.promotion_status = "promoted"
+        mock_config.__getitem__ = Mock(return_value=1)  # link_target_count = 1
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+
+        mock_get_undo_pod.return_value = []
+        mock_patch_with_context.return_value = Mock(status_code=200)
+
+        update_pod(mock_module, mock_array)
+
+        mock_patch_with_context.assert_called()
+        call_args = mock_patch_with_context.call_args
+        # Verify skip_quiesce=True is in the call
+        assert call_args[1].get("skip_quiesce") is True
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch("plugins.modules.purefa_pod.get_undo_pod")
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_demote_pod_with_quiesce(
+        self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
+    ):
+        """Test demoting a pod with quiesce=True"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purestorage",
+            "promote": False,
+            "undo": None,
+            "quiesce": True,  # Quiesce enabled
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purestorage"
+        mock_config.array_count = 1
+        mock_config.promotion_status = "promoted"
+        mock_config.__getitem__ = Mock(return_value=1)  # link_target_count = 1
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+
+        mock_get_undo_pod.return_value = []
+        mock_patch_with_context.return_value = Mock(status_code=200)
+
+        update_pod(mock_module, mock_array)
+
+        mock_patch_with_context.assert_called()
+        call_args = mock_patch_with_context.call_args
+        # Verify quiesce=True is in the call
+        assert call_args[1].get("quiesce") is True
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch("plugins.modules.purefa_pod.get_undo_pod")
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_demote_pod_no_link_targets(
+        self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
+    ):
+        """Test demoting a pod with no link targets"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purestorage",
+            "promote": False,
+            "undo": None,
+            "quiesce": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purestorage"
+        mock_config.array_count = 1
+        mock_config.promotion_status = "promoted"
+        mock_config.__getitem__ = Mock(return_value=0)  # link_target_count = 0
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+
+        mock_get_undo_pod.return_value = []
+        mock_patch_with_context.return_value = Mock(status_code=200)
+
+        update_pod(mock_module, mock_array)
+
+        mock_patch_with_context.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_promote_quiescing_pod_fails(
+        self, mock_lv, mock_get_with_context, mock_check_response
+    ):
+        """Test promoting a quiescing pod fails"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purestorage",
+            "promote": True,
+            "undo": None,
+            "quiesce": None,
+            "quota": None,
+            "default_protection_pg": None,
+        }
+        # Make fail_json exit
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purestorage"
+        mock_config.array_count = 1
+        mock_config.promotion_status = "quiescing"
+        mock_get_with_context.return_value = Mock(status_code=200, items=[mock_config])
+
+        try:
+            update_pod(mock_module, mock_array)
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        assert "still quiesing" in str(mock_module.fail_json.call_args)
+
+
+class TestDefaultProtection:
+    """Test default protection group logic"""
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch("plugins.modules.purefa_pod.post_with_context")
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_update_default_protection_group(
+        self,
+        mock_lv,
+        mock_get_with_context,
+        mock_post_with_context,
+        mock_patch_with_context,
+        mock_check_response,
+    ):
+        """Test updating default protection group"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purestorage",
+            "promote": None,
+            "undo": None,
+            "quiesce": None,
+            "quota": None,
+            "default_protection_pg": "new-pg",
+            "retention_lock": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Pod config
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purestorage"
+        mock_config.array_count = 1
+        mock_config.promotion_status = "promoted"
+
+        # Default protections response
+        mock_dp = Mock()
+        mock_dp_item = Mock()
+        mock_dp_item.name = "old-pg"
+        mock_dp.default_protections = [mock_dp_item]
+
+        def get_side_effect(*args, **kwargs):
+            if "get_pods" in args:
+                return Mock(status_code=200, items=[mock_config])
+            elif "get_container_default_protections" in args:
+                return Mock(status_code=200, items=[mock_dp])
+            elif "get_protection_groups" in args:
+                return Mock(status_code=404)  # PG doesn't exist
+            return Mock(status_code=200)
+
+        mock_get_with_context.side_effect = get_side_effect
+        mock_post_with_context.return_value = Mock(status_code=200)
+        mock_patch_with_context.return_value = Mock(status_code=200)
+
+        update_pod(mock_module, mock_array)
+
+        # Should have created the new PG and updated default protection
+        mock_post_with_context.assert_called()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pod.check_response")
+    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
+    def test_default_protection_no_change(
+        self,
+        mock_lv,
+        mock_get_with_context,
+        mock_patch_with_context,
+        mock_check_response,
+    ):
+        """Test default protection when already set correctly"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "test-pod",
+            "context": "",
+            "failover": None,
+            "mediator": "purestorage",
+            "promote": None,
+            "undo": None,
+            "quiesce": None,
+            "quota": None,
+            "default_protection_pg": "existing-pg",
+            "retention_lock": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Pod config
+        mock_config = Mock()
+        mock_config.failover_preferences = []
+        mock_config.mediator = "purestorage"
+        mock_config.array_count = 1
+        mock_config.promotion_status = "promoted"
+
+        # Default protections response - already set to correct PG
+        mock_dp = Mock()
+        mock_dp_item = Mock()
+        mock_dp_item.name = "existing-pg"
+        mock_dp.default_protections = [mock_dp_item]
+
+        def get_side_effect(*args, **kwargs):
+            if "get_pods" in args:
+                return Mock(status_code=200, items=[mock_config])
+            elif "get_container_default_protections" in args:
+                return Mock(status_code=200, items=[mock_dp])
+            return Mock(status_code=200)
+
+        mock_get_with_context.side_effect = get_side_effect
+
+        update_pod(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestMain:
+    """Test main function branches"""
+
+    @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
+    @patch("plugins.modules.purefa_pod.get_array")
+    @patch("plugins.modules.purefa_pod.get_pod")
+    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
+    @patch("plugins.modules.purefa_pod.check_arrays")
+    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    def test_main_present_pod_not_exists_creates_pod(
+        self,
+        mock_ansible,
+        mock_check_arrays,
+        mock_get_destroyed_pod,
+        mock_get_pod,
+        mock_get_array,
+    ):
+        """Test main creates pod when state=present and pod doesn't exist"""
+        from plugins.modules.purefa_pod import main, create_pod
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "new-pod",
+            "state": "present",
+            "stretch": None,
+            "target": None,
+            "failover": None,
+            "mediator": "purestorage",
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pod.return_value = False
+        mock_get_destroyed_pod.return_value = False
+
+        with patch("plugins.modules.purefa_pod.create_pod") as mock_create:
+            main()
+            mock_create.assert_called_once()
+
+    @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
+    @patch("plugins.modules.purefa_pod.get_array")
+    @patch("plugins.modules.purefa_pod.get_pod")
+    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
+    @patch("plugins.modules.purefa_pod.check_arrays")
+    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    def test_main_absent_pod_not_exists_no_change(
+        self,
+        mock_ansible,
+        mock_check_arrays,
+        mock_get_destroyed_pod,
+        mock_get_pod,
+        mock_get_array,
+    ):
+        """Test main exits unchanged when state=absent and pod doesn't exist"""
+        from plugins.modules.purefa_pod import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "nonexistent-pod",
+            "state": "absent",
+            "stretch": None,
+            "target": None,
+            "failover": None,
+            "mediator": "purestorage",
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pod.return_value = False
+        mock_get_destroyed_pod.return_value = False
+
+        main()
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
+    @patch("plugins.modules.purefa_pod.get_array")
+    @patch("plugins.modules.purefa_pod.get_pod")
+    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
+    @patch("plugins.modules.purefa_pod.check_arrays")
+    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    def test_main_present_destroyed_recovers_pod(
+        self,
+        mock_ansible,
+        mock_check_arrays,
+        mock_get_destroyed_pod,
+        mock_get_pod,
+        mock_get_array,
+    ):
+        """Test main recovers pod when state=present and pod is destroyed"""
+        from plugins.modules.purefa_pod import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "destroyed-pod",
+            "state": "present",
+            "stretch": None,
+            "target": None,
+            "failover": None,
+            "mediator": "purestorage",
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pod.return_value = False
+        mock_get_destroyed_pod.return_value = True
+
+        with patch("plugins.modules.purefa_pod.recover_pod") as mock_recover:
+            main()
+            mock_recover.assert_called_once()
+
+    @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
+    @patch("plugins.modules.purefa_pod.get_array")
+    @patch("plugins.modules.purefa_pod.get_pod")
+    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
+    @patch("plugins.modules.purefa_pod.check_arrays")
+    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    def test_main_absent_destroyed_eradicates_pod(
+        self,
+        mock_ansible,
+        mock_check_arrays,
+        mock_get_destroyed_pod,
+        mock_get_pod,
+        mock_get_array,
+    ):
+        """Test main eradicates pod when state=absent and pod is destroyed"""
+        from plugins.modules.purefa_pod import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "destroyed-pod",
+            "state": "absent",
+            "stretch": None,
+            "target": None,
+            "failover": None,
+            "mediator": "purestorage",
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pod.return_value = False
+        mock_get_destroyed_pod.return_value = True
+
+        with patch("plugins.modules.purefa_pod.eradicate_pod") as mock_eradicate:
+            main()
+            mock_eradicate.assert_called_once()
+
+    @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
+    @patch("plugins.modules.purefa_pod.get_array")
+    @patch("plugins.modules.purefa_pod.get_pod")
+    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
+    @patch("plugins.modules.purefa_pod.check_arrays")
+    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    def test_main_present_with_stretch_calls_stretch_pod(
+        self,
+        mock_ansible,
+        mock_check_arrays,
+        mock_get_destroyed_pod,
+        mock_get_pod,
+        mock_get_array,
+    ):
+        """Test main calls stretch_pod when pod exists with stretch parameter"""
+        from plugins.modules.purefa_pod import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "existing-pod",
+            "state": "present",
+            "stretch": "remote-array",
+            "target": None,
+            "failover": None,
+            "mediator": "purestorage",
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pod.return_value = True
+        mock_get_destroyed_pod.return_value = False
+
+        with patch("plugins.modules.purefa_pod.stretch_pod") as mock_stretch:
+            main()
+            mock_stretch.assert_called_once()
+
+    @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
+    @patch("plugins.modules.purefa_pod.get_array")
+    @patch("plugins.modules.purefa_pod.get_pod")
+    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
+    @patch("plugins.modules.purefa_pod.check_arrays")
+    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    def test_main_present_with_target_calls_clone_pod(
+        self,
+        mock_ansible,
+        mock_check_arrays,
+        mock_get_destroyed_pod,
+        mock_get_pod,
+        mock_get_array,
+    ):
+        """Test main calls clone_pod when pod exists with target parameter"""
+        from plugins.modules.purefa_pod import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "source-pod",
+            "state": "present",
+            "stretch": None,
+            "target": "clone-pod",
+            "failover": None,
+            "mediator": "purestorage",
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pod.return_value = True
+        mock_get_destroyed_pod.return_value = False
+
+        with patch("plugins.modules.purefa_pod.clone_pod") as mock_clone:
+            main()
+            mock_clone.assert_called_once()
+
+    @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
+    @patch("plugins.modules.purefa_pod.get_array")
+    @patch("plugins.modules.purefa_pod.get_pod")
+    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
+    @patch("plugins.modules.purefa_pod.check_arrays")
+    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    def test_main_absent_pod_exists_deletes_pod(
+        self,
+        mock_ansible,
+        mock_check_arrays,
+        mock_get_destroyed_pod,
+        mock_get_pod,
+        mock_get_array,
+    ):
+        """Test main deletes pod when state=absent and pod exists"""
+        from plugins.modules.purefa_pod import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "existing-pod",
+            "state": "absent",
+            "stretch": None,
+            "target": None,
+            "failover": None,
+            "mediator": "purestorage",
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pod.return_value = True
+        mock_get_destroyed_pod.return_value = False
+
+        with patch("plugins.modules.purefa_pod.delete_pod") as mock_delete:
+            main()
+            mock_delete.assert_called_once()
