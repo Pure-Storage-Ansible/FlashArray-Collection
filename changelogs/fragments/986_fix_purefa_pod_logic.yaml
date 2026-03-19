@@ -1,0 +1,4 @@
+bugfixes:
+  - purefa_pod - Fixed unreachable quiescing status check in ``update_pod()`` that was inside a block requiring ``promotion_status == 'demoted'``
+  - purefa_pod - Fixed unreachable ``recover_pod()`` branch in ``main()`` by reordering conditions to check for destroyed pods before creating new ones
+  - purefa_pod - Removed duplicate ``clone_pod`` condition in ``main()``

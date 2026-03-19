@@ -6,8 +6,8 @@ This directory contains the test suite for the Pure Storage FlashArray Ansible C
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 1,622 |
-| **Code Coverage** | 76% |
+| **Total Tests** | 1,759 |
+| **Code Coverage** | 77% |
 | **Test Files** | 68 |
 | **Modules Tested** | 66 |
 | **Last Updated** | 2026-03-19 |
@@ -199,6 +199,8 @@ class TestFunctionName:
 | purefa_snap.py | 86% |
 | purefa_console.py | 86% |
 | purefa_eula.py | 86% |
+| purefa_pgsnap.py | 85% |
+| purefa_pod.py | 85% |
 | purefa_hardware.py | 85% |
 | purefa_network.py | 83% |
 | purefa_pgsched.py | 82% |
@@ -227,7 +229,6 @@ class TestFunctionName:
 
 | Module | Coverage |
 |--------|----------|
-| purefa_pod.py | 69% |
 | purefa_info.py | 68% |
 | purefa_kmip.py | 67% |
 | purefa_ra.py | 67% |
@@ -250,7 +251,6 @@ class TestFunctionName:
 | purefa_endpoint.py | 61% |
 | purefa_apiclient.py | 60% |
 | purefa_offload.py | 60% |
-| purefa_pgsnap.py | 60% |
 
 ## CI/CD Integration
 
