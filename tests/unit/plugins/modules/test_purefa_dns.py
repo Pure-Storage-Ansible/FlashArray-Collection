@@ -504,3 +504,357 @@ class TestCreateMultiDns:
         create_multi_dns(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestMain:
+    """Tests for main function"""
+
+    @patch("plugins.modules.purefa_dns.AnsibleModule")
+    @patch("plugins.modules.purefa_dns.get_array")
+    @patch("plugins.modules.purefa_dns.LooseVersion")
+    @patch("plugins.modules.purefa_dns.update_multi_dns")
+    def test_main_multi_dns_update(
+        self,
+        mock_update_multi_dns,
+        mock_loose_version,
+        mock_get_array,
+        mock_ansible_module,
+    ):
+        """Test main function calls update_multi_dns for existing config"""
+        # Configure LooseVersion to behave properly for version comparison
+        mock_loose_version.side_effect = lambda x: x
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "present",
+            "name": "management",
+            "service": "management",
+            "domain": "example.com",
+            "nameservers": ["ns1.example.com"],
+            "source": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_dns = Mock()
+        mock_dns.name = "management"
+        mock_array.get_dns.return_value = Mock(items=[mock_dns])
+        mock_get_array.return_value = mock_array
+
+        import plugins.modules.purefa_dns as dns_module
+
+        dns_module.main()
+
+        mock_update_multi_dns.assert_called_once_with(mock_module, mock_array)
+
+    @patch("plugins.modules.purefa_dns.AnsibleModule")
+    @patch("plugins.modules.purefa_dns.get_array")
+    @patch("plugins.modules.purefa_dns.LooseVersion")
+    @patch("plugins.modules.purefa_dns.create_multi_dns")
+    def test_main_multi_dns_create(
+        self,
+        mock_create_multi_dns,
+        mock_loose_version,
+        mock_get_array,
+        mock_ansible_module,
+    ):
+        """Test main function calls create_multi_dns for new config"""
+        mock_loose_version.side_effect = lambda x: x
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "present",
+            "name": "file-dns",
+            "service": "file",
+            "domain": "example.com",
+            "nameservers": ["ns1.example.com"],
+            "source": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_dns = Mock()
+        mock_dns.name = "management"
+        mock_array.get_dns.return_value = Mock(items=[mock_dns])
+        mock_get_array.return_value = mock_array
+
+        import plugins.modules.purefa_dns as dns_module
+
+        dns_module.main()
+
+        mock_create_multi_dns.assert_called_once_with(mock_module, mock_array)
+
+    @patch("plugins.modules.purefa_dns.AnsibleModule")
+    @patch("plugins.modules.purefa_dns.get_array")
+    @patch("plugins.modules.purefa_dns.LooseVersion")
+    @patch("plugins.modules.purefa_dns.delete_multi_dns")
+    def test_main_multi_dns_delete(
+        self,
+        mock_delete_multi_dns,
+        mock_loose_version,
+        mock_get_array,
+        mock_ansible_module,
+    ):
+        """Test main function calls delete_multi_dns when state is absent"""
+        mock_loose_version.side_effect = lambda x: x
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "absent",
+            "name": "file-dns",
+            "service": "file",
+            "domain": None,
+            "nameservers": None,
+            "source": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_dns = Mock()
+        mock_dns.name = "file-dns"
+        mock_array.get_dns.return_value = Mock(items=[mock_dns])
+        mock_get_array.return_value = mock_array
+
+        import plugins.modules.purefa_dns as dns_module
+
+        dns_module.main()
+
+        mock_delete_multi_dns.assert_called_once_with(mock_module, mock_array)
+
+    @patch("plugins.modules.purefa_dns.AnsibleModule")
+    @patch("plugins.modules.purefa_dns.get_array")
+    @patch("plugins.modules.purefa_dns.LooseVersion")
+    def test_main_multi_dns_absent_not_exists(
+        self, mock_loose_version, mock_get_array, mock_ansible_module
+    ):
+        """Test main exits unchanged when absent and config doesn't exist"""
+        mock_loose_version.side_effect = lambda x: x
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "absent",
+            "name": "file-dns",
+            "service": "file",
+            "domain": None,
+            "nameservers": None,
+            "source": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_dns = Mock()
+        mock_dns.name = "management"
+        mock_array.get_dns.return_value = Mock(items=[mock_dns])
+        mock_get_array.return_value = mock_array
+
+        import plugins.modules.purefa_dns as dns_module
+
+        dns_module.main()
+
+        mock_module.exit_json.assert_called_with(changed=False)
+
+    @patch("plugins.modules.purefa_dns.AnsibleModule")
+    @patch("plugins.modules.purefa_dns.get_array")
+    @patch("plugins.modules.purefa_dns.LooseVersion")
+    def test_main_multi_dns_max_configs(
+        self, mock_loose_version, mock_get_array, mock_ansible_module
+    ):
+        """Test main fails when trying to add third DNS config"""
+        import pytest
+
+        mock_loose_version.side_effect = lambda x: x
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "present",
+            "name": "third-dns",
+            "service": "file",
+            "domain": "example.com",
+            "nameservers": ["ns1.example.com"],
+            "source": None,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_dns1 = Mock()
+        mock_dns1.name = "management"
+        mock_dns2 = Mock()
+        mock_dns2.name = "file-dns"
+        mock_array.get_dns.return_value = Mock(items=[mock_dns1, mock_dns2])
+        mock_get_array.return_value = mock_array
+
+        import plugins.modules.purefa_dns as dns_module
+
+        with pytest.raises(SystemExit):
+            dns_module.main()
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_dns.AnsibleModule")
+    @patch("plugins.modules.purefa_dns.get_array")
+    @patch("plugins.modules.purefa_dns.LooseVersion")
+    @patch("plugins.modules.purefa_dns._get_source")
+    def test_main_multi_dns_invalid_source(
+        self, mock_get_source, mock_loose_version, mock_get_array, mock_ansible_module
+    ):
+        """Test main fails when source VIF doesn't exist"""
+        import pytest
+
+        mock_loose_version.side_effect = lambda x: x
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "present",
+            "name": "file-dns",
+            "service": "file",
+            "domain": "example.com",
+            "nameservers": ["ns1.example.com"],
+            "source": "invalid.eth0",
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_dns = Mock()
+        mock_dns.name = "file-dns"
+        mock_array.get_dns.return_value = Mock(items=[mock_dns])
+        mock_get_array.return_value = mock_array
+        mock_get_source.return_value = False
+
+        import plugins.modules.purefa_dns as dns_module
+
+        with pytest.raises(SystemExit):
+            dns_module.main()
+
+        mock_module.fail_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_dns.AnsibleModule")
+    @patch("plugins.modules.purefa_dns.get_array")
+    @patch("plugins.modules.purefa_dns.LooseVersion")
+    @patch("plugins.modules.purefa_dns.update_multi_dns")
+    def test_main_multi_dns_override_name_to_management(
+        self,
+        mock_update_multi_dns,
+        mock_loose_version,
+        mock_get_array,
+        mock_ansible_module,
+    ):
+        """Test main warns and overrides name to management for management service"""
+        mock_loose_version.side_effect = lambda x: x
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "present",
+            "name": "custom-name",
+            "service": "management",
+            "domain": "example.com",
+            "nameservers": ["ns1.example.com"],
+            "source": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_dns = Mock()
+        mock_dns.name = "management"
+        mock_array.get_dns.return_value = Mock(items=[mock_dns])
+        mock_get_array.return_value = mock_array
+
+        import plugins.modules.purefa_dns as dns_module
+
+        dns_module.main()
+
+        mock_module.warn.assert_called_once()
+
+    @patch("plugins.modules.purefa_dns.AnsibleModule")
+    @patch("plugins.modules.purefa_dns.get_array")
+    @patch("plugins.modules.purefa_dns.LooseVersion")
+    @patch("plugins.modules.purefa_dns.delete_dns")
+    def test_main_legacy_dns_delete(
+        self, mock_delete_dns, mock_loose_version, mock_get_array, mock_ansible_module
+    ):
+        """Test main function calls delete_dns for legacy API"""
+        mock_loose_version.side_effect = lambda x: x
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "absent",
+            "name": "management",
+            "service": "management",
+            "domain": None,
+            "nameservers": None,
+            "source": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.1"
+        mock_get_array.return_value = mock_array
+
+        import plugins.modules.purefa_dns as dns_module
+
+        dns_module.main()
+
+        mock_delete_dns.assert_called_once_with(mock_module, mock_array)
+
+    @patch("plugins.modules.purefa_dns.AnsibleModule")
+    @patch("plugins.modules.purefa_dns.get_array")
+    @patch("plugins.modules.purefa_dns.LooseVersion")
+    @patch("plugins.modules.purefa_dns.create_dns")
+    def test_main_legacy_dns_create(
+        self, mock_create_dns, mock_loose_version, mock_get_array, mock_ansible_module
+    ):
+        """Test main function calls create_dns for legacy API"""
+        mock_loose_version.side_effect = lambda x: x
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "present",
+            "name": "management",
+            "service": "management",
+            "domain": "example.com",
+            "nameservers": ["ns1.example.com"],
+            "source": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.1"
+        mock_get_array.return_value = mock_array
+
+        import plugins.modules.purefa_dns as dns_module
+
+        dns_module.main()
+
+        mock_create_dns.assert_called_once_with(mock_module, mock_array)
+
+    @patch("plugins.modules.purefa_dns.AnsibleModule")
+    @patch("plugins.modules.purefa_dns.get_array")
+    @patch("plugins.modules.purefa_dns.LooseVersion")
+    def test_main_legacy_dns_missing_domain(
+        self, mock_loose_version, mock_get_array, mock_ansible_module
+    ):
+        """Test main fails when domain missing for legacy API create"""
+        import pytest
+
+        mock_loose_version.side_effect = lambda x: x
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "present",
+            "name": "management",
+            "service": "management",
+            "domain": None,
+            "nameservers": ["ns1.example.com"],
+            "source": None,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible_module.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.1"
+        mock_get_array.return_value = mock_array
+
+        import plugins.modules.purefa_dns as dns_module
+
+        with pytest.raises(SystemExit):
+            dns_module.main()
+
+        mock_module.fail_json.assert_called_once()
