@@ -18,12 +18,12 @@ DOCUMENTATION = r"""
 ---
 module: purefa_syslog
 version_added: '1.0.0'
-short_description: Configure Pure Storage FlashArray syslog settings
+short_description: Configure Everpure FlashArray syslog settings
 description:
-- Configure syslog configuration for Pure Storage FlashArrays.
+- Configure syslog configuration for Everpure FlashArrays.
 - Manage individual syslog servers.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

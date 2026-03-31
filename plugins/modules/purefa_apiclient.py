@@ -22,7 +22,7 @@ short_description: Manage FlashArray API Clients
 description:
 - Enable or disable FlashArray API Clients
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:
@@ -69,7 +69,7 @@ EXAMPLES = r"""
 - name: Create API token ansible-token
   purestorage.flasharray.purefa_apiclient:
     name: ansible-token
-    issuer: "Pure Storage"
+    issuer: "Everpure"
     token_ttl: 3000
     role: array_admin
     public_key: "{{lookup('file', 'public_pem_file') }}"

@@ -22,7 +22,7 @@ short_description: Manage Fusion Fleet Workloads
 description:
 - Apply/Rename/Delete Fusion fleet workloads
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   context:
     description:

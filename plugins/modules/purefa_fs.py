@@ -22,7 +22,7 @@ short_description: Manage FlashArray File Systems
 description:
 - Create/Delete FlashArray File Systems
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_ntp
 version_added: '1.0.0'
-short_description: Configure Pure Storage FlashArray NTP settings
+short_description: Configure Everpure FlashArray NTP settings
 description:
-- Set, erase or test NTP configuration for Pure Storage FlashArrays.
+- Set, erase or test NTP configuration for Everpure FlashArrays.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

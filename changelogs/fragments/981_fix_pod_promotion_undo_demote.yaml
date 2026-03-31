@@ -1,0 +1,4 @@
+bugfixes:
+  - purefa_pod - Fix undo-demote pod handling during ActiveDR promotion
+  - purefa_pod - Fix UnboundLocalError when promoting pod without undo-demote pod
+  - purefa_pod - Add idempotency checks for already promoted/demoted pods

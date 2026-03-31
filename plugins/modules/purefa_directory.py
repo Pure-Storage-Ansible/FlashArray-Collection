@@ -22,7 +22,7 @@ short_description: Manage FlashArray File System Directories
 description:
 - Create/Delete FlashArray File Systems
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:
@@ -140,8 +140,8 @@ def rename_dir(module, array):
         names=[module.params["filesystem"] + ":" + module.params["rename"]],
     )
     if target.status_code != 200:
+        changed = True
         if not module.check_mode:
-            changed = True
             directory = flasharray.DirectoryPatch(
                 name=module.params["filesystem"] + ":" + module.params["rename"]
             )

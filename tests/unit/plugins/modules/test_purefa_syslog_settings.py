@@ -184,3 +184,248 @@ class TestSyslogSettingsNoChange:
         main()
 
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestSyslogSettingsChange:
+    """Test cases for syslog settings change scenarios"""
+
+    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
+    @patch("plugins.modules.purefa_syslog_settings.check_response")
+    @patch("plugins.modules.purefa_syslog_settings.get_with_context")
+    @patch("plugins.modules.purefa_syslog_settings.get_array")
+    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    def test_change_tls_audit(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_check_response,
+        mock_lv,
+    ):
+        """Test changing tls_audit setting"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "severity": "info",
+            "tls_audit": False,  # Changing from True to False
+            "ca_certificate": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.10"
+        mock_get_array.return_value = mock_array
+
+        mock_lv.side_effect = lambda x: float(x.replace(".", "")) / 100
+
+        mock_current = Mock()
+        mock_current.tls_audit_enabled = True  # Current is True
+        mock_current.logging_severity = "info"
+        mock_current.ca_certificate = None
+        mock_response = Mock()
+        mock_response.items = [mock_current]
+        mock_get_with_context.return_value = mock_response
+
+        main()
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
+    @patch("plugins.modules.purefa_syslog_settings.check_response")
+    @patch("plugins.modules.purefa_syslog_settings.get_with_context")
+    @patch("plugins.modules.purefa_syslog_settings.get_array")
+    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    def test_change_severity(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_check_response,
+        mock_lv,
+    ):
+        """Test changing severity setting"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "severity": "debug",  # Changing from info to debug
+            "tls_audit": True,
+            "ca_certificate": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.10"
+        mock_get_array.return_value = mock_array
+
+        mock_lv.side_effect = lambda x: float(x.replace(".", "")) / 100
+
+        mock_current = Mock()
+        mock_current.tls_audit_enabled = True
+        mock_current.logging_severity = "info"  # Current is info
+        mock_current.ca_certificate = None
+        mock_response = Mock()
+        mock_response.items = [mock_current]
+        mock_get_with_context.return_value = mock_response
+
+        main()
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
+    @patch("plugins.modules.purefa_syslog_settings.check_response")
+    @patch("plugins.modules.purefa_syslog_settings.get_with_context")
+    @patch("plugins.modules.purefa_syslog_settings.get_array")
+    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    def test_delete_certificate(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_check_response,
+        mock_lv,
+    ):
+        """Test deleting certificate with DELETE keyword"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "severity": "info",
+            "tls_audit": True,
+            "ca_certificate": "DELETE",
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.10"
+        mock_get_array.return_value = mock_array
+
+        mock_lv.side_effect = lambda x: float(x.replace(".", "")) / 100
+
+        mock_current = Mock()
+        mock_current.tls_audit_enabled = True
+        mock_current.logging_severity = "info"
+        mock_current.ca_certificate = "existing cert"
+        mock_response = Mock()
+        mock_response.items = [mock_current]
+        mock_get_with_context.return_value = mock_response
+
+        main()
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
+    @patch("plugins.modules.purefa_syslog_settings.check_response")
+    @patch("plugins.modules.purefa_syslog_settings.get_with_context")
+    @patch("plugins.modules.purefa_syslog_settings.get_array")
+    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    def test_update_certificate(
+        self,
+        mock_ansible_module,
+        mock_get_array,
+        mock_get_with_context,
+        mock_check_response,
+        mock_lv,
+    ):
+        """Test updating certificate"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "severity": "info",
+            "tls_audit": True,
+            "ca_certificate": "new cert content",
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.10"
+        mock_get_array.return_value = mock_array
+
+        mock_lv.side_effect = lambda x: float(x.replace(".", "")) / 100
+
+        mock_current = Mock()
+        mock_current.tls_audit_enabled = True
+        mock_current.logging_severity = "info"
+        mock_current.ca_certificate = "old cert"
+        mock_response = Mock()
+        mock_response.items = [mock_current]
+        mock_get_with_context.return_value = mock_response
+
+        main()
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
+    @patch("plugins.modules.purefa_syslog_settings.get_with_context")
+    @patch("plugins.modules.purefa_syslog_settings.get_array")
+    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    def test_check_mode_with_changes(
+        self, mock_ansible_module, mock_get_array, mock_get_with_context, mock_lv
+    ):
+        """Test check mode reports changes without applying"""
+        mock_module = Mock()
+        mock_module.check_mode = True
+        mock_module.params = {
+            "severity": "debug",
+            "tls_audit": False,
+            "ca_certificate": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.10"
+        mock_get_array.return_value = mock_array
+
+        mock_lv.side_effect = lambda x: float(x.replace(".", "")) / 100
+
+        mock_current = Mock()
+        mock_current.tls_audit_enabled = True
+        mock_current.logging_severity = "info"
+        mock_current.ca_certificate = None
+        mock_response = Mock()
+        mock_response.items = [mock_current]
+        mock_get_with_context.return_value = mock_response
+
+        main()
+
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
+    @patch("plugins.modules.purefa_syslog_settings.get_with_context")
+    @patch("plugins.modules.purefa_syslog_settings.get_array")
+    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    def test_no_ca_certificate_attribute(
+        self, mock_ansible_module, mock_get_array, mock_get_with_context, mock_lv
+    ):
+        """Test handling when current config has no ca_certificate attribute"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "severity": "info",
+            "tls_audit": True,
+            "ca_certificate": None,
+            "context": "",
+        }
+        mock_ansible_module.return_value = mock_module
+
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.10"
+        mock_get_array.return_value = mock_array
+
+        mock_lv.side_effect = lambda x: float(x.replace(".", "")) / 100
+
+        mock_current = Mock(spec=[])  # No attributes
+        mock_current.tls_audit_enabled = True
+        mock_current.logging_severity = "info"
+        # Explicitly do not set ca_certificate
+        del mock_current.ca_certificate
+        mock_response = Mock()
+        mock_response.items = [mock_current]
+        mock_get_with_context.return_value = mock_response
+
+        main()
+
+        mock_module.exit_json.assert_called_once_with(changed=False)

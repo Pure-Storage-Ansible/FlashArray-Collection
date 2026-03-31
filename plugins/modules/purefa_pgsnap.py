@@ -18,13 +18,13 @@ DOCUMENTATION = r"""
 ---
 module: purefa_pgsnap
 version_added: '1.0.0'
-short_description: Manage protection group snapshots on Pure Storage FlashArrays
+short_description: Manage protection group snapshots on Everpure FlashArrays
 description:
-- Create or delete protection group snapshots on Pure Storage FlashArray.
+- Create or delete protection group snapshots on Everpure FlashArray.
 - Recovery of replicated snapshots on the replica target array is enabled.
 - Support for ActiveCluster and Volume Group protection groups is supported.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

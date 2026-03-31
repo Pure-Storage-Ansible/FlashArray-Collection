@@ -22,7 +22,7 @@ short_description: Modify the CBS array capacity
 description:
 - Expand the CBS array capacity. Capacity can only be updated to specific values.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

@@ -20,13 +20,13 @@ module: purefa_snmp
 version_added: '1.0.0'
 short_description: Configure FlashArray SNMP Managers
 description:
-- Manage SNMP managers on a Pure Storage FlashArray.
+- Manage SNMP managers on a Everpure FlashArray.
 - Changing of a named SNMP managers version is not supported.
 - This module is not idempotent and will always modify an
   existing SNMP manager due to hidden parameters that cannot
   be compared to the play parameters.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

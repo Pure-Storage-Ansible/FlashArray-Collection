@@ -17,12 +17,12 @@ ANSIBLE_METADATA = {
 DOCUMENTATION = r"""
 ---
 module: purefa_endpoint
-short_description:  Manage VMware protocol-endpoints on Pure Storage FlashArrays
+short_description:  Manage VMware protocol-endpoints on Everpure FlashArrays
 version_added: '1.0.0'
 description:
-- Create, delete or eradicate the an endpoint on a Pure Storage FlashArray.
+- Create, delete or eradicate the an endpoint on a Everpure FlashArray.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

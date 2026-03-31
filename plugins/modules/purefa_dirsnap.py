@@ -26,7 +26,7 @@ description:
   and SUFFIX is the suffix.
 - The client visible snapshot name is CLIENT_NAME.SUFFIX.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

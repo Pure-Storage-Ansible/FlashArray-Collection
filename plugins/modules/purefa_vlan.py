@@ -20,10 +20,10 @@ DOCUMENTATION = """
 ---
 module: purefa_vlan
 version_added: '1.0.0'
-short_description:  Manage network VLAN interfaces in a Pure Storage FlashArray
+short_description:  Manage network VLAN interfaces in a Everpure FlashArray
 description:
-    - This module manages the VLAN network interfaces on a Pure Storage FlashArray.
-author: Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+    - This module manages the VLAN network interfaces on a Everpure FlashArray.
+author: Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_vg
 version_added: '1.0.0'
-short_description: Manage volume groups on Pure Storage FlashArrays
+short_description: Manage volume groups on Everpure FlashArrays
 description:
-- Create, delete or modify volume groups on Pure Storage FlashArrays.
+- Create, delete or modify volume groups on Everpure FlashArrays.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

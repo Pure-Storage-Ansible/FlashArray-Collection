@@ -17,12 +17,12 @@ ANSIBLE_METADATA = {
 DOCUMENTATION = r"""
 ---
 module: purefa_inventory
-short_description: Collect information from Pure Storage FlashArray
+short_description: Collect information from Everpure FlashArray
 version_added: '1.0.0'
 description:
-  - Collect hardware inventory information from a Pure Storage Flasharray
+  - Collect hardware inventory information from a Everpure Flasharray
 author:
-  - Pure Storage ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+  - Everpure ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 extends_documentation_fragment:
   - purestorage.flasharray.purestorage.fa
 """

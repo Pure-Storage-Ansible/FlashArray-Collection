@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_snap
 version_added: '1.0.0'
-short_description: Manage volume snapshots on Pure Storage FlashArrays
+short_description: Manage volume snapshots on Everpure FlashArrays
 description:
-- Create or delete volumes and volume snapshots on Pure Storage FlashArray.
+- Create or delete volumes and volume snapshots on Everpure FlashArray.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:
@@ -823,6 +823,13 @@ def main():
         update_snapshot(module, array)
     elif state == "copy" and snap:
         create_from_snapshot(module, array)
+    elif state == "copy" and not snap:
+        snapname = module.params["name"] + "." + module.params["suffix"]
+        module.fail_json(
+            msg="Snapshot {0} not found. Cannot copy non-existent snapshot.".format(
+                snapname
+            )
+        )
     elif state == "absent" and snap and not destroyed:
         delete_snapshot(module, array)
     elif state == "absent" and destroyed and module.params["eradicate"]:

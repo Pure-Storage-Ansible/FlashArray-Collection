@@ -180,9 +180,16 @@ class TestGenerateAdminDict:
         mock_admin.name = "pureuser"
         mock_admin.is_local = True
         mock_admin.locked = False
+        mock_admin.public_key = None
+        mock_admin.lockout_remaining = None
         mock_role = Mock()
         mock_role.name = "array_admin"
         mock_admin.role = mock_role
+        # Mock api_token with numeric values for expires_at and created_at
+        mock_api_token = Mock()
+        mock_api_token.expires_at = 1709424000000  # timestamp in ms
+        mock_api_token.created_at = 1709337600000  # timestamp in ms
+        mock_admin.api_token = mock_api_token
         # Mock management_access_policies as a list
         mock_policy = Mock()
         mock_policy.name = "default_policy"
@@ -195,7 +202,7 @@ class TestGenerateAdminDict:
         result = generate_admin_dict(mock_array)
 
         assert "pureuser" in result
-        assert result["pureuser"]["type"] == "local"
+        assert result["pureuser"]["local"] is True
         assert result["pureuser"]["locked"] is False
         assert result["pureuser"]["role"] == "array_admin"
 
@@ -210,9 +217,16 @@ class TestGenerateAdminDict:
         mock_admin.name = "ldapuser@domain.com"
         mock_admin.is_local = False
         mock_admin.locked = False
+        mock_admin.public_key = None
+        mock_admin.lockout_remaining = None
         mock_role = Mock()
         mock_role.name = "readonly"
         mock_admin.role = mock_role
+        # Mock api_token with numeric values for expires_at and created_at
+        mock_api_token = Mock()
+        mock_api_token.expires_at = 1709424000000  # timestamp in ms
+        mock_api_token.created_at = 1709337600000  # timestamp in ms
+        mock_admin.api_token = mock_api_token
 
         mock_admins_response = Mock()
         mock_admins_response.items = [mock_admin]
@@ -221,7 +235,7 @@ class TestGenerateAdminDict:
         result = generate_admin_dict(mock_array)
 
         assert "ldapuser@domain.com" in result
-        assert result["ldapuser@domain.com"]["type"] == "remote"
+        assert result["ldapuser@domain.com"]["local"] is False
 
 
 class TestGenerateSubnetDict:

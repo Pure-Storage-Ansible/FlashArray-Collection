@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_volume
 version_added: '1.0.0'
-short_description:  Manage volumes on Pure Storage FlashArrays
+short_description:  Manage volumes on Everpure FlashArrays
 description:
-- Create, delete or extend the capacity of a volume on Pure Storage FlashArray.
+- Create, delete or extend the capacity of a volume on Everpure FlashArray.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

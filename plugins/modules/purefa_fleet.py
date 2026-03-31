@@ -22,7 +22,7 @@ short_description: Manage Fusion Fleet
 description:
 - Create/Modify/Delete Fusion fleet and members
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

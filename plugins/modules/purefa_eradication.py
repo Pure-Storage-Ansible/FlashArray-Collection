@@ -18,12 +18,12 @@ DOCUMENTATION = r"""
 ---
 module: purefa_eradication
 version_added: '1.9.0'
-short_description: Configure Pure Storage FlashArray Eradication Timer
+short_description: Configure Everpure FlashArray Eradication Timer
 description:
 - Configure the eradication timer for destroyed items on a FlashArray.
 - Valid values are integer days from 1 to 30. Default is 1.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   timer:
     description:

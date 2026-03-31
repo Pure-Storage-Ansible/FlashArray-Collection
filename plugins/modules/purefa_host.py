@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_host
 version_added: '1.0.0'
-short_description: Manage hosts on Pure Storage FlashArrays
+short_description: Manage hosts on Everpure FlashArrays
 description:
-- Create, delete or modify hosts on Pure Storage FlashArrays.
+- Create, delete or modify hosts on Everpure FlashArrays.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 notes:
 - If specifying C(lun) option ensure host support requested value
 options:

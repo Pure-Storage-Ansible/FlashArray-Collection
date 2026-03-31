@@ -1163,3 +1163,953 @@ class TestGetPgroupvolume:
         result = get_pgroupvolume(mock_module, mock_array)
 
         assert result == "pod1::vol1"
+
+
+class TestDeleteOffloadSnapshot:
+    """Test cases for delete_offload_snapshot function"""
+
+    @patch("plugins.modules.purefa_pgsnap._check_offload")
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_offload_snapshot_replicated_pg(
+        self, mock_lv, mock_check_response, mock_check_offload
+    ):
+        """Test delete_offload_snapshot for replicated PG"""
+        from plugins.modules.purefa_pgsnap import delete_offload_snapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "remote::pg1",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "",
+            "eradicate": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_check_offload.return_value = True
+
+        # Remote snapshot exists and not destroyed
+        mock_snap = Mock()
+        mock_snap.destroyed = False
+        mock_array.get_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200, items=[mock_snap]
+        )
+        mock_array.patch_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+
+        delete_offload_snapshot(mock_module, mock_array)
+
+        mock_array.patch_remote_protection_group_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsnap._check_offload")
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_offload_snapshot_with_eradicate(
+        self, mock_lv, mock_check_response, mock_check_offload
+    ):
+        """Test delete_offload_snapshot with eradication"""
+        from plugins.modules.purefa_pgsnap import delete_offload_snapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "remote::pg1",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "",
+            "eradicate": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_check_offload.return_value = True
+
+        # Remote snapshot exists and not destroyed
+        mock_snap = Mock()
+        mock_snap.destroyed = False
+        mock_array.get_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200, items=[mock_snap]
+        )
+        mock_array.patch_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+        mock_array.delete_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+
+        delete_offload_snapshot(mock_module, mock_array)
+
+        mock_array.delete_remote_protection_group_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsnap._check_offload")
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_offload_snapshot_already_destroyed_with_eradicate(
+        self, mock_lv, mock_check_response, mock_check_offload
+    ):
+        """Test delete_offload_snapshot when already destroyed and eradicate requested"""
+        from plugins.modules.purefa_pgsnap import delete_offload_snapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "remote::pg1",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "",
+            "eradicate": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_check_offload.return_value = True
+
+        # Remote snapshot exists but already destroyed
+        mock_snap = Mock()
+        mock_snap.destroyed = True
+        mock_array.get_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200, items=[mock_snap]
+        )
+        mock_array.delete_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+
+        delete_offload_snapshot(mock_module, mock_array)
+
+        mock_array.delete_remote_protection_group_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsnap._check_offload")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_offload_snapshot_offload_not_connected(
+        self, mock_lv, mock_check_offload
+    ):
+        """Test delete_offload_snapshot when offload is not connected"""
+        from plugins.modules.purefa_pgsnap import delete_offload_snapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "remote::pg1",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "",
+            "eradicate": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_check_offload.return_value = False
+
+        delete_offload_snapshot(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "does not exist or not connected" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_offload_snapshot_invalid_name_format(self, mock_lv):
+        """Test delete_offload_snapshot with invalid PG name format"""
+        from plugins.modules.purefa_pgsnap import delete_offload_snapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",  # No colon - invalid for offload
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "",
+            "eradicate": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        delete_offload_snapshot(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "not in the correct format" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_pgsnap._check_offload")
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_offload_snapshot_legacy_api(
+        self, mock_lv, mock_check_response, mock_check_offload
+    ):
+        """Test delete_offload_snapshot with legacy API version"""
+        from plugins.modules.purefa_pgsnap import delete_offload_snapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "remote::pg1",
+            "suffix": "snap1",
+            "offload": "nfs-target",
+            "context": "",
+            "eradicate": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Legacy version
+        mock_check_offload.return_value = True
+
+        mock_snap = Mock()
+        mock_snap.destroyed = False
+        mock_array.get_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200, items=[mock_snap]
+        )
+        mock_array.patch_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+        mock_array.delete_remote_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+
+        delete_offload_snapshot(mock_module, mock_array)
+
+        # Verify called without context_names
+        mock_array.get_remote_protection_group_snapshots.assert_called_once()
+        call_kwargs = mock_array.get_remote_protection_group_snapshots.call_args[1]
+        assert "context_names" not in call_kwargs
+
+
+class TestCheckOffloadContext:
+    """Test _check_offload with context API version"""
+
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_check_offload_with_context(self, mock_lv):
+        """Test _check_offload uses context for newer API"""
+        mock_module = Mock()
+        mock_module.params = {"offload": "nfs-target", "context": "test-context"}
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_offload = Mock()
+        mock_offload.status = "connected"
+        mock_array.get_offloads.return_value = Mock(
+            status_code=200, items=[mock_offload]
+        )
+
+        result = _check_offload(mock_module, mock_array)
+
+        assert result is True
+        mock_array.get_offloads.assert_called_once()
+        call_kwargs = mock_array.get_offloads.call_args[1]
+        assert call_kwargs.get("context_names") == ["test-context"]
+
+
+class TestDeletePgsnapshot:
+    """Test delete_pgsnapshot function"""
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_pgsnapshot_with_eradicate(self, mock_lv, mock_check_response):
+        """Test delete_pgsnapshot with immediate eradication"""
+        from plugins.modules.purefa_pgsnap import delete_pgsnapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "context": "",
+            "eradicate": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array.patch_protection_group_snapshots.return_value = Mock(status_code=200)
+        mock_array.delete_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+
+        delete_pgsnapshot(mock_module, mock_array)
+
+        mock_array.patch_protection_group_snapshots.assert_called_once()
+        mock_array.delete_protection_group_snapshots.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_delete_pgsnapshot_legacy_api_with_eradicate(
+        self, mock_lv, mock_check_response
+    ):
+        """Test delete_pgsnapshot with legacy API"""
+        from plugins.modules.purefa_pgsnap import delete_pgsnapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "context": "",
+            "eradicate": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Legacy
+        mock_array.patch_protection_group_snapshots.return_value = Mock(status_code=200)
+        mock_array.delete_protection_group_snapshots.return_value = Mock(
+            status_code=200
+        )
+
+        delete_pgsnapshot(mock_module, mock_array)
+
+        # Verify called without context_names for legacy API
+        call_kwargs = mock_array.patch_protection_group_snapshots.call_args[1]
+        assert "context_names" not in call_kwargs
+
+
+class TestRestorePgsnapvolume:
+    """Test restore_pgsnapvolume function"""
+
+    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.get_rpgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_restore_pgsnapvolume_stretched_pod_fails(
+        self, mock_lv, mock_get_rpgsnapshot, mock_get_pgsnapshot, mock_get_pgroupvolume
+    ):
+        """Test restore to stretched pod fails"""
+        from plugins.modules.purefa_pgsnap import restore_pgsnapvolume
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "context": "",
+            "restore": "vol1",
+            "target": "stretched-pod::vol1",
+            "overwrite": False,
+            "add_to_pgs": None,
+            "with_default_protection": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_pgsnapshot.return_value = Mock()
+        mock_get_pgroupvolume.return_value = "vol1"
+
+        # Mock stretched pod (array_count > 1)
+        mock_pod = Mock()
+        mock_pod.array_count = 2  # Stretched
+        mock_array.get_pods.return_value = Mock(status_code=200, items=[mock_pod])
+
+        restore_pgsnapvolume(mock_module, mock_array)
+
+        mock_module.fail_json.assert_called_once()
+        assert "cannot be restored to a stretched pod" in str(
+            mock_module.fail_json.call_args
+        )
+
+    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_restore_pgsnapvolume_with_add_to_pgs(
+        self, mock_lv, mock_get_pgsnapshot, mock_get_pgroupvolume
+    ):
+        """Test restore with add_to_pgs parameter"""
+        from plugins.modules.purefa_pgsnap import restore_pgsnapvolume
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "context": "",
+            "restore": "vol1",
+            "target": "restored_vol",
+            "overwrite": False,
+            "add_to_pgs": ["pg2", "pg3"],
+            "with_default_protection": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_pgsnapshot.return_value = Mock()
+        mock_get_pgroupvolume.return_value = "vol1"
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+
+        restore_pgsnapvolume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        call_kwargs = mock_array.post_volumes.call_args[1]
+        assert "add_to_protection_groups" in call_kwargs
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_restore_pgsnapvolume_with_overwrite_context(
+        self, mock_lv, mock_get_pgsnapshot, mock_get_pgroupvolume
+    ):
+        """Test restore with overwrite and context"""
+        from plugins.modules.purefa_pgsnap import restore_pgsnapvolume
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "context": "test-context",
+            "restore": "vol1",
+            "target": "vol1",
+            "overwrite": True,
+            "add_to_pgs": None,
+            "with_default_protection": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_pgsnapshot.return_value = Mock()
+        mock_get_pgroupvolume.return_value = "vol1"
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+
+        restore_pgsnapvolume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        call_kwargs = mock_array.post_volumes.call_args[1]
+        assert call_kwargs.get("context_names") == ["test-context"]
+        assert call_kwargs.get("overwrite") is True
+
+    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_restore_pgsnapvolume_legacy_api_no_overwrite(
+        self, mock_lv, mock_get_pgsnapshot, mock_get_pgroupvolume
+    ):
+        """Test restore with legacy API and no overwrite"""
+        from plugins.modules.purefa_pgsnap import restore_pgsnapvolume
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "context": "",
+            "restore": "vol1",
+            "target": "restored_vol",
+            "overwrite": False,
+            "add_to_pgs": None,
+            "with_default_protection": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_get_pgsnapshot.return_value = Mock()
+        mock_get_pgroupvolume.return_value = "vol1"
+        mock_array.post_volumes.return_value = Mock(status_code=200)
+
+        restore_pgsnapvolume(mock_module, mock_array)
+
+        mock_array.post_volumes.assert_called_once()
+        call_kwargs = mock_array.post_volumes.call_args[1]
+        assert call_kwargs.get("overwrite") is False
+
+
+class TestCreatePgsnapshot:
+    """Test create_pgsnapshot function additional branches"""
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_create_pgsnapshot_with_throttle_and_now(
+        self, mock_lv, mock_check_response
+    ):
+        """Test create_pgsnapshot with throttle and now options"""
+        from plugins.modules.purefa_pgsnap import create_pgsnapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "context": "",
+            "throttle": True,
+            "now": True,
+            "apply_retention": True,
+            "remote": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock remote target check
+        mock_pg = Mock()
+        mock_pg.target_count = 1  # Has remote target
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+        # Mock proper response with snap_data
+        mock_snap_data = Mock()
+        mock_snap_data.suffix = "snap1"
+        mock_array.post_protection_group_snapshots.return_value = Mock(
+            status_code=200, items=[mock_snap_data]
+        )
+
+        create_pgsnapshot(mock_module, mock_array)
+
+        mock_array.post_protection_group_snapshots.assert_called_once()
+        call_kwargs = mock_array.post_protection_group_snapshots.call_args[1]
+        assert call_kwargs.get("replicate_now") is True
+        mock_module.exit_json.assert_called_once()
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_create_pgsnapshot_no_remote_target_with_context(
+        self, mock_lv, mock_check_response
+    ):
+        """Test create_pgsnapshot with no remote target using context"""
+        from plugins.modules.purefa_pgsnap import create_pgsnapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "context": "test-context",
+            "throttle": True,
+            "now": False,
+            "apply_retention": True,
+            "remote": False,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+
+        # Mock no remote target
+        mock_pg = Mock()
+        mock_pg.target_count = 0
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+        mock_snap_data = Mock()
+        mock_snap_data.suffix = "snap1"
+        mock_array.post_protection_group_snapshots.return_value = Mock(
+            status_code=200, items=[mock_snap_data]
+        )
+
+        create_pgsnapshot(mock_module, mock_array)
+
+        call_kwargs = mock_array.post_protection_group_snapshots.call_args[1]
+        assert call_kwargs.get("context_names") == ["test-context"]
+
+    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
+    def test_create_pgsnapshot_legacy_api_with_remote(
+        self, mock_lv, mock_check_response
+    ):
+        """Test create_pgsnapshot with legacy API and remote replication"""
+        from plugins.modules.purefa_pgsnap import create_pgsnapshot
+
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "context": "",
+            "throttle": True,
+            "now": False,
+            "apply_retention": True,
+            "remote": True,
+        }
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.30"  # Legacy
+
+        # Mock remote target
+        mock_pg = Mock()
+        mock_pg.target_count = 1
+        mock_array.get_protection_groups.return_value = Mock(
+            status_code=200, items=[mock_pg]
+        )
+        mock_snap_data = Mock()
+        mock_snap_data.suffix = "snap1"
+        mock_array.post_protection_group_snapshots.return_value = Mock(
+            status_code=200, items=[mock_snap_data]
+        )
+
+        create_pgsnapshot(mock_module, mock_array)
+
+        call_kwargs = mock_array.post_protection_group_snapshots.call_args[1]
+        assert call_kwargs.get("replicate") is True
+        assert "context_names" not in call_kwargs
+
+
+class TestMain:
+    """Test main function branches"""
+
+    @patch("plugins.modules.purefa_pgsnap.get_array")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    def test_main_pgroup_not_found(
+        self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
+    ):
+        """Test main fails when protection group doesn't exist"""
+        from plugins.modules.purefa_pgsnap import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "nonexistent_pg",
+            "suffix": "snap1",
+            "state": "present",
+            "offload": None,
+            "restore": None,
+            "target": None,
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pgroup.return_value = False
+
+        main()
+
+        mock_module.fail_json.assert_called_once()
+        assert "does not exist" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_pgsnap.get_array")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    def test_main_offload_not_supported_for_present(
+        self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
+    ):
+        """Test main fails when offload used with state=present"""
+        from plugins.modules.purefa_pgsnap import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "state": "present",
+            "offload": "nfs-target",
+            "restore": None,
+            "target": None,
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pgroup.return_value = True
+        mock_get_pgsnapshot.return_value = None
+
+        main()
+
+        mock_module.fail_json.assert_called_once()
+        assert "offload parameter not supported" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_pgsnap.get_array")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.restore_pgsnapvolume")
+    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    def test_main_copy_with_overwrite_and_add_to_pgs_fails(
+        self,
+        mock_ansible,
+        mock_restore,
+        mock_get_pgsnapshot,
+        mock_get_pgroup,
+        mock_get_array,
+    ):
+        """Test main fails when copy with overwrite and add_to_pgs"""
+        from plugins.modules.purefa_pgsnap import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "state": "copy",
+            "offload": None,
+            "restore": "vol1",
+            "target": "restored_vol",
+            "context": "",
+            "overwrite": True,
+            "add_to_pgs": ["pg2"],
+            "with_default_protection": True,
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pgroup.return_value = True
+        mock_get_pgsnapshot.return_value = None
+
+        main()
+
+        mock_module.fail_json.assert_called_once()
+        assert "overwrite and add_to_pgs" in str(mock_module.fail_json.call_args)
+
+    @patch("plugins.modules.purefa_pgsnap.get_array")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    def test_main_present_snapshot_exists_no_change(
+        self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
+    ):
+        """Test main exits unchanged when snapshot already exists"""
+        from plugins.modules.purefa_pgsnap import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "state": "present",
+            "offload": None,
+            "restore": None,
+            "target": None,
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pgroup.return_value = True
+        mock_snap = Mock()
+        mock_snap.destroyed = False
+        mock_get_pgsnapshot.return_value = mock_snap
+
+        main()
+
+        mock_module.exit_json.assert_called_with(changed=False)
+
+    @patch("plugins.modules.purefa_pgsnap.get_array")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    def test_main_absent_snapshot_not_exists_no_change(
+        self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
+    ):
+        """Test main exits unchanged when absent and snapshot doesn't exist"""
+        from plugins.modules.purefa_pgsnap import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "state": "absent",
+            "offload": None,
+            "restore": None,
+            "target": None,
+            "context": "",
+            "eradicate": False,
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pgroup.return_value = True
+        mock_get_pgsnapshot.return_value = None
+
+        main()
+
+        mock_module.exit_json.assert_called_with(changed=False)
+
+    @patch("plugins.modules.purefa_pgsnap.get_array")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.update_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    def test_main_rename_calls_update(
+        self,
+        mock_ansible,
+        mock_update,
+        mock_get_pgsnapshot,
+        mock_get_pgroup,
+        mock_get_array,
+    ):
+        """Test main calls update_pgsnapshot for rename state"""
+        from plugins.modules.purefa_pgsnap import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "state": "rename",
+            "offload": None,
+            "restore": None,
+            "target": "newsnap",
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pgroup.return_value = True
+        mock_snap = Mock()
+        mock_snap.destroyed = False
+        mock_get_pgsnapshot.return_value = mock_snap
+
+        main()
+
+        mock_update.assert_called_once()
+
+    @patch("plugins.modules.purefa_pgsnap.get_array")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.delete_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    def test_main_absent_calls_delete(
+        self,
+        mock_ansible,
+        mock_delete,
+        mock_get_pgsnapshot,
+        mock_get_pgroup,
+        mock_get_array,
+    ):
+        """Test main calls delete_pgsnapshot for absent state"""
+        from plugins.modules.purefa_pgsnap import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "state": "absent",
+            "offload": None,
+            "restore": None,
+            "target": None,
+            "context": "",
+            "eradicate": False,
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pgroup.return_value = True
+        mock_snap = Mock()
+        mock_snap.destroyed = False
+        mock_get_pgsnapshot.return_value = mock_snap
+
+        main()
+
+        mock_delete.assert_called_once()
+
+    @patch("plugins.modules.purefa_pgsnap.get_array")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.eradicate_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    def test_main_absent_destroyed_eradicate_calls_eradicate(
+        self,
+        mock_ansible,
+        mock_eradicate,
+        mock_get_pgsnapshot,
+        mock_get_pgroup,
+        mock_get_array,
+    ):
+        """Test main calls eradicate_pgsnapshot for destroyed snapshot with eradicate"""
+        from plugins.modules.purefa_pgsnap import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "state": "absent",
+            "offload": None,
+            "restore": None,
+            "target": None,
+            "context": "",
+            "eradicate": True,
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pgroup.return_value = True
+        mock_snap = Mock()
+        mock_snap.destroyed = True
+        mock_get_pgsnapshot.return_value = mock_snap
+
+        main()
+
+        mock_eradicate.assert_called_once()
+
+    @patch("plugins.modules.purefa_pgsnap.get_array")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.delete_offload_snapshot")
+    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    def test_main_absent_with_offload_calls_delete_offload(
+        self,
+        mock_ansible,
+        mock_delete_offload,
+        mock_get_pgsnapshot,
+        mock_get_pgroup,
+        mock_get_array,
+    ):
+        """Test main calls delete_offload_snapshot for absent with offload"""
+        from plugins.modules.purefa_pgsnap import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "state": "absent",
+            "offload": "nfs-target",
+            "restore": None,
+            "target": None,
+            "context": "",
+            "eradicate": False,
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pgroup.return_value = True
+        mock_snap = Mock()
+        mock_snap.destroyed = False
+        mock_get_pgsnapshot.return_value = mock_snap
+
+        main()
+
+        mock_delete_offload.assert_called_once()
+
+    @patch("plugins.modules.purefa_pgsnap.HAS_PURESTORAGE", True)
+    @patch("plugins.modules.purefa_pgsnap.get_array")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    def test_main_suffix_validation_fails(
+        self,
+        mock_ansible,
+        mock_get_pgsnapshot,
+        mock_get_pgroup,
+        mock_get_array,
+    ):
+        """Test main fails on invalid suffix name"""
+        from plugins.modules.purefa_pgsnap import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "!invalid",  # Invalid suffix - starts with special char
+            "state": "present",
+            "offload": None,
+            "restore": None,
+            "target": None,
+            "context": "",
+        }
+        # Make fail_json raise SystemExit to stop execution
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pgroup.return_value = True
+        mock_get_pgsnapshot.return_value = None
+
+        try:
+            main()
+        except SystemExit:
+            pass
+
+        mock_module.fail_json.assert_called_once()
+        assert "does not conform to suffix name rules" in str(
+            mock_module.fail_json.call_args
+        )
+
+    @patch("plugins.modules.purefa_pgsnap.get_array")
+    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
+    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    def test_main_rename_target_validation_fails(
+        self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
+    ):
+        """Test main fails on invalid rename target"""
+        from plugins.modules.purefa_pgsnap import main
+
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "pg1",
+            "suffix": "snap1",
+            "state": "rename",
+            "offload": None,
+            "restore": None,
+            "target": "123!invalid",  # Invalid target
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_get_array.return_value = Mock()
+        mock_get_pgroup.return_value = True
+        mock_snap = Mock()
+        mock_snap.destroyed = False
+        mock_get_pgsnapshot.return_value = mock_snap
+
+        main()
+
+        mock_module.fail_json.assert_called_once()
+        assert "does not conform to suffix name rules" in str(
+            mock_module.fail_json.call_args
+        )

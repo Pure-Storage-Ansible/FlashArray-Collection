@@ -22,13 +22,13 @@ deprecated:
     removed_in: '2.0.0'
     why: Superseded by M(purestorage.flasharray.purefa_admin)
     alternative: Use M(purestorage.flasharray.purefa_admin) instead.
-short_description: Configure Pure Storage FlashArray Single Sign-On
+short_description: Configure Everpure FlashArray Single Sign-On
 description:
 - Enable or disable Single Sign-On (SSO) to give LDAP users the ability
   to navigate seamlessly from Pure1 Manage to the current array through a
   single login.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

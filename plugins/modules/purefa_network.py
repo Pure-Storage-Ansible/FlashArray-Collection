@@ -19,14 +19,14 @@ ANSIBLE_METADATA = {
 DOCUMENTATION = """
 ---
 module: purefa_network
-short_description:  Manage network interfaces in a Pure Storage FlashArray
+short_description:  Manage network interfaces in a Everpure FlashArray
 version_added: '1.0.0'
 description:
-    - This module manages the physical and virtual network interfaces on a Pure Storage FlashArray.
+    - This module manages the physical and virtual network interfaces on a Everpure FlashArray.
     - To manage VLAN interfaces use the I(purestorage.flasharray.purefa_vlan) module.
     - To manage network subnets use the I(purestorage.flasharray.purefa_subnet) module.
     - To remove an IP address from a non-management port use 0.0.0.0/0
-author: Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+author: Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:
@@ -407,13 +407,19 @@ def update_interface(module, array):
 
     if module.params["gateway"] and module.params["gateway"] in ["0.0.0.0", "::"]:
         new_state["gateway"] = ""
-    elif new_state["address"] and valid_ipv4(new_state["address"]):
-        cidr = str(IPAddress(new_state["netmask"]).netmask_bits())
-        full_addr = new_state["address"] + "/" + cidr
-        if module.params["gateway"] not in IPNetwork(full_addr):
-            module.fail_json(msg="Gateway and subnet are not compatible.")
-        new_state["gateway"] = module.params["gateway"]
-    else:
+    elif module.params["gateway"]:
+        # Only validate gateway against subnet if we have a valid address and netmask
+        # Skip validation if address is being cleared (0.0.0.0 or ::) or netmask is empty
+        if (
+            new_state["address"]
+            and new_state["address"] not in ["0.0.0.0", "::"]
+            and new_state["netmask"]
+            and valid_ipv4(new_state["address"])
+        ):
+            cidr = str(IPAddress(new_state["netmask"]).netmask_bits())
+            full_addr = new_state["address"] + "/" + cidr
+            if module.params["gateway"] not in IPNetwork(full_addr):
+                module.fail_json(msg="Gateway and subnet are not compatible.")
         new_state["gateway"] = module.params["gateway"]
 
     if new_state["address"]:

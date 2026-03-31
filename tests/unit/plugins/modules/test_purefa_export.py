@@ -279,3 +279,299 @@ class TestCreateExportExtended:
         create_export(mock_module, mock_array)
 
         mock_module.exit_json.assert_called_once_with(changed=False)
+
+    @patch("plugins.modules.purefa_export.check_response")
+    @patch("plugins.modules.purefa_export.post_with_context")
+    @patch("plugins.modules.purefa_export.get_with_context")
+    def test_create_export_smb_policy_success(
+        self, mock_get_with_context, mock_post_with_context, mock_check_response
+    ):
+        """Test create_export with SMB policy"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": None,
+            "smb_policy": "smb_policy1",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        # First call: get_policies_smb (200), second call: get_directory_exports (400)
+        mock_get_with_context.side_effect = [
+            Mock(status_code=200),
+            Mock(status_code=400),
+        ]
+        mock_post_with_context.return_value = Mock(status_code=200)
+
+        create_export(mock_module, mock_array)
+
+        mock_post_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_export.check_response")
+    @patch("plugins.modules.purefa_export.post_with_context")
+    @patch("plugins.modules.purefa_export.get_with_context")
+    def test_create_export_both_policies(
+        self, mock_get_with_context, mock_post_with_context, mock_check_response
+    ):
+        """Test create_export with both NFS and SMB policies"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": "nfs_policy1",
+            "smb_policy": "smb_policy1",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        # get_policies_nfs(200), get_dir_exports(400), get_policies_smb(200), get_dir_exports(400)
+        mock_get_with_context.side_effect = [
+            Mock(status_code=200),
+            Mock(status_code=400),
+            Mock(status_code=200),
+            Mock(status_code=400),
+        ]
+        mock_post_with_context.return_value = Mock(status_code=200)
+
+        create_export(mock_module, mock_array)
+
+        mock_post_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+    @patch("plugins.modules.purefa_export.check_response")
+    @patch("plugins.modules.purefa_export.get_with_context")
+    def test_create_export_smb_already_exists(
+        self, mock_get_with_context, mock_check_response
+    ):
+        """Test create_export when SMB export already exists"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": None,
+            "smb_policy": "smb_policy1",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        # get_policies_smb(200), get_directory_exports(200) - already exists
+        mock_get_with_context.side_effect = [
+            Mock(status_code=200),
+            Mock(status_code=200),
+        ]
+
+        create_export(mock_module, mock_array)
+
+        mock_module.exit_json.assert_called_once_with(changed=False)
+
+
+class TestDeleteExportExtended:
+    """Extended tests for delete_export function"""
+
+    @patch("plugins.modules.purefa_export.check_response")
+    @patch("plugins.modules.purefa_export.delete_with_context")
+    @patch("plugins.modules.purefa_export.get_with_context")
+    def test_delete_export_both_policies(
+        self, mock_get_with_context, mock_delete_with_context, mock_check_response
+    ):
+        """Test delete_export with both NFS and SMB policies"""
+        mock_module = Mock()
+        mock_module.params = {
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": "nfs_policy1",
+            "smb_policy": "smb_policy1",
+            "context": "",
+        }
+        mock_module.check_mode = False
+        mock_array = Mock()
+        mock_get_with_context.return_value = Mock(status_code=200)
+        mock_delete_with_context.return_value = Mock(status_code=200)
+
+        delete_export(mock_module, mock_array)
+
+        # delete_with_context called once with all policies in a single call
+        mock_delete_with_context.assert_called_once()
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
+
+class TestMain:
+    """Tests for main function"""
+
+    @patch("plugins.modules.purefa_export.AnsibleModule")
+    @patch("plugins.modules.purefa_export.get_array")
+    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch("plugins.modules.purefa_export.create_export")
+    def test_main_create_export(
+        self, mock_create_export, mock_get_with_context, mock_get_array, mock_ansible
+    ):
+        """Test main function calls create_export when state is present"""
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "present",
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": "nfs_policy1",
+            "smb_policy": None,
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_get_array.return_value = mock_array
+        mock_get_with_context.return_value = Mock(status_code=400)
+
+        import plugins.modules.purefa_export as export_module
+
+        original_has = export_module.HAS_PURESTORAGE
+        export_module.HAS_PURESTORAGE = True
+
+        try:
+            export_module.main()
+            mock_create_export.assert_called_once_with(mock_module, mock_array)
+        finally:
+            export_module.HAS_PURESTORAGE = original_has
+
+    @patch("plugins.modules.purefa_export.AnsibleModule")
+    @patch("plugins.modules.purefa_export.get_array")
+    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch("plugins.modules.purefa_export.delete_export")
+    def test_main_delete_export(
+        self, mock_delete_export, mock_get_with_context, mock_get_array, mock_ansible
+    ):
+        """Test main function calls delete_export when state is absent"""
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "absent",
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": "nfs_policy1",
+            "smb_policy": None,
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_get_array.return_value = mock_array
+        mock_get_with_context.return_value = Mock(status_code=200)
+
+        import plugins.modules.purefa_export as export_module
+
+        original_has = export_module.HAS_PURESTORAGE
+        export_module.HAS_PURESTORAGE = True
+
+        try:
+            export_module.main()
+            mock_delete_export.assert_called_once_with(mock_module, mock_array)
+        finally:
+            export_module.HAS_PURESTORAGE = original_has
+
+    @patch("plugins.modules.purefa_export.AnsibleModule")
+    @patch("plugins.modules.purefa_export.get_array")
+    @patch("plugins.modules.purefa_export.get_with_context")
+    def test_main_absent_not_exists(
+        self, mock_get_with_context, mock_get_array, mock_ansible
+    ):
+        """Test main function exits unchanged when absent and doesn't exist"""
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "absent",
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": "nfs_policy1",
+            "smb_policy": None,
+            "context": "",
+        }
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_get_array.return_value = mock_array
+        mock_get_with_context.return_value = Mock(status_code=400)
+
+        import plugins.modules.purefa_export as export_module
+
+        original_has = export_module.HAS_PURESTORAGE
+        export_module.HAS_PURESTORAGE = True
+
+        try:
+            export_module.main()
+            mock_module.exit_json.assert_called_with(changed=False)
+        finally:
+            export_module.HAS_PURESTORAGE = original_has
+
+    @patch("plugins.modules.purefa_export.AnsibleModule")
+    @patch("plugins.modules.purefa_export.get_array")
+    def test_main_missing_purestorage(self, mock_get_array, mock_ansible):
+        """Test main function fails when pypureclient is missing"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "present",
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": None,
+            "smb_policy": None,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.42"
+        mock_get_array.return_value = mock_array
+
+        import plugins.modules.purefa_export as export_module
+
+        original_has = export_module.HAS_PURESTORAGE
+        export_module.HAS_PURESTORAGE = False
+
+        try:
+            with pytest.raises(SystemExit):
+                export_module.main()
+            mock_module.fail_json.assert_called_once()
+        finally:
+            export_module.HAS_PURESTORAGE = original_has
+
+    @patch("plugins.modules.purefa_export.AnsibleModule")
+    @patch("plugins.modules.purefa_export.get_array")
+    def test_main_api_version_too_low(self, mock_get_array, mock_ansible):
+        """Test main function fails when API version is too low"""
+        import pytest
+
+        mock_module = Mock()
+        mock_module.params = {
+            "state": "present",
+            "name": "export1",
+            "filesystem": "fs1",
+            "directory": "dir1",
+            "nfs_policy": None,
+            "smb_policy": None,
+            "context": "",
+        }
+        mock_module.fail_json.side_effect = SystemExit(1)
+        mock_ansible.return_value = mock_module
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "1.0"
+        mock_get_array.return_value = mock_array
+
+        import plugins.modules.purefa_export as export_module
+
+        original_has = export_module.HAS_PURESTORAGE
+        export_module.HAS_PURESTORAGE = True
+
+        try:
+            with pytest.raises(SystemExit):
+                export_module.main()
+            mock_module.fail_json.assert_called_once()
+        finally:
+            export_module.HAS_PURESTORAGE = original_has

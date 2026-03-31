@@ -22,7 +22,7 @@ short_description: Manage replication connections between two FlashArrays
 description:
 - Manage array connections to specified target array
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

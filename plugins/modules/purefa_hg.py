@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_hg
 version_added: '1.0.0'
-short_description: Manage hostgroups on Pure Storage FlashArrays
+short_description: Manage hostgroups on Everpure FlashArrays
 description:
-- Create, delete or modify hostgroups on Pure Storage FlashArrays.
+- Create, delete or modify hostgroups on Everpure FlashArrays.
 author:
-- Pure Storage ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:

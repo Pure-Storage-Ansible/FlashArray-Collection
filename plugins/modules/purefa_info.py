@@ -18,15 +18,15 @@ DOCUMENTATION = r"""
 ---
 module: purefa_info
 version_added: '1.0.0'
-short_description: Collect information from Pure Storage FlashArray
+short_description: Collect information from Everpure FlashArray
 description:
-  - Collect information from a Pure Storage Flasharray running the
+  - Collect information from a Everpure Flasharray running the
     Purity//FA operating system. By default, the module will collect basic
     information including hosts, host groups, protection
     groups and volume counts. Additional information can be collected
     based on the configured set of arguments.
 author:
-  - Pure Storage ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+  - Everpure ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   gather_subset:
     description:
@@ -878,18 +878,26 @@ def generate_admin_dict(array):
     for admin in admins:
         admin_name = admin.name
         admin_info[admin_name] = {
-            "type": ("remote", "local")[admin.is_local],
+            "public_key": admin.public_key,
+            "local": admin.is_local,
+            "role": admin.role.name,
             "locked": admin.locked,
-            "role": getattr(admin.role, "name", None),
-            "management_access_policy": None,
+            "lockout_remaining": getattr(admin, "lockout_remaining", None),
         }
-        if admin.is_local and LooseVersion(array.get_rest_version()) >= LooseVersion(
-            DSROLE_POLICY_API_VERSION
-        ):
-            if hasattr(admin, "management_access_policies"):
-                admin_info[admin_name]["management_access_policy"] = getattr(
-                    admin.management_access_policies[0], "name", None
-                )
+        if hasattr(admin.api_token, "expires_at"):
+            if admin.api_token.expires_at:
+                admin_info[admin_name]["token_expires"] = datetime.fromtimestamp(
+                    admin.api_token.expires_at / 1000
+                ).strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            admin_info[admin_name]["token_expires"] = None
+        if hasattr(admin.api_token, "created_at"):
+            if admin.api_token.created_at:
+                admin_info[admin_name]["token_created"] = datetime.fromtimestamp(
+                    admin.api_token.created_at / 1000
+                ).strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            admin_info[admin_name]["token_created"] = None
     return admin_info
 
 

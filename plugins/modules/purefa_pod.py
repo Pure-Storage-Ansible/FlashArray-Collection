@@ -17,12 +17,12 @@ ANSIBLE_METADATA = {
 DOCUMENTATION = r"""
 ---
 module: purefa_pod
-short_description:  Manage AC pods in Pure Storage FlashArrays
+short_description:  Manage AC pods in Everpure FlashArrays
 version_added: '1.0.0'
 description:
-- Manage AC pods in a Pure Storage FlashArray.
+- Manage AC pods in a Everpure FlashArray.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   name:
     description:
@@ -272,7 +272,7 @@ def get_pod(module, array):
 
 
 def get_undo_pod(module, array):
-    """Return Undo Pod or None"""
+    """Return list of Undo Pods or None if none exist"""
     res = get_with_context(
         array,
         "get_pods",
@@ -281,7 +281,8 @@ def get_undo_pod(module, array):
         names=[module.params["name"] + ".undo-demote.*"],
     )
     if res.status_code == 200:
-        return list(res.items)
+        pods = list(res.items)
+        return pods if pods else None
     return None
 
 
@@ -676,21 +677,36 @@ def update_pod(module, array):
                 )
             )
         else:
-            changed = True
-            if not module.check_mode:
-                if (
-                    current_config.promotion_status == "demoted"
-                    and module.params["promote"]
-                ):
+            # Check if pod is quiescing - cannot promote/demote during transition
+            if current_config.promotion_status == "quiescing":
+                module.fail_json(
+                    msg="Cannot promote pod {0} as it is still quiesing".format(
+                        module.params["name"]
+                    )
+                )
+            # Check if pod is already in desired state (idempotency)
+            if (
+                module.params["promote"]
+                and current_config.promotion_status == "promoted"
+            ):
+                # Already promoted, nothing to do
+                pass
+            elif (
+                not module.params["promote"]
+                and current_config.promotion_status == "demoted"
+            ):
+                # Already demoted, nothing to do
+                pass
+            elif (
+                current_config.promotion_status == "demoted"
+                and module.params["promote"]
+            ):
+                # Promote a demoted pod
+                changed = True
+                if not module.check_mode:
                     if module.params["undo"] is None:
                         module.params["undo"] = True
-                    if current_config.promotion_status == "quiescing":
-                        module.fail_json(
-                            msg="Cannot promote pod {0} as it is still quiesing".format(
-                                module.params["name"]
-                            )
-                        )
-                    elif module.params["undo"]:
+                    if module.params["undo"]:
                         undo_pod = get_undo_pod(module, array)
                         if undo_pod:
                             if len(undo_pod) == 1:
@@ -716,7 +732,14 @@ def update_pod(module, array):
                                 module.warn(
                                     f"undo-demote pod(s) remaining for {module.params['name']}. Consider eradicating."
                                 )
+                            check_response(
+                                res,
+                                module,
+                                f"Failed to promote pod {module.params['name']}",
+                            )
                         else:
+                            # No undo-demote pod found, but undo=True was requested
+                            # Cannot promote without undo-demote pod when undo=True
                             changed = False
                             module.warn(
                                 f"undo-demote pod(s) missing for {module.params['name']}. Check use of `undo` parameter."
@@ -730,17 +753,22 @@ def update_pod(module, array):
                             names=[module.params["name"]],
                             pod=PodPatch(requested_promotion_state="promoted"),
                         )
-                    check_response(
-                        res, module, f"Failed to promote pod {module.params['name']}"
-                    )
-                elif (
-                    current_config.promotion_status != "demoted"
-                    and not module.params["promote"]
-                ):
-                    if get_undo_pod(module, array):
-                        module.fail_json(
-                            msg=f"Cannot demote pod {module.params['name']} due to associated undo-demote pod not being eradicated"
+                        check_response(
+                            res,
+                            module,
+                            f"Failed to promote pod {module.params['name']}",
                         )
+            elif (
+                current_config.promotion_status != "demoted"
+                and not module.params["promote"]
+            ):
+                # Demote a promoted pod
+                if get_undo_pod(module, array):
+                    module.fail_json(
+                        msg=f"Cannot demote pod {module.params['name']} due to associated undo-demote pod not being eradicated"
+                    )
+                changed = True
+                if not module.check_mode:
                     if module.params["quiesce"] is None:
                         module.params["quiesce"] = True
                     if current_config["link_target_count"] == 0:
@@ -1066,20 +1094,18 @@ def main():
     if module.params["failover"] or module.params["failover"] != "auto":
         check_arrays(module, array)
 
-    if state == "present" and not pod:
+    if state == "present" and destroyed:
+        recover_pod(module, array)
+    elif state == "present" and not pod:
         create_pod(module, array)
     elif pod and module.params["stretch"]:
         stretch_pod(module, array)
-    elif state == "present" and pod and module.params["target"]:
-        clone_pod(module, array)
     elif state == "present" and pod and module.params["target"]:
         clone_pod(module, array)
     elif state == "present" and pod:
         update_pod(module, array)
     elif state == "absent" and pod and not module.params["stretch"]:
         delete_pod(module, array)
-    elif state == "present" and destroyed:
-        recover_pod(module, array)
     elif state == "absent" and destroyed:
         eradicate_pod(module, array)
     elif state == "absent" and not pod:

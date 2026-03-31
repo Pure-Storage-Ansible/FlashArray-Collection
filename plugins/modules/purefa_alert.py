@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_alert
 version_added: '1.0.0'
-short_description: Configure Pure Storage FlashArray alert email settings
+short_description: Configure Everpure FlashArray alert email settings
 description:
-- Configure alert email configuration for Pure Storage FlashArrays.
+- Configure alert email configuration for Everpure FlashArrays.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     type: str

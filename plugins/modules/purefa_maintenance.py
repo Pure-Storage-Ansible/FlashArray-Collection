@@ -18,11 +18,11 @@ DOCUMENTATION = r"""
 ---
 module: purefa_maintenance
 version_added: '1.7.0'
-short_description: Configure Pure Storage FlashArray Maintenance Windows
+short_description: Configure Everpure FlashArray Maintenance Windows
 description:
-- Configuration for Pure Storage FlashArray Maintenance Windows.
+- Configuration for Everpure FlashArray Maintenance Windows.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

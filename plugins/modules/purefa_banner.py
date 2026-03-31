@@ -18,13 +18,13 @@ DOCUMENTATION = r"""
 ---
 module: purefa_banner
 version_added: '1.0.0'
-short_description: Configure Pure Storage FlashArray GUI and SSH MOTD message
+short_description: Configure Everpure FlashArray GUI and SSH MOTD message
 description:
-- Configure MOTD for Pure Storage FlashArrays.
+- Configure MOTD for Everpure FlashArrays.
 - This will be shown during an SSH or GUI login to the array.
 - Multiple line messages can be achieved using \\n.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:

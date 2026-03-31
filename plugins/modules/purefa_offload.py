@@ -23,7 +23,7 @@ description:
 - Create, modify and delete NFS, S3, Azure or GCP offload targets.
 - You must have a correctly configured offload app installed and a correctly configured offload network for offload to work.
 author:
-- Pure Storage Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
+- Everpure Ansible Team (@sdodsley) <pure-ansible-team@purestorage.com>
 options:
   state:
     description:
@@ -376,22 +376,42 @@ def main():
         )
     )
 
-    required_if = []
-
-    if argument_spec["state"] == "present":
-        required_if = [
-            ("protocol", "nfs", ["address", "share"]),
-            ("protocol", "s3", ["access_key", "secret", "bucket"]),
-            ["protocol", "gcp", ["access_key", "secret", "bucket"]],
-            ("protocol", "azure", ["account", "secret"]),
-        ]
-
-    module = AnsibleModule(
-        argument_spec, required_if=required_if, supports_check_mode=True
-    )
+    module = AnsibleModule(argument_spec, supports_check_mode=True)
 
     if not HAS_PURESTORAGE:
         module.fail_json(msg="py-pure-client sdk is required for this module")
+
+    # Validate required parameters based on state and protocol
+    if module.params["state"] == "present":
+        protocol = module.params["protocol"]
+        if protocol == "nfs" and not (
+            module.params["address"] and module.params["share"]
+        ):
+            module.fail_json(
+                msg="address and share are required when protocol=nfs and state=present"
+            )
+        elif protocol == "s3" and not (
+            module.params["access_key"]
+            and module.params["secret"]
+            and module.params["bucket"]
+        ):
+            module.fail_json(
+                msg="access_key, secret, and bucket are required when protocol=s3 and state=present"
+            )
+        elif protocol == "gcp" and not (
+            module.params["access_key"]
+            and module.params["secret"]
+            and module.params["bucket"]
+        ):
+            module.fail_json(
+                msg="access_key, secret, and bucket are required when protocol=gcp and state=present"
+            )
+        elif protocol == "azure" and not (
+            module.params["account"] and module.params["secret"]
+        ):
+            module.fail_json(
+                msg="account and secret are required when protocol=azure and state=present"
+            )
 
     array = get_array(module)
     api_version = array.get_rest_version()
