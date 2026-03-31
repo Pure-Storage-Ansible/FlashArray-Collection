@@ -15,18 +15,8 @@ from packaging.version import Version as LooseVersion
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -63,7 +53,9 @@ from plugins.modules.purefa_pod import (
 class TestGetPod:
     """Test cases for get_pod function"""
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_get_pod_exists(self, mock_get_with_context):
         """Test get_pod returns True when pod exists"""
         mock_module = Mock()
@@ -75,7 +67,9 @@ class TestGetPod:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_get_pod_not_exists(self, mock_get_with_context):
         """Test get_pod returns False when pod doesn't exist"""
         mock_module = Mock()
@@ -91,7 +85,9 @@ class TestGetPod:
 class TestGetUndoPod:
     """Test cases for get_undo_pod function"""
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_get_undo_pod_exists(self, mock_get_with_context):
         """Test get_undo_pod returns list when undo pods exist"""
         mock_module = Mock()
@@ -107,7 +103,9 @@ class TestGetUndoPod:
 
         assert result == [mock_undo_pod]
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_get_undo_pod_not_exists(self, mock_get_with_context):
         """Test get_undo_pod returns None when no undo pods exist"""
         mock_module = Mock()
@@ -123,7 +121,9 @@ class TestGetUndoPod:
 class TestGetTarget:
     """Test cases for get_target function"""
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_get_target_exists(self, mock_get_with_context):
         """Test get_target returns True when target exists"""
         mock_module = Mock()
@@ -139,7 +139,9 @@ class TestGetTarget:
 class TestGetDestroyedPod:
     """Test cases for get_destroyed_pod function"""
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_get_destroyed_pod_exists(self, mock_get_with_context):
         """Test get_destroyed_pod returns True when destroyed pod exists"""
         mock_module = Mock()
@@ -155,7 +157,9 @@ class TestGetDestroyedPod:
 class TestGetDestroyedTarget:
     """Test cases for get_destroyed_target function"""
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_get_destroyed_target_exists(self, mock_get_with_context):
         """Test get_destroyed_target returns True when destroyed target exists"""
         mock_module = Mock()
@@ -171,8 +175,12 @@ class TestGetDestroyedTarget:
 class TestCreatePod:
     """Test cases for create_pod function"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.LooseVersion"
+    )
     def test_create_pod_check_mode(self, mock_loose_version, mock_check_response):
         """Test create_pod in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -190,8 +198,12 @@ class TestCreatePod:
 class TestDeletePod:
     """Test cases for delete_pod function"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.LooseVersion"
+    )
     def test_delete_pod_check_mode(self, mock_loose_version, mock_check_response):
         """Test delete_pod in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -209,8 +221,12 @@ class TestDeletePod:
 class TestEradicatePod:
     """Test cases for eradicate_pod function"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.LooseVersion"
+    )
     def test_eradicate_pod_check_mode(self, mock_loose_version, mock_check_response):
         """Test eradicate_pod in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -228,8 +244,12 @@ class TestEradicatePod:
 class TestRecoverPod:
     """Test cases for recover_pod function"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.LooseVersion"
+    )
     def test_recover_pod_check_mode(self, mock_loose_version, mock_check_response):
         """Test recover_pod in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -247,7 +267,9 @@ class TestRecoverPod:
 class TestCheckArrays:
     """Test cases for check_arrays function"""
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_check_arrays_no_stretch_no_failover(self, mock_get_with_context):
         """Test check_arrays returns None when no stretch/failover specified"""
         mock_module = Mock()
@@ -266,7 +288,9 @@ class TestCheckArrays:
 
         assert result is None
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_check_arrays_failover_auto(self, mock_get_with_context):
         """Test check_arrays with failover set to auto"""
         mock_module = Mock()
@@ -283,7 +307,9 @@ class TestCheckArrays:
 
         assert result is None
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_check_arrays_failover_valid_array(self, mock_get_with_context):
         """Test check_arrays with valid failover array"""
         mock_module = Mock()
@@ -307,7 +333,9 @@ class TestCheckArrays:
 
         assert result is None
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_check_arrays_failover_invalid_array(self, mock_get_with_context):
         """Test check_arrays fails with invalid failover array"""
         mock_module = Mock()
@@ -329,7 +357,9 @@ class TestCheckArrays:
         mock_module.fail_json.assert_called_once()
         assert "invalid-array" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_check_arrays_stretch_valid_array(self, mock_get_with_context):
         """Test check_arrays with valid stretch array"""
         mock_module = Mock()
@@ -353,7 +383,9 @@ class TestCheckArrays:
 
         assert result is None
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_check_arrays_stretch_invalid_array(self, mock_get_with_context):
         """Test check_arrays fails with invalid stretch array"""
         mock_module = Mock()
@@ -379,8 +411,12 @@ class TestCheckArrays:
 class TestClonePod:
     """Test cases for clone_pod function"""
 
-    @patch("plugins.modules.purefa_pod.get_destroyed_target")
-    @patch("plugins.modules.purefa_pod.get_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_destroyed_target"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_target"
+    )
     def test_clone_pod_target_already_exists(
         self, mock_get_target, mock_get_destroyed_target
     ):
@@ -395,8 +431,12 @@ class TestClonePod:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_pod.get_destroyed_target")
-    @patch("plugins.modules.purefa_pod.get_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_destroyed_target"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_target"
+    )
     def test_clone_pod_destroyed_target_exists(
         self, mock_get_target, mock_get_destroyed_target
     ):
@@ -417,7 +457,9 @@ class TestClonePod:
 class TestUpdatePod:
     """Test cases for update_pod function"""
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_update_pod_no_changes(self, mock_get_with_context):
         """Test update_pod when no changes are needed"""
         mock_module = Mock()
@@ -448,7 +490,9 @@ class TestUpdatePod:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_update_pod_check_mode_failover_change(self, mock_get_with_context):
         """Test update_pod in check mode when failover preference changes"""
         mock_module = Mock()
@@ -483,7 +527,9 @@ class TestUpdatePod:
 class TestStretchPod:
     """Test cases for stretch_pod function"""
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_stretch_pod_check_mode(self, mock_get_with_context):
         """Test stretch_pod in check mode"""
         mock_module = Mock()
@@ -507,7 +553,9 @@ class TestStretchPod:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_stretch_pod_no_change_already_stretched(self, mock_get_with_context):
         """Test stretch_pod when pod is already stretched to target"""
         mock_module = Mock()
@@ -535,8 +583,12 @@ class TestStretchPod:
 class TestCreatePodSuccess:
     """Additional test cases for create_pod function"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.LooseVersion"
+    )
     def test_create_pod_fail_with_target(self, mock_loose_version, mock_check_response):
         """Test create_pod fails when target is specified"""
         import pytest
@@ -567,8 +619,12 @@ class TestCreatePodSuccess:
 class TestDeletePodSuccess:
     """Additional test cases for delete_pod function"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.LooseVersion"
+    )
     def test_delete_pod_success(self, mock_loose_version, mock_check_response):
         """Test delete_pod successfully deletes a pod"""
         mock_loose_version.side_effect = LooseVersion
@@ -593,8 +649,12 @@ class TestDeletePodSuccess:
 class TestRecoverPodSuccess:
     """Additional test cases for recover_pod function"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.LooseVersion"
+    )
     def test_recover_pod_success(self, mock_loose_version, mock_check_response):
         """Test recover_pod successfully recovers a pod"""
         mock_loose_version.side_effect = LooseVersion
@@ -617,8 +677,12 @@ class TestRecoverPodSuccess:
 class TestEradicatePodSuccess:
     """Additional test cases for eradicate_pod function"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.LooseVersion"
+    )
     def test_eradicate_pod_success(self, mock_loose_version, mock_check_response):
         """Test eradicate_pod successfully eradicates a pod"""
         mock_loose_version.side_effect = LooseVersion
@@ -643,8 +707,12 @@ class TestEradicatePodSuccess:
 class TestCreatePodSuccess:
     """Test cases for create_pod function success scenarios"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.post_with_throttle_and_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.post_with_throttle_and_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_create_pod_basic(self, mock_lv, mock_post, mock_check_response):
         """Test creating a basic pod without options"""
@@ -673,8 +741,12 @@ class TestCreatePodSuccess:
         mock_post.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.post_with_throttle_and_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.post_with_throttle_and_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_create_pod_with_failover(self, mock_lv, mock_post, mock_check_response):
         """Test creating a pod with failover preferences"""
@@ -707,8 +779,12 @@ class TestCreatePodSuccess:
 class TestClonePodSuccess:
     """Test cases for clone_pod function success scenarios"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.post_with_throttle_and_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.post_with_throttle_and_context"
+    )
     def test_clone_pod_basic(self, mock_post, mock_check_response):
         """Test cloning a pod"""
         mock_module = Mock()
@@ -732,9 +808,15 @@ class TestClonePodSuccess:
 class TestStretchPodSuccess:
     """Test cases for stretch_pod function success scenarios"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.post_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_stretch_pod_success(
         self,
@@ -766,9 +848,15 @@ class TestStretchPodSuccess:
         mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.delete_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_unstretch_pod_success(
         self,
@@ -800,7 +888,9 @@ class TestStretchPodSuccess:
         mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_unstretch_pod_no_change(self, mock_get_with_context):
         """Test unstretch when pod is not stretched to target"""
         mock_module = Mock()
@@ -823,8 +913,12 @@ class TestStretchPodSuccess:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_stretch_pod_old_api(
         self,
@@ -855,8 +949,12 @@ class TestStretchPodSuccess:
         mock_array.post_pods_arrays.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_unstretch_pod_old_api(
         self,
@@ -891,9 +989,15 @@ class TestStretchPodSuccess:
 class TestUpdatePodSuccess:
     """Test cases for update_pod function success scenarios"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_update_pod_change_failover(
         self,
@@ -932,9 +1036,15 @@ class TestUpdatePodSuccess:
         mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_update_pod_clear_failover_auto(
         self,
@@ -973,7 +1083,9 @@ class TestUpdatePodSuccess:
         mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_update_pod_no_changes(self, mock_get_with_context):
         """Test update_pod when no changes needed"""
         mock_module = Mock()
@@ -1007,8 +1119,12 @@ class TestUpdatePodSuccess:
 class TestClonePodEdgeCases:
     """Test cases for clone_pod edge cases"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.post_with_throttle_and_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.post_with_throttle_and_context"
+    )
     def test_clone_pod_success(self, mock_post, mock_check_response):
         """Test clone_pod successfully clones"""
         mock_module = Mock()
@@ -1029,7 +1145,9 @@ class TestClonePodEdgeCases:
         mock_post.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.get_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_target"
+    )
     def test_clone_pod_target_already_exists(self, mock_get_target):
         """Test clone_pod when target already exists"""
         mock_get_target.return_value = True  # Target pod exists
@@ -1053,8 +1171,12 @@ class TestClonePodEdgeCases:
 class TestRecoverPodSuccess:
     """Test cases for recover_pod success paths"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
     def test_recover_pod_success(self, mock_patch_with_context, mock_check_response):
         """Test recover_pod successfully recovers"""
         mock_module = Mock()
@@ -1084,8 +1206,12 @@ class TestRecoverPodSuccess:
 class TestEradicatePodSuccess:
     """Test cases for eradicate_pod success paths"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.delete_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.delete_with_context"
+    )
     def test_eradicate_pod_success(self, mock_delete_with_context, mock_check_response):
         """Test eradicate_pod successfully eradicates"""
         mock_module = Mock()
@@ -1121,8 +1247,12 @@ class TestEradicatePodSuccess:
         mock_array.delete_pods.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.delete_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.delete_with_context"
+    )
     def test_eradicate_pod_with_delete_contents(
         self, mock_delete_with_context, mock_check_response
     ):
@@ -1143,8 +1273,12 @@ class TestEradicatePodSuccess:
         mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.delete_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.delete_with_context"
+    )
     def test_eradicate_pod_older_api_version(
         self, mock_delete_with_context, mock_check_response
     ):
@@ -1169,7 +1303,9 @@ class TestEradicatePodSuccess:
 class TestUpdatePodPromotion:
     """Test cases for update_pod promotion scenarios"""
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_update_pod_promote_fails_when_stretched(self, mock_get_with_context):
         """Test update_pod promotion fails when pod is stretched"""
         mock_module = Mock()
@@ -1200,8 +1336,12 @@ class TestUpdatePodPromotion:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_update_pod_change_mediator(
         self, mock_get_with_context, mock_patch_with_context
     ):
@@ -1235,8 +1375,12 @@ class TestUpdatePodPromotion:
         mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_update_pod_mediator_change_fails(
         self, mock_get_with_context, mock_patch_with_context
     ):
@@ -1277,10 +1421,18 @@ class TestUpdatePodPromotion:
 class TestUpdatePodPromoteDemote:
     """Test cases for update_pod promote/demote paths"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_promote_demoted_pod_with_single_undo(
         self,
@@ -1322,10 +1474,18 @@ class TestUpdatePodPromoteDemote:
         mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_promote_demoted_pod_with_multiple_undo(
         self,
@@ -1370,8 +1530,12 @@ class TestUpdatePodPromoteDemote:
         mock_module.warn.assert_called_once()  # Warning about remaining undo pods
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_promote_demoted_pod_missing_undo(
         self,
@@ -1408,9 +1572,15 @@ class TestUpdatePodPromoteDemote:
         mock_module.warn.assert_called_once()  # Warning about missing undo pod
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_promote_demoted_pod_without_undo(
         self,
@@ -1448,8 +1618,12 @@ class TestUpdatePodPromoteDemote:
         mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_demote_fails_with_existing_undo_pod(
         self,
@@ -1492,10 +1666,18 @@ class TestUpdatePodPromoteDemote:
         mock_module.fail_json.assert_called_once()
         assert "undo-demote" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_demote_pod_no_link_targets(
         self,
@@ -1538,10 +1720,18 @@ class TestUpdatePodPromoteDemote:
         mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_demote_pod_with_quiesce(
         self,
@@ -1584,10 +1774,18 @@ class TestUpdatePodPromoteDemote:
         mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_demote_pod_skip_quiesce(
         self,
@@ -1634,10 +1832,18 @@ class TestUpdatePodPromoteDemote:
 class TestUpdatePodQuota:
     """Test cases for update_pod quota path"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
-    @patch("plugins.modules.purefa_pod.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.human_to_bytes"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_update_pod_quota_changed(
         self,
@@ -1677,8 +1883,12 @@ class TestUpdatePodQuota:
         mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
-    @patch("plugins.modules.purefa_pod.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.human_to_bytes"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_update_pod_quota_unchanged(
         self,
@@ -1718,8 +1928,12 @@ class TestUpdatePodQuota:
 class TestDeletePodSuccess:
     """Test cases for delete_pod success scenarios"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
     def test_delete_pod_success(self, mock_patch_with_context, mock_check_response):
         """Test delete_pod successfully deletes"""
         mock_module = Mock()
@@ -1755,8 +1969,12 @@ class TestDeletePodSuccess:
         mock_array.patch_pods.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
     def test_delete_pod_older_api(self, mock_patch_with_context, mock_check_response):
         """Test delete_pod with older API version"""
         mock_module = Mock()
@@ -1775,9 +1993,15 @@ class TestDeletePodSuccess:
         mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.delete_with_context")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
     def test_delete_pod_with_eradicate(
         self, mock_patch_with_context, mock_delete_with_context, mock_check_response
     ):
@@ -1804,7 +2028,9 @@ class TestDeletePodSuccess:
 class TestGetUndoPod:
     """Test cases for get_undo_pod function"""
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_get_undo_pod_found(self, mock_get_with_context):
         """Test get_undo_pod returns pods when found"""
         mock_module = Mock()
@@ -1818,7 +2044,9 @@ class TestGetUndoPod:
 
         assert result == [mock_pod]
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_get_undo_pod_empty_list_returns_none(self, mock_get_with_context):
         """Test get_undo_pod returns None when API returns empty list"""
         mock_module = Mock()
@@ -1831,7 +2059,9 @@ class TestGetUndoPod:
 
         assert result is None
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     def test_get_undo_pod_not_found(self, mock_get_with_context):
         """Test get_undo_pod returns None when not found"""
         mock_module = Mock()
@@ -1847,7 +2077,9 @@ class TestGetUndoPod:
 class TestUpdatePodIdempotency:
     """Test cases for update_pod idempotency with promote/demote"""
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_promote_already_promoted_pod_is_idempotent(
         self, mock_lv, mock_get_with_context
@@ -1880,7 +2112,9 @@ class TestUpdatePodIdempotency:
         # Should exit without changes since already promoted
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_demote_already_demoted_pod_is_idempotent(
         self, mock_lv, mock_get_with_context
@@ -1917,9 +2151,15 @@ class TestUpdatePodIdempotency:
 class TestPromoteDemotePod:
     """Test promote/demote pod logic with quiesce options"""
 
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_promote_demoted_pod_with_undo(
         self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
@@ -1958,9 +2198,15 @@ class TestPromoteDemotePod:
         mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_promote_demoted_pod_multiple_undo_pods(
         self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
@@ -2002,9 +2248,15 @@ class TestPromoteDemotePod:
         mock_module.warn.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_promote_no_undo_pod_but_undo_true(
         self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
@@ -2041,9 +2293,15 @@ class TestPromoteDemotePod:
         # Changed should be False since we can't promote without undo pods
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_promote_without_undo(
         self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
@@ -2079,9 +2337,15 @@ class TestPromoteDemotePod:
         mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_demote_promoted_pod_has_undo_pods_fails(
         self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_check_response
@@ -2126,9 +2390,15 @@ class TestPromoteDemotePod:
             mock_module.fail_json.call_args
         )
 
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_demote_pod_with_skip_quiesce(
         self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
@@ -2168,9 +2438,15 @@ class TestPromoteDemotePod:
         assert call_args[1].get("skip_quiesce") is True
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_demote_pod_with_quiesce(
         self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
@@ -2210,9 +2486,15 @@ class TestPromoteDemotePod:
         assert call_args[1].get("quiesce") is True
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_undo_pod")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_undo_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_demote_pod_no_link_targets(
         self, mock_lv, mock_get_with_context, mock_get_undo_pod, mock_patch_with_context
@@ -2249,8 +2531,12 @@ class TestPromoteDemotePod:
         mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_promote_quiescing_pod_fails(
         self, mock_lv, mock_get_with_context, mock_check_response
@@ -2292,10 +2578,18 @@ class TestPromoteDemotePod:
 class TestDefaultProtection:
     """Test default protection group logic"""
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.post_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_update_default_protection_group(
         self,
@@ -2355,9 +2649,15 @@ class TestDefaultProtection:
         mock_post_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pod.check_response")
-    @patch("plugins.modules.purefa_pod.patch_with_context")
-    @patch("plugins.modules.purefa_pod.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_with_context"
+    )
     @patch("plugins.modules.purefa_pod.LooseVersion", side_effect=LooseVersion)
     def test_default_protection_no_change(
         self,
@@ -2415,11 +2715,21 @@ class TestMain:
     """Test main function branches"""
 
     @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
-    @patch("plugins.modules.purefa_pod.get_array")
-    @patch("plugins.modules.purefa_pod.get_pod")
-    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
-    @patch("plugins.modules.purefa_pod.check_arrays")
-    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_destroyed_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_arrays"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.AnsibleModule"
+    )
     def test_main_present_pod_not_exists_creates_pod(
         self,
         mock_ansible,
@@ -2429,7 +2739,10 @@ class TestMain:
         mock_get_array,
     ):
         """Test main creates pod when state=present and pod doesn't exist"""
-        from plugins.modules.purefa_pod import main, create_pod
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod import (
+            main,
+            create_pod,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -2451,11 +2764,21 @@ class TestMain:
             mock_create.assert_called_once()
 
     @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
-    @patch("plugins.modules.purefa_pod.get_array")
-    @patch("plugins.modules.purefa_pod.get_pod")
-    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
-    @patch("plugins.modules.purefa_pod.check_arrays")
-    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_destroyed_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_arrays"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.AnsibleModule"
+    )
     def test_main_absent_pod_not_exists_no_change(
         self,
         mock_ansible,
@@ -2465,7 +2788,9 @@ class TestMain:
         mock_get_array,
     ):
         """Test main exits unchanged when state=absent and pod doesn't exist"""
-        from plugins.modules.purefa_pod import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -2487,11 +2812,21 @@ class TestMain:
         mock_module.exit_json.assert_called_once_with(changed=False)
 
     @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
-    @patch("plugins.modules.purefa_pod.get_array")
-    @patch("plugins.modules.purefa_pod.get_pod")
-    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
-    @patch("plugins.modules.purefa_pod.check_arrays")
-    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_destroyed_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_arrays"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.AnsibleModule"
+    )
     def test_main_present_destroyed_recovers_pod(
         self,
         mock_ansible,
@@ -2501,7 +2836,9 @@ class TestMain:
         mock_get_array,
     ):
         """Test main recovers pod when state=present and pod is destroyed"""
-        from plugins.modules.purefa_pod import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -2523,11 +2860,21 @@ class TestMain:
             mock_recover.assert_called_once()
 
     @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
-    @patch("plugins.modules.purefa_pod.get_array")
-    @patch("plugins.modules.purefa_pod.get_pod")
-    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
-    @patch("plugins.modules.purefa_pod.check_arrays")
-    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_destroyed_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_arrays"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.AnsibleModule"
+    )
     def test_main_absent_destroyed_eradicates_pod(
         self,
         mock_ansible,
@@ -2537,7 +2884,9 @@ class TestMain:
         mock_get_array,
     ):
         """Test main eradicates pod when state=absent and pod is destroyed"""
-        from plugins.modules.purefa_pod import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -2559,11 +2908,21 @@ class TestMain:
             mock_eradicate.assert_called_once()
 
     @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
-    @patch("plugins.modules.purefa_pod.get_array")
-    @patch("plugins.modules.purefa_pod.get_pod")
-    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
-    @patch("plugins.modules.purefa_pod.check_arrays")
-    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_destroyed_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_arrays"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.AnsibleModule"
+    )
     def test_main_present_with_stretch_calls_stretch_pod(
         self,
         mock_ansible,
@@ -2573,7 +2932,9 @@ class TestMain:
         mock_get_array,
     ):
         """Test main calls stretch_pod when pod exists with stretch parameter"""
-        from plugins.modules.purefa_pod import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -2595,11 +2956,21 @@ class TestMain:
             mock_stretch.assert_called_once()
 
     @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
-    @patch("plugins.modules.purefa_pod.get_array")
-    @patch("plugins.modules.purefa_pod.get_pod")
-    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
-    @patch("plugins.modules.purefa_pod.check_arrays")
-    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_destroyed_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_arrays"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.AnsibleModule"
+    )
     def test_main_present_with_target_calls_clone_pod(
         self,
         mock_ansible,
@@ -2609,7 +2980,9 @@ class TestMain:
         mock_get_array,
     ):
         """Test main calls clone_pod when pod exists with target parameter"""
-        from plugins.modules.purefa_pod import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -2631,11 +3004,21 @@ class TestMain:
             mock_clone.assert_called_once()
 
     @patch("plugins.modules.purefa_pod.HAS_PURESTORAGE", True)
-    @patch("plugins.modules.purefa_pod.get_array")
-    @patch("plugins.modules.purefa_pod.get_pod")
-    @patch("plugins.modules.purefa_pod.get_destroyed_pod")
-    @patch("plugins.modules.purefa_pod.check_arrays")
-    @patch("plugins.modules.purefa_pod.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.get_destroyed_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.check_arrays"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod.AnsibleModule"
+    )
     def test_main_absent_pod_exists_deletes_pod(
         self,
         mock_ansible,
@@ -2645,7 +3028,9 @@ class TestMain:
         mock_get_array,
     ):
         """Test main deletes pod when state=absent and pod exists"""
-        from plugins.modules.purefa_pod import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pod import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {

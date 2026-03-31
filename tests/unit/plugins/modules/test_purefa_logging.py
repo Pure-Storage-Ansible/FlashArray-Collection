@@ -16,18 +16,8 @@ import pytest
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -51,14 +41,20 @@ sys.modules[
 ] = mock_version_module
 
 # Import after mocking
-from plugins.modules.purefa_logging import main
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging import (
+    main,
+)
 
 
 class TestLoggingOldApiVersion:
     """Test cases for unsupported API version"""
 
-    @patch("plugins.modules.purefa_logging.get_array")
-    @patch("plugins.modules.purefa_logging.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.AnsibleModule"
+    )
     def test_old_api_version_fails(self, mock_ansible_module, mock_get_array):
         """Test that old API version fails with appropriate message"""
         mock_module = Mock()
@@ -84,8 +80,12 @@ class TestLoggingOldApiVersion:
 class TestLoggingCheckMode:
     """Test cases for check mode"""
 
-    @patch("plugins.modules.purefa_logging.get_array")
-    @patch("plugins.modules.purefa_logging.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.AnsibleModule"
+    )
     def test_audit_check_mode(self, mock_ansible_module, mock_get_array):
         """Test audit log check mode returns changed=True with empty list"""
         mock_module = Mock()
@@ -104,8 +104,12 @@ class TestLoggingCheckMode:
 
         mock_module.exit_json.assert_called_once_with(changed=True, audits=[])
 
-    @patch("plugins.modules.purefa_logging.get_array")
-    @patch("plugins.modules.purefa_logging.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.AnsibleModule"
+    )
     def test_session_check_mode(self, mock_ansible_module, mock_get_array):
         """Test session log check mode returns changed=True with empty list"""
         mock_module = Mock()
@@ -128,9 +132,15 @@ class TestLoggingCheckMode:
 class TestLoggingAuditRetrieval:
     """Test cases for audit log retrieval"""
 
-    @patch("plugins.modules.purefa_logging.time")
-    @patch("plugins.modules.purefa_logging.get_array")
-    @patch("plugins.modules.purefa_logging.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.time"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.AnsibleModule"
+    )
     def test_audit_log_retrieval_success(
         self, mock_ansible_module, mock_get_array, mock_time
     ):
@@ -177,9 +187,15 @@ class TestLoggingAuditRetrieval:
         assert audits[0]["user"] == "admin"
         assert audits[0]["origin"] == "cli"
 
-    @patch("plugins.modules.purefa_logging.time")
-    @patch("plugins.modules.purefa_logging.get_array")
-    @patch("plugins.modules.purefa_logging.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.time"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.AnsibleModule"
+    )
     def test_audit_log_with_none_time(
         self, mock_ansible_module, mock_get_array, mock_time
     ):
@@ -223,9 +239,15 @@ class TestLoggingAuditRetrieval:
 class TestLoggingSessionRetrieval:
     """Test cases for session log retrieval"""
 
-    @patch("plugins.modules.purefa_logging.time")
-    @patch("plugins.modules.purefa_logging.get_array")
-    @patch("plugins.modules.purefa_logging.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.time"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.AnsibleModule"
+    )
     def test_session_log_retrieval_success(
         self, mock_ansible_module, mock_get_array, mock_time
     ):
@@ -271,9 +293,15 @@ class TestLoggingSessionRetrieval:
         assert sessions[0]["event"] == "login"
         assert sessions[0]["location"] == "192.168.1.1"
 
-    @patch("plugins.modules.purefa_logging.time")
-    @patch("plugins.modules.purefa_logging.get_array")
-    @patch("plugins.modules.purefa_logging.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.time"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.AnsibleModule"
+    )
     def test_session_log_with_none_times(
         self, mock_ansible_module, mock_get_array, mock_time
     ):
@@ -313,9 +341,15 @@ class TestLoggingSessionRetrieval:
         assert sessions[0]["start_time"] is None
         assert sessions[0]["end_time"] is None
 
-    @patch("plugins.modules.purefa_logging.time")
-    @patch("plugins.modules.purefa_logging.get_array")
-    @patch("plugins.modules.purefa_logging.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.time"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_logging.AnsibleModule"
+    )
     def test_session_log_with_only_start_time(
         self, mock_ansible_module, mock_get_array, mock_time
     ):

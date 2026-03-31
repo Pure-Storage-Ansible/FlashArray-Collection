@@ -14,9 +14,6 @@ from unittest.mock import Mock, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
 # Mock netaddr module
@@ -29,13 +26,6 @@ mock_ip_network.__contains__ = MagicMock(return_value=True)
 mock_netaddr.IPNetwork = MagicMock(return_value=mock_ip_network)
 mock_netaddr.IPAddress = MagicMock()
 sys.modules["netaddr"] = mock_netaddr
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -83,7 +73,9 @@ class TestDeleteInterface:
 class TestUpdateFcInterface:
     """Test cases for update_fc_interface function"""
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_fc_interface_enable_check_mode(self, mock_check_response):
         """Test enabling FC interface in check mode"""
         mock_module = Mock()
@@ -100,7 +92,9 @@ class TestUpdateFcInterface:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_fc_interface_disable_check_mode(self, mock_check_response):
         """Test disabling FC interface in check mode"""
         mock_module = Mock()
@@ -113,7 +107,9 @@ class TestUpdateFcInterface:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_fc_interface_no_change(self, mock_check_response):
         """Test FC interface with no changes needed"""
         mock_module = Mock()
@@ -151,7 +147,9 @@ class TestCheckSubinterfaces:
 class TestCreateInterface:
     """Test cases for create_interface function"""
 
-    @patch("plugins.modules.purefa_network._create_subordinates")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subordinates"
+    )
     def test_create_interface_subnet_not_exists(self, mock_create_subordinates):
         """Test create_interface fails when subnet doesn't exist"""
         mock_create_subordinates.return_value = ([], [])
@@ -169,7 +167,9 @@ class TestCreateInterface:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_network._create_subordinates")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subordinates"
+    )
     def test_create_interface_check_mode(self, mock_create_subordinates):
         """Test create_interface in check mode"""
         mock_create_subordinates.return_value = ([], [])
@@ -260,7 +260,9 @@ class TestUpdateInterface:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_fc_interface_enable_success(self, mock_check_response):
         """Test update_interface enables FC interface successfully"""
         import pytest
@@ -285,7 +287,9 @@ class TestUpdateInterface:
         mock_array.patch_network_interfaces.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_fc_interface_disable_success(self, mock_check_response):
         """Test update_interface disables FC interface successfully"""
         import pytest
@@ -438,7 +442,9 @@ class TestCreateSubinterfaces:
 class TestCreateInterfaceExtended:
     """Extended test cases for create_interface function"""
 
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
     def test_create_interface_vif_check_mode(self, mock_create_subinterfaces):
         """Test creating a VIF interface in check mode"""
         mock_module = Mock()
@@ -458,7 +464,9 @@ class TestCreateInterfaceExtended:
         mock_array.post_network_interfaces.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network._create_subordinates")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subordinates"
+    )
     def test_create_interface_lacpbond_check_mode(self, mock_create_subordinates):
         """Test creating a LACP bond interface in check mode"""
         mock_module = Mock()
@@ -482,7 +490,9 @@ class TestCreateInterfaceExtended:
 class TestDeleteInterfaceSuccess:
     """Test cases for delete_interface success paths"""
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_delete_interface_success(self, mock_check_response):
         """Test delete_interface successfully deletes"""
         mock_module = Mock()
@@ -500,7 +510,9 @@ class TestDeleteInterfaceSuccess:
 class TestUpdateFcInterfaceExtended:
     """Extended test cases for update_fc_interface"""
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_fc_interface_disable_success(self, mock_check_response):
         """Test disabling FC interface successfully"""
         mock_module = Mock()
@@ -517,7 +529,9 @@ class TestUpdateFcInterfaceExtended:
         mock_array.patch_network_interfaces.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_fc_interface_update_services(self, mock_check_response):
         """Test updating FC interface services"""
         mock_module = Mock()
@@ -561,7 +575,9 @@ class TestUpdateFcInterfaceExtended:
 class TestUpdateInterfaceSuccess:
     """Test cases for update_interface success paths"""
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_fc_interface_change_services(self, mock_check_response):
         """Test update_interface changes FC interface services"""
         import pytest
@@ -587,7 +603,9 @@ class TestUpdateInterfaceSuccess:
         mock_array.patch_network_interfaces.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_fc_interface_enable_and_services(self, mock_check_response):
         """Test update_interface enables FC interface and updates services"""
         import pytest
@@ -641,8 +659,12 @@ class TestUpdateInterfaceSuccess:
 class TestCreateInterfaceSuccess:
     """Test cases for create_interface function success paths"""
 
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_create_vif_interface_success(
         self, mock_check_response, mock_create_subinterfaces
     ):
@@ -670,7 +692,9 @@ class TestCreateInterfaceSuccess:
         mock_array.post_network_interfaces.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
     def test_create_vif_interface_check_mode(self, mock_create_subinterfaces):
         """Test creating a VIF interface in check mode"""
         mock_create_subinterfaces.return_value = (False, [])
@@ -719,7 +743,9 @@ class TestCreateInterfaceSuccess:
 class TestDeleteInterfaceSuccess:
     """Test cases for delete_interface function success paths"""
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_delete_interface_success(self, mock_check_response):
         """Test delete_interface successfully deletes"""
         mock_module = Mock()
@@ -749,8 +775,12 @@ class TestDeleteInterfaceSuccess:
 class TestUpdateEthInterface:
     """Test cases for update_interface with ETH interfaces"""
 
-    @patch("plugins.modules.purefa_network.check_response")
-    @patch("plugins.modules.purefa_network._check_subinterfaces")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._check_subinterfaces"
+    )
     def test_update_eth_interface_change_mtu(
         self, mock_check_subinterfaces, mock_check_response
     ):
@@ -863,8 +893,12 @@ class TestUpdateEthInterface:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_network.check_response")
-    @patch("plugins.modules.purefa_network._check_subinterfaces")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._check_subinterfaces"
+    )
     def test_update_eth_interface_change_enabled(
         self, mock_check_subinterfaces, mock_check_response
     ):
@@ -905,8 +939,12 @@ class TestUpdateEthInterface:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network.check_response")
-    @patch("plugins.modules.purefa_network._check_subinterfaces")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._check_subinterfaces"
+    )
     def test_update_eth_interface_change_services(
         self, mock_check_subinterfaces, mock_check_response
     ):
@@ -951,8 +989,12 @@ class TestUpdateEthInterface:
 class TestCreateInterfaceLacp:
     """Test cases for create_interface with LACP bonds"""
 
-    @patch("plugins.modules.purefa_network._create_subordinates")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subordinates"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_create_lacp_interface_success(
         self, mock_check_response, mock_create_subordinates
     ):
@@ -984,7 +1026,9 @@ class TestCreateInterfaceLacp:
         mock_array.post_network_interfaces.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network._create_subordinates")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subordinates"
+    )
     def test_create_lacp_interface_check_mode(self, mock_create_subordinates):
         """Test creating LACP bond interface in check mode"""
         mock_create_subordinates.return_value = ([], [])
@@ -1008,8 +1052,12 @@ class TestCreateInterfaceLacp:
 class TestCreateInterfaceWithSubnet:
     """Test cases for create_interface with subnet"""
 
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_create_vif_with_subnet_success(
         self, mock_check_response, mock_create_subinterfaces
     ):
@@ -1040,8 +1088,12 @@ class TestCreateInterfaceWithSubnet:
         mock_array.post_network_interfaces.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_create_vif_without_subnet_success(
         self, mock_check_response, mock_create_subinterfaces
     ):
@@ -1076,8 +1128,12 @@ class TestCreateInterfaceWithSubnet:
 class TestCreateInterfaceFailure:
     """Test cases for create_interface failure scenarios"""
 
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_create_vif_patch_fails(
         self, mock_check_response, mock_create_subinterfaces
     ):
@@ -1116,8 +1172,12 @@ class TestCreateInterfaceFailure:
         mock_array.delete_network_interfaces.assert_called_once()
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_create_vif_no_subnet_patch_fails(
         self, mock_check_response, mock_create_subinterfaces
     ):
@@ -1188,7 +1248,9 @@ class TestCreateSubinterfacesNotExists:
 class TestUpdateFcInterfaceEnableSuccess:
     """Test cases for update_fc_interface enable with actual API call"""
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_fc_interface_enable_success(self, mock_check_response):
         """Test enabling FC interface successfully"""
         mock_module = Mock()
@@ -1213,8 +1275,12 @@ class TestUpdateFcInterfaceEnableSuccess:
 class TestUpdateEthInterfaceWithSubinterfaces:
     """Test cases for update_interface with subinterfaces"""
 
-    @patch("plugins.modules.purefa_network.check_response")
-    @patch("plugins.modules.purefa_network._check_subinterfaces")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._check_subinterfaces"
+    )
     def test_update_eth_interface_mtu_with_existing_subinterfaces(
         self, mock_check_subinterfaces, mock_check_response
     ):
@@ -1262,8 +1328,12 @@ class TestUpdateEthInterfaceWithSubinterfaces:
 class TestUpdateEthInterfaceSubordinates:
     """Test cases for update_interface with subordinates changes"""
 
-    @patch("plugins.modules.purefa_network.check_response")
-    @patch("plugins.modules.purefa_network._check_subinterfaces")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._check_subinterfaces"
+    )
     def test_update_eth_interface_change_subordinates(
         self, mock_check_subinterfaces, mock_check_response
     ):
@@ -1310,8 +1380,12 @@ class TestUpdateEthInterfaceSubordinates:
 class TestCreateInterfaceLacpWithParams:
     """Test cases for create_interface LACP with various parameters"""
 
-    @patch("plugins.modules.purefa_network._create_subordinates")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subordinates"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_create_lacp_with_mtu_and_enabled(
         self, mock_check_response, mock_create_subordinates
     ):
@@ -1348,8 +1422,12 @@ class TestCreateInterfaceLacpWithParams:
 class TestCreateInterfaceVifWithSubnet:
     """Test cases for create_interface VIF with subnet scenarios"""
 
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_create_vif_with_subnet_patch_success(
         self, mock_check_response, mock_create_subinterfaces
     ):
@@ -1384,7 +1462,9 @@ class TestCreateInterfaceVifWithSubnet:
 class TestUpdateFcInterfaceDisable:
     """Test cases for update_fc_interface disable"""
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_fc_interface_disable(self, mock_check_response):
         """Test disabling FC interface (state=absent)"""
         mock_module = Mock()
@@ -1584,7 +1664,9 @@ class TestCreateSubinterfacesWithLacp:
 class TestUpdateFcInterfaceServices:
     """Test cases for update_fc_interface with service changes"""
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_fc_interface_change_services(self, mock_check_response):
         """Test updating FC interface services"""
         mock_module = Mock()
@@ -1672,7 +1754,9 @@ class TestCreateSubordinatesWithMultiple:
 class TestDeleteInterfaceError:
     """Test cases for delete_interface error handling"""
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_delete_interface_api_error(self, mock_check_response):
         """Test delete_interface when API returns error"""
         import pytest
@@ -1698,7 +1782,9 @@ class TestDeleteInterfaceError:
 class TestCreateInterfaceCheckMode:
     """Test cases for create_interface check mode"""
 
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
     def test_create_vif_check_mode(self, mock_create_subinterfaces):
         """Test creating VIF in check mode"""
         mock_create_subinterfaces.return_value = ([], [])
@@ -1723,7 +1809,9 @@ class TestCreateInterfaceCheckMode:
         mock_array.post_network_interfaces.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network._create_subordinates")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subordinates"
+    )
     def test_create_lacp_check_mode(self, mock_create_subordinates):
         """Test creating LACP in check mode"""
         mock_create_subordinates.return_value = ([], [])
@@ -1747,8 +1835,12 @@ class TestCreateInterfaceCheckMode:
 class TestUpdateInterfaceAddressValidation:
     """Test cases for address/gateway validation in update_interface"""
 
-    @patch("plugins.modules.purefa_network.IPNetwork")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.IPNetwork"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_interface_management_port_ip_removal_blocked(
         self, mock_check_response, mock_ipnetwork
     ):
@@ -1797,8 +1889,12 @@ class TestUpdateInterfaceAddressValidation:
             msg="Removing IP address from a management or app port is not supported"
         )
 
-    @patch("plugins.modules.purefa_network.IPNetwork")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.IPNetwork"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_interface_app_port_ip_removal_blocked(
         self, mock_check_response, mock_ipnetwork
     ):
@@ -1935,7 +2031,9 @@ class TestUpdateInterfaceMtuValidation:
 class TestCreateInterfaceWithSubnetFailure:
     """Test cases for create_interface with subnet that fails"""
 
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
     def test_create_vif_with_subnet_patch_fails(self, mock_create_subinterfaces):
         """Test VIF creation with subnet when patch fails"""
         import pytest
@@ -1970,7 +2068,9 @@ class TestCreateInterfaceWithSubnetFailure:
         mock_array.delete_network_interfaces.assert_called_once()
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
     def test_create_vif_without_subinterfaces_with_subnet(
         self, mock_create_subinterfaces
     ):
@@ -2010,8 +2110,12 @@ class TestCreateInterfaceWithSubnetFailure:
 class TestCreateInterfaceAddressValidation:
     """Test cases for address validation in create_interface"""
 
-    @patch("plugins.modules.purefa_network.IPNetwork")
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.IPNetwork"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
     def test_create_vif_gateway_not_in_subnet(
         self, mock_create_subinterfaces, mock_ipnetwork
     ):
@@ -2052,8 +2156,12 @@ class TestCreateInterfaceAddressValidation:
 class TestCreateInterfaceNoSubnetNoSubinterfaces:
     """Test cases for create_interface without subnet or subinterfaces"""
 
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_create_vif_no_subnet_no_subinterfaces_patch_fails(
         self, mock_check_response, mock_create_subinterfaces
     ):
@@ -2093,7 +2201,9 @@ class TestCreateInterfaceNoSubnetNoSubinterfaces:
 class TestUpdateInterfaceGatewayClearing:
     """Test cases for clearing gateway in update_interface"""
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_interface_clear_ipv4_gateway(self, mock_check_response):
         """Test clearing IPv4 gateway with 0.0.0.0"""
         mock_module = Mock()
@@ -2130,7 +2240,9 @@ class TestUpdateInterfaceGatewayClearing:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_interface_clear_ipv6_gateway(self, mock_check_response):
         """Test clearing IPv6 gateway with ::"""
         mock_module = Mock()
@@ -2171,9 +2283,15 @@ class TestUpdateInterfaceGatewayClearing:
 class TestUpdateInterfaceSubinterfacesChange:
     """Test cases for subinterfaces changes in update_interface"""
 
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
-    @patch("plugins.modules.purefa_network._check_subinterfaces")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._check_subinterfaces"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_interface_subinterfaces_change(
         self, mock_check_response, mock_check_subinterfaces, mock_create_subinterfaces
     ):
@@ -2224,8 +2342,12 @@ class TestUpdateInterfaceSubinterfacesChange:
 class TestUpdateInterfaceGatewayValidation:
     """Test cases for gateway validation in update_interface"""
 
-    @patch("plugins.modules.purefa_network.IPNetwork")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.IPNetwork"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_interface_gateway_not_in_address_subnet(
         self, mock_check_response, mock_ipnetwork
     ):
@@ -2277,8 +2399,12 @@ class TestUpdateInterfaceGatewayValidation:
 class TestUpdateInterfaceIpv6Address:
     """Test cases for IPv6 address handling in update_interface"""
 
-    @patch("plugins.modules.purefa_network.valid_ipv4")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.valid_ipv4"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_interface_ipv6_address_netmask(
         self, mock_check_response, mock_valid_ipv4
     ):
@@ -2325,10 +2451,18 @@ class TestUpdateInterfaceIpv6Address:
 class TestUpdateInterfaceIpVersionChange:
     """Test cases for IP version change validation"""
 
-    @patch("plugins.modules.purefa_network.IPAddress")
-    @patch("plugins.modules.purefa_network.IPNetwork")
-    @patch("plugins.modules.purefa_network.valid_ipv4")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.IPAddress"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.IPNetwork"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.valid_ipv4"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_interface_ip_version_change_incompatible_gateway(
         self, mock_check_response, mock_valid_ipv4, mock_ipnetwork, mock_ipaddress
     ):
@@ -2398,9 +2532,15 @@ class TestUpdateInterfaceIpVersionChange:
 class TestUpdateInterfaceNewSubinterfaces:
     """Test cases for adding new subinterfaces in update_interface"""
 
-    @patch("plugins.modules.purefa_network.ReferenceNoId")
-    @patch("plugins.modules.purefa_network._check_subinterfaces")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.ReferenceNoId"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._check_subinterfaces"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_interface_add_subinterfaces(
         self, mock_check_response, mock_check_subinterfaces, mock_reference_no_id
     ):
@@ -2448,9 +2588,15 @@ class TestUpdateInterfaceNewSubinterfaces:
 class TestCreateInterfaceIpv6:
     """Test cases for IPv6 address in create_interface"""
 
-    @patch("plugins.modules.purefa_network.valid_ipv4")
-    @patch("plugins.modules.purefa_network._create_subinterfaces")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.valid_ipv4"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network._create_subinterfaces"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_create_vif_with_ipv6_address(
         self, mock_check_response, mock_create_subinterfaces, mock_valid_ipv4
     ):
@@ -2487,8 +2633,12 @@ class TestCreateInterfaceIpv6:
 class TestUpdateInterfaceGatewayIncompatibleNoGateway:
     """Test cases for gateway incompatibility when no gateway provided"""
 
-    @patch("plugins.modules.purefa_network.IPNetwork")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.IPNetwork"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_interface_existing_gateway_not_in_new_subnet(
         self, mock_check_response, mock_ipnetwork
     ):
@@ -2545,8 +2695,12 @@ class TestUpdateInterfaceGatewayIncompatibleNoGateway:
 class TestUpdateInterfaceNetmaskZero:
     """Test cases for netmask zero handling"""
 
-    @patch("plugins.modules.purefa_network.valid_ipv4")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.valid_ipv4"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_interface_ipv6_netmask_zero(
         self, mock_check_response, mock_valid_ipv4
     ):
@@ -2593,10 +2747,18 @@ class TestUpdateInterfaceNetmaskZero:
 class TestUpdateInterfaceIpv4GatewayNotInSubnet:
     """Test cases for IPv4 gateway not in subnet validation"""
 
-    @patch("plugins.modules.purefa_network.IPAddress")
-    @patch("plugins.modules.purefa_network.IPNetwork")
-    @patch("plugins.modules.purefa_network.valid_ipv4")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.IPAddress"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.IPNetwork"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.valid_ipv4"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_interface_ipv4_gateway_not_in_subnet(
         self, mock_check_response, mock_valid_ipv4, mock_ipnetwork, mock_ipaddress
     ):
@@ -2653,8 +2815,12 @@ class TestUpdateInterfaceIpv4GatewayNotInSubnet:
 class TestUpdateInterfaceEmptyGatewayException:
     """Test cases for empty gateway determination with exception"""
 
-    @patch("plugins.modules.purefa_network.valid_ipv4")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.valid_ipv4"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_update_interface_invalid_address_ipv6_gateway(
         self, mock_check_response, mock_valid_ipv4
     ):
@@ -2710,7 +2876,9 @@ class TestUpdateInterfaceEmptyGatewayException:
 class TestUpdateInterfaceGatewayOnlyBugFixes:
     """Test cases for gateway-only operations that previously caused AddrFormatError"""
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_set_gateway_only_no_existing_address(self, mock_check_response):
         """Test setting gateway when no IP address is configured - should not crash"""
         mock_module = Mock()
@@ -2748,9 +2916,15 @@ class TestUpdateInterfaceGatewayOnlyBugFixes:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network.valid_ipv4")
-    @patch("plugins.modules.purefa_network.IPNetwork")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.valid_ipv4"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.IPNetwork"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_clear_ipv4_address_without_gateway(
         self, mock_check_response, mock_ipnetwork, mock_valid_ipv4
     ):
@@ -2795,9 +2969,15 @@ class TestUpdateInterfaceGatewayOnlyBugFixes:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network.valid_ipv4")
-    @patch("plugins.modules.purefa_network.IPNetwork")
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.valid_ipv4"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.IPNetwork"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_clear_ipv6_address_without_gateway(
         self, mock_check_response, mock_ipnetwork, mock_valid_ipv4
     ):
@@ -2838,7 +3018,9 @@ class TestUpdateInterfaceGatewayOnlyBugFixes:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_network.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_network.check_response"
+    )
     def test_set_ipv6_gateway_only_no_existing_address(self, mock_check_response):
         """Test setting IPv6 gateway when no IP address is configured"""
         mock_module = Mock()

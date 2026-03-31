@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -59,7 +49,9 @@ from plugins.modules.purefa_syslog import (
 class TestDeleteSyslog:
     """Tests for delete_syslog function"""
 
-    @patch("plugins.modules.purefa_syslog.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog.get_with_context"
+    )
     def test_delete_syslog_check_mode(self, mock_get_with_context):
         """Test delete_syslog in check mode"""
         mock_module = Mock()
@@ -72,8 +64,12 @@ class TestDeleteSyslog:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_get_with_context.assert_not_called()
 
-    @patch("plugins.modules.purefa_syslog.check_response")
-    @patch("plugins.modules.purefa_syslog.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog.get_with_context"
+    )
     def test_delete_syslog_success(self, mock_get_with_context, mock_check_response):
         """Test delete_syslog successfully deletes"""
         mock_module = Mock()
@@ -91,7 +87,9 @@ class TestDeleteSyslog:
 class TestAddSyslog:
     """Tests for add_syslog function"""
 
-    @patch("plugins.modules.purefa_syslog.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog.get_with_context"
+    )
     def test_add_syslog_check_mode(self, mock_get_with_context):
         """Test add_syslog in check mode"""
         mock_module = Mock()
@@ -110,8 +108,12 @@ class TestAddSyslog:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_get_with_context.assert_not_called()
 
-    @patch("plugins.modules.purefa_syslog.check_response")
-    @patch("plugins.modules.purefa_syslog.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog.get_with_context"
+    )
     def test_add_syslog_success(self, mock_get_with_context, mock_check_response):
         """Test add_syslog successfully adds"""
         mock_module = Mock()
@@ -135,7 +137,9 @@ class TestAddSyslog:
 class TestSyslogTest:
     """Tests for test_syslog function"""
 
-    @patch("plugins.modules.purefa_syslog.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog.get_with_context"
+    )
     def test_syslog_test_success(self, mock_get_with_context):
         """Test syslog_test returns test results"""
         mock_module = Mock()
@@ -167,7 +171,9 @@ class TestSyslogTest:
         assert call_args[1]["test_response"][0]["enabled"] == "true"
         assert call_args[1]["test_response"][0]["success"] == "true"
 
-    @patch("plugins.modules.purefa_syslog.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog.get_with_context"
+    )
     def test_syslog_test_disabled_and_failed(self, mock_get_with_context):
         """Test syslog_test with disabled and failed component"""
         mock_module = Mock()
@@ -198,7 +204,9 @@ class TestSyslogTest:
 class TestUpdateSyslog:
     """Tests for update_syslog function"""
 
-    @patch("plugins.modules.purefa_syslog.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog.get_with_context"
+    )
     def test_update_syslog_no_change(self, mock_get_with_context):
         """Test update_syslog when URI already matches"""
         mock_module = Mock()
@@ -223,8 +231,12 @@ class TestUpdateSyslog:
         # Should only call get_syslog_servers, not patch
         assert mock_get_with_context.call_count == 1
 
-    @patch("plugins.modules.purefa_syslog.check_response")
-    @patch("plugins.modules.purefa_syslog.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog.get_with_context"
+    )
     def test_update_syslog_with_changes(
         self, mock_get_with_context, mock_check_response
     ):
@@ -251,7 +263,9 @@ class TestUpdateSyslog:
         assert mock_get_with_context.call_count == 2
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_syslog.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog.get_with_context"
+    )
     def test_update_syslog_check_mode_with_changes(self, mock_get_with_context):
         """Test update_syslog in check mode when URI would change"""
         mock_module = Mock()
@@ -276,7 +290,9 @@ class TestUpdateSyslog:
         assert mock_get_with_context.call_count == 1
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_syslog.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog.get_with_context"
+    )
     def test_update_syslog_no_port(self, mock_get_with_context):
         """Test update_syslog without port specified"""
         mock_module = Mock()

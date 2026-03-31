@@ -55,18 +55,8 @@ sys.modules["netaddr"] = mock_netaddr
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -158,7 +148,9 @@ class TestDeleteSubnet:
 class TestCreateSubnet:
     """Test cases for create_subnet function"""
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_create_subnet_no_prefix_fails(self, mock_check_response):
         """Test create_subnet fails without prefix"""
         import pytest
@@ -177,7 +169,9 @@ class TestCreateSubnet:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_create_subnet_check_mode(self, mock_check_response):
         """Test create_subnet in check mode"""
         mock_module = Mock()
@@ -197,7 +191,9 @@ class TestCreateSubnet:
         mock_array.post_subnets.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_create_subnet_success(self, mock_check_response):
         """Test create_subnet successfully creates"""
         mock_module = Mock()
@@ -218,7 +214,9 @@ class TestCreateSubnet:
         mock_array.post_subnets.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_create_subnet_vlan_out_of_range(self, mock_check_response):
         """Test create_subnet fails with invalid VLAN"""
         import pytest
@@ -241,7 +239,9 @@ class TestCreateSubnet:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_create_subnet_mtu_out_of_range(self, mock_check_response):
         """Test create_subnet fails with invalid MTU"""
         import pytest
@@ -268,7 +268,9 @@ class TestCreateSubnet:
 class TestUpdateSubnet:
     """Tests for update_subnet function"""
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_no_change(self, mock_check_response):
         """Test update_subnet when no changes needed"""
         mock_module = Mock()
@@ -299,7 +301,9 @@ class TestUpdateSubnet:
         mock_module.exit_json.assert_called_once_with(changed=False)
         mock_array.patch_subnets.assert_not_called()
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_change_mtu(self, mock_check_response):
         """Test update_subnet with MTU change"""
         mock_module = Mock()
@@ -330,7 +334,9 @@ class TestUpdateSubnet:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.patch_subnets.assert_called_once()
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_check_mode(self, mock_check_response):
         """Test update_subnet in check mode with changes"""
         mock_module = Mock()
@@ -360,7 +366,9 @@ class TestUpdateSubnet:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.patch_subnets.assert_not_called()
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_vlan_out_of_range(self, mock_check_response):
         """Test update_subnet fails with invalid VLAN"""
         import pytest
@@ -391,7 +399,9 @@ class TestUpdateSubnet:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_mtu_out_of_range(self, mock_check_response):
         """Test update_subnet fails with invalid MTU"""
         import pytest
@@ -422,7 +432,9 @@ class TestUpdateSubnet:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_change_enabled(self, mock_check_response):
         """Test update_subnet changes enabled state"""
         mock_module = Mock()
@@ -452,7 +464,9 @@ class TestUpdateSubnet:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.patch_subnets.assert_called()
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_change_mtu(self, mock_check_response):
         """Test update_subnet changes MTU"""
         mock_module = Mock()
@@ -486,7 +500,9 @@ class TestUpdateSubnet:
 class TestUpdateSubnetGateway:
     """Tests for update_subnet function gateway validation"""
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_with_gateway(self, mock_check_response):
         """Test update_subnet with gateway change"""
         mock_module = Mock()
@@ -515,7 +531,9 @@ class TestUpdateSubnetGateway:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.patch_subnets.assert_called()
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_gateway_incompatible(self, mock_check_response):
         """Test update_subnet fails with incompatible gateway"""
         import pytest
@@ -546,7 +564,9 @@ class TestUpdateSubnetGateway:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_prefix_change_with_new_gateway(self, mock_check_response):
         """Test update_subnet when prefix changes with a new gateway provided"""
         mock_module = Mock()
@@ -575,7 +595,9 @@ class TestUpdateSubnetGateway:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.patch_subnets.assert_called()
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_no_gateway_ipv4_sets_default(self, mock_check_response):
         """Test update_subnet with no gateway for IPv4 subnet sets default 0.0.0.0"""
         mock_module = Mock()
@@ -604,7 +626,9 @@ class TestUpdateSubnetGateway:
         # Changed is True because gateway is set from None to 0.0.0.0
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_no_gateway_ipv6_sets_default(self, mock_check_response):
         """Test update_subnet with no gateway for IPv6 subnet sets default ::"""
         mock_module = Mock()
@@ -633,7 +657,9 @@ class TestUpdateSubnetGateway:
         # Changed is True because gateway is set from None to ::
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_already_has_ipv4_gateway(self, mock_check_response):
         """Test update_subnet with existing IPv4 gateway - no change"""
         mock_module = Mock()
@@ -665,7 +691,9 @@ class TestUpdateSubnetGateway:
 class TestCreateSubnetGateway:
     """Tests for create_subnet function with gateway"""
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_create_subnet_gateway_incompatible(self, mock_check_response):
         """Test create_subnet fails with incompatible gateway"""
         import pytest
@@ -688,7 +716,9 @@ class TestCreateSubnetGateway:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_create_subnet_with_valid_vlan(self, mock_check_response):
         """Test create_subnet with valid VLAN"""
         mock_module = Mock()
@@ -709,7 +739,9 @@ class TestCreateSubnetGateway:
         mock_array.post_subnets.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_create_subnet_with_valid_mtu(self, mock_check_response):
         """Test create_subnet with valid MTU"""
         mock_module = Mock()
@@ -730,7 +762,9 @@ class TestCreateSubnetGateway:
         mock_array.post_subnets.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_create_subnet_with_gateway(self, mock_check_response):
         """Test create_subnet with valid gateway"""
         mock_module = Mock()
@@ -755,7 +789,9 @@ class TestCreateSubnetGateway:
 class TestUpdateSubnetVlan:
     """Tests for update_subnet function with VLAN handling"""
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_update_subnet_vlan_not_set_normalizes_to_zero(self, mock_check_response):
         """Test update_subnet when vlan is not set normalizes None to 0"""
         mock_module = Mock()
@@ -788,7 +824,9 @@ class TestUpdateSubnetVlan:
 class TestCreateSubnetGatewayValidation:
     """Additional tests for create_subnet gateway validation"""
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_create_subnet_gateway_with_zero_address(self, mock_check_response):
         """Test create_subnet with zero gateway address"""
         mock_module = Mock()
@@ -809,7 +847,9 @@ class TestCreateSubnetGatewayValidation:
         mock_array.post_subnets.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_subnet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_subnet.check_response"
+    )
     def test_create_subnet_gateway_ipv6_zero(self, mock_check_response):
         """Test create_subnet with IPv6 zero gateway"""
         mock_module = Mock()

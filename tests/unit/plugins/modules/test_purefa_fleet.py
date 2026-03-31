@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -70,7 +60,9 @@ class TestCreateFleet:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.post_fleets.assert_not_called()
 
-    @patch("plugins.modules.purefa_fleet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.check_response"
+    )
     def test_create_fleet_success(self, mock_check_response):
         """Test create_fleet creates fleet"""
         mock_module = Mock()
@@ -132,7 +124,9 @@ class TestRenameFleet:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fleet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.check_response"
+    )
     def test_rename_fleet_success(self, mock_check_response):
         """Test rename_fleet successfully renames"""
         mock_module = Mock()
@@ -153,7 +147,9 @@ class TestRenameFleet:
 class TestDeleteFleetSuccess:
     """Test cases for delete_fleet success paths"""
 
-    @patch("plugins.modules.purefa_fleet.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.check_response"
+    )
     def test_delete_fleet_success(self, mock_check_response):
         """Test delete_fleet successfully deletes"""
         mock_module = Mock()
@@ -243,7 +239,9 @@ class TestAddFleetMembers:
 class TestDeleteFleetMembers:
     """Test cases for delete_fleet_members function"""
 
-    @patch("plugins.modules.purefa_fleet.flasharray")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.flasharray"
+    )
     @patch("plugins.modules.purefa_fleet.HAS_DISTRO", False)
     @patch("plugins.modules.purefa_fleet.HAS_URLLIB3", False)
     def test_delete_fleet_members_not_found(self, mock_flasharray):
@@ -276,7 +274,9 @@ class TestDeleteFleetMembers:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_fleet.flasharray")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.flasharray"
+    )
     @patch("plugins.modules.purefa_fleet.HAS_DISTRO", False)
     @patch("plugins.modules.purefa_fleet.HAS_URLLIB3", False)
     def test_delete_fleet_members_check_mode(self, mock_flasharray):
@@ -318,8 +318,12 @@ class TestDeleteFleetMembers:
 class TestAddFleetMembersSuccess:
     """Test cases for add_fleet_members success paths"""
 
-    @patch("plugins.modules.purefa_fleet.check_response")
-    @patch("plugins.modules.purefa_fleet.flasharray")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.flasharray"
+    )
     @patch("plugins.modules.purefa_fleet.HAS_DISTRO", False)
     @patch("plugins.modules.purefa_fleet.HAS_URLLIB3", False)
     def test_add_fleet_members_success(self, mock_flasharray, mock_check_response):
@@ -362,8 +366,12 @@ class TestAddFleetMembersSuccess:
         mock_remote.post_fleets_members.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fleet.check_response")
-    @patch("plugins.modules.purefa_fleet.flasharray")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.flasharray"
+    )
     @patch("plugins.modules.purefa_fleet.HAS_DISTRO", False)
     @patch("plugins.modules.purefa_fleet.HAS_URLLIB3", False)
     def test_add_fleet_members_already_exists(
@@ -407,8 +415,12 @@ class TestAddFleetMembersSuccess:
         mock_remote.post_fleets_members.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_fleet.check_response")
-    @patch("plugins.modules.purefa_fleet.flasharray")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.flasharray"
+    )
     @patch("plugins.modules.purefa_fleet.HAS_DISTRO", False)
     @patch("plugins.modules.purefa_fleet.HAS_URLLIB3", False)
     def test_add_fleet_members_check_mode(self, mock_flasharray, mock_check_response):
@@ -458,8 +470,12 @@ class TestAddFleetMembersSuccess:
         mock_remote.post_fleets_members.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fleet.flasharray")
-    @patch("plugins.modules.purefa_fleet.flashblade")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.flasharray"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.flashblade"
+    )
     @patch("plugins.modules.purefa_fleet.HAS_DISTRO", False)
     @patch("plugins.modules.purefa_fleet.HAS_URLLIB3", False)
     def test_add_fleet_members_flashblade_api_version_too_old(
@@ -497,16 +513,24 @@ class TestAddFleetMembersSuccess:
 class TestMain:
     """Test cases for main() function"""
 
-    @patch("plugins.modules.purefa_fleet.LooseVersion")
-    @patch("plugins.modules.purefa_fleet.get_array")
-    @patch("plugins.modules.purefa_fleet.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_fleet.HAS_PURESTORAGE", True)
     def test_main_no_purestorage_sdk(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() fails when purestorage SDK not available"""
         import pytest
-        from plugins.modules.purefa_fleet import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet import (
+            main,
+        )
 
         with patch("plugins.modules.purefa_fleet.HAS_PURESTORAGE", False):
             mock_module = Mock()
@@ -518,16 +542,24 @@ class TestMain:
 
             mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_fleet.LooseVersion")
-    @patch("plugins.modules.purefa_fleet.get_array")
-    @patch("plugins.modules.purefa_fleet.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_fleet.HAS_PURESTORAGE", True)
     def test_main_api_version_too_old(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() fails when API version is too old"""
         import pytest
-        from plugins.modules.purefa_fleet import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -543,16 +575,24 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_fleet.LooseVersion")
-    @patch("plugins.modules.purefa_fleet.get_array")
-    @patch("plugins.modules.purefa_fleet.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_fleet.HAS_PURESTORAGE", True)
     def test_main_fusion_not_enabled(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() fails when Fusion not enabled"""
         import pytest
-        from plugins.modules.purefa_fleet import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -570,16 +610,26 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_fleet.create_fleet")
-    @patch("plugins.modules.purefa_fleet.LooseVersion")
-    @patch("plugins.modules.purefa_fleet.get_array")
-    @patch("plugins.modules.purefa_fleet.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.create_fleet"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_fleet.HAS_PURESTORAGE", True)
     def test_main_state_create(
         self, mock_ansible_module, mock_get_array, mock_loose_version, mock_create_fleet
     ):
         """Test main() calls create_fleet when state=create"""
-        from plugins.modules.purefa_fleet import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -600,16 +650,26 @@ class TestMain:
 
         mock_create_fleet.assert_called_once()
 
-    @patch("plugins.modules.purefa_fleet.delete_fleet")
-    @patch("plugins.modules.purefa_fleet.LooseVersion")
-    @patch("plugins.modules.purefa_fleet.get_array")
-    @patch("plugins.modules.purefa_fleet.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.delete_fleet"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_fleet.HAS_PURESTORAGE", True)
     def test_main_state_absent(
         self, mock_ansible_module, mock_get_array, mock_loose_version, mock_delete_fleet
     ):
         """Test main() calls delete_fleet when state=absent"""
-        from plugins.modules.purefa_fleet import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -630,15 +690,23 @@ class TestMain:
 
         mock_delete_fleet.assert_called_once()
 
-    @patch("plugins.modules.purefa_fleet.LooseVersion")
-    @patch("plugins.modules.purefa_fleet.get_array")
-    @patch("plugins.modules.purefa_fleet.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_fleet.HAS_PURESTORAGE", True)
     def test_main_no_change(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() exits with no change when no action needed"""
-        from plugins.modules.purefa_fleet import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_fleet import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 

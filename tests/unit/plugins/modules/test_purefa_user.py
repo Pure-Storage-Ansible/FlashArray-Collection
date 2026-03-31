@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -107,7 +97,9 @@ class TestDeleteLocalUser:
 class TestCreateLocalUser:
     """Test cases for create_local_user function"""
 
-    @patch("plugins.modules.purefa_user.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.check_response"
+    )
     def test_create_local_user_new_user_check_mode(self, mock_check_response):
         """Test create_local_user with new user in check mode"""
         mock_module = Mock()
@@ -130,7 +122,9 @@ class TestCreateLocalUser:
 class TestDeleteAdUser:
     """Test cases for delete_ad_user function"""
 
-    @patch("plugins.modules.purefa_user.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.check_response"
+    )
     def test_delete_ad_user_with_user(self, mock_check_response):
         """Test delete_ad_user removes API token and public key"""
         mock_module = Mock()
@@ -174,7 +168,9 @@ class TestDeleteAdUser:
 class TestCreateLocalUserSuccess:
     """Test cases for create_local_user success paths"""
 
-    @patch("plugins.modules.purefa_user.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.check_response"
+    )
     def test_create_local_user_success(self, mock_check_response):
         """Test create_local_user successfully creates new user"""
         mock_module = Mock()
@@ -194,7 +190,9 @@ class TestCreateLocalUserSuccess:
         mock_array.post_admins.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_user.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.check_response"
+    )
     def test_create_local_user_existing_no_password_change(self, mock_check_response):
         """Test create_local_user exits when password change not needed"""
         mock_module = Mock()
@@ -220,7 +218,9 @@ class TestCreateLocalUserSuccess:
 class TestDeleteLocalUserSuccess:
     """Test cases for delete_local_user success paths"""
 
-    @patch("plugins.modules.purefa_user.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.check_response"
+    )
     def test_delete_local_user_success(self, mock_check_response):
         """Test delete_local_user successfully deletes user"""
         mock_module = Mock()
@@ -238,8 +238,12 @@ class TestDeleteLocalUserSuccess:
 class TestUpdateAdUser:
     """Test cases for update_ad_user function"""
 
-    @patch("plugins.modules.purefa_user.check_response")
-    @patch("plugins.modules.purefa_user.convert_time_to_millisecs")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.convert_time_to_millisecs"
+    )
     def test_update_ad_user_create_api_token(
         self, mock_convert_time, mock_check_response
     ):
@@ -271,8 +275,12 @@ class TestUpdateAdUser:
         assert call_kwargs["changed"] is True
         assert call_kwargs["user_info"] == "test-token-12345"
 
-    @patch("plugins.modules.purefa_user.check_response")
-    @patch("plugins.modules.purefa_user.convert_time_to_millisecs")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.convert_time_to_millisecs"
+    )
     def test_update_ad_user_refresh_api_token(
         self, mock_convert_time, mock_check_response
     ):
@@ -304,7 +312,9 @@ class TestUpdateAdUser:
         mock_array.post_admins_api_tokens.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_user.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.check_response"
+    )
     def test_update_ad_user_add_public_key(self, mock_check_response):
         """Test update_ad_user adds SSH public key"""
         mock_module = Mock()
@@ -345,7 +355,9 @@ class TestUpdateAdUser:
 class TestCreateLocalUserExtended:
     """Extended test cases for create_local_user function"""
 
-    @patch("plugins.modules.purefa_user.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.check_response"
+    )
     def test_create_local_user_with_role_change(self, mock_check_response):
         """Test create_local_user when role changes"""
         mock_module = Mock()
@@ -372,8 +384,12 @@ class TestCreateLocalUserExtended:
         call_kwargs = mock_module.exit_json.call_args[1]
         assert call_kwargs["changed"] is True
 
-    @patch("plugins.modules.purefa_user.check_response")
-    @patch("plugins.modules.purefa_user.convert_time_to_millisecs")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.convert_time_to_millisecs"
+    )
     def test_create_local_user_with_api_token(
         self, mock_convert_time, mock_check_response
     ):
@@ -409,7 +425,9 @@ class TestCreateLocalUserExtended:
         assert call_kwargs["changed"] is True
         assert "new-token-123" in call_kwargs["user_info"]
 
-    @patch("plugins.modules.purefa_user.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_user.check_response"
+    )
     def test_create_local_user_with_ssh_key(self, mock_check_response):
         """Test create_local_user adds SSH public key"""
         mock_module = Mock()

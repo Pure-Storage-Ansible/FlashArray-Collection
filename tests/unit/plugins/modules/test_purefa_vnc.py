@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock, patch
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -85,7 +75,9 @@ class TestDisableVnc:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.patch_apps.assert_not_called()
 
-    @patch("plugins.modules.purefa_vnc.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vnc.check_response"
+    )
     def test_disable_vnc_success(self, mock_check_response):
         """Test disable_vnc successfully"""
         mock_module = Mock()

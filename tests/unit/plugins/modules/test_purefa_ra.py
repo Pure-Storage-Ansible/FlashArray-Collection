@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -36,13 +26,19 @@ sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers"
 ] = MagicMock()
 
-from plugins.modules.purefa_ra import main, enable_ra, disable_ra
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_ra import (
+    main,
+    enable_ra,
+    disable_ra,
+)
 
 
 class TestEnableRa:
     """Test cases for enable_ra function"""
 
-    @patch("plugins.modules.purefa_ra.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ra.LooseVersion"
+    )
     def test_enable_ra_success(self, mock_loose_version):
         """Test successful RA enable"""
         mock_loose_version.side_effect = float
@@ -103,7 +99,9 @@ class TestEnableRa:
 class TestDisableRa:
     """Test cases for disable_ra function"""
 
-    @patch("plugins.modules.purefa_ra.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ra.check_response"
+    )
     def test_disable_ra_success(self, mock_check_response):
         """Test successful RA disable"""
         mock_module = Mock()
@@ -146,8 +144,12 @@ class TestDisableRa:
 class TestMain:
     """Test cases for main function"""
 
-    @patch("plugins.modules.purefa_ra.get_array")
-    @patch("plugins.modules.purefa_ra.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ra.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ra.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_ra.HAS_PURESTORAGE", False)
     def test_main_missing_sdk(self, mock_ansible_module, mock_get_array):
         """Test main when pypureclient SDK is missing"""

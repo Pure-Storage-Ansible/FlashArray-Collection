@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -60,7 +50,9 @@ from plugins.modules.purefa_default_protection import (
 class TestGetPod:
     """Test cases for _get_pod function"""
 
-    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.get_with_context"
+    )
     def test_get_pod_exists(self, mock_get_with_context):
         """Test _get_pod returns pod when it exists"""
         mock_module = Mock()
@@ -74,7 +66,9 @@ class TestGetPod:
 
         assert result == mock_pod
 
-    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.get_with_context"
+    )
     def test_get_pod_not_exists(self, mock_get_with_context):
         """Test _get_pod returns None when pod doesn't exist"""
         mock_module = Mock()
@@ -90,7 +84,9 @@ class TestGetPod:
 class TestGetPg:
     """Test cases for _get_pg function"""
 
-    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.get_with_context"
+    )
     def test_get_pg_exists(self, mock_get_with_context):
         """Test _get_pg returns protection group when it exists"""
         mock_module = Mock()
@@ -104,7 +100,9 @@ class TestGetPg:
 
         assert result == mock_pg
 
-    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.get_with_context"
+    )
     def test_get_pg_not_exists(self, mock_get_with_context):
         """Test _get_pg returns None when protection group doesn't exist"""
         mock_module = Mock()
@@ -131,8 +129,12 @@ class TestDeleteDefault:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_default_protection.check_response")
-    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.get_with_context"
+    )
     def test_delete_default_array_scope_success(
         self, mock_get_with_context, mock_check_response
     ):
@@ -148,8 +150,12 @@ class TestDeleteDefault:
         mock_get_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_default_protection.check_response")
-    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.get_with_context"
+    )
     def test_delete_default_pod_scope_success(
         self, mock_get_with_context, mock_check_response
     ):
@@ -185,8 +191,12 @@ class TestCreateDefault:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_default_protection.check_response")
-    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.get_with_context"
+    )
     def test_create_default_array_scope_success(
         self, mock_get_with_context, mock_check_response
     ):
@@ -202,8 +212,12 @@ class TestCreateDefault:
         mock_get_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_default_protection.check_response")
-    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.get_with_context"
+    )
     def test_create_default_pod_scope_success(
         self, mock_get_with_context, mock_check_response
     ):
@@ -247,8 +261,12 @@ class TestUpdateDefault:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_default_protection.check_response")
-    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.get_with_context"
+    )
     def test_update_default_add_pgroup_success(
         self, mock_get_with_context, mock_check_response
     ):
@@ -273,8 +291,12 @@ class TestUpdateDefault:
         mock_get_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_default_protection.check_response")
-    @patch("plugins.modules.purefa_default_protection.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_default_protection.get_with_context"
+    )
     def test_update_default_remove_pgroup_success(
         self, mock_get_with_context, mock_check_response
     ):

@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -60,7 +50,9 @@ from plugins.modules.purefa_pgsched import (
 class TestGetPendingPgroup:
     """Test cases for get_pending_pgroup function"""
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
     def test_get_pending_pgroup_exists(self, mock_get_with_context):
         """Test get_pending_pgroup returns pgroup when it exists"""
         mock_module = Mock()
@@ -74,7 +66,9 @@ class TestGetPendingPgroup:
 
         assert result == mock_pgroup
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
     def test_get_pending_pgroup_not_exists(self, mock_get_with_context):
         """Test get_pending_pgroup returns None when pgroup doesn't exist"""
         mock_module = Mock()
@@ -90,7 +84,9 @@ class TestGetPendingPgroup:
 class TestGetPgroup:
     """Test cases for get_pgroup function"""
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
     def test_get_pgroup_exists(self, mock_get_with_context):
         """Test get_pgroup returns pgroup when it exists"""
         mock_module = Mock()
@@ -104,7 +100,9 @@ class TestGetPgroup:
 
         assert result == mock_pgroup
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
     def test_get_pgroup_not_exists(self, mock_get_with_context):
         """Test get_pgroup returns None when pgroup doesn't exist"""
         mock_module = Mock()
@@ -195,10 +193,18 @@ def create_mock_protection_group(
 class TestUpdateScheduleClearAtValue:
     """Test cases for update_schedule function - clearing at values"""
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
-    @patch("plugins.modules.purefa_pgsched.check_response")
-    @patch("plugins.modules.purefa_pgsched.SnapshotSchedule")
-    @patch("plugins.modules.purefa_pgsched.ProtectionGroup")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.SnapshotSchedule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.ProtectionGroup"
+    )
     def test_clear_snap_at_with_empty_string(
         self,
         mock_protection_group,
@@ -245,10 +251,18 @@ class TestUpdateScheduleClearAtValue:
         # Verify SnapshotSchedule was called with at=-1 to clear the value
         mock_snapshot_schedule.assert_called_with(frequency=86400000, at=-1)
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
-    @patch("plugins.modules.purefa_pgsched.check_response")
-    @patch("plugins.modules.purefa_pgsched.ReplicationSchedule")
-    @patch("plugins.modules.purefa_pgsched.ProtectionGroup")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.ReplicationSchedule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.ProtectionGroup"
+    )
     def test_clear_replicate_at_with_empty_string(
         self,
         mock_protection_group,
@@ -299,10 +313,18 @@ class TestUpdateScheduleClearAtValue:
         # Verify ReplicationSchedule was called with at=-1 to clear the value
         mock_replication_schedule.assert_called_with(frequency=86400000, at=-1)
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
-    @patch("plugins.modules.purefa_pgsched.check_response")
-    @patch("plugins.modules.purefa_pgsched.SnapshotSchedule")
-    @patch("plugins.modules.purefa_pgsched.ProtectionGroup")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.SnapshotSchedule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.ProtectionGroup"
+    )
     def test_auto_clear_snap_at_when_frequency_changes_to_hourly(
         self,
         mock_protection_group,
@@ -348,8 +370,12 @@ class TestUpdateScheduleClearAtValue:
         assert mock_get_with_context.called
         mock_snapshot_schedule.assert_called_with(frequency=3600000, at=-1)
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
-    @patch("plugins.modules.purefa_pgsched.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.check_response"
+    )
     def test_keep_snap_at_when_not_provided(
         self, mock_check_response, mock_get_with_context
     ):
@@ -390,8 +416,12 @@ class TestUpdateScheduleClearAtValue:
         # The at value should be preserved
         assert mock_get_with_context.called
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
-    @patch("plugins.modules.purefa_pgsched.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.check_response"
+    )
     def test_set_new_snap_at_value(self, mock_check_response, mock_get_with_context):
         """Test setting a new snap_at value"""
         mock_module = Mock()
@@ -434,7 +464,9 @@ class TestUpdateScheduleClearAtValue:
 class TestDeleteSchedule:
     """Test cases for delete_schedule function"""
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
     def test_delete_schedule_replication_disabled(self, mock_get_with_context):
         """Test delete_schedule when replication schedule is already disabled"""
         mock_module = Mock()
@@ -456,7 +488,9 @@ class TestDeleteSchedule:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
     def test_delete_schedule_snapshot_disabled(self, mock_get_with_context):
         """Test delete_schedule when snapshot schedule is already disabled"""
         mock_module = Mock()
@@ -474,7 +508,9 @@ class TestDeleteSchedule:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
     def test_delete_schedule_replication_check_mode(self, mock_get_with_context):
         """Test delete_schedule replication in check mode"""
         mock_module = Mock()
@@ -500,7 +536,9 @@ class TestDeleteSchedule:
 class TestUpdateSchedule:
     """Test cases for update_schedule function"""
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
     def test_update_schedule_pgroup_not_found(self, mock_get_with_context):
         """Test update_schedule fails when protection group not found"""
         import pytest
@@ -523,7 +561,9 @@ class TestUpdateSchedule:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
     def test_update_schedule_snapshot_no_changes(self, mock_get_with_context):
         """Test update_schedule when no snapshot schedule changes needed.
 
@@ -575,8 +615,12 @@ class TestUpdateSchedule:
 class TestUpdateScheduleSnapshotEnabled:
     """Test cases for update_schedule with snapshot enabled changes"""
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
-    @patch("plugins.modules.purefa_pgsched.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.check_response"
+    )
     def test_update_schedule_snapshot_enabled_change(
         self, mock_check_response, mock_get_with_context
     ):
@@ -610,8 +654,12 @@ class TestUpdateScheduleSnapshotEnabled:
 class TestUpdateScheduleRetention:
     """Test cases for update_schedule with retention changes"""
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
-    @patch("plugins.modules.purefa_pgsched.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.check_response"
+    )
     def test_update_schedule_snapshot_retention_change(
         self, mock_check_response, mock_get_with_context
     ):
@@ -644,8 +692,12 @@ class TestUpdateScheduleRetention:
 class TestUpdateScheduleReplication:
     """Test cases for update_schedule with replication schedule changes"""
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
-    @patch("plugins.modules.purefa_pgsched.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.check_response"
+    )
     def test_update_schedule_replicate_enabled_change(
         self, mock_check_response, mock_get_with_context
     ):
@@ -676,8 +728,12 @@ class TestUpdateScheduleReplication:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
-    @patch("plugins.modules.purefa_pgsched.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.check_response"
+    )
     def test_update_schedule_blackout_change(
         self, mock_check_response, mock_get_with_context
     ):
@@ -708,8 +764,12 @@ class TestUpdateScheduleReplication:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
-    @patch("plugins.modules.purefa_pgsched.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.check_response"
+    )
     def test_update_schedule_target_retention_change(
         self, mock_check_response, mock_get_with_context
     ):
@@ -742,8 +802,12 @@ class TestUpdateScheduleReplication:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
-    @patch("plugins.modules.purefa_pgsched.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.check_response"
+    )
     def test_update_schedule_replicate_frequency_change_with_at(
         self, mock_check_response, mock_get_with_context
     ):
@@ -780,8 +844,12 @@ class TestUpdateScheduleReplication:
 class TestDeleteScheduleEnabled:
     """Test cases for delete_schedule when schedules are enabled"""
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
-    @patch("plugins.modules.purefa_pgsched.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.check_response"
+    )
     def test_delete_schedule_replication_enabled(
         self, mock_check_response, mock_get_with_context
     ):
@@ -805,8 +873,12 @@ class TestDeleteScheduleEnabled:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
-    @patch("plugins.modules.purefa_pgsched.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.check_response"
+    )
     def test_delete_schedule_snapshot_enabled(
         self, mock_check_response, mock_get_with_context
     ):
@@ -830,7 +902,9 @@ class TestDeleteScheduleEnabled:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsched.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsched.get_with_context"
+    )
     def test_delete_schedule_snapshot_check_mode(self, mock_get_with_context):
         """Test delete_schedule snapshot in check mode"""
         mock_module = Mock()

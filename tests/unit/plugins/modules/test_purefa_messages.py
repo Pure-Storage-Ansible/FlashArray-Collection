@@ -14,18 +14,8 @@ from unittest.mock import MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -93,9 +83,15 @@ class TestCreateTimeWindow:
 class TestMain:
     """Tests for main function"""
 
-    @patch("plugins.modules.purefa_messages.get_with_context")
-    @patch("plugins.modules.purefa_messages.get_array")
-    @patch("plugins.modules.purefa_messages.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.AnsibleModule"
+    )
     def test_main_old_api_version_fails(
         self,
         mock_ansible_module,
@@ -126,9 +122,15 @@ class TestMain:
             "Minimum version required: 2.2"
         )
 
-    @patch("plugins.modules.purefa_messages.get_with_context")
-    @patch("plugins.modules.purefa_messages.get_array")
-    @patch("plugins.modules.purefa_messages.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.AnsibleModule"
+    )
     def test_main_invalid_history_period_fails(
         self,
         mock_ansible_module,
@@ -158,10 +160,18 @@ class TestMain:
             msg="historical window value is not an allowsd time period"
         )
 
-    @patch("plugins.modules.purefa_messages.time")
-    @patch("plugins.modules.purefa_messages.get_with_context")
-    @patch("plugins.modules.purefa_messages.get_array")
-    @patch("plugins.modules.purefa_messages.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.time"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.AnsibleModule"
+    )
     def test_main_get_alerts_success(
         self,
         mock_ansible_module,
@@ -216,10 +226,18 @@ class TestMain:
         assert call_args.kwargs["changed"] is False
         assert "purefa_messages" in call_args.kwargs
 
-    @patch("plugins.modules.purefa_messages.time")
-    @patch("plugins.modules.purefa_messages.get_with_context")
-    @patch("plugins.modules.purefa_messages.get_array")
-    @patch("plugins.modules.purefa_messages.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.time"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.AnsibleModule"
+    )
     def test_main_get_alerts_with_flagged_true(
         self,
         mock_ansible_module,
@@ -255,10 +273,18 @@ class TestMain:
 
         mock_module.exit_json.assert_called_once_with(changed=False, purefa_messages={})
 
-    @patch("plugins.modules.purefa_messages.time")
-    @patch("plugins.modules.purefa_messages.get_with_context")
-    @patch("plugins.modules.purefa_messages.get_array")
-    @patch("plugins.modules.purefa_messages.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.time"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.AnsibleModule"
+    )
     def test_main_get_alerts_failed(
         self,
         mock_ansible_module,
@@ -298,10 +324,18 @@ class TestMain:
             msg="Failed to get alert messages. Error: API error"
         )
 
-    @patch("plugins.modules.purefa_messages.time")
-    @patch("plugins.modules.purefa_messages.get_with_context")
-    @patch("plugins.modules.purefa_messages.get_array")
-    @patch("plugins.modules.purefa_messages.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.time"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_messages.AnsibleModule"
+    )
     def test_main_closed_alert(
         self,
         mock_ansible_module,

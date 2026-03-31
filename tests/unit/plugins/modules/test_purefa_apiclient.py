@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock, patch
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -114,7 +104,9 @@ class TestUpdateClient:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.patch_api_clients.assert_not_called()
 
-    @patch("plugins.modules.purefa_apiclient.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.check_response"
+    )
     def test_update_client_enable_success(self, mock_check_response):
         """Test update_client successfully enables client"""
         mock_module = Mock()
@@ -174,7 +166,9 @@ class TestCreateClient:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_apiclient.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.check_response"
+    )
     def test_create_client_success(self, mock_check_response):
         """Test create_client successfully creates client"""
         from plugins.modules.purefa_apiclient import create_client
@@ -197,7 +191,9 @@ class TestCreateClient:
         mock_array.post_api_clients.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_apiclient.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.check_response"
+    )
     def test_create_client_with_enabled_true(self, mock_check_response):
         """Test create_client with enabled=True triggers patch"""
         from plugins.modules.purefa_apiclient import create_client
@@ -277,12 +273,20 @@ class TestCreateClient:
 class TestMainFunction:
     """Tests for main function"""
 
-    @patch("plugins.modules.purefa_apiclient.AnsibleModule")
-    @patch("plugins.modules.purefa_apiclient.get_array")
-    @patch("plugins.modules.purefa_apiclient.create_client")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.create_client"
+    )
     def test_main_create_client(self, mock_create, mock_get_array, mock_ansible_module):
         """Test main() creates client when not exists"""
-        from plugins.modules.purefa_apiclient import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -300,12 +304,20 @@ class TestMainFunction:
 
         mock_create.assert_called_once()
 
-    @patch("plugins.modules.purefa_apiclient.AnsibleModule")
-    @patch("plugins.modules.purefa_apiclient.get_array")
-    @patch("plugins.modules.purefa_apiclient.update_client")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.update_client"
+    )
     def test_main_update_client(self, mock_update, mock_get_array, mock_ansible_module):
         """Test main() updates client when exists"""
-        from plugins.modules.purefa_apiclient import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -325,12 +337,20 @@ class TestMainFunction:
 
         mock_update.assert_called_once()
 
-    @patch("plugins.modules.purefa_apiclient.AnsibleModule")
-    @patch("plugins.modules.purefa_apiclient.get_array")
-    @patch("plugins.modules.purefa_apiclient.delete_client")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.delete_client"
+    )
     def test_main_delete_client(self, mock_delete, mock_get_array, mock_ansible_module):
         """Test main() deletes client when exists and state=absent"""
-        from plugins.modules.purefa_apiclient import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -350,11 +370,17 @@ class TestMainFunction:
 
         mock_delete.assert_called_once()
 
-    @patch("plugins.modules.purefa_apiclient.AnsibleModule")
-    @patch("plugins.modules.purefa_apiclient.get_array")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.get_array"
+    )
     def test_main_absent_not_exists(self, mock_get_array, mock_ansible_module):
         """Test main() does nothing when state=absent and client doesn't exist"""
-        from plugins.modules.purefa_apiclient import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -373,11 +399,15 @@ class TestMainFunction:
         mock_module.exit_json.assert_called_once_with(changed=False)
 
     @patch("plugins.modules.purefa_apiclient.HAS_PURESTORAGE", False)
-    @patch("plugins.modules.purefa_apiclient.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.AnsibleModule"
+    )
     def test_main_no_purestorage(self, mock_ansible_module):
         """Test main() fails when py-pure-client is not installed"""
         import pytest
-        from plugins.modules.purefa_apiclient import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.fail_json.side_effect = SystemExit(1)
@@ -388,12 +418,18 @@ class TestMainFunction:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_apiclient.AnsibleModule")
-    @patch("plugins.modules.purefa_apiclient.get_array")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient.get_array"
+    )
     def test_main_api_version_too_low(self, mock_get_array, mock_ansible_module):
         """Test main() fails when API version is too low"""
         import pytest
-        from plugins.modules.purefa_apiclient import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_apiclient import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {"name": "test-client", "state": "present"}

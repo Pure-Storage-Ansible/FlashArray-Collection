@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -33,14 +23,22 @@ sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers"
 ] = MagicMock()
 
-from plugins.modules.purefa_timeout import main, set_timeout, disable_timeout
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout import (
+    main,
+    set_timeout,
+    disable_timeout,
+)
 
 
 class TestSetTimeout:
     """Test cases for set_timeout function"""
 
-    @patch("plugins.modules.purefa_timeout.check_response")
-    @patch("plugins.modules.purefa_timeout.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.get_with_context"
+    )
     def test_set_timeout_success(self, mock_get_with_context, mock_check_response):
         """Test successful timeout setting"""
         mock_module = Mock()
@@ -58,8 +56,12 @@ class TestSetTimeout:
         mock_check_response.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_timeout.check_response")
-    @patch("plugins.modules.purefa_timeout.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.get_with_context"
+    )
     def test_set_timeout_check_mode(self, mock_get_with_context, mock_check_response):
         """Test timeout setting in check mode"""
         mock_module = Mock()
@@ -78,8 +80,12 @@ class TestSetTimeout:
 class TestDisableTimeout:
     """Test cases for disable_timeout function"""
 
-    @patch("plugins.modules.purefa_timeout.check_response")
-    @patch("plugins.modules.purefa_timeout.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.get_with_context"
+    )
     def test_disable_timeout_success(self, mock_get_with_context, mock_check_response):
         """Test successful timeout disable"""
         mock_module = Mock()
@@ -97,8 +103,12 @@ class TestDisableTimeout:
         mock_check_response.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_timeout.check_response")
-    @patch("plugins.modules.purefa_timeout.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.get_with_context"
+    )
     def test_disable_timeout_check_mode(
         self, mock_get_with_context, mock_check_response
     ):
@@ -119,9 +129,15 @@ class TestDisableTimeout:
 class TestMain:
     """Test cases for main function"""
 
-    @patch("plugins.modules.purefa_timeout.get_with_context")
-    @patch("plugins.modules.purefa_timeout.get_array")
-    @patch("plugins.modules.purefa_timeout.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_timeout.HAS_PURESTORAGE", False)
     def test_main_missing_sdk(
         self, mock_ansible_module, mock_get_array, mock_get_with_context
@@ -141,9 +157,15 @@ class TestMain:
         call_args = mock_module.fail_json.call_args[1]
         assert "py-pure-client sdk is required" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_timeout.get_with_context")
-    @patch("plugins.modules.purefa_timeout.get_array")
-    @patch("plugins.modules.purefa_timeout.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_timeout.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_timeout.HAS_PURESTORAGE", True)
     def test_main_timeout_unchanged(
         self, mock_ansible_module, mock_get_array, mock_get_with_context

@@ -29,18 +29,8 @@ sys.modules["pytz"] = mock_pytz
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -112,7 +102,9 @@ class TestGetFilterString:
 
 
 # Import main for testing
-from plugins.modules.purefa_audits import main
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits import (
+    main,
+)
 import pytest
 from unittest.mock import patch
 
@@ -121,7 +113,9 @@ class TestAuditsMissingDependency:
     """Test cases for missing dependency"""
 
     @patch("plugins.modules.purefa_audits.HAS_PYTZ", False)
-    @patch("plugins.modules.purefa_audits.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.AnsibleModule"
+    )
     def test_missing_pytz_dependency_fails(self, mock_ansible_module):
         """Test that missing pytz dependency fails"""
         mock_module = Mock()
@@ -144,10 +138,18 @@ class TestAuditsMissingDependency:
 class TestMainTimezone:
     """Test cases for timezone handling in main"""
 
-    @patch("plugins.modules.purefa_audits.datetime")
-    @patch("plugins.modules.purefa_audits.get_with_context")
-    @patch("plugins.modules.purefa_audits.get_array")
-    @patch("plugins.modules.purefa_audits.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.datetime"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.AnsibleModule"
+    )
     def test_main_timezone_from_api(
         self,
         mock_ansible_module,
@@ -190,11 +192,21 @@ class TestMainTimezone:
 
         mock_module.exit_json.assert_called_once_with(changed=False, purefa_audits={})
 
-    @patch("plugins.modules.purefa_audits.get_local_tz")
-    @patch("plugins.modules.purefa_audits.datetime")
-    @patch("plugins.modules.purefa_audits.get_with_context")
-    @patch("plugins.modules.purefa_audits.get_array")
-    @patch("plugins.modules.purefa_audits.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.get_local_tz"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.datetime"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.AnsibleModule"
+    )
     def test_main_timezone_from_local(
         self,
         mock_ansible_module,
@@ -233,11 +245,21 @@ class TestMainTimezone:
 
         mock_module.exit_json.assert_called_once_with(changed=False, purefa_audits={})
 
-    @patch("plugins.modules.purefa_audits.pytz")
-    @patch("plugins.modules.purefa_audits.datetime")
-    @patch("plugins.modules.purefa_audits.get_with_context")
-    @patch("plugins.modules.purefa_audits.get_array")
-    @patch("plugins.modules.purefa_audits.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.pytz"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.datetime"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.AnsibleModule"
+    )
     def test_main_invalid_timezone_fails(
         self,
         mock_ansible_module,
@@ -270,11 +292,21 @@ class TestMainTimezone:
             msg="Timezone Invalid/Timezone is not valid"
         )
 
-    @patch("plugins.modules.purefa_audits.pytz")
-    @patch("plugins.modules.purefa_audits.datetime")
-    @patch("plugins.modules.purefa_audits.get_with_context")
-    @patch("plugins.modules.purefa_audits.get_array")
-    @patch("plugins.modules.purefa_audits.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.pytz"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.datetime"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.AnsibleModule"
+    )
     def test_main_explicit_timezone(
         self,
         mock_ansible_module,
@@ -319,11 +351,21 @@ class TestMainTimezone:
 class TestMainAudits:
     """Test cases for audit retrieval"""
 
-    @patch("plugins.modules.purefa_audits.pytz")
-    @patch("plugins.modules.purefa_audits.datetime")
-    @patch("plugins.modules.purefa_audits.get_with_context")
-    @patch("plugins.modules.purefa_audits.get_array")
-    @patch("plugins.modules.purefa_audits.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.pytz"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.datetime"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.AnsibleModule"
+    )
     def test_main_get_audits_success(
         self,
         mock_ansible_module,
@@ -386,11 +428,21 @@ class TestMainAudits:
         assert audits["audit1"]["user"] == "admin"
         assert audits["audit1"]["command"] == "purarray"
 
-    @patch("plugins.modules.purefa_audits.pytz")
-    @patch("plugins.modules.purefa_audits.datetime")
-    @patch("plugins.modules.purefa_audits.get_with_context")
-    @patch("plugins.modules.purefa_audits.get_array")
-    @patch("plugins.modules.purefa_audits.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.pytz"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.datetime"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_audits.AnsibleModule"
+    )
     def test_main_get_audits_failed(
         self,
         mock_ansible_module,

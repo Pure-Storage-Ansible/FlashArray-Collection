@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -82,7 +72,9 @@ class TestIsCbs:
 class TestGetHost:
     """Test cases for get_host function"""
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_get_host_exists(self, mock_get_with_context):
         """Test get_host returns host when it exists"""
         mock_module = Mock()
@@ -97,7 +89,9 @@ class TestGetHost:
 
         assert result == mock_host
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_get_host_not_exists(self, mock_get_with_context):
         """Test get_host returns None when host doesn't exist"""
         mock_module = Mock()
@@ -114,7 +108,9 @@ class TestGetHost:
 class TestGetMultiHosts:
     """Test cases for get_multi_hosts function"""
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_get_multi_hosts_all_exist(self, mock_get_with_context):
         """Test get_multi_hosts returns True when all hosts exist"""
         mock_module = Mock()
@@ -133,7 +129,9 @@ class TestGetMultiHosts:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_get_multi_hosts_not_exist(self, mock_get_with_context):
         """Test get_multi_hosts returns False when hosts don't exist"""
         mock_module = Mock()
@@ -152,7 +150,9 @@ class TestGetMultiHosts:
 
         assert result is False
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_get_multi_hosts_with_suffix(self, mock_get_with_context):
         """Test get_multi_hosts with suffix"""
         mock_module = Mock()
@@ -179,7 +179,9 @@ class TestGetMultiHosts:
 class TestRenameExists:
     """Test cases for rename_exists function"""
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_rename_exists_true(self, mock_get_with_context):
         """Test rename_exists returns True when target exists"""
         mock_module = Mock()
@@ -192,7 +194,9 @@ class TestRenameExists:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_rename_exists_false(self, mock_get_with_context):
         """Test rename_exists returns False when target doesn't exist"""
         mock_module = Mock()
@@ -209,8 +213,12 @@ class TestRenameExists:
 class TestMakeHost:
     """Test cases for make_host function"""
 
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
     def test_make_host_check_mode(self, mock_check_response, mock_get_with_context):
         """Test make_host in check mode doesn't make API calls"""
         mock_module = Mock()
@@ -223,9 +231,15 @@ class TestMakeHost:
         mock_get_with_context.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_host._set_host_initiators")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_host_initiators"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
     def test_make_host_basic(
         self, mock_check_response, mock_get_with_context, mock_set_initiators
     ):
@@ -255,8 +269,12 @@ class TestMakeHost:
 class TestMakeMultiHosts:
     """Test cases for make_multi_hosts function"""
 
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
     def test_make_multi_hosts_check_mode(
         self, mock_check_response, mock_get_with_context
     ):
@@ -277,8 +295,12 @@ class TestMakeMultiHosts:
         mock_get_with_context.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_make_multi_hosts_with_suffix(
         self, mock_get_with_context, mock_check_response
     ):
@@ -306,8 +328,12 @@ class TestMakeMultiHosts:
         assert "host03-prod" in call_args.kwargs["names"]
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_make_multi_hosts_without_suffix(
         self, mock_get_with_context, mock_check_response
     ):
@@ -334,8 +360,12 @@ class TestMakeMultiHosts:
         assert "server001" in call_args.kwargs["names"]
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_make_multi_hosts_with_personality(
         self, mock_get_with_context, mock_check_response
     ):
@@ -362,8 +392,12 @@ class TestMakeMultiHosts:
 class TestDeleteHost:
     """Test cases for delete_host function"""
 
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
     def test_delete_host_check_mode(self, mock_check_response, mock_get_with_context):
         """Test delete_host in check mode"""
         mock_module = Mock()
@@ -376,8 +410,12 @@ class TestDeleteHost:
         mock_get_with_context.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
     def test_delete_host_no_volumes(self, mock_check_response, mock_get_with_context):
         """Test delete_host with no connected volumes"""
         mock_module = Mock()
@@ -405,7 +443,9 @@ class TestUpdateHost:
     @patch(
         "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
     )
-    @patch("plugins.modules.purefa_host.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.LooseVersion"
+    )
     def test_update_host_no_changes(self, mock_loose_version, mock_get_api_version):
         """Test update_host with no changes needed"""
         mock_module = Mock()
@@ -440,7 +480,9 @@ class TestSetHostPersonality:
     @patch(
         "plugins.modules.purefa_host.get_with_context",
     )
-    @patch("plugins.modules.purefa_host.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
     def test_set_host_personality_success(
         self, mock_check_response, mock_get_with_context
     ):
@@ -467,7 +509,9 @@ class TestSetPreferredArray:
     @patch(
         "plugins.modules.purefa_host.get_with_context",
     )
-    @patch("plugins.modules.purefa_host.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
     def test_set_preferred_array_success(
         self, mock_check_response, mock_get_with_context
     ):
@@ -490,7 +534,9 @@ class TestSetPreferredArray:
     @patch(
         "plugins.modules.purefa_host.get_with_context",
     )
-    @patch("plugins.modules.purefa_host.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
     def test_set_preferred_array_delete(
         self, mock_check_response, mock_get_with_context
     ):
@@ -515,8 +561,12 @@ class TestSetPreferredArray:
 class TestSetChapSecurity:
     """Test cases for _set_chap_security function"""
 
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
     def test_set_chap_host_user(self, mock_check_response, mock_get_with_context):
         """Test setting CHAP host user"""
         mock_module = Mock()
@@ -537,8 +587,12 @@ class TestSetChapSecurity:
 
         mock_get_with_context.assert_called()
 
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
     def test_set_chap_target_user(self, mock_check_response, mock_get_with_context):
         """Test setting CHAP target user"""
         mock_module = Mock()
@@ -563,7 +617,9 @@ class TestSetChapSecurity:
 class TestSetVlan:
     """Test cases for _set_vlan function"""
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_set_vlan_success(self, mock_get_with_context):
         """Test setting VLAN successfully"""
         mock_module = Mock()
@@ -584,7 +640,9 @@ class TestSetVlan:
 class TestUpdateVlan:
     """Test cases for _update_vlan function"""
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_vlan_no_change(self, mock_get_with_context):
         """Test update_vlan when VLAN matches"""
         mock_module = Mock()
@@ -603,7 +661,9 @@ class TestUpdateVlan:
 
         assert result is False
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_vlan_change_check_mode(self, mock_get_with_context):
         """Test update_vlan in check mode when VLAN differs"""
         mock_module = Mock()
@@ -626,7 +686,9 @@ class TestUpdateVlan:
 class TestMoveHost:
     """Test cases for move_host function"""
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_move_host_fail_with_context(self, mock_get_with_context):
         """Test move_host fails when context is provided"""
         import pytest
@@ -647,7 +709,9 @@ class TestMoveHost:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_move_host_with_connections_fails(self, mock_get_with_context):
         """Test move_host fails when host has connections"""
         import pytest
@@ -682,8 +746,12 @@ class TestMoveHost:
 class TestMakeHostSuccess:
     """Test cases for make_host success paths"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_make_host_success(self, mock_get_with_context, mock_check_response):
         """Test make_host creates host successfully"""
         mock_module = Mock()
@@ -710,9 +778,15 @@ class TestMakeHostSuccess:
         mock_get_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host._set_vlan")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_vlan"
+    )
     def test_make_host_with_vlan(
         self, mock_set_vlan, mock_get_with_context, mock_check_response
     ):
@@ -745,7 +819,9 @@ class TestMakeHostSuccess:
 class TestDeleteHostSuccess:
     """Test cases for delete_host success paths"""
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_delete_host_success(self, mock_get_with_context):
         """Test delete_host successfully deletes host"""
         mock_module = Mock()
@@ -778,8 +854,12 @@ class TestDeleteHostSuccess:
 class TestConnectNewVolume:
     """Test cases for _connect_new_volume function"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_connect_new_volume_success(
         self, mock_get_with_context, mock_check_response
     ):
@@ -801,8 +881,12 @@ class TestConnectNewVolume:
         assert result is True
         mock_get_with_context.assert_called_once()
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_connect_new_volume_with_lun(
         self, mock_get_with_context, mock_check_response
     ):
@@ -826,8 +910,12 @@ class TestConnectNewVolume:
         call_kwargs = mock_get_with_context.call_args[1]
         assert "connection" in call_kwargs
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_connect_new_volume_check_mode(
         self, mock_get_with_context, mock_check_response
     ):
@@ -852,8 +940,12 @@ class TestConnectNewVolume:
 class TestDisconnectVolume:
     """Test cases for _disconnect_volume function"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_disconnect_volume_success(
         self, mock_get_with_context, mock_check_response
     ):
@@ -874,8 +966,12 @@ class TestDisconnectVolume:
         assert result is True
         mock_get_with_context.assert_called_once()
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_disconnect_volume_check_mode(
         self, mock_get_with_context, mock_check_response
     ):
@@ -899,8 +995,12 @@ class TestDisconnectVolume:
 class TestUpdateHostInitiators:
     """Test cases for _update_host_initiators function"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_host_initiators_add_wwn(
         self, mock_get_with_context, mock_check_response
     ):
@@ -928,8 +1028,12 @@ class TestUpdateHostInitiators:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_host_initiators_no_changes(
         self, mock_get_with_context, mock_check_response
     ):
@@ -961,8 +1065,12 @@ class TestUpdateHostInitiators:
 class TestDeleteHostSuccessExtended:
     """Test cases for delete_host success paths - extended"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_delete_host_success(self, mock_get_with_context, mock_check_response):
         """Test delete_host successfully deletes"""
         mock_module = Mock()
@@ -983,8 +1091,12 @@ class TestDeleteHostSuccessExtended:
 class TestSetHostPersonalityExtended:
     """Extended test cases for _set_host_personality"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_set_host_personality_linux(
         self, mock_get_with_context, mock_check_response
     ):
@@ -999,8 +1111,12 @@ class TestSetHostPersonalityExtended:
         mock_get_with_context.assert_called_once()
         mock_check_response.assert_called_once()
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_set_host_personality_delete(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1018,8 +1134,12 @@ class TestSetHostPersonalityExtended:
 class TestSetPreferredArrayExtended:
     """Extended test cases for _set_preferred_array"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_set_preferred_array_success(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1038,8 +1158,12 @@ class TestSetPreferredArrayExtended:
         mock_get_with_context.assert_called_once()
         mock_check_response.assert_called_once()
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_set_preferred_array_delete(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1061,8 +1185,12 @@ class TestSetPreferredArrayExtended:
 class TestUpdateChapSecurity:
     """Test cases for _update_chap_security function"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_chap_host_user_clear(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1091,8 +1219,12 @@ class TestUpdateChapSecurity:
         assert result is True
         assert mock_get_with_context.call_count >= 2
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_chap_host_password_invalid(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1122,8 +1254,12 @@ class TestUpdateChapSecurity:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_chap_target_user_clear(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1155,8 +1291,12 @@ class TestUpdateChapSecurity:
 class TestUpdateHostPersonality:
     """Test cases for _update_host_personality function"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_host_personality_change(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1181,7 +1321,9 @@ class TestUpdateHostPersonality:
         assert result is True
         assert mock_get_with_context.call_count >= 2
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_host_personality_no_change(self, mock_get_with_context):
         """Test updating host personality when no change needed"""
         from plugins.modules.purefa_host import _update_host_personality
@@ -1203,8 +1345,12 @@ class TestUpdateHostPersonality:
 
         assert result is False
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_host_personality_delete(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1232,8 +1378,12 @@ class TestUpdateHostPersonality:
 class TestConnectVolume:
     """Test cases for _connect_new_volume function"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_connect_volume_success(self, mock_get_with_context, mock_check_response):
         """Test connecting volume to host"""
         from plugins.modules.purefa_host import _connect_new_volume
@@ -1253,8 +1403,12 @@ class TestConnectVolume:
         assert result is True
         mock_get_with_context.assert_called_once()
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_connect_volume_with_lun(self, mock_get_with_context, mock_check_response):
         """Test connecting volume with specific LUN"""
         from plugins.modules.purefa_host import _connect_new_volume
@@ -1296,8 +1450,12 @@ class TestConnectVolume:
 class TestDisconnectVolumeExtended:
     """Test cases for _disconnect_volume function - extended"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_disconnect_volume_success(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1403,7 +1561,9 @@ class TestMoveHostExtended:
             msg="host must be provided with current realm name"
         )
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_move_host_with_connections_fails(self, mock_get_with_context):
         """Test move_host fails when host has existing connections"""
         import pytest
@@ -1430,8 +1590,12 @@ class TestMoveHostExtended:
             msg="Hosts cannot be moved with existing volume connections."
         )
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_move_host_to_local_success(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1457,8 +1621,12 @@ class TestMoveHostExtended:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_move_host_to_realm_success(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1484,7 +1652,9 @@ class TestMoveHostExtended:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_move_host_check_mode(self, mock_get_with_context):
         """Test move_host in check mode"""
         from plugins.modules.purefa_host import move_host
@@ -1514,8 +1684,12 @@ class TestMoveHostExtended:
 class TestUpdatePreferredArray:
     """Test cases for _update_preferred_array function"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_preferred_array_add_to_empty(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1541,8 +1715,12 @@ class TestUpdatePreferredArray:
         assert result is True
         assert mock_get_with_context.call_count == 2
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_preferred_array_delete(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1570,7 +1748,9 @@ class TestUpdatePreferredArray:
         assert result is True
         assert mock_get_with_context.call_count == 2
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_preferred_array_no_change(self, mock_get_with_context):
         """Test no change when preferred arrays match"""
         mock_module = Mock()
@@ -1593,8 +1773,12 @@ class TestUpdatePreferredArray:
         assert result is False
         assert mock_get_with_context.call_count == 1
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_preferred_array_change_list(
         self, mock_get_with_context, mock_check_response
     ):
@@ -1622,7 +1806,9 @@ class TestUpdatePreferredArray:
         assert result is True
         assert mock_get_with_context.call_count == 2
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_preferred_array_delete_when_empty(self, mock_get_with_context):
         """Test delete preferred array when already empty - no change"""
         mock_module = Mock()
@@ -1647,9 +1833,15 @@ class TestUpdatePreferredArray:
 class TestSetHostInitiators:
     """Test cases for _set_host_initiators function"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
     def test_set_host_initiators_nqn(self, mock_host_patch, mock_get, mock_check):
         """Test setting NQN initiators"""
         mock_module = Mock()
@@ -1667,9 +1859,15 @@ class TestSetHostInitiators:
         mock_get.assert_called_once()
         mock_check.assert_called_once()
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
     def test_set_host_initiators_iqn(self, mock_host_patch, mock_get, mock_check):
         """Test setting IQN initiators"""
         mock_module = Mock()
@@ -1687,9 +1885,15 @@ class TestSetHostInitiators:
         mock_get.assert_called_once()
         mock_check.assert_called_once()
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
     def test_set_host_initiators_wwns(self, mock_host_patch, mock_get, mock_check):
         """Test setting WWN initiators"""
         mock_module = Mock()
@@ -1711,9 +1915,15 @@ class TestSetHostInitiators:
 class TestUpdateHostInitiatorsExtended:
     """Extended test cases for _update_host_initiators function"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
     def test_update_nqn_change(self, mock_host_patch, mock_get, mock_check):
         """Test updating NQN when different"""
         mock_module = Mock()
@@ -1740,9 +1950,15 @@ class TestUpdateHostInitiatorsExtended:
         assert result is True
         assert mock_get.call_count == 2
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
     def test_update_nqn_remove(self, mock_host_patch, mock_get, mock_check):
         """Test removing NQN when empty string provided"""
         mock_module = Mock()
@@ -1769,9 +1985,15 @@ class TestUpdateHostInitiatorsExtended:
         assert result is True
         assert mock_get.call_count == 2
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
     def test_update_iqn_change(self, mock_host_patch, mock_get, mock_check):
         """Test updating IQN when different"""
         mock_module = Mock()
@@ -1797,9 +2019,15 @@ class TestUpdateHostInitiatorsExtended:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
     def test_update_iqn_remove(self, mock_host_patch, mock_get, mock_check):
         """Test removing IQN when empty string provided"""
         mock_module = Mock()
@@ -1825,9 +2053,15 @@ class TestUpdateHostInitiatorsExtended:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
     def test_update_wwns_change(self, mock_host_patch, mock_get, mock_check):
         """Test updating WWNs when different"""
         mock_module = Mock()
@@ -1853,8 +2087,12 @@ class TestUpdateHostInitiatorsExtended:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
     def test_update_wwns_remove(self, mock_host_patch, mock_get):
         """Test removing WWNs when empty string provided"""
         mock_module = Mock()
@@ -1884,9 +2122,15 @@ class TestUpdateHostInitiatorsExtended:
 class TestUpdateHostPersonalityExtended:
     """Extended test cases for _update_host_personality function"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
     def test_update_personality_add_new(self, mock_host_patch, mock_get, mock_check):
         """Test adding personality when host has none"""
         mock_module = Mock()
@@ -1908,9 +2152,15 @@ class TestUpdateHostPersonalityExtended:
         assert result is True
         assert mock_get.call_count == 2
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
     def test_update_personality_delete(self, mock_host_patch, mock_get, mock_check):
         """Test deleting personality when host has one"""
         mock_module = Mock()
@@ -1932,9 +2182,15 @@ class TestUpdateHostPersonalityExtended:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
     def test_update_personality_change(self, mock_host_patch, mock_get, mock_check):
         """Test changing personality"""
         mock_module = Mock()
@@ -1960,10 +2216,18 @@ class TestUpdateHostPersonalityExtended:
 class TestUpdateChapSecurityExtended:
     """Extended test cases for _update_chap_security function"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
-    @patch("plugins.modules.purefa_host.Chap")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.Chap"
+    )
     def test_update_chap_set_host_user(
         self, mock_chap, mock_host_patch, mock_get, mock_check
     ):
@@ -1991,10 +2255,18 @@ class TestUpdateChapSecurityExtended:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
-    @patch("plugins.modules.purefa_host.Chap")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.Chap"
+    )
     def test_update_chap_clear_host_password(
         self, mock_chap, mock_host_patch, mock_get, mock_check
     ):
@@ -2023,10 +2295,18 @@ class TestUpdateChapSecurityExtended:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
-    @patch("plugins.modules.purefa_host.Chap")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.Chap"
+    )
     def test_update_chap_set_target_user(
         self, mock_chap, mock_host_patch, mock_get, mock_check
     ):
@@ -2054,10 +2334,18 @@ class TestUpdateChapSecurityExtended:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
-    @patch("plugins.modules.purefa_host.Chap")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.Chap"
+    )
     def test_update_chap_clear_target_password(
         self, mock_chap, mock_host_patch, mock_get, mock_check
     ):
@@ -2086,9 +2374,15 @@ class TestUpdateChapSecurityExtended:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
-    @patch("plugins.modules.purefa_host.Chap")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.Chap"
+    )
     def test_update_chap_invalid_host_password(
         self, mock_chap, mock_host_patch, mock_get
     ):
@@ -2117,9 +2411,15 @@ class TestUpdateChapSecurityExtended:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
-    @patch("plugins.modules.purefa_host.Chap")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.Chap"
+    )
     def test_update_chap_invalid_target_password(
         self, mock_chap, mock_host_patch, mock_get
     ):
@@ -2152,10 +2452,18 @@ class TestUpdateChapSecurityExtended:
 class TestMakeHostWithVolume:
     """Test cases for make_host with volume connection"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPost")
-    @patch("plugins.modules.purefa_host.ConnectionPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.ConnectionPost"
+    )
     def test_make_host_with_volume_and_lun(
         self, mock_conn_post, mock_host_post, mock_get, mock_check
     ):
@@ -2185,9 +2493,15 @@ class TestMakeHostWithVolume:
         # Should call post for connections with LUN
         assert mock_get.call_count >= 2
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPost"
+    )
     def test_make_host_with_volume_no_lun(self, mock_host_post, mock_get, mock_check):
         """Test creating host with volume but no LUN"""
         mock_module = Mock()
@@ -2220,10 +2534,18 @@ class TestUpdateHostRename:
     @patch(
         "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
     )
-    @patch("plugins.modules.purefa_host.rename_exists")
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
-    @patch("plugins.modules.purefa_host.HostPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.rename_exists"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.HostPatch"
+    )
     @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
     def test_update_host_rename_success(
         self,
@@ -2266,8 +2588,12 @@ class TestUpdateHostRename:
     @patch(
         "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
     )
-    @patch("plugins.modules.purefa_host.rename_exists")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.rename_exists"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
     def test_update_host_rename_target_exists(
         self, mock_lv, mock_get, mock_rename_exists, mock_api
@@ -2306,8 +2632,12 @@ class TestUpdateHostDisconnectVolume:
     @patch(
         "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
     )
-    @patch("plugins.modules.purefa_host._disconnect_volume")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._disconnect_volume"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
     def test_update_host_disconnect_volume(
         self, mock_lv, mock_get, mock_disconnect, mock_api
@@ -2347,8 +2677,12 @@ class TestUpdateHostDisconnectVolume:
 class TestDeleteHostWithHostGroup:
     """Test cases for delete_host when host is in a host group"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_delete_host_in_hostgroup(self, mock_get, mock_check):
         """Test deleting host that belongs to a host group"""
         mock_module = Mock()
@@ -2379,8 +2713,12 @@ class TestDeleteHostWithHostGroup:
 class TestSetChapSecurityValidation:
     """Test cases for CHAP password validation in _set_chap_security"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_host_password_too_short_fails(self, mock_get, mock_check):
         """Test that host_password < 12 characters fails validation"""
         mock_module = Mock()
@@ -2399,8 +2737,12 @@ class TestSetChapSecurityValidation:
         mock_module.fail_json.assert_called_once()
         assert "12" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_target_password_too_short_fails(self, mock_get, mock_check):
         """Test that target_password < 12 characters fails validation"""
         mock_module = Mock()
@@ -2423,7 +2765,9 @@ class TestSetChapSecurityValidation:
 class TestSetVlanFailure:
     """Test cases for VLAN set failure path"""
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_set_vlan_failure_warns(self, mock_get):
         """Test that failed VLAN set triggers warning"""
         mock_module = Mock()
@@ -2446,8 +2790,12 @@ class TestSetVlanFailure:
 class TestUpdateVlanPaths:
     """Test cases for _update_vlan function"""
 
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_vlan_changes_value(self, mock_get, mock_check):
         """Test VLAN update when value differs"""
         mock_module = Mock()
@@ -2472,7 +2820,9 @@ class TestUpdateVlanPaths:
         assert result is True
         assert mock_get.call_count == 2
 
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_update_vlan_no_change(self, mock_get):
         """Test VLAN update when value is the same"""
         mock_module = Mock()
@@ -2498,13 +2848,27 @@ class TestUpdateVlanPaths:
 class TestMakeHostWithAllOptions:
     """Test cases for make_host with personality, preferred_array, and CHAP"""
 
-    @patch("plugins.modules.purefa_host._set_chap_security")
-    @patch("plugins.modules.purefa_host._set_preferred_array")
-    @patch("plugins.modules.purefa_host._set_host_personality")
-    @patch("plugins.modules.purefa_host._set_host_initiators")
-    @patch("plugins.modules.purefa_host._set_vlan")
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_chap_security"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_preferred_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_host_personality"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_host_initiators"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_vlan"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_make_host_with_personality(
         self,
         mock_get,
@@ -2537,13 +2901,27 @@ class TestMakeHostWithAllOptions:
         mock_set_pref.assert_not_called()
         mock_set_chap.assert_not_called()
 
-    @patch("plugins.modules.purefa_host._set_chap_security")
-    @patch("plugins.modules.purefa_host._set_preferred_array")
-    @patch("plugins.modules.purefa_host._set_host_personality")
-    @patch("plugins.modules.purefa_host._set_host_initiators")
-    @patch("plugins.modules.purefa_host._set_vlan")
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_chap_security"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_preferred_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_host_personality"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_host_initiators"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_vlan"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_make_host_with_preferred_array(
         self,
         mock_get,
@@ -2576,13 +2954,27 @@ class TestMakeHostWithAllOptions:
         mock_set_pref.assert_called_once()
         mock_set_chap.assert_not_called()
 
-    @patch("plugins.modules.purefa_host._set_chap_security")
-    @patch("plugins.modules.purefa_host._set_preferred_array")
-    @patch("plugins.modules.purefa_host._set_host_personality")
-    @patch("plugins.modules.purefa_host._set_host_initiators")
-    @patch("plugins.modules.purefa_host._set_vlan")
-    @patch("plugins.modules.purefa_host.check_response")
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_chap_security"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_preferred_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_host_personality"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_host_initiators"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._set_vlan"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     def test_make_host_with_chap(
         self,
         mock_get,
@@ -2619,11 +3011,15 @@ class TestMakeHostWithAllOptions:
 class TestUpdateHostWithAllOptions:
     """Test cases for update_host with all update paths"""
 
-    @patch("plugins.modules.purefa_host._update_vlan")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._update_vlan"
+    )
     @patch(
         "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
     )
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
     def test_update_host_with_vlan(
         self, mock_lv, mock_get, mock_api_version, mock_update_vlan
@@ -2656,11 +3052,15 @@ class TestUpdateHostWithAllOptions:
         mock_update_vlan.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_host._update_host_initiators")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._update_host_initiators"
+    )
     @patch(
         "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
     )
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
     def test_update_host_with_initiators(
         self, mock_lv, mock_get, mock_api_version, mock_update_init
@@ -2693,11 +3093,15 @@ class TestUpdateHostWithAllOptions:
         mock_update_init.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_host._connect_new_volume")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._connect_new_volume"
+    )
     @patch(
         "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
     )
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
     def test_update_host_connect_new_volume(
         self, mock_lv, mock_get, mock_api_version, mock_connect
@@ -2731,11 +3135,15 @@ class TestUpdateHostWithAllOptions:
         mock_connect.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_host._update_host_personality")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._update_host_personality"
+    )
     @patch(
         "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
     )
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
     def test_update_host_with_personality(
         self, mock_lv, mock_get, mock_api_version, mock_update_pers
@@ -2768,11 +3176,15 @@ class TestUpdateHostWithAllOptions:
         mock_update_pers.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_host._update_preferred_array")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._update_preferred_array"
+    )
     @patch(
         "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
     )
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
     def test_update_host_with_preferred_array(
         self, mock_lv, mock_get, mock_api_version, mock_update_pref
@@ -2805,11 +3217,15 @@ class TestUpdateHostWithAllOptions:
         mock_update_pref.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_host._update_chap_security")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host._update_chap_security"
+    )
     @patch(
         "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers.get_cached_api_version"
     )
-    @patch("plugins.modules.purefa_host.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_host.get_with_context"
+    )
     @patch("plugins.modules.purefa_host.LooseVersion", side_effect=lambda x: x)
     def test_update_host_with_chap(
         self, mock_lv, mock_get, mock_api_version, mock_update_chap

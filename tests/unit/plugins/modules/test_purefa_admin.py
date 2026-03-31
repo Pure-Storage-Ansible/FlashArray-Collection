@@ -16,18 +16,8 @@ import pytest
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -45,14 +35,16 @@ sys.modules[
 ] = MagicMock()
 
 # Import after mocking
-from plugins.modules.purefa_admin import main
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_admin import main
 
 
 class TestAdminValidation:
     """Test cases for admin settings validation"""
 
     @patch("plugins.modules.purefa_admin.HAS_PURESTORAGE", False)
-    @patch("plugins.modules.purefa_admin.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_admin.AnsibleModule"
+    )
     def test_missing_purestorage_dependency_fails(self, mock_ansible_module):
         """Test that missing pypureclient dependency fails"""
         mock_module = Mock()
@@ -72,7 +64,9 @@ class TestAdminValidation:
             msg="py-pure-client sdk is required for this module"
         )
 
-    @patch("plugins.modules.purefa_admin.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_admin.AnsibleModule"
+    )
     def test_lockout_out_of_range_fails(self, mock_ansible_module):
         """Test that lockout out of range fails"""
         mock_module = Mock()
@@ -96,9 +90,15 @@ class TestAdminValidation:
 class TestAdminOldApiVersion:
     """Test cases for unsupported API version"""
 
-    @patch("plugins.modules.purefa_admin.LooseVersion")
-    @patch("plugins.modules.purefa_admin.get_array")
-    @patch("plugins.modules.purefa_admin.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_admin.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_admin.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_admin.AnsibleModule"
+    )
     def test_old_api_version_fails(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
@@ -135,9 +135,15 @@ class TestAdminOldApiVersion:
 class TestAdminNoChange:
     """Test cases for no change scenarios"""
 
-    @patch("plugins.modules.purefa_admin.LooseVersion")
-    @patch("plugins.modules.purefa_admin.get_array")
-    @patch("plugins.modules.purefa_admin.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_admin.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_admin.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_admin.AnsibleModule"
+    )
     def test_no_change_when_settings_match(
         self, mock_ansible_module, mock_get_array, mock_lv
     ):

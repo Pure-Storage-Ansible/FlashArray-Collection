@@ -15,18 +15,8 @@ from packaging.version import Version as LooseVersion
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -169,7 +159,9 @@ class TestGeneratePerfDict:
 class TestGenerateAdminDict:
     """Test cases for generate_admin_dict function"""
 
-    @patch("plugins.modules.purefa_info.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.LooseVersion"
+    )
     def test_generate_admin_dict_success(self, mock_loose_version):
         """Test admin dict generation"""
         mock_loose_version.side_effect = float
@@ -206,7 +198,9 @@ class TestGenerateAdminDict:
         assert result["pureuser"]["locked"] is False
         assert result["pureuser"]["role"] == "array_admin"
 
-    @patch("plugins.modules.purefa_info.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.LooseVersion"
+    )
     def test_generate_admin_dict_remote_user(self, mock_loose_version):
         """Test admin dict generation for remote user"""
         mock_loose_version.side_effect = float
@@ -401,8 +395,12 @@ class TestGenerateKmipDict:
 class TestMain:
     """Test cases for main function"""
 
-    @patch("plugins.modules.purefa_info.get_array")
-    @patch("plugins.modules.purefa_info.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.AnsibleModule"
+    )
     def test_main_invalid_subset(self, mock_ansible_module, mock_get_array):
         """Test main fails with invalid subset"""
         mock_module = Mock()
@@ -425,10 +423,18 @@ class TestMain:
         call_args = mock_module.fail_json.call_args[1]
         assert "gather_subset" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_info.LooseVersion")
-    @patch("plugins.modules.purefa_info.generate_default_dict")
-    @patch("plugins.modules.purefa_info.get_array")
-    @patch("plugins.modules.purefa_info.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.generate_default_dict"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.AnsibleModule"
+    )
     def test_main_minimum_subset(
         self, mock_ansible_module, mock_get_array, mock_gen_default, mock_loose_version
     ):
@@ -455,10 +461,18 @@ class TestMain:
         assert "purefa_info" in call_args
         assert "default" in call_args["purefa_info"]
 
-    @patch("plugins.modules.purefa_info.LooseVersion")
-    @patch("plugins.modules.purefa_info.generate_perf_dict")
-    @patch("plugins.modules.purefa_info.get_array")
-    @patch("plugins.modules.purefa_info.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.generate_perf_dict"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.AnsibleModule"
+    )
     def test_main_performance_subset(
         self, mock_ansible_module, mock_get_array, mock_gen_perf, mock_loose_version
     ):
@@ -483,10 +497,18 @@ class TestMain:
         call_args = mock_module.exit_json.call_args[1]
         assert "performance" in call_args["purefa_info"]
 
-    @patch("plugins.modules.purefa_info.LooseVersion")
-    @patch("plugins.modules.purefa_info.generate_admin_dict")
-    @patch("plugins.modules.purefa_info.get_array")
-    @patch("plugins.modules.purefa_info.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.generate_admin_dict"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.AnsibleModule"
+    )
     def test_main_admins_subset(
         self, mock_ansible_module, mock_get_array, mock_gen_admin, mock_loose_version
     ):
@@ -515,7 +537,9 @@ class TestMain:
 class TestGenerateDefaultDict:
     """Test cases for generate_default_dict function"""
 
-    @patch("plugins.modules.purefa_info.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info.LooseVersion"
+    )
     def test_generate_default_dict_success(self, mock_loose_version):
         """Test default dict generation with low API version to skip complex branches"""
         # Return low version to skip encryption and other complex branches
@@ -570,7 +594,9 @@ class TestGenerateDefaultDict:
 class TestGenerateCapacityDict:
     """Test cases for generate_capacity_dict function"""
 
-    @patch("plugins.modules.purefa_info._is_cbs")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_info._is_cbs"
+    )
     def test_generate_capacity_dict_success(self, mock_is_cbs):
         """Test capacity dict generation"""
         mock_is_cbs.return_value = False

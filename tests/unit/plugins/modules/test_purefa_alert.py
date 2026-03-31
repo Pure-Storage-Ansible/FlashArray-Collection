@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -132,7 +122,9 @@ from unittest.mock import patch
 class TestCreateAlertSuccess:
     """Test cases for create_alert success paths"""
 
-    @patch("plugins.modules.purefa_alert.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_alert.check_response"
+    )
     def test_create_alert_success(self, mock_check_response):
         """Test create_alert successfully creates alert"""
         mock_module = Mock()
@@ -150,7 +142,9 @@ class TestCreateAlertSuccess:
 class TestDeleteAlertSuccess:
     """Test cases for delete_alert success paths"""
 
-    @patch("plugins.modules.purefa_alert.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_alert.check_response"
+    )
     def test_delete_alert_success(self, mock_check_response):
         """Test delete_alert successfully deletes alert"""
         mock_module = Mock()
@@ -168,7 +162,9 @@ class TestDeleteAlertSuccess:
 class TestUpdateAlertSuccess:
     """Test cases for update_alert success paths"""
 
-    @patch("plugins.modules.purefa_alert.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_alert.check_response"
+    )
     def test_update_alert_success(self, mock_check_response):
         """Test update_alert successfully updates alert"""
         mock_module = Mock()

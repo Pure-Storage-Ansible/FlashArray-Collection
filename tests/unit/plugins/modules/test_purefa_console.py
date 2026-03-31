@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -33,14 +23,21 @@ sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers"
 ] = MagicMock()
 
-from plugins.modules.purefa_console import main, update_console
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_console import (
+    main,
+    update_console,
+)
 
 
 class TestUpdateConsole:
     """Test cases for update_console function"""
 
-    @patch("plugins.modules.purefa_console.check_response")
-    @patch("plugins.modules.purefa_console.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_console.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_console.get_with_context"
+    )
     def test_enable_console_lock(self, mock_get_with_context, mock_check_response):
         """Test enabling console lock"""
         mock_module = Mock()
@@ -62,8 +59,12 @@ class TestUpdateConsole:
         mock_check_response.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_console.check_response")
-    @patch("plugins.modules.purefa_console.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_console.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_console.get_with_context"
+    )
     def test_disable_console_lock(self, mock_get_with_context, mock_check_response):
         """Test disabling console lock"""
         mock_module = Mock()
@@ -85,8 +86,12 @@ class TestUpdateConsole:
         mock_check_response.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_console.check_response")
-    @patch("plugins.modules.purefa_console.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_console.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_console.get_with_context"
+    )
     def test_no_change_needed(self, mock_get_with_context, mock_check_response):
         """Test when console lock state already matches"""
         mock_module = Mock()
@@ -106,8 +111,12 @@ class TestUpdateConsole:
         mock_check_response.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_console.check_response")
-    @patch("plugins.modules.purefa_console.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_console.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_console.get_with_context"
+    )
     def test_check_mode(self, mock_get_with_context, mock_check_response):
         """Test console lock update in check mode"""
         mock_module = Mock()
@@ -131,8 +140,12 @@ class TestUpdateConsole:
 class TestMain:
     """Test cases for main function"""
 
-    @patch("plugins.modules.purefa_console.get_array")
-    @patch("plugins.modules.purefa_console.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_console.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_console.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_console.HAS_PYPURECLIENT", False)
     def test_main_missing_sdk(self, mock_ansible_module, mock_get_array):
         """Test main when pypureclient SDK is missing"""

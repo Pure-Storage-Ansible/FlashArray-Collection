@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock, patch
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -68,7 +58,9 @@ class TestDeleteAccount:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.delete_active_directory.assert_not_called()
 
-    @patch("plugins.modules.purefa_ad.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad.check_response"
+    )
     def test_delete_account_success(self, mock_check_response):
         """Test delete_account successfully deletes account"""
         mock_module = Mock()
@@ -84,7 +76,9 @@ class TestDeleteAccount:
         )
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ad.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad.check_response"
+    )
     def test_delete_account_local_only(self, mock_check_response):
         """Test delete_account with local_only option"""
         mock_module = Mock()
@@ -122,8 +116,12 @@ class TestUpdateAccount:
         mock_module.exit_json.assert_called_once_with(changed=False)
         mock_array.patch_active_directory.assert_not_called()
 
-    @patch("plugins.modules.purefa_ad.ActiveDirectoryPatch")
-    @patch("plugins.modules.purefa_ad.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad.ActiveDirectoryPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad.check_response"
+    )
     def test_update_account_tls_change(self, mock_check_response, mock_ad_patch_class):
         """Test update_account when TLS setting changes"""
         mock_module = Mock()
@@ -167,8 +165,12 @@ class TestUpdateAccount:
 class TestCreateAccount:
     """Tests for create_account function"""
 
-    @patch("plugins.modules.purefa_ad.ActiveDirectoryPost")
-    @patch("plugins.modules.purefa_ad.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad.ActiveDirectoryPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad.check_response"
+    )
     def test_create_account_old_api(self, mock_check_response, mock_ad_post_class):
         """Test create_account with old API version (no join_ou)"""
         mock_module = Mock()
@@ -196,8 +198,12 @@ class TestCreateAccount:
         mock_ad_post_class.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ad.ActiveDirectoryPost")
-    @patch("plugins.modules.purefa_ad.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad.ActiveDirectoryPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad.check_response"
+    )
     def test_create_account_new_api_with_tls(
         self, mock_check_response, mock_ad_post_class
     ):
@@ -228,7 +234,9 @@ class TestCreateAccount:
         mock_array.post_active_directory.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ad.ActiveDirectoryPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad.ActiveDirectoryPost"
+    )
     def test_create_account_check_mode(self, mock_ad_post_class):
         """Test create_account in check mode"""
         mock_module = Mock()
@@ -254,8 +262,12 @@ class TestCreateAccount:
         mock_array.post_active_directory.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ad.ActiveDirectoryPost")
-    @patch("plugins.modules.purefa_ad.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad.ActiveDirectoryPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad.check_response"
+    )
     def test_create_account_middle_api_version(
         self, mock_check_response, mock_ad_post_class
     ):
@@ -292,7 +304,9 @@ class TestMain:
     def test_main_no_purestorage_sdk(self):
         """Test main() fails when pypureclient is not available"""
         import pytest
-        from plugins.modules.purefa_ad import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad import (
+            main,
+        )
 
         with patch("plugins.modules.purefa_ad.HAS_PURESTORAGE", False):
             with patch(
@@ -310,7 +324,9 @@ class TestMain:
     def test_main_api_version_too_old(self):
         """Test main() fails when API version is too old"""
         import pytest
-        from plugins.modules.purefa_ad import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad import (
+            main,
+        )
 
         with patch("plugins.modules.purefa_ad.AnsibleModule") as mock_ansible_module:
             with patch("plugins.modules.purefa_ad.get_array") as mock_get_array:
@@ -329,7 +345,9 @@ class TestMain:
 
     def test_main_create_new_account(self):
         """Test main() creates new AD account"""
-        from plugins.modules.purefa_ad import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad import (
+            main,
+        )
 
         with patch("plugins.modules.purefa_ad.AnsibleModule") as mock_ansible_module:
             with patch("plugins.modules.purefa_ad.get_array") as mock_get_array:
@@ -360,7 +378,9 @@ class TestMain:
 
     def test_main_update_existing_account(self):
         """Test main() updates existing AD account"""
-        from plugins.modules.purefa_ad import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad import (
+            main,
+        )
 
         with patch("plugins.modules.purefa_ad.AnsibleModule") as mock_ansible_module:
             with patch("plugins.modules.purefa_ad.get_array") as mock_get_array:
@@ -387,7 +407,9 @@ class TestMain:
 
     def test_main_delete_existing_account(self):
         """Test main() deletes existing AD account"""
-        from plugins.modules.purefa_ad import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad import (
+            main,
+        )
 
         with patch("plugins.modules.purefa_ad.AnsibleModule") as mock_ansible_module:
             with patch("plugins.modules.purefa_ad.get_array") as mock_get_array:
@@ -413,7 +435,9 @@ class TestMain:
 
     def test_main_delete_nonexistent_account(self):
         """Test main() does nothing when deleting non-existent account"""
-        from plugins.modules.purefa_ad import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad import (
+            main,
+        )
 
         with patch("plugins.modules.purefa_ad.AnsibleModule") as mock_ansible_module:
             with patch("plugins.modules.purefa_ad.get_array") as mock_get_array:
@@ -440,7 +464,9 @@ class TestMain:
 
     def test_main_server_limit_old_api(self):
         """Test main() limits servers to 1 for old API version"""
-        from plugins.modules.purefa_ad import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad import (
+            main,
+        )
 
         with patch("plugins.modules.purefa_ad.AnsibleModule") as mock_ansible_module:
             with patch("plugins.modules.purefa_ad.get_array") as mock_get_array:
@@ -472,7 +498,9 @@ class TestMain:
 
     def test_main_server_limit_new_api(self):
         """Test main() limits servers to 3 for new API version"""
-        from plugins.modules.purefa_ad import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad import (
+            main,
+        )
 
         with patch("plugins.modules.purefa_ad.AnsibleModule") as mock_ansible_module:
             with patch("plugins.modules.purefa_ad.get_array") as mock_get_array:
@@ -504,7 +532,9 @@ class TestMain:
 
     def test_main_present_no_update_for_old_api(self):
         """Test main() doesn't update existing account for old API version"""
-        from plugins.modules.purefa_ad import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_ad import (
+            main,
+        )
 
         with patch("plugins.modules.purefa_ad.AnsibleModule") as mock_ansible_module:
             with patch("plugins.modules.purefa_ad.get_array") as mock_get_array:

@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock, patch
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -68,7 +58,9 @@ class TestUpdateAgent:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.patch_snmp_agents.assert_not_called()
 
-    @patch("plugins.modules.purefa_snmp_agent.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.check_response"
+    )
     def test_update_agent_v2c_success(self, mock_check_response):
         """Test update_agent with v2c successfully"""
         mock_module = Mock()
@@ -86,7 +78,9 @@ class TestUpdateAgent:
         mock_array.patch_snmp_agents.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp_agent.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.check_response"
+    )
     def test_update_agent_v2c_delete(self, mock_check_response):
         """Test update_agent with v2c delete state"""
         mock_module = Mock()
@@ -124,7 +118,9 @@ class TestUpdateAgent:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.patch_snmp_agents.assert_not_called()
 
-    @patch("plugins.modules.purefa_snmp_agent.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.check_response"
+    )
     def test_update_agent_v3_auth_only(self, mock_check_response):
         """Test update_agent with v3 auth protocol only"""
         mock_module = Mock()
@@ -146,7 +142,9 @@ class TestUpdateAgent:
         mock_array.patch_snmp_agents.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp_agent.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.check_response"
+    )
     def test_update_agent_v3_full(self, mock_check_response):
         """Test update_agent with v3 full auth and privacy"""
         mock_module = Mock()
@@ -168,7 +166,9 @@ class TestUpdateAgent:
         mock_array.patch_snmp_agents.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp_agent.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.check_response"
+    )
     def test_update_agent_v3_privacy_only(self, mock_check_response):
         """Test update_agent with v3 privacy protocol only"""
         mock_module = Mock()
@@ -190,7 +190,9 @@ class TestUpdateAgent:
         mock_array.patch_snmp_agents.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp_agent.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.check_response"
+    )
     def test_update_agent_v3_user_only(self, mock_check_response):
         """Test update_agent with v3 user only (no auth or privacy)"""
         mock_module = Mock()
@@ -212,7 +214,9 @@ class TestUpdateAgent:
         mock_array.patch_snmp_agents.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp_agent.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.check_response"
+    )
     def test_update_agent_v3_delete(self, mock_check_response):
         """Test update_agent with v3 delete state"""
         mock_module = Mock()
@@ -234,7 +238,9 @@ class TestUpdateAgent:
         mock_array.patch_snmp_agents.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp_agent.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.check_response"
+    )
     def test_update_agent_v2c_no_community(self, mock_check_response):
         """Test update_agent with v2c when no community is set"""
         mock_module = Mock()
@@ -256,9 +262,15 @@ class TestUpdateAgent:
 class TestMain:
     """Tests for main function"""
 
-    @patch("plugins.modules.purefa_snmp_agent.AnsibleModule")
-    @patch("plugins.modules.purefa_snmp_agent.get_array")
-    @patch("plugins.modules.purefa_snmp_agent.update_agent")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.update_agent"
+    )
     def test_main_v2c_success(
         self, mock_update_agent, mock_get_array, mock_ansible_module
     ):
@@ -290,9 +302,15 @@ class TestMain:
         finally:
             agent_module.HAS_PURESTORAGE = original_has
 
-    @patch("plugins.modules.purefa_snmp_agent.AnsibleModule")
-    @patch("plugins.modules.purefa_snmp_agent.get_array")
-    @patch("plugins.modules.purefa_snmp_agent.update_agent")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.update_agent"
+    )
     def test_main_v3_success(
         self, mock_update_agent, mock_get_array, mock_ansible_module
     ):
@@ -324,8 +342,12 @@ class TestMain:
         finally:
             agent_module.HAS_PURESTORAGE = original_has
 
-    @patch("plugins.modules.purefa_snmp_agent.AnsibleModule")
-    @patch("plugins.modules.purefa_snmp_agent.get_array")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.get_array"
+    )
     def test_main_v3_missing_user(self, mock_get_array, mock_ansible_module):
         """Test main function fails when v3 is used without user"""
         import pytest
@@ -360,9 +382,15 @@ class TestMain:
         finally:
             agent_module.HAS_PURESTORAGE = original_has
 
-    @patch("plugins.modules.purefa_snmp_agent.AnsibleModule")
-    @patch("plugins.modules.purefa_snmp_agent.get_array")
-    @patch("plugins.modules.purefa_snmp_agent.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.LooseVersion"
+    )
     def test_main_v3_missing_user(
         self, mock_loose_version, mock_get_array, mock_ansible_module
     ):
@@ -400,9 +428,15 @@ class TestMain:
         finally:
             agent_module.HAS_PURESTORAGE = original_has
 
-    @patch("plugins.modules.purefa_snmp_agent.AnsibleModule")
-    @patch("plugins.modules.purefa_snmp_agent.get_array")
-    @patch("plugins.modules.purefa_snmp_agent.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp_agent.LooseVersion"
+    )
     def test_main_api_version_too_low(
         self, mock_loose_version, mock_get_array, mock_ansible_module
     ):

@@ -15,18 +15,8 @@ from packaging.version import Version as LooseVersion
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -64,7 +54,9 @@ from plugins.modules.purefa_pg import (
 class TestGetPod:
     """Test cases for get_pod function"""
 
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_get_pod_exists(self, mock_loose_version):
         """Test get_pod returns pod when it exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -80,7 +72,9 @@ class TestGetPod:
 
         assert result == mock_pod
 
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_get_pod_not_exists(self, mock_loose_version):
         """Test get_pod returns None when pod doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -98,7 +92,9 @@ class TestGetPod:
 class TestGetTargets:
     """Test cases for get_targets function"""
 
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_get_targets_connected(self, mock_loose_version):
         """Test get_targets returns connected targets"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -122,7 +118,9 @@ class TestGetTargets:
 class TestGetArrays:
     """Test cases for get_arrays function"""
 
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_get_arrays_connected(self, mock_loose_version):
         """Test get_arrays returns connected arrays"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -143,7 +141,9 @@ class TestGetArrays:
 class TestGetPendingPgroup:
     """Test cases for get_pending_pgroup function"""
 
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_get_pending_pgroup_exists(self, mock_loose_version):
         """Test get_pending_pgroup returns pgroup when deleted pgroup exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -165,7 +165,9 @@ class TestGetPendingPgroup:
 class TestGetPgroup:
     """Test cases for get_pgroup function"""
 
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_get_pgroup_exists(self, mock_loose_version):
         """Test get_pgroup returns pgroup when it exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -183,7 +185,9 @@ class TestGetPgroup:
 
         assert result == mock_pg
 
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_get_pgroup_not_exists(self, mock_loose_version):
         """Test get_pgroup returns None when pgroup doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -201,8 +205,12 @@ class TestGetPgroup:
 class TestMakePgroup:
     """Test cases for make_pgroup function"""
 
-    @patch("plugins.modules.purefa_pg.check_response")
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_make_pgroup_check_mode(self, mock_loose_version, mock_check_response):
         """Test make_pgroup in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -220,8 +228,12 @@ class TestMakePgroup:
 class TestDeletePgroup:
     """Test cases for delete_pgroup function"""
 
-    @patch("plugins.modules.purefa_pg.check_response")
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_delete_pgroup_check_mode(self, mock_loose_version, mock_check_response):
         """Test delete_pgroup in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -239,8 +251,12 @@ class TestDeletePgroup:
 class TestEradicatePgroup:
     """Test cases for eradicate_pgroup function"""
 
-    @patch("plugins.modules.purefa_pg.check_response")
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_eradicate_pgroup_check_mode(self, mock_loose_version, mock_check_response):
         """Test eradicate_pgroup in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -258,8 +274,12 @@ class TestEradicatePgroup:
 class TestRecoverPgroup:
     """Test cases for recover_pgroup function"""
 
-    @patch("plugins.modules.purefa_pg.check_response")
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_recover_pgroup_check_mode(self, mock_loose_version, mock_check_response):
         """Test recover_pgroup in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -277,7 +297,9 @@ class TestRecoverPgroup:
 class TestRenameExists:
     """Test cases for rename_exists function"""
 
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_rename_exists_true(self, mock_loose_version):
         """Test rename_exists returns True when target exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -291,7 +313,9 @@ class TestRenameExists:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_rename_exists_false(self, mock_loose_version):
         """Test rename_exists returns False when target doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -309,7 +333,9 @@ class TestRenameExists:
 class TestCheckPgOnOffload:
     """Test cases for check_pg_on_offload function"""
 
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_pg_exists_on_offload(self, mock_loose_version):
         """Test check_pg_on_offload returns remote name when PG exists on offload"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -331,7 +357,9 @@ class TestCheckPgOnOffload:
 
         assert result == "offload-target"
 
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_pg_not_on_offload(self, mock_loose_version):
         """Test check_pg_on_offload returns None when PG doesn't exist on offload"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -353,8 +381,12 @@ class TestCheckPgOnOffload:
 class TestUpdatePgroup:
     """Test cases for update_pgroup function"""
 
-    @patch("plugins.modules.purefa_pg.check_response")
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_update_pgroup_check_mode_no_changes(
         self, mock_loose_version, mock_check_response
     ):
@@ -394,7 +426,9 @@ class TestUpdatePgroup:
 class TestGetPgroupSched:
     """Test cases for get_pgroup_sched function"""
 
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_get_pgroup_sched_exists(self, mock_loose_version):
         """Test get_pgroup_sched returns schedule when exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -412,7 +446,9 @@ class TestGetPgroupSched:
 
         assert result == mock_sched
 
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_get_pgroup_sched_not_exists(self, mock_loose_version):
         """Test get_pgroup_sched returns None when not exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -431,8 +467,12 @@ class TestGetPgroupSched:
 class TestDeletePgroupSuccess:
     """Additional test cases for delete_pgroup function"""
 
-    @patch("plugins.modules.purefa_pg.check_response")
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_delete_pgroup_success(self, mock_loose_version, mock_check_response):
         """Test delete_pgroup successfully deletes"""
         mock_loose_version.side_effect = LooseVersion
@@ -456,8 +496,12 @@ class TestDeletePgroupSuccess:
 class TestRecoverPgroupSuccess:
     """Additional test cases for recover_pgroup function"""
 
-    @patch("plugins.modules.purefa_pg.check_response")
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_recover_pgroup_success(self, mock_loose_version, mock_check_response):
         """Test recover_pgroup successfully recovers"""
         mock_loose_version.side_effect = LooseVersion
@@ -480,8 +524,12 @@ class TestRecoverPgroupSuccess:
 class TestEradicatePgroupSuccess:
     """Additional test cases for eradicate_pgroup function"""
 
-    @patch("plugins.modules.purefa_pg.check_response")
-    @patch("plugins.modules.purefa_pg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.LooseVersion"
+    )
     def test_eradicate_pgroup_success(self, mock_loose_version, mock_check_response):
         """Test eradicate_pgroup successfully eradicates"""
         mock_loose_version.side_effect = LooseVersion
@@ -504,7 +552,9 @@ class TestEradicatePgroupSuccess:
 class TestMakePgroupSuccess:
     """Test cases for make_pgroup function success scenarios"""
 
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_make_pgroup_basic(self, mock_lv, mock_check_response):
         """Test creating a basic protection group without targets"""
@@ -529,10 +579,18 @@ class TestMakePgroupSuccess:
         mock_array.post_protection_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pg.check_pg_on_offload")
-    @patch("plugins.modules.purefa_pg.get_targets")
-    @patch("plugins.modules.purefa_pg.get_arrays")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_pg_on_offload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_targets"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_arrays"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_make_pgroup_with_targets(
         self,
@@ -570,7 +628,9 @@ class TestMakePgroupSuccess:
         mock_array.post_protection_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_make_pgroup_with_volumes_context_api(self, mock_lv, mock_check_response):
         """Test creating protection group with volumes using context API"""
@@ -601,7 +661,9 @@ class TestMakePgroupSuccess:
         )
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_make_pgroup_with_hosts_context_api(self, mock_lv, mock_check_response):
         """Test creating protection group with hosts using context API"""
@@ -632,7 +694,9 @@ class TestMakePgroupSuccess:
         )
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_make_pgroup_with_hostgroups_context_api(
         self, mock_lv, mock_check_response
@@ -667,7 +731,9 @@ class TestMakePgroupSuccess:
         )
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_make_pgroup_with_safe_mode_context_api(self, mock_lv, mock_check_response):
         """Test creating protection group with safe_mode using context API"""
@@ -694,7 +760,9 @@ class TestMakePgroupSuccess:
         mock_array.patch_protection_groups.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_make_pgroup_with_volumes_no_context(self, mock_lv, mock_check_response):
         """Test creating protection group with volumes without context API"""
@@ -724,7 +792,9 @@ class TestMakePgroupSuccess:
         )
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_make_pgroup_with_hosts_no_context(self, mock_lv, mock_check_response):
         """Test creating protection group with hosts without context API"""
@@ -754,7 +824,9 @@ class TestMakePgroupSuccess:
         )
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_make_pgroup_with_hostgroups_no_context(self, mock_lv, mock_check_response):
         """Test creating protection group with hostgroups without context API"""
@@ -786,7 +858,9 @@ class TestMakePgroupSuccess:
         )
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_make_pgroup_with_safe_mode_no_context(self, mock_lv, mock_check_response):
         """Test creating protection group with safe_mode without context API"""
@@ -817,9 +891,15 @@ class TestMakePgroupSuccess:
 class TestUpdatePgroupSuccess:
     """Test cases for update_pgroup function success scenarios"""
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_update_pgroup_add_volumes(
         self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
@@ -862,9 +942,15 @@ class TestUpdatePgroupSuccess:
         mock_array.post_protection_groups_volumes.assert_called_once()
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_update_pgroup_add_hosts(
         self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
@@ -907,8 +993,12 @@ class TestUpdatePgroupSuccess:
         mock_array.post_protection_groups_hosts.assert_called_once()
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_update_pgroup_enable_snapshot_schedule(
         self, mock_lv, mock_check_response, mock_get_pgroup_sched
@@ -954,8 +1044,12 @@ class TestUpdatePgroupSuccess:
 class TestUpdatePgroupVolumes:
     """Additional tests for update_pgroup with volumes"""
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_update_pgroup_add_volumes(
         self, mock_lv, mock_check_response, mock_get_pgroup_sched
@@ -996,8 +1090,12 @@ class TestUpdatePgroupVolumes:
         mock_array.post_protection_groups_volumes.assert_called_once()
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_update_pgroup_add_hostgroup(
         self, mock_lv, mock_check_response, mock_get_pgroup_sched
@@ -1040,7 +1138,9 @@ class TestUpdatePgroupVolumes:
         mock_array.post_protection_groups_host_groups.assert_called_once()
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_update_pgroup_disable_snapshot_schedule(
         self, mock_lv, mock_get_pgroup_sched
@@ -1084,10 +1184,18 @@ class TestUpdatePgroupVolumes:
 class TestUpdatePgroupTargets:
     """Test cases for update_pgroup with target handling"""
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.get_targets")
-    @patch("plugins.modules.purefa_pg.get_arrays")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_targets"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_arrays"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_update_pgroup_no_targets_connected(
         self,
@@ -1128,10 +1236,18 @@ class TestUpdatePgroupTargets:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.get_targets")
-    @patch("plugins.modules.purefa_pg.get_arrays")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_targets"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_arrays"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_update_pgroup_target_not_connected(
         self,
@@ -1179,8 +1295,12 @@ class TestUpdatePgroupTargets:
 class TestDeletePgroupEradicate:
     """Test cases for delete_pgroup with eradicate option"""
 
-    @patch("plugins.modules.purefa_pg.eradicate_pgroup")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.eradicate_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_delete_pgroup_with_eradicate(
         self, mock_lv, mock_check_response, mock_eradicate
@@ -1248,7 +1368,9 @@ class TestRenameExistsContainer:
 class TestRecoverPgroupExtended:
     """Extended test cases for recover_pgroup function"""
 
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_recover_pgroup_older_api(self, mock_lv, mock_check_response):
         """Test recovering pgroup with older API version"""
@@ -1273,7 +1395,9 @@ class TestRecoverPgroupExtended:
 class TestEradicatePgroupExtended:
     """Extended test cases for eradicate_pgroup function"""
 
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_eradicate_pgroup_older_api(self, mock_lv, mock_check_response):
         """Test eradicating pgroup with older API version"""
@@ -1298,8 +1422,12 @@ class TestEradicatePgroupExtended:
 class TestUpdatePgroupHostgroupBugFix:
     """Test case for hostgroup bug fix - was using host param instead of hostgroup"""
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_add_hostgroup_to_empty_pgroup_uses_hostgroup_param(
         self, mock_lv, mock_check_response, mock_get_pgroup_sched
@@ -1353,8 +1481,12 @@ class TestUpdatePgroupHostgroupBugFix:
         assert call_kwargs["member_names"] is not None  # Would be None if using host
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_add_host_to_empty_pgroup_uses_host_param(
         self, mock_lv, mock_check_response, mock_get_pgroup_sched
@@ -1400,8 +1532,12 @@ class TestUpdatePgroupHostgroupBugFix:
         assert call_kwargs["member_names"] == ["host1", "host2"]
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_add_volume_to_empty_pgroup_uses_volume_param(
         self, mock_lv, mock_check_response, mock_get_pgroup_sched
@@ -1451,9 +1587,15 @@ class TestUpdatePgroupHostgroupBugFix:
 class TestUpdatePgroupRemoveMembers:
     """Test cases for update_pgroup removing members from existing protection groups"""
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_remove_volumes_from_pgroup_context_api(
         self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
@@ -1500,9 +1642,15 @@ class TestUpdatePgroupRemoveMembers:
         assert call_kwargs["context_names"] == ["pod1"]
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_remove_volumes_from_pgroup_no_context(
         self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
@@ -1547,9 +1695,15 @@ class TestUpdatePgroupRemoveMembers:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_remove_hosts_from_pgroup_context_api(
         self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
@@ -1594,9 +1748,15 @@ class TestUpdatePgroupRemoveMembers:
         assert call_kwargs["context_names"] == ["pod1"]
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_remove_hosts_from_pgroup_no_context(
         self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
@@ -1641,9 +1801,15 @@ class TestUpdatePgroupRemoveMembers:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_remove_hostgroups_from_pgroup_context_api(
         self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
@@ -1692,9 +1858,15 @@ class TestUpdatePgroupRemoveMembers:
         assert call_kwargs["context_names"] == ["pod1"]
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_remove_hostgroups_from_pgroup_no_context(
         self, mock_lv, mock_check_response, mock_get_pgroup, mock_get_pgroup_sched
@@ -1747,9 +1919,15 @@ class TestUpdatePgroupRemoveMembers:
 class TestUpdatePgroupRename:
     """Test cases for update_pgroup rename functionality"""
 
-    @patch("plugins.modules.purefa_pg.rename_exists")
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.rename_exists"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_rename_pgroup_context_api(
         self, mock_lv, mock_check_response, mock_get_pgroup_sched, mock_rename_exists
@@ -1786,9 +1964,15 @@ class TestUpdatePgroupRename:
         mock_array.patch_protection_groups.assert_called()
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.rename_exists")
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
-    @patch("plugins.modules.purefa_pg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.rename_exists"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_rename_pgroup_no_context(
         self, mock_lv, mock_check_response, mock_get_pgroup_sched, mock_rename_exists
@@ -1826,8 +2010,12 @@ class TestUpdatePgroupRename:
         # Verify no context_names in non-context API call
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.rename_exists")
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.rename_exists"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_rename_pgroup_in_pod_container(
         self, mock_lv, mock_get_pgroup_sched, mock_rename_exists
@@ -1866,8 +2054,12 @@ class TestUpdatePgroupRename:
         assert mock_module.params["name"] == "pod1::new-pg"
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.rename_exists")
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.rename_exists"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_rename_pgroup_in_single_colon_container(
         self, mock_lv, mock_get_pgroup_sched, mock_rename_exists
@@ -1906,8 +2098,12 @@ class TestUpdatePgroupRename:
         assert mock_module.params["name"] == "array1:new-pg"
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.rename_exists")
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.rename_exists"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_rename_pgroup_target_exists_warns(
         self, mock_lv, mock_get_pgroup_sched, mock_rename_exists
@@ -1943,8 +2139,12 @@ class TestUpdatePgroupRename:
         mock_module.warn.assert_called()
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.rename_exists")
-    @patch("plugins.modules.purefa_pg.get_pgroup_sched")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.rename_exists"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup_sched"
+    )
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
     def test_rename_pgroup_check_mode(
         self, mock_lv, mock_get_pgroup_sched, mock_rename_exists
@@ -1984,11 +2184,21 @@ class TestUpdatePgroupRename:
 class TestMain:
     """Test cases for main() function - module entry point"""
 
-    @patch("plugins.modules.purefa_pg.get_pod")
-    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.get_array")
-    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pending_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.AnsibleModule"
+    )
     def test_main_invalid_rename_name(
         self, mock_ansible, mock_get_array, mock_get_pg, mock_get_pending, mock_get_pod
     ):
@@ -2024,11 +2234,21 @@ class TestMain:
             mock_module.fail_json.call_args
         )
 
-    @patch("plugins.modules.purefa_pg.get_pod")
-    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.get_array")
-    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pending_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.AnsibleModule"
+    )
     def test_main_invalid_pgname_in_pod(
         self, mock_ansible, mock_get_array, mock_get_pg, mock_get_pending, mock_get_pod
     ):
@@ -2061,11 +2281,21 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.get_pod")
-    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.get_array")
-    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pending_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.AnsibleModule"
+    )
     def test_main_invalid_pgname_single_colon(
         self, mock_ansible, mock_get_array, mock_get_pg, mock_get_pending, mock_get_pod
     ):
@@ -2098,11 +2328,21 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_pg.get_pod")
-    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.get_array")
-    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pending_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.AnsibleModule"
+    )
     def test_main_invalid_pgname_standalone(
         self, mock_ansible, mock_get_array, mock_get_pg, mock_get_pending, mock_get_pod
     ):
@@ -2136,11 +2376,21 @@ class TestMain:
         mock_module.fail_json.assert_called()
 
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_pg.get_pod")
-    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.get_array")
-    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pending_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.AnsibleModule"
+    )
     def test_main_safe_mode_old_api(
         self,
         mock_ansible,
@@ -2180,12 +2430,24 @@ class TestMain:
         mock_module.fail_json.assert_called()
         assert "SafeMode" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_pg.check_response")
-    @patch("plugins.modules.purefa_pg.get_pod")
-    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.get_array")
-    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pending_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.AnsibleModule"
+    )
     def test_main_pod_not_exists(
         self,
         mock_ansible,
@@ -2229,12 +2491,24 @@ class TestMain:
         assert "does not exist" in str(mock_module.fail_json.call_args)
 
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_pg.check_response")
-    @patch("plugins.modules.purefa_pg.get_pod")
-    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.get_array")
-    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pending_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.AnsibleModule"
+    )
     def test_main_host_validation_context_api(
         self,
         mock_ansible,
@@ -2282,12 +2556,24 @@ class TestMain:
         assert call_kwargs["context_names"] == ["pod1"]
 
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_pg.check_response")
-    @patch("plugins.modules.purefa_pg.get_pod")
-    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.get_array")
-    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pending_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.AnsibleModule"
+    )
     def test_main_hostgroup_validation_context_api(
         self,
         mock_ansible,
@@ -2334,12 +2620,24 @@ class TestMain:
         assert call_kwargs["context_names"] == ["pod1"]
 
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_pg.check_response")
-    @patch("plugins.modules.purefa_pg.get_pod")
-    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.get_array")
-    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pending_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.AnsibleModule"
+    )
     def test_main_host_validation_no_context(
         self,
         mock_ansible,
@@ -2386,12 +2684,24 @@ class TestMain:
         assert "context_names" not in call_kwargs
 
     @patch("plugins.modules.purefa_pg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_pg.check_response")
-    @patch("plugins.modules.purefa_pg.get_pod")
-    @patch("plugins.modules.purefa_pg.get_pending_pgroup")
-    @patch("plugins.modules.purefa_pg.get_pgroup")
-    @patch("plugins.modules.purefa_pg.get_array")
-    @patch("plugins.modules.purefa_pg.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pending_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pg.AnsibleModule"
+    )
     def test_main_hostgroup_validation_no_context(
         self,
         mock_ansible,

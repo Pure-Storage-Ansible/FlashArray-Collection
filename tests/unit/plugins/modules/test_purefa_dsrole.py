@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -109,8 +99,12 @@ class TestCreateRole:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.post_with_context"
+    )
     def test_create_role_success(self, mock_post_with_context, mock_check_response):
         """Test create_role successfully creates"""
         mock_module = Mock()
@@ -135,8 +129,12 @@ class TestCreateRole:
 class TestUpdateRole:
     """Tests for update_role function"""
 
-    @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.patch_with_context"
+    )
     def test_update_role_delete_system_defined(
         self, mock_patch_with_context, mock_check_response
     ):
@@ -179,7 +177,9 @@ class TestUpdateRole:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dsrole.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.get_with_context"
+    )
     def test_update_role_system_role_no_change(self, mock_get_with_context):
         """Test update_role for system role when no changes needed"""
         mock_module = Mock()
@@ -204,9 +204,15 @@ class TestUpdateRole:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.patch_with_context")
-    @patch("plugins.modules.purefa_dsrole.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.get_with_context"
+    )
     def test_update_role_custom_role_with_changes(
         self, mock_get_with_context, mock_patch_with_context, mock_check_response
     ):
@@ -242,8 +248,12 @@ class TestUpdateRole:
 class TestDeleteRoleSuccess:
     """Tests for delete_role success paths"""
 
-    @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.delete_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.delete_with_context"
+    )
     def test_delete_role_success(self, mock_delete_with_context, mock_check_response):
         """Test delete_role successfully deletes"""
         mock_module = Mock()
@@ -257,8 +267,12 @@ class TestDeleteRoleSuccess:
         mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.delete_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.delete_with_context"
+    )
     def test_delete_role_older_api(self, mock_delete_with_context, mock_check_response):
         """Test delete_role with older API version"""
         mock_module = Mock()
@@ -276,9 +290,15 @@ class TestDeleteRoleSuccess:
 class TestCreateRoleSuccess:
     """Tests for create_role additional paths"""
 
-    @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.post_with_context")
-    @patch("plugins.modules.purefa_dsrole.DirectoryServiceRole")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.DirectoryServiceRole"
+    )
     def test_create_role_older_policy_api(
         self, mock_ds_role, mock_post_with_context, mock_check_response
     ):
@@ -307,8 +327,12 @@ class TestCreateRoleSuccess:
 class TestCreateRoleWithContext:
     """Tests for create_role with context API"""
 
-    @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.post_with_context"
+    )
     def test_create_role_with_context(
         self, mock_post_with_context, mock_check_response
     ):
@@ -336,8 +360,12 @@ class TestCreateRoleWithContext:
 class TestDeleteRoleWithContext:
     """Tests for delete_role with context API"""
 
-    @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.delete_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.delete_with_context"
+    )
     def test_delete_role_with_context(
         self, mock_delete_with_context, mock_check_response
     ):
@@ -358,9 +386,15 @@ class TestDeleteRoleWithContext:
 class TestUpdateRoleSystemDefined:
     """Tests for update_role with system-defined roles"""
 
-    @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.patch_with_context")
-    @patch("plugins.modules.purefa_dsrole.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.get_with_context"
+    )
     def test_update_system_role_with_changes(
         self, mock_get_with_context, mock_patch_with_context, mock_check_response
     ):
@@ -389,7 +423,9 @@ class TestUpdateRoleSystemDefined:
         mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dsrole.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.get_with_context"
+    )
     def test_update_custom_role_no_changes(self, mock_get_with_context):
         """Test update_role for custom role when no changes needed"""
         mock_module = Mock()
@@ -417,9 +453,15 @@ class TestUpdateRoleSystemDefined:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_dsrole.check_response")
-    @patch("plugins.modules.purefa_dsrole.patch_with_context")
-    @patch("plugins.modules.purefa_dsrole.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole.get_with_context"
+    )
     def test_update_role_with_context_api(
         self, mock_get_with_context, mock_patch_with_context, mock_check_response
     ):

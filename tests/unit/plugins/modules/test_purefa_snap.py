@@ -15,18 +15,8 @@ from packaging.version import Version as LooseVersion
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -63,7 +53,9 @@ from plugins.modules.purefa_snap import (
 class TestCheckOffload:
     """Test cases for _check_offload function"""
 
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_check_offload_connected(self, mock_loose_version):
         """Test _check_offload returns True when offload is connected"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -81,7 +73,9 @@ class TestCheckOffload:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_check_offload_not_connected(self, mock_loose_version):
         """Test _check_offload returns False when offload is not connected"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -119,7 +113,9 @@ class TestCheckOffload:
 class TestCheckTarget:
     """Test cases for _check_target function"""
 
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_check_target_connected(self, mock_loose_version):
         """Test _check_target returns True when target is connected"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -174,7 +170,9 @@ class TestCheckTarget:
 class TestGetVolume:
     """Test cases for get_volume function"""
 
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_get_volume_exists(self, mock_loose_version):
         """Test get_volume returns volume when it exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -190,7 +188,9 @@ class TestGetVolume:
 
         assert result == mock_vol
 
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_get_volume_not_exists(self, mock_loose_version):
         """Test get_volume returns None when volume doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -208,7 +208,9 @@ class TestGetVolume:
 class TestGetTarget:
     """Test cases for get_target function"""
 
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_get_target_exists(self, mock_loose_version):
         """Test get_target returns target when it exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -228,7 +230,9 @@ class TestGetTarget:
 class TestGetSnapshot:
     """Test cases for get_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_get_snapshot_exists(self, mock_loose_version):
         """Test get_snapshot returns True when snapshot exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -242,7 +246,9 @@ class TestGetSnapshot:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_get_snapshot_not_exists(self, mock_loose_version):
         """Test get_snapshot returns False when snapshot doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -260,8 +266,12 @@ class TestGetSnapshot:
 class TestCreateSnapshot:
     """Test cases for create_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_create_snapshot_check_mode(self, mock_loose_version, mock_check_response):
         """Test create_snapshot in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -279,8 +289,12 @@ class TestCreateSnapshot:
 class TestDeleteSnapshot:
     """Test cases for delete_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_delete_snapshot_check_mode(self, mock_loose_version, mock_check_response):
         """Test delete_snapshot in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -303,8 +317,12 @@ class TestDeleteSnapshot:
 class TestEradicateSnapshot:
     """Test cases for eradicate_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_eradicate_snapshot_check_mode(
         self, mock_loose_version, mock_check_response
     ):
@@ -324,8 +342,12 @@ class TestEradicateSnapshot:
 class TestRecoverSnapshot:
     """Test cases for recover_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_recover_snapshot_check_mode(self, mock_loose_version, mock_check_response):
         """Test recover_snapshot in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -349,8 +371,12 @@ class TestRecoverSnapshot:
 class TestCheckOffloadSnapshot:
     """Test cases for _check_offload_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap._check_offload")
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_check_offload_snapshot_exists(
         self, mock_loose_version, mock_check_offload
     ):
@@ -378,8 +404,12 @@ class TestCheckOffloadSnapshot:
 
         assert result is not None
 
-    @patch("plugins.modules.purefa_snap._check_offload")
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_check_offload_snapshot_not_exists(
         self, mock_loose_version, mock_check_offload
     ):
@@ -408,7 +438,9 @@ class TestCheckOffloadSnapshot:
 class TestGetDeletedSnapshot:
     """Test cases for get_deleted_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_get_deleted_snapshot_exists(self, mock_loose_version):
         """Test get_deleted_snapshot returns snapshot when it exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -424,7 +456,9 @@ class TestGetDeletedSnapshot:
 
         assert result is not None
 
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_get_deleted_snapshot_not_exists(self, mock_loose_version):
         """Test get_deleted_snapshot returns False when snapshot doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -439,7 +473,9 @@ class TestGetDeletedSnapshot:
         # get_deleted_snapshot returns bool, not None
         assert result is False
 
-    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_get_deleted_snapshot_offload_remote_context(
         self, mock_lv, mock_check_offload
@@ -465,7 +501,9 @@ class TestGetDeletedSnapshot:
         assert result is True
         mock_array.get_remote_volume_snapshots.assert_called_once()
 
-    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_get_deleted_snapshot_offload_remote_no_context(
         self, mock_lv, mock_check_offload
@@ -490,7 +528,9 @@ class TestGetDeletedSnapshot:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_get_deleted_snapshot_offload_local_context(
         self, mock_lv, mock_check_offload
@@ -515,7 +555,9 @@ class TestGetDeletedSnapshot:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_get_deleted_snapshot_offload_local_no_context(
         self, mock_lv, mock_check_offload
@@ -565,8 +607,12 @@ class TestGetDeletedSnapshot:
 class TestCreateFromSnapshot:
     """Test cases for create_from_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_create_from_snapshot_check_mode(
         self, mock_loose_version, mock_check_response
     ):
@@ -591,8 +637,12 @@ class TestCreateFromSnapshot:
 class TestUpdateSnapshot:
     """Test cases for update_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_update_snapshot_check_mode(self, mock_loose_version, mock_check_response):
         """Test update_snapshot in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -616,8 +666,12 @@ class TestUpdateSnapshot:
 class TestCreateSnapshotSuccess:
     """Additional test cases for create_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_create_snapshot_success(self, mock_loose_version, mock_check_response):
         """Test create_snapshot successfully creates"""
         mock_loose_version.side_effect = LooseVersion
@@ -640,7 +694,9 @@ class TestCreateSnapshotSuccess:
         # exit_json is called with changed=True and suffix
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_snap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_create_snapshot_offload_context_api(self, mock_lv, mock_check_response):
         """Test create_snapshot with offload using context API"""
@@ -661,7 +717,9 @@ class TestCreateSnapshotSuccess:
         mock_array.post_remote_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_snap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_create_snapshot_offload_no_context_with_suffix(
         self, mock_lv, mock_check_response
@@ -685,7 +743,9 @@ class TestCreateSnapshotSuccess:
         mock_array.post_remote_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_snap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_create_snapshot_offload_no_context_no_suffix(
         self, mock_lv, mock_check_response
@@ -715,7 +775,9 @@ class TestCreateSnapshotSuccess:
         assert mock_module.params["suffix"] == "auto-suffix"
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_snap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_create_snapshot_offload_old_api_returns_suffix(
         self, mock_lv, mock_check_response
@@ -743,7 +805,9 @@ class TestCreateSnapshotSuccess:
         mock_array.post_remote_volume_snapshots.assert_called_once()
         assert mock_module.params["suffix"] == "auto-generated-suffix"
 
-    @patch("plugins.modules.purefa_snap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_create_snapshot_local_no_throttle_api(self, mock_lv, mock_check_response):
         """Test create_snapshot local when throttle API is not available"""
@@ -766,7 +830,9 @@ class TestCreateSnapshotSuccess:
         mock_array.post_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_snap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_create_snapshot_local_throttle_no_context(
         self, mock_lv, mock_check_response
@@ -794,8 +860,12 @@ class TestCreateSnapshotSuccess:
 class TestDeleteSnapshotSuccess:
     """Additional test cases for delete_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_delete_snapshot_success(self, mock_loose_version, mock_check_response):
         """Test delete_snapshot successfully deletes"""
         mock_loose_version.side_effect = LooseVersion
@@ -823,8 +893,12 @@ class TestDeleteSnapshotSuccess:
 class TestEradicateSnapshotSuccess:
     """Test cases for eradicate_snapshot success paths"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_eradicate_snapshot_success(self, mock_loose_version, mock_check_response):
         """Test eradicate_snapshot successfully eradicates"""
         mock_loose_version.side_effect = LooseVersion
@@ -850,7 +924,9 @@ class TestEradicateSnapshotSuccess:
 class TestRecoverSnapshotSuccess:
     """Test cases for recover_snapshot success paths"""
 
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_recover_snapshot_success(self, mock_loose_version):
         """Test recover_snapshot successfully recovers"""
         mock_loose_version.side_effect = LooseVersion
@@ -877,8 +953,12 @@ class TestRecoverSnapshotSuccess:
 class TestUpdateSnapshotSuccess:
     """Test cases for update_snapshot success paths"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.LooseVersion"
+    )
     def test_update_snapshot_success(self, mock_loose_version, mock_check_response):
         """Test update_snapshot successfully updates"""
         mock_loose_version.side_effect = LooseVersion
@@ -903,8 +983,12 @@ class TestUpdateSnapshotSuccess:
 class TestCreateFromSnapshotSuccess:
     """Test cases for create_from_snapshot success paths"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap.get_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.get_target"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_create_from_snapshot_new_volume(
         self, mock_lv, mock_get_target, mock_check_response
@@ -928,8 +1012,12 @@ class TestCreateFromSnapshotSuccess:
         mock_array.post_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap.get_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.get_target"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_create_from_snapshot_overwrite(
         self, mock_lv, mock_get_target, mock_check_response
@@ -954,7 +1042,9 @@ class TestCreateFromSnapshotSuccess:
         mock_array.post_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snap.get_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.get_target"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_create_from_snapshot_no_overwrite(self, mock_lv, mock_get_target):
         """Test creating volume from snapshot when target exists and no overwrite"""
@@ -980,8 +1070,12 @@ class TestCreateFromSnapshotSuccess:
 class TestDeleteSnapshotOffload:
     """Test cases for delete_snapshot with offload scenarios"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_delete_snapshot_offload_with_eradicate(
         self, mock_lv, mock_check_offload, mock_check_response
@@ -1012,9 +1106,15 @@ class TestDeleteSnapshotOffload:
         mock_array.delete_remote_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap._check_offload")
-    @patch("plugins.modules.purefa_snap._check_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_target"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_delete_snapshot_local_with_eradicate(
         self, mock_lv, mock_check_target, mock_check_offload, mock_check_response
@@ -1047,7 +1147,9 @@ class TestDeleteSnapshotOffload:
 class TestUpdateSnapshotExtended:
     """Extended test cases for update_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_update_snapshot_older_api(self, mock_lv, mock_check_response):
         """Test renaming snapshot with older API version"""
@@ -1074,7 +1176,9 @@ class TestUpdateSnapshotExtended:
 class TestRecoverSnapshotExtended:
     """Extended test cases for recover_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_recover_snapshot_local_success(self, mock_lv, mock_check_offload):
         """Test recovering local snapshot"""
@@ -1100,8 +1204,12 @@ class TestRecoverSnapshotExtended:
 class TestEradicateSnapshotExtended:
     """Extended test cases for eradicate_snapshot function"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_eradicate_snapshot_local_success(
         self, mock_lv, mock_check_offload, mock_check_response
@@ -1129,9 +1237,15 @@ class TestEradicateSnapshotExtended:
 class TestDeleteSnapshotTarget:
     """Test cases for delete_snapshot with target scenarios"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap._check_offload")
-    @patch("plugins.modules.purefa_snap._check_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_target"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_delete_snapshot_target_with_eradicate_context_api(
         self, mock_lv, mock_check_target, mock_check_offload, mock_check_response
@@ -1160,9 +1274,15 @@ class TestDeleteSnapshotTarget:
         mock_array.delete_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap._check_offload")
-    @patch("plugins.modules.purefa_snap._check_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_target"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_delete_snapshot_target_without_eradicate_no_context(
         self, mock_lv, mock_check_target, mock_check_offload, mock_check_response
@@ -1190,9 +1310,15 @@ class TestDeleteSnapshotTarget:
         mock_array.delete_volume_snapshots.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap._check_offload")
-    @patch("plugins.modules.purefa_snap._check_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_target"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_delete_snapshot_target_eradicate_no_context(
         self, mock_lv, mock_check_target, mock_check_offload, mock_check_response
@@ -1225,8 +1351,12 @@ class TestDeleteSnapshotTarget:
 class TestRecoverSnapshotPaths:
     """Test cases for recover_snapshot function with different paths"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_recover_snapshot_offload_context_api(
         self, mock_lv, mock_check_offload, mock_check_response
@@ -1253,8 +1383,12 @@ class TestRecoverSnapshotPaths:
         mock_array.patch_remote_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_recover_snapshot_offload_no_context(
         self, mock_lv, mock_check_offload, mock_check_response
@@ -1352,8 +1486,12 @@ class TestRecoverSnapshotPaths:
 class TestEradicateSnapshotPaths:
     """Test cases for eradicate_snapshot function with different paths"""
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_eradicate_snapshot_offload_context_api(
         self, mock_lv, mock_check_offload, mock_check_response
@@ -1381,8 +1519,12 @@ class TestEradicateSnapshotPaths:
         mock_array.delete_remote_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_eradicate_snapshot_offload_no_context(
         self, mock_lv, mock_check_offload, mock_check_response
@@ -1410,9 +1552,15 @@ class TestEradicateSnapshotPaths:
         mock_array.delete_remote_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap._check_offload")
-    @patch("plugins.modules.purefa_snap._check_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_target"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_eradicate_snapshot_target_context_api(
         self, mock_lv, mock_check_target, mock_check_offload, mock_check_response
@@ -1438,9 +1586,15 @@ class TestEradicateSnapshotPaths:
         mock_array.delete_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snap.check_response")
-    @patch("plugins.modules.purefa_snap._check_offload")
-    @patch("plugins.modules.purefa_snap._check_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_offload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_target"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_eradicate_snapshot_target_no_context(
         self, mock_lv, mock_check_target, mock_check_offload, mock_check_response
@@ -1466,7 +1620,9 @@ class TestEradicateSnapshotPaths:
         mock_array.delete_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_eradicate_snapshot_local_context_api(self, mock_lv, mock_check_response):
         """Test eradicate_snapshot local with context API"""
@@ -1487,7 +1643,9 @@ class TestEradicateSnapshotPaths:
         mock_array.delete_volume_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.check_response"
+    )
     @patch("plugins.modules.purefa_snap.LooseVersion", side_effect=LooseVersion)
     def test_eradicate_snapshot_local_no_context(self, mock_lv, mock_check_response):
         """Test eradicate_snapshot local without context API"""
@@ -1512,12 +1670,24 @@ class TestEradicateSnapshotPaths:
 class TestStateCopySnapshotNotFound:
     """Test cases for state=copy when snapshot does not exist (issue #978)"""
 
-    @patch("plugins.modules.purefa_snap.get_deleted_snapshot")
-    @patch("plugins.modules.purefa_snap.get_snapshot")
-    @patch("plugins.modules.purefa_snap.get_volume")
-    @patch("plugins.modules.purefa_snap._check_target")
-    @patch("plugins.modules.purefa_snap.get_array")
-    @patch("plugins.modules.purefa_snap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.get_deleted_snapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.get_snapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.get_volume"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap._check_target"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap.AnsibleModule"
+    )
     def test_state_copy_snapshot_not_found_fails(
         self,
         mock_ansible_module,
@@ -1528,7 +1698,9 @@ class TestStateCopySnapshotNotFound:
         mock_get_deleted_snapshot,
     ):
         """Test that state=copy fails with error when snapshot doesn't exist"""
-        from plugins.modules.purefa_snap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_snap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {

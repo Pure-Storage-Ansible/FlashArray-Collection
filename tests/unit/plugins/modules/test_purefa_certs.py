@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock, patch
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -66,7 +56,9 @@ class TestDeleteCert:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_certs.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.check_response"
+    )
     def test_delete_cert_success(self, mock_check_response):
         """Test delete_cert successfully deletes certificate"""
         mock_module = Mock()
@@ -138,8 +130,12 @@ class TestImportCert:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_certs.flasharray")
-    @patch("plugins.modules.purefa_certs.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.flasharray"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.check_response"
+    )
     def test_import_cert_success(self, mock_check_response, mock_flasharray):
         """Test import_cert successfully imports certificate"""
         mock_module = Mock()
@@ -159,8 +155,12 @@ class TestImportCert:
         mock_array.post_certificates.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_certs.flasharray")
-    @patch("plugins.modules.purefa_certs.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.flasharray"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.check_response"
+    )
     def test_import_cert_reimport(self, mock_check_response, mock_flasharray):
         """Test import_cert with reimport flag"""
         mock_module = Mock()
@@ -220,7 +220,9 @@ class TestCreateCsr:
 class TestCreateCert:
     """Test cases for create_cert function"""
 
-    @patch("plugins.modules.purefa_certs.flasharray")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.flasharray"
+    )
     def test_create_cert_check_mode(self, mock_flasharray):
         """Test create_cert in check mode"""
         mock_module = Mock()
@@ -244,8 +246,12 @@ class TestCreateCert:
         mock_array.post_certificates.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_certs.flasharray")
-    @patch("plugins.modules.purefa_certs.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.flasharray"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.check_response"
+    )
     def test_create_cert_success(self, mock_check_response, mock_flasharray):
         """Test create_cert successfully creates certificate"""
         mock_module = Mock()
@@ -274,7 +280,9 @@ class TestCreateCert:
 class TestUpdateCert:
     """Test cases for update_cert function"""
 
-    @patch("plugins.modules.purefa_certs.flasharray")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.flasharray"
+    )
     def test_update_cert_no_changes(self, mock_flasharray):
         """Test update_cert when no changes needed"""
         mock_module = Mock()
@@ -310,8 +318,12 @@ class TestUpdateCert:
         mock_array.patch_certificates.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_certs.flasharray")
-    @patch("plugins.modules.purefa_certs.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.flasharray"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.check_response"
+    )
     def test_update_cert_common_name_change(self, mock_check_response, mock_flasharray):
         """Test update_cert when common_name changes"""
         mock_module = Mock()
@@ -348,7 +360,9 @@ class TestUpdateCert:
         mock_array.patch_certificates.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_certs.flasharray")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.flasharray"
+    )
     def test_update_cert_check_mode(self, mock_flasharray):
         """Test update_cert in check mode"""
         mock_module = Mock()
@@ -384,8 +398,12 @@ class TestUpdateCert:
         mock_array.patch_certificates.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_certs.flasharray")
-    @patch("plugins.modules.purefa_certs.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.flasharray"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.check_response"
+    )
     def test_update_cert_multiple_field_changes(
         self, mock_check_response, mock_flasharray
     ):
@@ -430,8 +448,12 @@ class TestUpdateCert:
 class TestImportCertReimport:
     """Test cases for import_cert reimport functionality"""
 
-    @patch("plugins.modules.purefa_certs.flasharray")
-    @patch("plugins.modules.purefa_certs.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.flasharray"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.check_response"
+    )
     def test_import_cert_reimport_uses_patch(
         self, mock_check_response, mock_flasharray
     ):
@@ -454,8 +476,12 @@ class TestImportCertReimport:
         mock_array.post_certificates.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_certs.flasharray")
-    @patch("plugins.modules.purefa_certs.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.flasharray"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.check_response"
+    )
     def test_import_cert_new_uses_post(self, mock_check_response, mock_flasharray):
         """Test import_cert with reimport=False uses post"""
         mock_module = Mock()
@@ -476,7 +502,9 @@ class TestImportCertReimport:
         mock_array.patch_certificates.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_certs.flasharray")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.flasharray"
+    )
     def test_import_cert_check_mode(self, mock_flasharray):
         """Test import_cert in check mode"""
         mock_module = Mock()
@@ -501,7 +529,9 @@ class TestExportCertFull:
     """Test cases for export_cert function with file operations"""
 
     @patch("builtins.open", create=True)
-    @patch("plugins.modules.purefa_certs.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.check_response"
+    )
     def test_export_cert_success(self, mock_check_response, mock_open):
         """Test export_cert writes certificate to file"""
         mock_module = Mock()
@@ -542,7 +572,9 @@ class TestCreateCsr:
     """Test cases for create_csr function"""
 
     @patch("builtins.open", create=True)
-    @patch("plugins.modules.purefa_certs.flasharray")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.flasharray"
+    )
     def test_create_csr_success(self, mock_flasharray, mock_open):
         """Test create_csr generates CSR and writes to file"""
         mock_module = Mock()
@@ -610,7 +642,9 @@ class TestCreateCsr:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("builtins.open", create=True)
-    @patch("plugins.modules.purefa_certs.flasharray")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.flasharray"
+    )
     def test_create_csr_with_attribute_errors(self, mock_flasharray, mock_open):
         """Test create_csr handles AttributeError gracefully"""
         mock_module = Mock()
@@ -650,17 +684,27 @@ class TestCreateCsr:
 class TestMain:
     """Test cases for main() function"""
 
-    @patch("plugins.modules.purefa_certs.LooseVersion")
-    @patch("plugins.modules.purefa_certs.create_cert")
-    @patch("plugins.modules.purefa_certs.get_array")
-    @patch("plugins.modules.purefa_certs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.create_cert"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_certs.HAS_PURESTORAGE", True)
     @patch("plugins.modules.purefa_certs.HAS_PYCOUNTRY", True)
     def test_main_state_present_create(
         self, mock_ansible_module, mock_get_array, mock_create_cert, mock_loose_version
     ):
         """Test main() creates certificate when state=present and not exists"""
-        from plugins.modules.purefa_certs import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs import (
+            main,
+        )
 
         # Make LooseVersion return comparable values
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
@@ -687,17 +731,27 @@ class TestMain:
 
         mock_create_cert.assert_called_once()
 
-    @patch("plugins.modules.purefa_certs.LooseVersion")
-    @patch("plugins.modules.purefa_certs.update_cert")
-    @patch("plugins.modules.purefa_certs.get_array")
-    @patch("plugins.modules.purefa_certs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.update_cert"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_certs.HAS_PURESTORAGE", True)
     @patch("plugins.modules.purefa_certs.HAS_PYCOUNTRY", True)
     def test_main_state_present_update(
         self, mock_ansible_module, mock_get_array, mock_update_cert, mock_loose_version
     ):
         """Test main() updates certificate when state=present and exists"""
-        from plugins.modules.purefa_certs import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -723,13 +777,19 @@ class TestMain:
 
         mock_update_cert.assert_called_once()
 
-    @patch("plugins.modules.purefa_certs.get_array")
-    @patch("plugins.modules.purefa_certs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_certs.HAS_PURESTORAGE", False)
     def test_main_no_purestorage_sdk(self, mock_ansible_module, mock_get_array):
         """Test main() fails when purestorage SDK not available"""
         import pytest
-        from plugins.modules.purefa_certs import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.fail_json.side_effect = SystemExit(1)
@@ -740,14 +800,20 @@ class TestMain:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_certs.get_array")
-    @patch("plugins.modules.purefa_certs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_certs.HAS_PURESTORAGE", True)
     @patch("plugins.modules.purefa_certs.HAS_PYCOUNTRY", False)
     def test_main_no_pycountry_sdk(self, mock_ansible_module, mock_get_array):
         """Test main() fails when pycountry SDK not available"""
         import pytest
-        from plugins.modules.purefa_certs import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.fail_json.side_effect = SystemExit(1)
@@ -758,9 +824,15 @@ class TestMain:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_certs.LooseVersion")
-    @patch("plugins.modules.purefa_certs.get_array")
-    @patch("plugins.modules.purefa_certs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_certs.HAS_PURESTORAGE", True)
     @patch("plugins.modules.purefa_certs.HAS_PYCOUNTRY", True)
     def test_main_invalid_email(
@@ -768,7 +840,9 @@ class TestMain:
     ):
         """Test main() fails with invalid email format"""
         import pytest
-        from plugins.modules.purefa_certs import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -792,9 +866,15 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_certs.LooseVersion")
-    @patch("plugins.modules.purefa_certs.get_array")
-    @patch("plugins.modules.purefa_certs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_certs.HAS_PURESTORAGE", True)
     @patch("plugins.modules.purefa_certs.HAS_PYCOUNTRY", True)
     def test_main_invalid_country_length(
@@ -802,7 +882,9 @@ class TestMain:
     ):
         """Test main() fails with invalid country code length"""
         import pytest
-        from plugins.modules.purefa_certs import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -870,9 +952,15 @@ class TestMain:
 
                         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_certs.LooseVersion")
-    @patch("plugins.modules.purefa_certs.get_array")
-    @patch("plugins.modules.purefa_certs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_certs.HAS_PURESTORAGE", True)
     @patch("plugins.modules.purefa_certs.HAS_PYCOUNTRY", True)
     def test_main_api_version_too_old(
@@ -880,7 +968,9 @@ class TestMain:
     ):
         """Test main() fails when API version is too old"""
         import pytest
-        from plugins.modules.purefa_certs import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -904,17 +994,27 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_certs.LooseVersion")
-    @patch("plugins.modules.purefa_certs.delete_cert")
-    @patch("plugins.modules.purefa_certs.get_array")
-    @patch("plugins.modules.purefa_certs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.delete_cert"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_certs.HAS_PURESTORAGE", True)
     @patch("plugins.modules.purefa_certs.HAS_PYCOUNTRY", True)
     def test_main_state_absent(
         self, mock_ansible_module, mock_get_array, mock_delete_cert, mock_loose_version
     ):
         """Test main() deletes certificate when state=absent"""
-        from plugins.modules.purefa_certs import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -937,17 +1037,27 @@ class TestMain:
 
         mock_delete_cert.assert_called_once()
 
-    @patch("plugins.modules.purefa_certs.LooseVersion")
-    @patch("plugins.modules.purefa_certs.export_cert")
-    @patch("plugins.modules.purefa_certs.get_array")
-    @patch("plugins.modules.purefa_certs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.export_cert"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_certs.HAS_PURESTORAGE", True)
     @patch("plugins.modules.purefa_certs.HAS_PYCOUNTRY", True)
     def test_main_state_export(
         self, mock_ansible_module, mock_get_array, mock_export_cert, mock_loose_version
     ):
         """Test main() exports certificate when state=export"""
-        from plugins.modules.purefa_certs import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -971,17 +1081,27 @@ class TestMain:
 
         mock_export_cert.assert_called_once()
 
-    @patch("plugins.modules.purefa_certs.LooseVersion")
-    @patch("plugins.modules.purefa_certs.create_csr")
-    @patch("plugins.modules.purefa_certs.get_array")
-    @patch("plugins.modules.purefa_certs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.create_csr"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_certs.HAS_PURESTORAGE", True)
     @patch("plugins.modules.purefa_certs.HAS_PYCOUNTRY", True)
     def test_main_state_sign(
         self, mock_ansible_module, mock_get_array, mock_create_csr, mock_loose_version
     ):
         """Test main() creates CSR when state=sign"""
-        from plugins.modules.purefa_certs import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -1005,17 +1125,27 @@ class TestMain:
 
         mock_create_csr.assert_called_once()
 
-    @patch("plugins.modules.purefa_certs.LooseVersion")
-    @patch("plugins.modules.purefa_certs.import_cert")
-    @patch("plugins.modules.purefa_certs.get_array")
-    @patch("plugins.modules.purefa_certs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.import_cert"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_certs.HAS_PURESTORAGE", True)
     @patch("plugins.modules.purefa_certs.HAS_PYCOUNTRY", True)
     def test_main_state_import_new(
         self, mock_ansible_module, mock_get_array, mock_import_cert, mock_loose_version
     ):
         """Test main() imports new certificate when state=import"""
-        from plugins.modules.purefa_certs import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -1039,17 +1169,27 @@ class TestMain:
 
         mock_import_cert.assert_called_once_with(mock_module, mock_array)
 
-    @patch("plugins.modules.purefa_certs.LooseVersion")
-    @patch("plugins.modules.purefa_certs.import_cert")
-    @patch("plugins.modules.purefa_certs.get_array")
-    @patch("plugins.modules.purefa_certs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.import_cert"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_certs.HAS_PURESTORAGE", True)
     @patch("plugins.modules.purefa_certs.HAS_PYCOUNTRY", True)
     def test_main_state_import_reimport(
         self, mock_ansible_module, mock_get_array, mock_import_cert, mock_loose_version
     ):
         """Test main() reimports certificate when state=import and exists"""
-        from plugins.modules.purefa_certs import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -1073,16 +1213,24 @@ class TestMain:
 
         mock_import_cert.assert_called_once_with(mock_module, mock_array, reimport=True)
 
-    @patch("plugins.modules.purefa_certs.LooseVersion")
-    @patch("plugins.modules.purefa_certs.get_array")
-    @patch("plugins.modules.purefa_certs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_certs.HAS_PURESTORAGE", True)
     @patch("plugins.modules.purefa_certs.HAS_PYCOUNTRY", True)
     def test_main_no_change(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() exits with no change when certificate doesn't exist and state=absent"""
-        from plugins.modules.purefa_certs import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_certs import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 

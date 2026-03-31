@@ -15,18 +15,8 @@ from packaging.version import Version as LooseVersion
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -56,7 +46,9 @@ from plugins.modules.purefa_hg import (
 class TestRenameExists:
     """Test cases for rename_exists function"""
 
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_rename_exists_true(self, mock_loose_version):
         """Test rename_exists returns True when target exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -70,7 +62,9 @@ class TestRenameExists:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_rename_exists_false(self, mock_loose_version):
         """Test rename_exists returns False when target doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -88,7 +82,9 @@ class TestRenameExists:
 class TestGetHostgroup:
     """Test cases for get_hostgroup function"""
 
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_get_hostgroup_exists(self, mock_loose_version):
         """Test get_hostgroup returns hostgroup when it exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -104,7 +100,9 @@ class TestGetHostgroup:
 
         assert result == mock_hg
 
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_get_hostgroup_not_exists(self, mock_loose_version):
         """Test get_hostgroup returns None when hostgroup doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -122,7 +120,9 @@ class TestGetHostgroup:
 class TestGetHostgroupHosts:
     """Test cases for get_hostgroup_hosts function"""
 
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_get_hostgroup_hosts_exists(self, mock_loose_version):
         """Test get_hostgroup_hosts returns hostgroup hosts when they exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -140,7 +140,9 @@ class TestGetHostgroupHosts:
 
         assert result is not None
 
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_get_hostgroup_hosts_not_exists(self, mock_loose_version):
         """Test get_hostgroup_hosts returns None when no hosts exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -158,8 +160,12 @@ class TestGetHostgroupHosts:
 class TestMakeHostgroup:
     """Test cases for make_hostgroup function"""
 
-    @patch("plugins.modules.purefa_hg.check_response")
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_make_hostgroup_check_mode(self, mock_loose_version, mock_check_response):
         """Test make_hostgroup in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -177,8 +183,12 @@ class TestMakeHostgroup:
 class TestUpdateHostgroup:
     """Test cases for update_hostgroup function"""
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_update_hostgroup_no_changes(
         self, mock_loose_version, mock_get_hostgroup_hosts
     ):
@@ -207,9 +217,15 @@ class TestUpdateHostgroup:
 class TestDeleteHostgroup:
     """Test cases for delete_hostgroup function"""
 
-    @patch("plugins.modules.purefa_hg.check_response")
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_delete_hostgroup_no_volumes_or_hosts(
         self, mock_loose_version, mock_get_hostgroup_hosts, mock_check_response
     ):
@@ -233,9 +249,15 @@ class TestDeleteHostgroup:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_hg.check_response")
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_delete_hostgroup_with_volumes(
         self, mock_loose_version, mock_get_hostgroup_hosts, mock_check_response
     ):
@@ -268,9 +290,15 @@ class TestDeleteHostgroup:
         mock_array.delete_connections.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.check_response")
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_delete_hostgroup_with_hosts(
         self, mock_loose_version, mock_get_hostgroup_hosts, mock_check_response
     ):
@@ -307,8 +335,12 @@ class TestDeleteHostgroup:
 class TestMakeHostgroupSuccess:
     """Test cases for make_hostgroup success paths"""
 
-    @patch("plugins.modules.purefa_hg.check_response")
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_make_hostgroup_success(self, mock_loose_version, mock_check_response):
         """Test make_hostgroup successfully creates hostgroup"""
         from packaging.version import Version as LooseVersion
@@ -333,8 +365,12 @@ class TestMakeHostgroupSuccess:
         mock_array.post_host_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.check_response")
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_make_hostgroup_with_hosts(self, mock_loose_version, mock_check_response):
         """Test make_hostgroup successfully creates hostgroup with hosts"""
         from packaging.version import Version as LooseVersion
@@ -365,9 +401,15 @@ class TestMakeHostgroupSuccess:
 class TestUpdateHostgroupSuccess:
     """Test cases for update_hostgroup success paths"""
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_update_hostgroup_rename_success(
         self, mock_loose_version, mock_check_response, mock_get_hg_hosts
     ):
@@ -400,8 +442,12 @@ class TestUpdateHostgroupSuccess:
         mock_array.patch_host_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_update_hostgroup_rename_exists_warns(
         self, mock_loose_version, mock_get_hg_hosts
     ):
@@ -433,9 +479,15 @@ class TestUpdateHostgroupSuccess:
         mock_module.warn.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_update_hostgroup_add_hosts(
         self, mock_loose_version, mock_check_response, mock_get_hg_hosts
     ):
@@ -465,9 +517,15 @@ class TestUpdateHostgroupSuccess:
         mock_array.patch_hosts.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
-    @patch("plugins.modules.purefa_hg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.LooseVersion"
+    )
     def test_update_hostgroup_add_volumes(
         self, mock_loose_version, mock_check_response, mock_get_hg_hosts
     ):
@@ -497,8 +555,12 @@ class TestUpdateHostgroupSuccess:
         assert mock_array.post_connections.call_count == 2
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_update_hostgroup_add_volume_with_lun(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -530,8 +592,12 @@ class TestUpdateHostgroupSuccess:
 class TestDeleteHostgroupSuccess:
     """Test cases for delete_hostgroup success paths"""
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_delete_hostgroup_with_volumes(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -559,8 +625,12 @@ class TestDeleteHostgroupSuccess:
         mock_array.delete_host_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_delete_hostgroup_with_hosts(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -590,9 +660,15 @@ class TestDeleteHostgroupSuccess:
 class TestUpdateHostgroupRename:
     """Test cases for update_hostgroup rename functionality"""
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.rename_exists")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.rename_exists"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_update_hostgroup_rename_success(
         self, mock_lv, mock_check_response, mock_rename_exists, mock_get_hg_hosts
@@ -623,8 +699,12 @@ class TestUpdateHostgroupRename:
         mock_array.patch_host_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.rename_exists")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.rename_exists"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_update_hostgroup_rename_target_exists(
         self, mock_lv, mock_rename_exists, mock_get_hg_hosts
@@ -655,8 +735,12 @@ class TestUpdateHostgroupRename:
         mock_array.patch_host_groups.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.rename_exists")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.rename_exists"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_update_hostgroup_rename_check_mode(
         self, mock_lv, mock_rename_exists, mock_get_hg_hosts
@@ -691,8 +775,12 @@ class TestUpdateHostgroupRename:
 class TestUpdateHostgroupAddHosts:
     """Test cases for update_hostgroup add hosts functionality"""
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_update_hostgroup_add_hosts(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -726,8 +814,12 @@ class TestUpdateHostgroupAddHosts:
 class TestMakeHostgroupWithVolumes:
     """Test cases for make_hostgroup with volume connections"""
 
-    @patch("plugins.modules.purefa_hg.ConnectionPost")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.ConnectionPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_make_hostgroup_with_single_volume_and_lun(
         self, mock_lv, mock_check_response, mock_connection_post
@@ -758,7 +850,9 @@ class TestMakeHostgroupWithVolumes:
         mock_connection_post.assert_called_once_with(lun=100)
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_make_hostgroup_with_multiple_volumes_no_lun(
         self, mock_lv, mock_check_response
@@ -786,7 +880,9 @@ class TestMakeHostgroupWithVolumes:
         assert call_kwargs["volume_names"] == ["vol1", "vol2", "vol3"]
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_make_hostgroup_with_host_and_volume(self, mock_lv, mock_check_response):
         """Test making hostgroup with both hosts and volumes"""
@@ -813,7 +909,9 @@ class TestMakeHostgroupWithVolumes:
         mock_array.post_connections.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_make_hostgroup_rename_fails(self, mock_lv, mock_check_response):
         """Test make_hostgroup fails when rename is specified"""
@@ -838,9 +936,15 @@ class TestMakeHostgroupWithVolumes:
 class TestUpdateHostgroupAddVolumes:
     """Test cases for update_hostgroup adding volumes"""
 
-    @patch("plugins.modules.purefa_hg.ConnectionPost")
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.ConnectionPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_add_single_volume_with_lun_to_existing(
         self, mock_lv, mock_check_response, mock_get_hg_hosts, mock_connection_post
@@ -876,8 +980,12 @@ class TestUpdateHostgroupAddVolumes:
         mock_connection_post.assert_called_once_with(lun=50)
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_add_multiple_volumes_to_existing(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -911,9 +1019,15 @@ class TestUpdateHostgroupAddVolumes:
         assert mock_array.post_connections.call_count == 2
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.ConnectionPost")
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.ConnectionPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_add_volume_to_empty_hostgroup_with_lun(
         self, mock_lv, mock_check_response, mock_get_hg_hosts, mock_connection_post
@@ -943,8 +1057,12 @@ class TestUpdateHostgroupAddVolumes:
         mock_connection_post.assert_called_once_with(lun=100)
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_add_volumes_to_empty_hostgroup_no_lun(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -977,8 +1095,12 @@ class TestUpdateHostgroupAddVolumes:
 class TestUpdateHostgroupAbsentState:
     """Test cases for update_hostgroup with state=absent (removing hosts/volumes)"""
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_remove_hosts_from_hostgroup(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -1014,8 +1136,12 @@ class TestUpdateHostgroupAbsentState:
         assert "host1" in call_kwargs["member_names"]
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_remove_volumes_from_hostgroup(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -1055,8 +1181,12 @@ class TestUpdateHostgroupAbsentState:
         assert set(call_kwargs["volume_names"]) == {"vol1", "vol2"}
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_remove_nonexistent_host_no_change(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -1090,8 +1220,12 @@ class TestUpdateHostgroupAbsentState:
 class TestDeleteHostgroupPaths:
     """Test cases for delete_hostgroup additional paths"""
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_delete_hostgroup_with_volumes(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -1122,8 +1256,12 @@ class TestDeleteHostgroupPaths:
         mock_array.delete_host_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_delete_hostgroup_check_mode(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -1154,7 +1292,9 @@ class TestDeleteHostgroupPaths:
 class TestOldApiVersionPaths:
     """Test cases for older API version paths (without context support)"""
 
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_make_hostgroup_old_api_with_volume(self, mock_lv, mock_check_response):
         """Test make_hostgroup with old API version (no context)"""
@@ -1180,7 +1320,9 @@ class TestOldApiVersionPaths:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_make_hostgroup_old_api_with_hosts(self, mock_lv, mock_check_response):
         """Test make_hostgroup with old API version adding hosts"""
@@ -1206,8 +1348,12 @@ class TestOldApiVersionPaths:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_update_hostgroup_old_api_add_hosts(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -1236,9 +1382,15 @@ class TestOldApiVersionPaths:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.rename_exists")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.rename_exists"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_update_hostgroup_old_api_rename(
         self, mock_lv, mock_check_response, mock_rename_exists, mock_get_hg_hosts
@@ -1268,8 +1420,12 @@ class TestOldApiVersionPaths:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_delete_hostgroup_old_api(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -1293,8 +1449,12 @@ class TestOldApiVersionPaths:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_delete_hostgroup_old_api_with_hosts(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -1323,8 +1483,12 @@ class TestOldApiVersionPaths:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_update_hostgroup_old_api_remove_hosts(
         self, mock_lv, mock_check_response, mock_get_hg_hosts
@@ -1356,8 +1520,12 @@ class TestOldApiVersionPaths:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_hg.get_hostgroup_hosts")
-    @patch("plugins.modules.purefa_hg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.get_hostgroup_hosts"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hg.check_response"
+    )
     @patch("plugins.modules.purefa_hg.LooseVersion", side_effect=LooseVersion)
     def test_update_hostgroup_old_api_remove_volumes(
         self, mock_lv, mock_check_response, mock_get_hg_hosts

@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock, patch
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -102,9 +92,15 @@ class TestDeleteExport:
             msg="At least one policy must be provided"
         )
 
-    @patch("plugins.modules.purefa_export.check_response")
-    @patch("plugins.modules.purefa_export.delete_with_context")
-    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
     def test_delete_export_nfs_policy_success(
         self, mock_get_with_context, mock_delete_with_context, mock_check_response
     ):
@@ -128,7 +124,9 @@ class TestDeleteExport:
         mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
     def test_delete_export_check_mode(self, mock_get_with_context):
         """Test delete_export in check mode"""
         mock_module = Mock()
@@ -148,7 +146,9 @@ class TestDeleteExport:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
     def test_delete_export_policy_not_exists(self, mock_get_with_context):
         """Test delete_export when policy doesn't exist"""
         mock_module = Mock()
@@ -168,9 +168,15 @@ class TestDeleteExport:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_export.check_response")
-    @patch("plugins.modules.purefa_export.delete_with_context")
-    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
     def test_delete_export_smb_policy_success(
         self, mock_get_with_context, mock_delete_with_context, mock_check_response
     ):
@@ -198,9 +204,15 @@ class TestDeleteExport:
 class TestCreateExportExtended:
     """Additional tests for create_export function"""
 
-    @patch("plugins.modules.purefa_export.check_response")
-    @patch("plugins.modules.purefa_export.post_with_context")
-    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
     def test_create_export_nfs_policy_success(
         self, mock_get_with_context, mock_post_with_context, mock_check_response
     ):
@@ -228,8 +240,12 @@ class TestCreateExportExtended:
         mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_export.check_response")
-    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
     def test_create_export_check_mode(self, mock_get_with_context, mock_check_response):
         """Test create_export in check mode"""
         mock_module = Mock()
@@ -253,8 +269,12 @@ class TestCreateExportExtended:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_export.check_response")
-    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
     def test_create_export_already_exists(
         self, mock_get_with_context, mock_check_response
     ):
@@ -280,9 +300,15 @@ class TestCreateExportExtended:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_export.check_response")
-    @patch("plugins.modules.purefa_export.post_with_context")
-    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
     def test_create_export_smb_policy_success(
         self, mock_get_with_context, mock_post_with_context, mock_check_response
     ):
@@ -310,9 +336,15 @@ class TestCreateExportExtended:
         mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_export.check_response")
-    @patch("plugins.modules.purefa_export.post_with_context")
-    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
     def test_create_export_both_policies(
         self, mock_get_with_context, mock_post_with_context, mock_check_response
     ):
@@ -342,8 +374,12 @@ class TestCreateExportExtended:
         mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_export.check_response")
-    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
     def test_create_export_smb_already_exists(
         self, mock_get_with_context, mock_check_response
     ):
@@ -373,9 +409,15 @@ class TestCreateExportExtended:
 class TestDeleteExportExtended:
     """Extended tests for delete_export function"""
 
-    @patch("plugins.modules.purefa_export.check_response")
-    @patch("plugins.modules.purefa_export.delete_with_context")
-    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
     def test_delete_export_both_policies(
         self, mock_get_with_context, mock_delete_with_context, mock_check_response
     ):
@@ -404,10 +446,18 @@ class TestDeleteExportExtended:
 class TestMain:
     """Tests for main function"""
 
-    @patch("plugins.modules.purefa_export.AnsibleModule")
-    @patch("plugins.modules.purefa_export.get_array")
-    @patch("plugins.modules.purefa_export.get_with_context")
-    @patch("plugins.modules.purefa_export.create_export")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.create_export"
+    )
     def test_main_create_export(
         self, mock_create_export, mock_get_with_context, mock_get_array, mock_ansible
     ):
@@ -439,10 +489,18 @@ class TestMain:
         finally:
             export_module.HAS_PURESTORAGE = original_has
 
-    @patch("plugins.modules.purefa_export.AnsibleModule")
-    @patch("plugins.modules.purefa_export.get_array")
-    @patch("plugins.modules.purefa_export.get_with_context")
-    @patch("plugins.modules.purefa_export.delete_export")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.delete_export"
+    )
     def test_main_delete_export(
         self, mock_delete_export, mock_get_with_context, mock_get_array, mock_ansible
     ):
@@ -474,9 +532,15 @@ class TestMain:
         finally:
             export_module.HAS_PURESTORAGE = original_has
 
-    @patch("plugins.modules.purefa_export.AnsibleModule")
-    @patch("plugins.modules.purefa_export.get_array")
-    @patch("plugins.modules.purefa_export.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_with_context"
+    )
     def test_main_absent_not_exists(
         self, mock_get_with_context, mock_get_array, mock_ansible
     ):
@@ -508,8 +572,12 @@ class TestMain:
         finally:
             export_module.HAS_PURESTORAGE = original_has
 
-    @patch("plugins.modules.purefa_export.AnsibleModule")
-    @patch("plugins.modules.purefa_export.get_array")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_array"
+    )
     def test_main_missing_purestorage(self, mock_get_array, mock_ansible):
         """Test main function fails when pypureclient is missing"""
         import pytest
@@ -542,8 +610,12 @@ class TestMain:
         finally:
             export_module.HAS_PURESTORAGE = original_has
 
-    @patch("plugins.modules.purefa_export.AnsibleModule")
-    @patch("plugins.modules.purefa_export.get_array")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_export.get_array"
+    )
     def test_main_api_version_too_low(self, mock_get_array, mock_ansible):
         """Test main function fails when API version is too low"""
         import pytest

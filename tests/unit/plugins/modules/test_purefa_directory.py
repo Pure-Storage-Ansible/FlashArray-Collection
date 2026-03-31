@@ -16,18 +16,8 @@ import pytest
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -54,7 +44,9 @@ from plugins.modules.purefa_directory import (
 class TestDeleteDir:
     """Tests for delete_dir function"""
 
-    @patch("plugins.modules.purefa_directory.delete_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.delete_with_context"
+    )
     def test_delete_dir_check_mode(self, mock_delete):
         """Test delete_dir in check mode"""
         mock_module = Mock()
@@ -67,8 +59,12 @@ class TestDeleteDir:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_delete.assert_not_called()
 
-    @patch("plugins.modules.purefa_directory.check_response")
-    @patch("plugins.modules.purefa_directory.delete_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.delete_with_context"
+    )
     def test_delete_dir_success(self, mock_delete, mock_check):
         """Test delete_dir successfully deletes directory"""
         mock_module = Mock()
@@ -86,9 +82,15 @@ class TestDeleteDir:
 class TestRenameDir:
     """Tests for rename_dir function"""
 
-    @patch("plugins.modules.purefa_directory.check_response")
-    @patch("plugins.modules.purefa_directory.patch_with_context")
-    @patch("plugins.modules.purefa_directory.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_with_context"
+    )
     def test_rename_dir_success(self, mock_get, mock_patch, mock_check):
         """Test rename_dir successfully renames directory"""
         mock_module = Mock()
@@ -108,7 +110,9 @@ class TestRenameDir:
         mock_patch.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_directory.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_with_context"
+    )
     def test_rename_dir_target_exists(self, mock_get):
         """Test rename_dir fails when target exists"""
         mock_module = Mock()
@@ -130,8 +134,12 @@ class TestRenameDir:
 class TestCreateDir:
     """Tests for create_dir function"""
 
-    @patch("plugins.modules.purefa_directory.post_with_context")
-    @patch("plugins.modules.purefa_directory.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_with_context"
+    )
     def test_create_dir_check_mode(self, mock_get, mock_post):
         """Test create_dir in check mode"""
         mock_module = Mock()
@@ -150,9 +158,15 @@ class TestCreateDir:
         mock_post.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_directory.check_response")
-    @patch("plugins.modules.purefa_directory.post_with_context")
-    @patch("plugins.modules.purefa_directory.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_with_context"
+    )
     def test_create_dir_success(self, mock_get, mock_post, mock_check):
         """Test create_dir successfully creates directory"""
         mock_module = Mock()
@@ -172,7 +186,9 @@ class TestCreateDir:
         mock_post.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_directory.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_with_context"
+    )
     def test_create_dir_path_exists(self, mock_get):
         """Test create_dir fails when path exists"""
         mock_module = Mock()
@@ -199,10 +215,14 @@ class TestMain:
     """Tests for main function"""
 
     @patch("plugins.modules.purefa_directory.HAS_PURESTORAGE", False)
-    @patch("plugins.modules.purefa_directory.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.AnsibleModule"
+    )
     def test_main_missing_purestorage(self, mock_ansible_module):
         """Test main fails when pypureclient is not installed"""
-        from plugins.modules.purefa_directory import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {}
@@ -223,10 +243,18 @@ class TestMain:
         finally:
             dir_module.HAS_PURESTORAGE = original_has
 
-    @patch("plugins.modules.purefa_directory.create_dir")
-    @patch("plugins.modules.purefa_directory.get_with_context")
-    @patch("plugins.modules.purefa_directory.get_array")
-    @patch("plugins.modules.purefa_directory.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.create_dir"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.AnsibleModule"
+    )
     def test_main_create_directory(
         self,
         mock_ansible_module,
@@ -235,7 +263,9 @@ class TestMain:
         mock_create_dir,
     ):
         """Test main creates directory when it doesn't exist"""
-        from plugins.modules.purefa_directory import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -268,14 +298,22 @@ class TestMain:
 
         mock_create_dir.assert_called_once_with(mock_module, mock_array)
 
-    @patch("plugins.modules.purefa_directory.get_with_context")
-    @patch("plugins.modules.purefa_directory.get_array")
-    @patch("plugins.modules.purefa_directory.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.AnsibleModule"
+    )
     def test_main_filesystem_not_found(
         self, mock_ansible_module, mock_get_array, mock_get_with_context
     ):
         """Test main fails when filesystem doesn't exist"""
-        from plugins.modules.purefa_directory import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -302,10 +340,18 @@ class TestMain:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_directory.rename_dir")
-    @patch("plugins.modules.purefa_directory.get_with_context")
-    @patch("plugins.modules.purefa_directory.get_array")
-    @patch("plugins.modules.purefa_directory.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.rename_dir"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.AnsibleModule"
+    )
     def test_main_rename_directory(
         self,
         mock_ansible_module,
@@ -314,7 +360,9 @@ class TestMain:
         mock_rename_dir,
     ):
         """Test main renames directory when it exists and rename param is set"""
-        from plugins.modules.purefa_directory import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -347,10 +395,18 @@ class TestMain:
 
         mock_rename_dir.assert_called_once_with(mock_module, mock_array)
 
-    @patch("plugins.modules.purefa_directory.delete_dir")
-    @patch("plugins.modules.purefa_directory.get_with_context")
-    @patch("plugins.modules.purefa_directory.get_array")
-    @patch("plugins.modules.purefa_directory.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.delete_dir"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.AnsibleModule"
+    )
     def test_main_delete_directory(
         self,
         mock_ansible_module,
@@ -359,7 +415,9 @@ class TestMain:
         mock_delete_dir,
     ):
         """Test main deletes directory when state=absent and dir exists"""
-        from plugins.modules.purefa_directory import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -392,14 +450,22 @@ class TestMain:
 
         mock_delete_dir.assert_called_once_with(mock_module, mock_array)
 
-    @patch("plugins.modules.purefa_directory.get_with_context")
-    @patch("plugins.modules.purefa_directory.get_array")
-    @patch("plugins.modules.purefa_directory.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.AnsibleModule"
+    )
     def test_main_no_change_absent_not_exists(
         self, mock_ansible_module, mock_get_array, mock_get_with_context
     ):
         """Test main reports no change when state=absent and dir doesn't exist"""
-        from plugins.modules.purefa_directory import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -432,14 +498,22 @@ class TestMain:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_directory.get_with_context")
-    @patch("plugins.modules.purefa_directory.get_array")
-    @patch("plugins.modules.purefa_directory.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.AnsibleModule"
+    )
     def test_main_no_change_present_exists_no_rename(
         self, mock_ansible_module, mock_get_array, mock_get_with_context
     ):
         """Test main reports no change when dir exists and no rename specified"""
-        from plugins.modules.purefa_directory import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -476,7 +550,9 @@ class TestMain:
 class TestRenameCheckMode:
     """Tests for rename_dir in check mode"""
 
-    @patch("plugins.modules.purefa_directory.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_directory.get_with_context"
+    )
     def test_rename_dir_check_mode(self, mock_get):
         """Test rename_dir in check mode reports changed=True without making API call"""
         mock_module = Mock()

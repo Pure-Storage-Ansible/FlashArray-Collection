@@ -15,18 +15,8 @@ from packaging.version import Version as LooseVersion
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -61,7 +51,9 @@ from plugins.modules.purefa_vg import (
 class TestRenameExists:
     """Test cases for rename_exists function"""
 
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_rename_exists_true(self, mock_loose_version):
         """Test rename_exists returns True when target exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -75,7 +67,9 @@ class TestRenameExists:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_rename_exists_false(self, mock_loose_version):
         """Test rename_exists returns False when target doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -93,7 +87,9 @@ class TestRenameExists:
 class TestGetMultiVgroups:
     """Test cases for get_multi_vgroups function"""
 
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_get_multi_vgroups_all_exist(self, mock_loose_version):
         """Test get_multi_vgroups returns True when all vgroups exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -118,7 +114,9 @@ class TestGetMultiVgroups:
 class TestGetPendingVgroup:
     """Test cases for get_pending_vgroup function"""
 
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_get_pending_vgroup_exists(self, mock_loose_version):
         """Test get_pending_vgroup returns True when deleted vgroup exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -136,7 +134,9 @@ class TestGetPendingVgroup:
 class TestGetVgroup:
     """Test cases for get_vgroup function"""
 
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_get_vgroup_exists(self, mock_loose_version):
         """Test get_vgroup returns True when it exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -150,7 +150,9 @@ class TestGetVgroup:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_get_vgroup_not_exists(self, mock_loose_version):
         """Test get_vgroup returns False when vgroup doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -168,7 +170,9 @@ class TestGetVgroup:
 class TestMakeVgroup:
     """Test cases for make_vgroup function"""
 
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_make_vgroup_check_mode(self, mock_loose_version):
         """Test make_vgroup in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -186,7 +190,9 @@ class TestMakeVgroup:
 class TestMakeMultiVgroups:
     """Test cases for make_multi_vgroups function"""
 
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_make_multi_vgroups_check_mode(self, mock_loose_version):
         """Test make_multi_vgroups in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -212,7 +218,9 @@ class TestMakeMultiVgroups:
 class TestDeleteVgroup:
     """Test cases for delete_vgroup function"""
 
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_delete_vgroup_check_mode(self, mock_loose_version):
         """Test delete_vgroup in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -230,7 +238,9 @@ class TestDeleteVgroup:
 class TestEradicateVgroup:
     """Test cases for eradicate_vgroup function"""
 
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_eradicate_vgroup_check_mode(self, mock_loose_version):
         """Test eradicate_vgroup in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -248,7 +258,9 @@ class TestEradicateVgroup:
 class TestRecoverVgroup:
     """Test cases for recover_vgroup function"""
 
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_recover_vgroup_check_mode(self, mock_loose_version):
         """Test recover_vgroup in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -266,8 +278,12 @@ class TestRecoverVgroup:
 class TestRenameVgroup:
     """Test cases for rename_vgroup function"""
 
-    @patch("plugins.modules.purefa_vg.rename_exists")
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.rename_exists"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_rename_vgroup_check_mode(self, mock_loose_version, mock_rename_exists):
         """Test rename_vgroup in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -282,8 +298,12 @@ class TestRenameVgroup:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vg.rename_exists")
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.rename_exists"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_rename_vgroup_target_exists(self, mock_loose_version, mock_rename_exists):
         """Test rename_vgroup when target already exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -302,7 +322,9 @@ class TestRenameVgroup:
 class TestUpdateVgroup:
     """Test cases for update_vgroup function"""
 
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_update_vgroup_no_changes(self, mock_loose_version):
         """Test update_vgroup with no changes needed"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -331,8 +353,12 @@ class TestUpdateVgroup:
 class TestDeleteVgroupSuccess:
     """Test cases for delete_vgroup success paths"""
 
-    @patch("plugins.modules.purefa_vg.check_response")
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_delete_vgroup_success(self, mock_loose_version, mock_check_response):
         """Test delete_vgroup successfully deletes"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -352,9 +378,15 @@ class TestDeleteVgroupSuccess:
         mock_array.patch_volume_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vg.eradicate_vgroup")
-    @patch("plugins.modules.purefa_vg.check_response")
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.eradicate_vgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_delete_vgroup_with_eradicate(
         self, mock_loose_version, mock_check_response, mock_eradicate
     ):
@@ -380,8 +412,12 @@ class TestDeleteVgroupSuccess:
 class TestEradicateVgroupSuccess:
     """Test cases for eradicate_vgroup success paths"""
 
-    @patch("plugins.modules.purefa_vg.check_response")
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_eradicate_vgroup_success(self, mock_loose_version, mock_check_response):
         """Test eradicate_vgroup successfully eradicates"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -401,8 +437,12 @@ class TestEradicateVgroupSuccess:
 class TestRecoverVgroupSuccess:
     """Test cases for recover_vgroup success paths"""
 
-    @patch("plugins.modules.purefa_vg.check_response")
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_recover_vgroup_success(self, mock_loose_version, mock_check_response):
         """Test recover_vgroup successfully recovers"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -422,9 +462,15 @@ class TestRecoverVgroupSuccess:
 class TestRenameVgroupSuccess:
     """Test cases for rename_vgroup success paths"""
 
-    @patch("plugins.modules.purefa_vg.check_response")
-    @patch("plugins.modules.purefa_vg.rename_exists")
-    @patch("plugins.modules.purefa_vg.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.rename_exists"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.LooseVersion"
+    )
     def test_rename_vgroup_success(
         self, mock_loose_version, mock_rename_exists, mock_check_response
     ):
@@ -447,9 +493,13 @@ class TestRenameVgroupSuccess:
 class TestMakeVgroupSuccess:
     """Test cases for make_vgroup function success scenarios"""
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_bytes"
+    )
     def test_make_vgroup_with_bw_qos(
         self, mock_human_to_bytes, mock_lv, mock_check_response
     ):
@@ -475,9 +525,13 @@ class TestMakeVgroupSuccess:
         mock_array.post_volume_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_real")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_real"
+    )
     def test_make_vgroup_with_iops_qos(
         self, mock_human_to_real, mock_lv, mock_check_response
     ):
@@ -503,7 +557,9 @@ class TestMakeVgroupSuccess:
         mock_array.post_volume_groups.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
     def test_make_vgroup_no_qos(self, mock_lv, mock_check_response):
         """Test make_vgroup without QoS settings"""
@@ -531,7 +587,9 @@ class TestMakeVgroupSuccess:
 class TestUpdateVgroupSuccess:
     """Test cases for update_vgroup function success scenarios"""
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
     def test_update_vgroup_priority_change(self, mock_lv, mock_check_response):
         """Test update_vgroup changing priority"""
@@ -561,9 +619,13 @@ class TestUpdateVgroupSuccess:
         mock_array.patch_volume_groups.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_bytes"
+    )
     def test_update_vgroup_bw_qos_change(
         self, mock_human_to_bytes, mock_lv, mock_check_response
     ):
@@ -623,9 +685,13 @@ class TestUpdateVgroupSuccess:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_real")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_real"
+    )
     def test_update_vgroup_iops_qos_change(
         self, mock_human_to_real, mock_lv, mock_check_response
     ):
@@ -657,9 +723,13 @@ class TestUpdateVgroupSuccess:
         mock_array.patch_volume_groups.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_real")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_real"
+    )
     def test_update_vgroup_iops_qos_disable(
         self, mock_human_to_real, mock_lv, mock_check_response
     ):
@@ -690,9 +760,13 @@ class TestUpdateVgroupSuccess:
         mock_array.patch_volume_groups.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_bytes"
+    )
     def test_update_vgroup_bw_qos_disable(
         self, mock_human_to_bytes, mock_lv, mock_check_response
     ):
@@ -723,7 +797,9 @@ class TestUpdateVgroupSuccess:
         mock_array.patch_volume_groups.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
     def test_update_vgroup_priority_operator_change(self, mock_lv, mock_check_response):
         """Test update_vgroup changing priority operator"""
@@ -756,10 +832,16 @@ class TestUpdateVgroupSuccess:
 class TestMakeVgroupComplex:
     """Test cases for make_vgroup with complex QoS scenarios"""
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_bytes")
-    @patch("plugins.modules.purefa_vg.human_to_real")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_real"
+    )
     def test_make_vgroup_both_qos(
         self, mock_human_to_real, mock_human_to_bytes, mock_lv, mock_check_response
     ):
@@ -786,10 +868,16 @@ class TestMakeVgroupComplex:
         mock_array.post_volume_groups.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_bytes")
-    @patch("plugins.modules.purefa_vg.human_to_real")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_real"
+    )
     def test_make_vgroup_both_qos_with_context(
         self, mock_human_to_real, mock_human_to_bytes, mock_lv, mock_check_response
     ):
@@ -817,8 +905,12 @@ class TestMakeVgroupComplex:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_bytes")
-    @patch("plugins.modules.purefa_vg.human_to_real")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_real"
+    )
     def test_make_vgroup_both_qos_out_of_range(
         self, mock_human_to_real, mock_human_to_bytes, mock_lv
     ):
@@ -842,7 +934,9 @@ class TestMakeVgroupComplex:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
     def test_make_vgroup_no_qos_with_context(self, mock_lv, mock_check_response):
         """Test make_vgroup with no QoS but with context"""
@@ -870,9 +964,13 @@ class TestMakeVgroupComplex:
 class TestMakeMultiVgroupsQoS:
     """Test cases for make_multi_vgroups with QoS"""
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_bytes"
+    )
     def test_make_multi_vgroups_bw_qos(
         self, mock_human_to_bytes, mock_lv, mock_check_response
     ):
@@ -902,9 +1000,13 @@ class TestMakeMultiVgroupsQoS:
         mock_array.post_volume_groups.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_real")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_real"
+    )
     def test_make_multi_vgroups_iops_qos(
         self, mock_human_to_real, mock_lv, mock_check_response
     ):
@@ -934,10 +1036,16 @@ class TestMakeMultiVgroupsQoS:
         mock_array.post_volume_groups.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_bytes")
-    @patch("plugins.modules.purefa_vg.human_to_real")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_real"
+    )
     def test_make_multi_vgroups_both_qos(
         self, mock_human_to_real, mock_human_to_bytes, mock_lv, mock_check_response
     ):
@@ -968,10 +1076,16 @@ class TestMakeMultiVgroupsQoS:
         mock_array.post_volume_groups.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_bytes")
-    @patch("plugins.modules.purefa_vg.human_to_real")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_real"
+    )
     def test_make_multi_vgroups_both_qos_with_context(
         self, mock_human_to_real, mock_human_to_bytes, mock_lv, mock_check_response
     ):
@@ -1003,7 +1117,9 @@ class TestMakeMultiVgroupsQoS:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_bytes"
+    )
     def test_make_multi_vgroups_bw_qos_out_of_range(self, mock_human_to_bytes, mock_lv):
         """Test make_multi_vgroups with bandwidth QoS out of range"""
         mock_human_to_bytes.return_value = 100  # Too small
@@ -1029,7 +1145,9 @@ class TestMakeMultiVgroupsQoS:
         mock_module.fail_json.assert_called_once()
 
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_vg.human_to_real")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.human_to_real"
+    )
     def test_make_multi_vgroups_iops_qos_out_of_range(
         self, mock_human_to_real, mock_lv
     ):
@@ -1060,7 +1178,9 @@ class TestMakeMultiVgroupsQoS:
 class TestRecoverVgroup:
     """Test cases for recover_vgroup function"""
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
     def test_recover_vgroup_with_context(self, mock_lv, mock_check_response):
         """Test recover_vgroup with context API"""
@@ -1083,7 +1203,9 @@ class TestRecoverVgroup:
 class TestEradicateVgroup:
     """Test cases for eradicate_vgroup function"""
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
     def test_eradicate_vgroup_with_context(self, mock_lv, mock_check_response):
         """Test eradicate_vgroup with context API"""
@@ -1106,7 +1228,9 @@ class TestEradicateVgroup:
 class TestDeleteVgroup:
     """Test cases for delete_vgroup function"""
 
-    @patch("plugins.modules.purefa_vg.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vg.check_response"
+    )
     @patch("plugins.modules.purefa_vg.LooseVersion", side_effect=LooseVersion)
     def test_delete_vgroup_with_context(self, mock_lv, mock_check_response):
         """Test delete_vgroup with context API"""

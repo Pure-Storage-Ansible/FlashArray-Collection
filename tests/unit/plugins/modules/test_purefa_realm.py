@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -180,7 +170,9 @@ class TestRecoverRealm:
 class TestRenameRealm:
     """Test cases for rename_realm function"""
 
-    @patch("plugins.modules.purefa_realm.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.check_response"
+    )
     def test_rename_realm_check_mode(self, mock_check_response):
         """Test rename_realm in check mode"""
         mock_module = Mock()
@@ -220,8 +212,12 @@ class TestUpdateRealm:
 class TestMakeRealmSuccess:
     """Additional test cases for make_realm function"""
 
-    @patch("plugins.modules.purefa_realm.check_response")
-    @patch("plugins.modules.purefa_realm.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.human_to_bytes"
+    )
     def test_make_realm_with_quota(self, mock_human_to_bytes, mock_check_response):
         """Test make_realm with valid quota"""
         mock_human_to_bytes.return_value = 1048576  # 1MB - valid quota
@@ -241,7 +237,9 @@ class TestMakeRealmSuccess:
         mock_array.post_realms.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_realm.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.check_response"
+    )
     def test_make_realm_no_quota(self, mock_check_response):
         """Test make_realm without quota"""
         mock_module = Mock()
@@ -260,7 +258,9 @@ class TestMakeRealmSuccess:
         mock_array.post_realms.assert_called_once_with(names=["new-realm"])
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_realm.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.human_to_bytes"
+    )
     def test_make_realm_invalid_quota_not_512_multiple(self, mock_human_to_bytes):
         """Test make_realm fails with quota not multiple of 512"""
         import pytest
@@ -286,7 +286,9 @@ class TestMakeRealmSuccess:
 class TestDeleteRealmSuccess:
     """Additional test cases for delete_realm function"""
 
-    @patch("plugins.modules.purefa_realm.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.check_response"
+    )
     def test_delete_realm_success(self, mock_check_response):
         """Test delete_realm successfully deletes"""
         mock_module = Mock()
@@ -309,7 +311,9 @@ class TestDeleteRealmSuccess:
 class TestRecoverRealmSuccess:
     """Additional test cases for recover_realm function"""
 
-    @patch("plugins.modules.purefa_realm.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.check_response"
+    )
     def test_recover_realm_success(self, mock_check_response):
         """Test recover_realm successfully recovers"""
         mock_module = Mock()
@@ -327,7 +331,9 @@ class TestRecoverRealmSuccess:
 class TestEradicateRealmSuccess:
     """Additional test cases for eradicate_realm function"""
 
-    @patch("plugins.modules.purefa_realm.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.check_response"
+    )
     def test_eradicate_realm_success(self, mock_check_response):
         """Test eradicate_realm successfully eradicates"""
         mock_module = Mock()
@@ -345,7 +351,9 @@ class TestEradicateRealmSuccess:
 class TestRenameRealmSuccess:
     """Additional test cases for rename_realm function"""
 
-    @patch("plugins.modules.purefa_realm.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.check_response"
+    )
     def test_rename_realm_success(self, mock_check_response):
         """Test rename_realm successfully renames"""
         mock_module = Mock()
@@ -363,8 +371,12 @@ class TestRenameRealmSuccess:
 class TestUpdateRealmSuccess:
     """Test cases for update_realm function success scenarios"""
 
-    @patch("plugins.modules.purefa_realm.check_response")
-    @patch("plugins.modules.purefa_realm.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.human_to_bytes"
+    )
     def test_update_realm_change_bw_qos(self, mock_human_to_bytes, mock_check_response):
         """Test update_realm changes bandwidth QoS"""
         mock_module = Mock()
@@ -391,9 +403,15 @@ class TestUpdateRealmSuccess:
         mock_array.patch_realms.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_realm.check_response")
-    @patch("plugins.modules.purefa_realm.human_to_bytes")
-    @patch("plugins.modules.purefa_realm.human_to_real")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.human_to_real"
+    )
     def test_update_realm_change_iops_qos(
         self, mock_human_to_real, mock_human_to_bytes, mock_check_response
     ):
@@ -422,8 +440,12 @@ class TestUpdateRealmSuccess:
         mock_array.patch_realms.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_realm.check_response")
-    @patch("plugins.modules.purefa_realm.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.human_to_bytes"
+    )
     def test_update_realm_change_quota(self, mock_human_to_bytes, mock_check_response):
         """Test update_realm changes quota"""
         mock_module = Mock()
@@ -450,7 +472,9 @@ class TestUpdateRealmSuccess:
         mock_array.patch_realms.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_realm.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.human_to_bytes"
+    )
     def test_update_realm_bw_qos_out_of_range(self, mock_human_to_bytes):
         """Test update_realm fails when bandwidth QoS is out of range"""
         mock_module = Mock()
@@ -475,7 +499,9 @@ class TestUpdateRealmSuccess:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_realm.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_realm.human_to_bytes"
+    )
     def test_update_realm_quota_not_512_multiple(self, mock_human_to_bytes):
         """Test update_realm fails when quota is not a multiple of 512"""
         mock_module = Mock()

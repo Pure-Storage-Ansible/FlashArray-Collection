@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -101,7 +91,9 @@ class TestIsCbs:
 class TestDeleteNtp:
     """Test cases for delete_ntp function"""
 
-    @patch("plugins.modules.purefa_ntp.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ntp.get_with_context"
+    )
     def test_delete_ntp_check_mode(self, mock_get_with_context):
         """Test delete_ntp in check mode"""
         mock_module = Mock()
@@ -117,7 +109,9 @@ class TestDeleteNtp:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ntp.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ntp.get_with_context"
+    )
     def test_delete_ntp_no_servers(self, mock_get_with_context):
         """Test delete_ntp when no NTP servers configured"""
         mock_module = Mock()
@@ -185,8 +179,12 @@ class TestCreateNtp:
         # In check mode, always returns changed=True without making API calls
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ntp.check_response")
-    @patch("plugins.modules.purefa_ntp.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ntp.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ntp.get_with_context"
+    )
     def test_create_ntp_success(self, mock_get_with_context, mock_check_response):
         """Test create_ntp successfully sets NTP servers"""
         mock_module = Mock()
@@ -203,8 +201,12 @@ class TestCreateNtp:
         mock_get_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ntp.check_response")
-    @patch("plugins.modules.purefa_ntp.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ntp.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ntp.get_with_context"
+    )
     def test_create_ntp_defaults_to_pool(
         self, mock_get_with_context, mock_check_response
     ):
@@ -228,8 +230,12 @@ class TestCreateNtp:
 class TestDeleteNtpSuccess:
     """Test cases for delete_ntp success paths"""
 
-    @patch("plugins.modules.purefa_ntp.check_response")
-    @patch("plugins.modules.purefa_ntp.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ntp.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ntp.get_with_context"
+    )
     def test_delete_ntp_success(self, mock_get_with_context, mock_check_response):
         """Test delete_ntp successfully removes NTP servers"""
         mock_module = Mock()
@@ -249,7 +255,9 @@ class TestDeleteNtpSuccess:
 class TestUpdateNtpKey:
     """Test cases for update_ntp_key function"""
 
-    @patch("plugins.modules.purefa_ntp.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ntp.get_with_context"
+    )
     def test_update_ntp_key_no_change(self, mock_get_with_context):
         """Test update_ntp_key when no change needed"""
         mock_module = Mock()
@@ -262,8 +270,12 @@ class TestUpdateNtpKey:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_ntp.check_response")
-    @patch("plugins.modules.purefa_ntp.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ntp.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ntp.get_with_context"
+    )
     def test_update_ntp_key_hex_success(
         self, mock_get_with_context, mock_check_response
     ):
@@ -280,7 +292,9 @@ class TestUpdateNtpKey:
         assert mock_get_with_context.call_count == 2
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ntp.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ntp.get_with_context"
+    )
     def test_update_ntp_key_ascii_too_long(self, mock_get_with_context):
         """Test update_ntp_key fails with ASCII key > 20 chars"""
         import pytest

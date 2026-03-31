@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock, patch
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -72,7 +62,9 @@ class TestDeleteDs:
 class TestDsTest:
     """Tests for test_ds function"""
 
-    @patch("plugins.modules.purefa_ds.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_with_context"
+    )
     def test_ds_test_returns_response(self, mock_get_with_context):
         """Test test_ds returns test response"""
         mock_module = Mock()
@@ -106,8 +98,12 @@ class TestDsTest:
 class TestDeleteDsExtended:
     """Extended tests for delete_ds function"""
 
-    @patch("plugins.modules.purefa_ds.check_response")
-    @patch("plugins.modules.purefa_ds.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_with_context"
+    )
     def test_delete_ds_management_success(
         self, mock_get_with_context, mock_check_response
     ):
@@ -123,8 +119,12 @@ class TestDeleteDsExtended:
         mock_get_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ds.check_response")
-    @patch("plugins.modules.purefa_ds.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_with_context"
+    )
     def test_delete_ds_data_success(self, mock_get_with_context, mock_check_response):
         """Test deleting data directory service"""
         mock_module = Mock()
@@ -153,8 +153,12 @@ class TestDeleteDsExtended:
 class TestUpdateDs:
     """Tests for update_ds function"""
 
-    @patch("plugins.modules.purefa_ds.check_response")
-    @patch("plugins.modules.purefa_ds.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_with_context"
+    )
     def test_update_ds_no_changes(self, mock_get_with_context, mock_check_response):
         """Test update_ds when no changes needed"""
         mock_module = Mock()
@@ -195,10 +199,18 @@ class TestUpdateDs:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_ds.DirectoryService")
-    @patch("plugins.modules.purefa_ds.DirectoryServiceManagement")
-    @patch("plugins.modules.purefa_ds.check_response")
-    @patch("plugins.modules.purefa_ds.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.DirectoryService"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.DirectoryServiceManagement"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_with_context"
+    )
     def test_update_ds_uri_change(
         self,
         mock_get_with_context,
@@ -245,9 +257,15 @@ class TestUpdateDs:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ds.DirectoryService")
-    @patch("plugins.modules.purefa_ds.check_response")
-    @patch("plugins.modules.purefa_ds.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.DirectoryService"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_with_context"
+    )
     def test_update_ds_data_type(
         self, mock_get_with_context, mock_check_response, mock_ds_class
     ):
@@ -327,7 +345,9 @@ class TestUpdateDs:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ds.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_with_context"
+    )
     def test_update_ds_missing_bind_password(self, mock_get_with_context):
         """Test update_ds fails when bind_password is required but not provided"""
         import pytest
@@ -375,10 +395,18 @@ class TestUpdateDs:
 class TestUpdateDsManagementFields:
     """Tests for update_ds with user_object and user_login changes"""
 
-    @patch("plugins.modules.purefa_ds.DirectoryService")
-    @patch("plugins.modules.purefa_ds.DirectoryServiceManagement")
-    @patch("plugins.modules.purefa_ds.check_response")
-    @patch("plugins.modules.purefa_ds.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.DirectoryService"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.DirectoryServiceManagement"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_with_context"
+    )
     def test_update_ds_user_object_change(
         self,
         mock_get_with_context,
@@ -424,10 +452,18 @@ class TestUpdateDsManagementFields:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ds.DirectoryService")
-    @patch("plugins.modules.purefa_ds.DirectoryServiceManagement")
-    @patch("plugins.modules.purefa_ds.check_response")
-    @patch("plugins.modules.purefa_ds.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.DirectoryService"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.DirectoryServiceManagement"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_with_context"
+    )
     def test_update_ds_user_login_change(
         self,
         mock_get_with_context,
@@ -473,10 +509,18 @@ class TestUpdateDsManagementFields:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ds.DirectoryService")
-    @patch("plugins.modules.purefa_ds.DirectoryServiceManagement")
-    @patch("plugins.modules.purefa_ds.check_response")
-    @patch("plugins.modules.purefa_ds.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.DirectoryService"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.DirectoryServiceManagement"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_with_context"
+    )
     def test_update_ds_certificate_change(
         self,
         mock_get_with_context,
@@ -522,10 +566,18 @@ class TestUpdateDsManagementFields:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_ds.DirectoryService")
-    @patch("plugins.modules.purefa_ds.DirectoryServiceManagement")
-    @patch("plugins.modules.purefa_ds.check_response")
-    @patch("plugins.modules.purefa_ds.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.DirectoryService"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.DirectoryServiceManagement"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_with_context"
+    )
     def test_update_ds_check_peer_without_cert_warns(
         self,
         mock_get_with_context,
@@ -572,10 +624,18 @@ class TestUpdateDsManagementFields:
         mock_module.warn.assert_called_once()
         assert "Cannot check_peer" in mock_module.warn.call_args[0][0]
 
-    @patch("plugins.modules.purefa_ds.DirectoryService")
-    @patch("plugins.modules.purefa_ds.DirectoryServiceManagement")
-    @patch("plugins.modules.purefa_ds.check_response")
-    @patch("plugins.modules.purefa_ds.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.DirectoryService"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.DirectoryServiceManagement"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_with_context"
+    )
     def test_update_ds_enable_requires_password(
         self,
         mock_get_with_context,
@@ -630,9 +690,15 @@ class TestUpdateDsManagementFields:
 class TestMain:
     """Tests for main function"""
 
-    @patch("plugins.modules.purefa_ds.AnsibleModule")
-    @patch("plugins.modules.purefa_ds.get_array")
-    @patch("plugins.modules.purefa_ds.delete_ds")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.delete_ds"
+    )
     def test_main_delete_existing_ds(
         self, mock_delete_ds, mock_get_array, mock_ansible_module
     ):
@@ -663,9 +729,15 @@ class TestMain:
         finally:
             ds_module.HAS_PURESTORAGE = original_has_purestorage
 
-    @patch("plugins.modules.purefa_ds.AnsibleModule")
-    @patch("plugins.modules.purefa_ds.get_array")
-    @patch("plugins.modules.purefa_ds.test_ds")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.test_ds"
+    )
     def test_main_test_ds(self, mock_test_ds, mock_get_array, mock_ansible_module):
         """Test main function calls test_ds when state is test"""
         mock_module = Mock()
@@ -694,9 +766,15 @@ class TestMain:
         finally:
             ds_module.HAS_PURESTORAGE = original_has_purestorage
 
-    @patch("plugins.modules.purefa_ds.AnsibleModule")
-    @patch("plugins.modules.purefa_ds.get_array")
-    @patch("plugins.modules.purefa_ds.update_ds")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.update_ds"
+    )
     def test_main_update_ds(self, mock_update_ds, mock_get_array, mock_ansible_module):
         """Test main function calls update_ds when state is present"""
         mock_module = Mock()
@@ -725,8 +803,12 @@ class TestMain:
         finally:
             ds_module.HAS_PURESTORAGE = original_has_purestorage
 
-    @patch("plugins.modules.purefa_ds.AnsibleModule")
-    @patch("plugins.modules.purefa_ds.get_array")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_array"
+    )
     def test_main_ds_not_found(self, mock_get_array, mock_ansible_module):
         """Test main function warns when DS type doesn't exist"""
         mock_module = Mock()
@@ -755,8 +837,12 @@ class TestMain:
         finally:
             ds_module.HAS_PURESTORAGE = original_has_purestorage
 
-    @patch("plugins.modules.purefa_ds.AnsibleModule")
-    @patch("plugins.modules.purefa_ds.get_array")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_array"
+    )
     def test_main_absent_empty_uris(self, mock_get_array, mock_ansible_module):
         """Test main function doesn't delete when uris is empty"""
         mock_module = Mock()
@@ -785,8 +871,12 @@ class TestMain:
         finally:
             ds_module.HAS_PURESTORAGE = original_has_purestorage
 
-    @patch("plugins.modules.purefa_ds.AnsibleModule")
-    @patch("plugins.modules.purefa_ds.get_array")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_ds.get_array"
+    )
     def test_main_missing_purestorage(self, mock_get_array, mock_ansible_module):
         """Test main function fails when pypureclient is missing"""
         import pytest

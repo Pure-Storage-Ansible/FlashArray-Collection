@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -174,9 +164,15 @@ class TestCreateSnap:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dirsnap.check_response")
-    @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPost")
-    @patch("plugins.modules.purefa_dirsnap.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.DirectorySnapshotPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.post_with_context"
+    )
     def test_create_snap_success(
         self, mock_post_with_context, mock_snap_post, mock_check_response
     ):
@@ -199,9 +195,15 @@ class TestCreateSnap:
         mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dirsnap.check_response")
-    @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPost")
-    @patch("plugins.modules.purefa_dirsnap.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.DirectorySnapshotPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.post_with_context"
+    )
     def test_create_snap_with_keep_for(
         self, mock_post_with_context, mock_snap_post, mock_check_response
     ):
@@ -228,8 +230,12 @@ class TestCreateSnap:
 class TestEradicateSnapSuccess:
     """Tests for eradicate_snap function success paths"""
 
-    @patch("plugins.modules.purefa_dirsnap.check_response")
-    @patch("plugins.modules.purefa_dirsnap.delete_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.delete_with_context"
+    )
     def test_eradicate_snap_success(
         self, mock_delete_with_context, mock_check_response
     ):
@@ -251,8 +257,12 @@ class TestEradicateSnapSuccess:
         mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dirsnap.check_response")
-    @patch("plugins.modules.purefa_dirsnap.delete_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.delete_with_context"
+    )
     def test_eradicate_snap_with_context(
         self, mock_delete_with_context, mock_check_response
     ):
@@ -278,9 +288,15 @@ class TestEradicateSnapSuccess:
 class TestDeleteSnapSuccess:
     """Tests for delete_snap function success paths"""
 
-    @patch("plugins.modules.purefa_dirsnap.check_response")
-    @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPatch")
-    @patch("plugins.modules.purefa_dirsnap.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.DirectorySnapshotPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.patch_with_context"
+    )
     def test_delete_snap_success(
         self, mock_patch_with_context, mock_snap_patch, mock_check_response
     ):
@@ -303,10 +319,18 @@ class TestDeleteSnapSuccess:
         mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dirsnap.eradicate_snap")
-    @patch("plugins.modules.purefa_dirsnap.check_response")
-    @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPatch")
-    @patch("plugins.modules.purefa_dirsnap.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.eradicate_snap"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.DirectorySnapshotPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.patch_with_context"
+    )
     def test_delete_snap_with_eradicate(
         self,
         mock_patch_with_context,
@@ -337,9 +361,15 @@ class TestDeleteSnapSuccess:
 class TestUpdateSnapSuccess:
     """Tests for update_snap function success paths"""
 
-    @patch("plugins.modules.purefa_dirsnap.check_response")
-    @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPatch")
-    @patch("plugins.modules.purefa_dirsnap.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.DirectorySnapshotPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.patch_with_context"
+    )
     def test_update_snap_recover_destroyed(
         self, mock_patch_with_context, mock_snap_patch, mock_check_response
     ):
@@ -368,9 +398,15 @@ class TestUpdateSnapSuccess:
         mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dirsnap.check_response")
-    @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPatch")
-    @patch("plugins.modules.purefa_dirsnap.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.DirectorySnapshotPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.patch_with_context"
+    )
     def test_update_snap_rename_success(
         self, mock_patch_with_context, mock_snap_patch, mock_check_response
     ):
@@ -399,9 +435,15 @@ class TestUpdateSnapSuccess:
         mock_patch_with_context.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_dirsnap.check_response")
-    @patch("plugins.modules.purefa_dirsnap.DirectorySnapshotPatch")
-    @patch("plugins.modules.purefa_dirsnap.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.DirectorySnapshotPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.patch_with_context"
+    )
     def test_update_snap_set_keep_for(
         self, mock_patch_with_context, mock_snap_patch, mock_check_response
     ):
@@ -540,16 +582,24 @@ class TestUpdateSnapRenameVariations:
 class TestMain:
     """Test cases for main() function"""
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    @patch("plugins.modules.purefa_dirsnap.get_array")
-    @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
     def test_main_no_purestorage_sdk(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() fails when purestorage SDK not available"""
         import pytest
-        from plugins.modules.purefa_dirsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap import (
+            main,
+        )
 
         with patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", False):
             mock_module = Mock()
@@ -562,16 +612,24 @@ class TestMain:
 
             mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    @patch("plugins.modules.purefa_dirsnap.get_array")
-    @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
     def test_main_rename_without_new_values(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() fails when rename is True but no new_client or new_suffix"""
         import pytest
-        from plugins.modules.purefa_dirsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -587,16 +645,24 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    @patch("plugins.modules.purefa_dirsnap.get_array")
-    @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
     def test_main_api_version_too_old(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() fails when API version is too old"""
         import pytest
-        from plugins.modules.purefa_dirsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -618,13 +684,19 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_dirsnap.get_array")
-    @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
     def test_main_rename_api_version_too_old(self, mock_ansible_module, mock_get_array):
         """Test main() fails when rename is requested but API version too old"""
         import pytest
-        from plugins.modules.purefa_dirsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -651,16 +723,24 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    @patch("plugins.modules.purefa_dirsnap.get_array")
-    @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
     def test_main_invalid_suffix_pattern(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() fails with invalid suffix pattern"""
         import pytest
-        from plugins.modules.purefa_dirsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -679,16 +759,24 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    @patch("plugins.modules.purefa_dirsnap.get_array")
-    @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
     def test_main_invalid_new_suffix_pattern(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() fails with invalid new_suffix pattern"""
         import pytest
-        from plugins.modules.purefa_dirsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -707,16 +795,24 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    @patch("plugins.modules.purefa_dirsnap.get_array")
-    @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
     def test_main_invalid_client_pattern(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() fails with invalid client pattern"""
         import pytest
-        from plugins.modules.purefa_dirsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -735,10 +831,18 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_dirsnap.get_with_context")
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    @patch("plugins.modules.purefa_dirsnap.get_array")
-    @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
     def test_main_directory_not_found(
         self,
@@ -749,7 +853,9 @@ class TestMain:
     ):
         """Test main() fails when directory does not exist"""
         import pytest
-        from plugins.modules.purefa_dirsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -778,11 +884,21 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_dirsnap.create_snap")
-    @patch("plugins.modules.purefa_dirsnap.get_with_context")
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    @patch("plugins.modules.purefa_dirsnap.get_array")
-    @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.create_snap"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
     def test_main_create_snap(
         self,
@@ -793,7 +909,9 @@ class TestMain:
         mock_create_snap,
     ):
         """Test main() calls create_snap when state=present and snapshot doesn't exist"""
-        from plugins.modules.purefa_dirsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -820,15 +938,23 @@ class TestMain:
 
         mock_create_snap.assert_called_once()
 
-    @patch("plugins.modules.purefa_dirsnap.LooseVersion")
-    @patch("plugins.modules.purefa_dirsnap.get_array")
-    @patch("plugins.modules.purefa_dirsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_dirsnap.HAS_PURESTORAGE", True)
     def test_main_no_change(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() exits with no change when no action needed"""
-        from plugins.modules.purefa_dirsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_dirsnap import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 

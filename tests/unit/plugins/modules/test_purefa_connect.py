@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -59,7 +49,9 @@ from plugins.modules.purefa_connect import (
 class TestLookup:
     """Test cases for _lookup function"""
 
-    @patch("plugins.modules.purefa_connect.socket")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.socket"
+    )
     def test_lookup_success(self, mock_socket):
         """Test _lookup returns shortname and fqdn"""
         mock_socket.getnameinfo.return_value = ("host.example.com", "")
@@ -73,7 +65,9 @@ class TestLookup:
 class TestCheckConnected:
     """Test cases for _check_connected function"""
 
-    @patch("plugins.modules.purefa_connect.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.get_with_context"
+    )
     def test_check_connected_not_connected(self, mock_get_with_context):
         """Test _check_connected returns None when not connected"""
         mock_module = Mock()
@@ -89,7 +83,9 @@ class TestCheckConnected:
 
         assert result is None
 
-    @patch("plugins.modules.purefa_connect.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.get_with_context"
+    )
     def test_check_connected_found(self, mock_get_with_context):
         """Test _check_connected returns connection when found"""
         mock_module = Mock()
@@ -113,7 +109,9 @@ class TestCheckConnected:
 class TestBreakConnection:
     """Test cases for break_connection function"""
 
-    @patch("plugins.modules.purefa_connect.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.get_with_context"
+    )
     def test_break_connection_check_mode(self, mock_get_with_context):
         """Test break_connection in check mode"""
         mock_module = Mock()
@@ -131,9 +129,15 @@ class TestBreakConnection:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_connect.check_response")
-    @patch("plugins.modules.purefa_connect.delete_with_context")
-    @patch("plugins.modules.purefa_connect.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.get_with_context"
+    )
     def test_break_connection_success(
         self, mock_get_with_context, mock_delete_with_context, mock_check_response
     ):
@@ -155,7 +159,9 @@ class TestBreakConnection:
         mock_delete_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_connect.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.get_with_context"
+    )
     def test_break_connection_wrong_array(self, mock_get_with_context):
         """Test break_connection fails when called from wrong array"""
         mock_module = Mock()
@@ -177,7 +183,9 @@ class TestBreakConnection:
 class TestUpdateConnection:
     """Test cases for update_connection function"""
 
-    @patch("plugins.modules.purefa_connect.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.get_with_context"
+    )
     def test_update_connection_renew_key_check_mode(self, mock_get_with_context):
         """Test update_connection with renew_key in check mode"""
         import pytest
@@ -207,9 +215,15 @@ class TestUpdateConnection:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_connect.check_response")
-    @patch("plugins.modules.purefa_connect.patch_with_context")
-    @patch("plugins.modules.purefa_connect.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.get_with_context"
+    )
     def test_update_connection_renew_key_success(
         self, mock_get_with_context, mock_patch_with_context, mock_check_response
     ):
@@ -243,9 +257,15 @@ class TestUpdateConnection:
         mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_connect.check_response")
-    @patch("plugins.modules.purefa_connect.patch_with_context")
-    @patch("plugins.modules.purefa_connect.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.get_with_context"
+    )
     def test_update_connection_refresh_success(
         self, mock_get_with_context, mock_patch_with_context, mock_check_response
     ):
@@ -283,7 +303,9 @@ class TestUpdateConnection:
 class TestCreateConnection:
     """Test cases for create_connection function"""
 
-    @patch("plugins.modules.purefa_connect.Client")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.Client"
+    )
     def test_create_connection_check_mode(self, mock_client):
         """Test create_connection in check mode"""
         from plugins.modules.purefa_connect import create_connection
@@ -312,9 +334,15 @@ class TestCreateConnection:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_connect.Client")
-    @patch("plugins.modules.purefa_connect.check_response")
-    @patch("plugins.modules.purefa_connect.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.Client"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.post_with_context"
+    )
     def test_create_connection_success(
         self, mock_post_with_context, mock_check_response, mock_client
     ):
@@ -347,9 +375,15 @@ class TestCreateConnection:
         mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_connect.Client")
-    @patch("plugins.modules.purefa_connect.check_response")
-    @patch("plugins.modules.purefa_connect.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.Client"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_connect.post_with_context"
+    )
     def test_create_connection_encrypted(
         self, mock_post_with_context, mock_check_response, mock_client
     ):

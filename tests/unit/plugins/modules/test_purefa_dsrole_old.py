@@ -16,18 +16,8 @@ import pytest
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -45,15 +35,23 @@ sys.modules[
 ] = MagicMock()
 
 # Import after mocking
-from plugins.modules.purefa_dsrole_old import main
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole_old import (
+    main,
+)
 
 
 class TestDsroleOldNewApiVersion:
     """Test cases for newer API version deprecation"""
 
-    @patch("plugins.modules.purefa_dsrole_old.LooseVersion")
-    @patch("plugins.modules.purefa_dsrole_old.get_array")
-    @patch("plugins.modules.purefa_dsrole_old.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole_old.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole_old.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole_old.AnsibleModule"
+    )
     def test_new_api_version_fails_with_deprecation(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
@@ -91,9 +89,15 @@ class TestDsroleOldNewApiVersion:
 class TestDsroleOldNoChange:
     """Test cases for no change scenarios"""
 
-    @patch("plugins.modules.purefa_dsrole_old.LooseVersion")
-    @patch("plugins.modules.purefa_dsrole_old.get_array")
-    @patch("plugins.modules.purefa_dsrole_old.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole_old.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole_old.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole_old.AnsibleModule"
+    )
     def test_no_change_when_role_not_configured_and_absent(
         self, mock_ansible_module, mock_get_array, mock_lv
     ):
@@ -129,9 +133,15 @@ class TestDsroleOldNoChange:
 class TestDsroleOldCreateRole:
     """Test cases for create_role function"""
 
-    @patch("plugins.modules.purefa_dsrole_old.LooseVersion")
-    @patch("plugins.modules.purefa_dsrole_old.get_array")
-    @patch("plugins.modules.purefa_dsrole_old.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole_old.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole_old.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_dsrole_old.AnsibleModule"
+    )
     def test_no_change_when_empty_group_and_group_base(
         self, mock_ansible_module, mock_get_array, mock_lv
     ):

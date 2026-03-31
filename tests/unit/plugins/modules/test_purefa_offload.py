@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -59,7 +49,9 @@ from plugins.modules.purefa_offload import (
 class TestGetTarget:
     """Tests for get_target function"""
 
-    @patch("plugins.modules.purefa_offload.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
     def test_get_target_exists(self, mock_get_with_context):
         """Test get_target returns target when it exists"""
         mock_module = Mock()
@@ -73,7 +65,9 @@ class TestGetTarget:
 
         assert result == mock_target
 
-    @patch("plugins.modules.purefa_offload.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
     def test_get_target_not_exists(self, mock_get_with_context):
         """Test get_target returns None when target doesn't exist"""
         mock_module = Mock()
@@ -89,7 +83,9 @@ class TestGetTarget:
 class TestDeleteOffload:
     """Tests for delete_offload function"""
 
-    @patch("plugins.modules.purefa_offload.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
     def test_delete_offload_check_mode(self, mock_get_with_context):
         """Test delete_offload in check mode"""
         mock_module = Mock()
@@ -102,8 +98,12 @@ class TestDeleteOffload:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_get_with_context.assert_not_called()
 
-    @patch("plugins.modules.purefa_offload.check_response")
-    @patch("plugins.modules.purefa_offload.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
     def test_delete_offload_success(self, mock_get_with_context, mock_check_response):
         """Test delete_offload successfully deletes"""
         mock_module = Mock()
@@ -132,10 +132,18 @@ class TestCreateOffload:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_offload.check_response")
-    @patch("plugins.modules.purefa_offload.get_with_context")
-    @patch("plugins.modules.purefa_offload.OffloadS3")
-    @patch("plugins.modules.purefa_offload.OffloadPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadS3"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadPost"
+    )
     def test_create_offload_s3(
         self, mock_offload_post, mock_offload_s3, mock_get_with_context, mock_check
     ):
@@ -181,10 +189,18 @@ class TestUpdateOffload:
 class TestCreateOffloadProtocols:
     """Test cases for create_offload with different protocols"""
 
-    @patch("plugins.modules.purefa_offload.check_response")
-    @patch("plugins.modules.purefa_offload.get_with_context")
-    @patch("plugins.modules.purefa_offload.OffloadGoogleCloud")
-    @patch("plugins.modules.purefa_offload.OffloadPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadGoogleCloud"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadPost"
+    )
     def test_create_offload_gcp(
         self, mock_offload_post, mock_offload_gcp, mock_get_with_context, mock_check
     ):
@@ -211,10 +227,18 @@ class TestCreateOffloadProtocols:
         mock_get_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_offload.check_response")
-    @patch("plugins.modules.purefa_offload.get_with_context")
-    @patch("plugins.modules.purefa_offload.OffloadAzure")
-    @patch("plugins.modules.purefa_offload.OffloadPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadAzure"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadPost"
+    )
     def test_create_offload_azure(
         self, mock_offload_post, mock_offload_azure, mock_get_with_context, mock_check
     ):
@@ -241,10 +265,18 @@ class TestCreateOffloadProtocols:
         mock_get_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_offload.check_response")
-    @patch("plugins.modules.purefa_offload.get_with_context")
-    @patch("plugins.modules.purefa_offload.OffloadNfs")
-    @patch("plugins.modules.purefa_offload.OffloadPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadNfs"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadPost"
+    )
     def test_create_offload_nfs(
         self, mock_offload_post, mock_offload_nfs, mock_get_with_context, mock_check
     ):
@@ -271,10 +303,18 @@ class TestCreateOffloadProtocols:
         mock_get_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_offload.check_response")
-    @patch("plugins.modules.purefa_offload.get_with_context")
-    @patch("plugins.modules.purefa_offload.OffloadS3")
-    @patch("plugins.modules.purefa_offload.OffloadPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadS3"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadPost"
+    )
     def test_create_offload_s3_with_profile(
         self, mock_offload_post, mock_offload_s3, mock_get_with_context, mock_check
     ):
@@ -307,8 +347,12 @@ class TestCreateOffloadProtocols:
 class TestDeleteOffloadSuccess:
     """Test cases for delete_offload success paths"""
 
-    @patch("plugins.modules.purefa_offload.check_response")
-    @patch("plugins.modules.purefa_offload.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
     def test_delete_offload_success(self, mock_get_with_context, mock_check_response):
         """Test successful offload deletion"""
         mock_module = Mock()
@@ -327,10 +371,18 @@ class TestDeleteOffloadSuccess:
 class TestCreateOffloadWithProfiles:
     """Test create_offload with different profiles"""
 
-    @patch("plugins.modules.purefa_offload.check_response")
-    @patch("plugins.modules.purefa_offload.get_with_context")
-    @patch("plugins.modules.purefa_offload.OffloadGoogleCloud")
-    @patch("plugins.modules.purefa_offload.OffloadPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadGoogleCloud"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadPost"
+    )
     def test_create_offload_gcp_with_profile(
         self, mock_offload_post, mock_offload_gcp, mock_get_with_context, mock_check
     ):
@@ -358,10 +410,18 @@ class TestCreateOffloadWithProfiles:
         call_kwargs = mock_offload_gcp.call_args
         assert "profile" in str(call_kwargs)
 
-    @patch("plugins.modules.purefa_offload.check_response")
-    @patch("plugins.modules.purefa_offload.get_with_context")
-    @patch("plugins.modules.purefa_offload.OffloadAzure")
-    @patch("plugins.modules.purefa_offload.OffloadPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadAzure"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadPost"
+    )
     def test_create_offload_azure_with_profile(
         self, mock_offload_post, mock_offload_azure, mock_get_with_context, mock_check
     ):
@@ -387,10 +447,18 @@ class TestCreateOffloadWithProfiles:
 
         mock_offload_azure.assert_called_once()
 
-    @patch("plugins.modules.purefa_offload.check_response")
-    @patch("plugins.modules.purefa_offload.get_with_context")
-    @patch("plugins.modules.purefa_offload.OffloadS3")
-    @patch("plugins.modules.purefa_offload.OffloadPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadS3"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadPost"
+    )
     def test_create_offload_s3_with_profile_and_auth_region(
         self, mock_offload_post, mock_offload_s3, mock_get_with_context, mock_check
     ):
@@ -420,10 +488,18 @@ class TestCreateOffloadWithProfiles:
         call_kwargs = mock_offload_s3.call_args
         assert "auth_region" in str(call_kwargs)
 
-    @patch("plugins.modules.purefa_offload.check_response")
-    @patch("plugins.modules.purefa_offload.get_with_context")
-    @patch("plugins.modules.purefa_offload.OffloadNfs")
-    @patch("plugins.modules.purefa_offload.OffloadPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadNfs"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.OffloadPost"
+    )
     def test_create_offload_nfs_with_profile(
         self, mock_offload_post, mock_offload_nfs, mock_get_with_context, mock_check
     ):
@@ -452,15 +528,25 @@ class TestCreateOffloadWithProfiles:
 class TestMainFunction:
     """Tests for main function"""
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
-    @patch("plugins.modules.purefa_offload.get_array")
-    @patch("plugins.modules.purefa_offload.get_target")
-    @patch("plugins.modules.purefa_offload.create_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_target"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.create_offload"
+    )
     def test_main_create_offload(
         self, mock_create, mock_get_target, mock_get_array, mock_ansible_module
     ):
         """Test main() creates offload when target doesn't exist"""
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -487,15 +573,25 @@ class TestMainFunction:
 
         mock_create.assert_called_once()
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
-    @patch("plugins.modules.purefa_offload.get_array")
-    @patch("plugins.modules.purefa_offload.get_target")
-    @patch("plugins.modules.purefa_offload.update_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_target"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.update_offload"
+    )
     def test_main_update_offload(
         self, mock_update, mock_get_target, mock_get_array, mock_ansible_module
     ):
         """Test main() updates offload when target exists"""
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -522,15 +618,25 @@ class TestMainFunction:
 
         mock_update.assert_called_once()
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
-    @patch("plugins.modules.purefa_offload.get_array")
-    @patch("plugins.modules.purefa_offload.get_target")
-    @patch("plugins.modules.purefa_offload.delete_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_target"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.delete_offload"
+    )
     def test_main_delete_offload(
         self, mock_delete, mock_get_target, mock_get_array, mock_ansible_module
     ):
         """Test main() deletes offload when state=absent and target exists"""
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -552,14 +658,22 @@ class TestMainFunction:
 
         mock_delete.assert_called_once()
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
-    @patch("plugins.modules.purefa_offload.get_array")
-    @patch("plugins.modules.purefa_offload.get_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_target"
+    )
     def test_main_absent_not_exists(
         self, mock_get_target, mock_get_array, mock_ansible_module
     ):
         """Test main() does nothing when state=absent and target doesn't exist"""
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -581,11 +695,15 @@ class TestMainFunction:
         mock_module.exit_json.assert_called_once_with(changed=False)
 
     @patch("plugins.modules.purefa_offload.HAS_PURESTORAGE", False)
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
     def test_main_no_purestorage(self, mock_ansible_module):
         """Test main() fails when py-pure-client is not installed"""
         import pytest
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.fail_json.side_effect = SystemExit(1)
@@ -596,11 +714,15 @@ class TestMainFunction:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
     def test_main_nfs_missing_params(self, mock_ansible_module):
         """Test main() fails when NFS protocol missing required params"""
         import pytest
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -621,11 +743,15 @@ class TestMainFunction:
         mock_module.fail_json.assert_called_once()
         assert "address and share are required" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
     def test_main_s3_missing_params(self, mock_ansible_module):
         """Test main() fails when S3 protocol missing required params"""
         import pytest
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -649,11 +775,15 @@ class TestMainFunction:
             mock_module.fail_json.call_args
         )
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
     def test_main_gcp_missing_params(self, mock_ansible_module):
         """Test main() fails when GCP protocol missing required params"""
         import pytest
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -677,11 +807,15 @@ class TestMainFunction:
             mock_module.fail_json.call_args
         )
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
     def test_main_azure_missing_params(self, mock_ansible_module):
         """Test main() fails when Azure protocol missing required params"""
         import pytest
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -702,15 +836,25 @@ class TestMainFunction:
         mock_module.fail_json.assert_called_once()
         assert "account and secret are required" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
-    @patch("plugins.modules.purefa_offload.get_array")
-    @patch("plugins.modules.purefa_offload.get_target")
-    @patch("plugins.modules.purefa_offload.delete_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_target"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.delete_offload"
+    )
     def test_main_absent_no_validation(
         self, mock_delete, mock_get_target, mock_get_array, mock_ansible_module
     ):
         """Test main() skips param validation when state=absent"""
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -734,12 +878,18 @@ class TestMainFunction:
         # Should not fail - validation is skipped for state=absent
         mock_delete.assert_called_once()
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
-    @patch("plugins.modules.purefa_offload.get_array")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_array"
+    )
     def test_main_nfs_not_supported_66(self, mock_get_array, mock_ansible_module):
         """Test main() fails when NFS protocol used with FA 6.6+"""
         import pytest
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -766,12 +916,18 @@ class TestMainFunction:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
-    @patch("plugins.modules.purefa_offload.get_array")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_array"
+    )
     def test_main_invalid_target_name(self, mock_get_array, mock_ansible_module):
         """Test main() fails with invalid target name"""
         import pytest
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -798,12 +954,18 @@ class TestMainFunction:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
-    @patch("plugins.modules.purefa_offload.get_array")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_array"
+    )
     def test_main_invalid_bucket_name(self, mock_get_array, mock_ansible_module):
         """Test main() fails with invalid bucket name for S3"""
         import pytest
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -830,15 +992,25 @@ class TestMainFunction:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
-    @patch("plugins.modules.purefa_offload.get_array")
-    @patch("plugins.modules.purefa_offload.get_target")
-    @patch("plugins.modules.purefa_offload.update_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_target"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.update_offload"
+    )
     def test_main_warns_invalid_profile(
         self, mock_update, mock_get_target, mock_get_array, mock_ansible_module
     ):
         """Test main() warns when profile doesn't match protocol"""
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -867,15 +1039,23 @@ class TestMainFunction:
         mock_module.warn.assert_called_once()
         assert mock_module.params["profile"] is None
 
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
-    @patch("plugins.modules.purefa_offload.get_array")
-    @patch("plugins.modules.purefa_offload.get_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_target"
+    )
     def test_main_offload_limit_exceeded(
         self, mock_get_target, mock_get_array, mock_ansible_module
     ):
         """Test main() fails when offload limit would be exceeded"""
         import pytest
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -908,15 +1088,23 @@ class TestMainFunction:
         mock_module.fail_json.assert_called_once()
 
     @patch("plugins.modules.purefa_offload.MULTIOFFLOAD_LIMIT", 2)
-    @patch("plugins.modules.purefa_offload.AnsibleModule")
-    @patch("plugins.modules.purefa_offload.get_array")
-    @patch("plugins.modules.purefa_offload.get_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.AnsibleModule"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload.get_target"
+    )
     def test_main_different_protocol_fails(
         self, mock_get_target, mock_get_array, mock_ansible_module
     ):
         """Test main() fails when new offload has different protocol than existing"""
         import pytest
-        from plugins.modules.purefa_offload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_offload import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {

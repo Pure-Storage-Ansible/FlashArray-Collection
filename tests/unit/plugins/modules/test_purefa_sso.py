@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -36,14 +26,18 @@ sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers"
 ] = MagicMock()
 
-from plugins.modules.purefa_sso import main
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso import main
 
 
 class TestMain:
     """Test cases for main function"""
 
-    @patch("plugins.modules.purefa_sso.get_array")
-    @patch("plugins.modules.purefa_sso.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_sso.HAS_PURESTORAGE", False)
     def test_main_missing_sdk(self, mock_ansible_module, mock_get_array):
         """Test main when pypureclient SDK is missing"""
@@ -61,10 +55,18 @@ class TestMain:
         call_args = mock_module.fail_json.call_args[1]
         assert "py-pure-client sdk is required" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_sso.check_response")
-    @patch("plugins.modules.purefa_sso.LooseVersion")
-    @patch("plugins.modules.purefa_sso.get_array")
-    @patch("plugins.modules.purefa_sso.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_sso.HAS_PURESTORAGE", True)
     def test_enable_sso(
         self,
@@ -97,10 +99,18 @@ class TestMain:
         mock_array.patch_admins_settings.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_sso.check_response")
-    @patch("plugins.modules.purefa_sso.LooseVersion")
-    @patch("plugins.modules.purefa_sso.get_array")
-    @patch("plugins.modules.purefa_sso.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_sso.HAS_PURESTORAGE", True)
     def test_disable_sso(
         self,
@@ -133,9 +143,15 @@ class TestMain:
         mock_array.patch_admins_settings.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_sso.LooseVersion")
-    @patch("plugins.modules.purefa_sso.get_array")
-    @patch("plugins.modules.purefa_sso.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_sso.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_sso.HAS_PURESTORAGE", True)
     def test_no_change_needed(
         self, mock_ansible_module, mock_get_array, mock_loose_version

@@ -16,18 +16,8 @@ import pytest
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -322,7 +312,9 @@ class TestRenamePolicy:
     """Tests for rename_policy function"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPatch"
+    )
     def test_rename_nfs_policy_check_mode(self, mock_policy_patch, mock_lv):
         """Test rename_policy in check mode for NFS policy"""
         mock_module = Mock()
@@ -343,7 +335,9 @@ class TestRenamePolicy:
         mock_module.exit_json.assert_called_once_with(changed=False)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPatch"
+    )
     def test_rename_nfs_policy_success(self, mock_policy_patch, mock_lv):
         """Test successful NFS policy rename"""
         mock_module = Mock()
@@ -366,7 +360,9 @@ class TestRenamePolicy:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPatch"
+    )
     def test_rename_smb_policy_success(self, mock_policy_patch, mock_lv):
         """Test successful SMB policy rename"""
         mock_module = Mock()
@@ -388,7 +384,9 @@ class TestRenamePolicy:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPatch"
+    )
     def test_rename_snapshot_policy_success(self, mock_policy_patch, mock_lv):
         """Test successful snapshot policy rename"""
         mock_module = Mock()
@@ -410,7 +408,9 @@ class TestRenamePolicy:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPatch"
+    )
     def test_rename_quota_policy_success(self, mock_policy_patch, mock_lv):
         """Test successful quota policy rename"""
         mock_module = Mock()
@@ -432,7 +432,9 @@ class TestRenamePolicy:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPatch"
+    )
     def test_rename_password_policy_fails(self, mock_policy_patch, mock_lv):
         """Test that password policy rename fails with message"""
         mock_module = Mock()
@@ -454,7 +456,9 @@ class TestRenamePolicy:
         mock_module.fail_json.assert_called()
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPatch"
+    )
     def test_rename_policy_target_exists(self, mock_policy_patch, mock_lv):
         """Test rename fails when target policy already exists"""
         mock_module = Mock()
@@ -483,8 +487,12 @@ class TestCreatePolicy:
     """Tests for create_policy function"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicyNfsPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyNfsPatch"
+    )
     def test_create_nfs_policy_check_mode(self, mock_nfs_patch, mock_post, mock_lv):
         """Test create_policy in check mode"""
         mock_module = Mock()
@@ -504,8 +512,12 @@ class TestCreatePolicy:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicyNfsPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyNfsPatch"
+    )
     def test_create_nfs_policy_success(self, mock_nfs_patch, mock_post, mock_lv):
         """Test successful NFS policy creation"""
         mock_module = Mock()
@@ -530,8 +542,12 @@ class TestCreatePolicy:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicySmbPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicySmbPatch"
+    )
     def test_create_smb_policy_success(self, mock_smb_patch, mock_post, mock_lv):
         """Test successful SMB policy creation"""
         mock_module = Mock()
@@ -558,7 +574,9 @@ class TestCreatePolicy:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_snapshot_policy_success(self, mock_post, mock_lv):
         """Test successful Snapshot policy creation"""
         mock_module = Mock()
@@ -581,7 +599,9 @@ class TestCreatePolicy:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_quota_policy_success(self, mock_post, mock_lv):
         """Test successful Quota policy creation (no quota_limit)"""
         mock_module = Mock()
@@ -607,7 +627,9 @@ class TestCreatePolicy:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_autodir_policy_success(self, mock_post, mock_lv):
         """Test successful Autodir policy creation"""
         mock_module = Mock()
@@ -629,7 +651,9 @@ class TestCreatePolicy:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_nfs_policy_failure(self, mock_post, mock_lv):
         """Test NFS policy creation failure"""
         mock_module = Mock()
@@ -690,7 +714,9 @@ class TestUpdatePolicy:
         mock_module.exit_json.assert_called_once()
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPatch"
+    )
     def test_update_nfs_policy_enable(self, mock_patch, mock_lv):
         """Test enabling NFS policy"""
         mock_module = Mock()
@@ -1362,7 +1388,9 @@ class TestCreatePolicyAutodir:
     """Test cases for create_policy with autodir policy type"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_autodir_policy_success(self, mock_policy_post, mock_lv):
         """Test successful creation of autodir policy"""
         mock_module = Mock()
@@ -1388,7 +1416,9 @@ class TestCreatePolicyNfs:
     """Test cases for create_policy with NFS policy type"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_nfs_policy_basic(self, mock_policy_post, mock_lv):
         """Test basic NFS policy creation"""
         mock_module = Mock()
@@ -1414,7 +1444,9 @@ class TestCreatePolicyNfs:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_nfs_policy_check_mode(self, mock_policy_post, mock_lv):
         """Test NFS policy creation in check mode"""
         mock_module = Mock()
@@ -1438,7 +1470,9 @@ class TestCreatePolicySmb:
     """Test cases for create_policy with SMB policy type"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_smb_policy_basic(self, mock_policy_post, mock_lv):
         """Test basic SMB policy creation"""
         mock_module = Mock()
@@ -1469,7 +1503,9 @@ class TestCreatePolicySnapshot:
     """Test cases for create_policy with snapshot policy type"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_snapshot_policy_basic(self, mock_policy_post, mock_lv):
         """Test basic snapshot policy creation"""
         mock_module = Mock()
@@ -1499,7 +1535,9 @@ class TestCreatePolicyQuota:
     """Test cases for create_policy with quota policy type"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_quota_policy_basic(self, mock_policy_post, mock_lv):
         """Test basic quota policy creation"""
         mock_module = Mock()
@@ -1527,8 +1565,12 @@ class TestUpdatePolicyNfs:
     """Test cases for update_policy with NFS policy type"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyNfsPatch")
-    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyNfsPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPatch"
+    )
     def test_update_nfs_policy_enable_change(
         self, mock_policy_patch, mock_nfs_patch, mock_lv
     ):
@@ -1590,7 +1632,9 @@ class TestUpdatePolicySmbExtended:
     """Extended test cases for update_policy with SMB policy"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicySmbPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicySmbPatch"
+    )
     def test_update_smb_policy_enable_change(self, mock_smb_patch, mock_lv):
         """Test updating SMB policy enabled state"""
         mock_module = Mock()
@@ -1653,7 +1697,9 @@ class TestUpdatePolicySnapshotExtended:
     """Extended test cases for update_policy with snapshot policy"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPatch"
+    )
     def test_update_snapshot_policy_enable_change(self, mock_policy_patch, mock_lv):
         """Test updating snapshot policy enabled state"""
         mock_module = Mock()
@@ -1688,7 +1734,9 @@ class TestUpdatePolicyQuotaExtended:
     """Extended test cases for update_policy with quota policy"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPatch"
+    )
     def test_update_quota_policy_enable_change(self, mock_policy_patch, mock_lv):
         """Test updating quota policy enabled state"""
         mock_module = Mock()
@@ -1719,14 +1767,28 @@ class TestUpdatePolicyQuotaExtended:
 class TestCreatePolicyNfsWithClient:
     """Test cases for create_policy with NFS policy with client rules"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyrulenfsclientpostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleNfsClientPost")
-    @patch("plugins.modules.purefa_policy.PolicyNfsPatch")
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulenfsclientpostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleNfsClientPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyNfsPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_nfs_policy_with_client_all_squash(
         self,
         mock_policy_post,
@@ -1766,14 +1828,28 @@ class TestCreatePolicyNfsWithClient:
         mock_rules.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyrulenfsclientpostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleNfsClientPost")
-    @patch("plugins.modules.purefa_policy.PolicyNfsPatch")
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulenfsclientpostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleNfsClientPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyNfsPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_nfs_policy_with_client_no_squash(
         self,
         mock_policy_post,
@@ -1811,12 +1887,22 @@ class TestCreatePolicyNfsWithClient:
         mock_rules.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyNfsPatch")
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyNfsPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_nfs_policy_with_nfs_version(
         self,
         mock_policy_post,
@@ -1854,14 +1940,28 @@ class TestCreatePolicyNfsWithClient:
 class TestCreatePolicySmbWithClient:
     """Test cases for create_policy with SMB policy with client rules"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyrulesmbclientpostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleSmbClientPost")
-    @patch("plugins.modules.purefa_policy.PolicySmbPatch")
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulesmbclientpostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleSmbClientPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicySmbPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_smb_policy_with_client(
         self,
         mock_policy_post,
@@ -1898,9 +1998,13 @@ class TestCreatePolicySmbWithClient:
         mock_rules.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_smb_policy_failure(
         self,
         mock_policy_post,
@@ -1931,10 +2035,16 @@ class TestCreatePolicySmbWithClient:
 class TestCreatePolicySnapshotWithRules:
     """Test cases for create_policy with snapshot policy rules"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_snapshot_policy_no_rules(
         self,
         mock_policy_post,
@@ -1962,9 +2072,13 @@ class TestCreatePolicySnapshotWithRules:
         mock_post.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_snapshot_policy_failure(
         self,
         mock_policy_post,
@@ -1996,8 +2110,12 @@ class TestCreatePolicySnapshotWithRules:
 class TestDeletePolicyWithDirectories:
     """Test cases for delete_policy with directory removal"""
 
-    @patch("plugins.modules.purefa_policy.delete_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_delete_snapshot_policy_with_directories(
         self, mock_lv, mock_get, mock_delete
@@ -2029,8 +2147,12 @@ class TestDeletePolicyWithDirectories:
         mock_delete.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.delete_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_delete_snapshot_policy_directory_removal_failure(
         self, mock_lv, mock_get, mock_delete
@@ -2064,10 +2186,16 @@ class TestDeletePolicyWithDirectories:
 class TestCreatePolicyQuotaExtended:
     """Extended test cases for quota policy creation"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_quota_policy_basic(
         self, mock_policy_post, mock_lv, mock_post, mock_check
     ):
@@ -2091,9 +2219,13 @@ class TestCreatePolicyQuotaExtended:
         mock_post.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_quota_policy_failure(self, mock_policy_post, mock_lv, mock_post):
         """Test quota policy creation failure"""
         mock_module = Mock()
@@ -2120,10 +2252,16 @@ class TestCreatePolicyQuotaExtended:
 class TestCreatePolicyAutodirExtended:
     """Extended test cases for autodir policy creation"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_autodir_policy_basic(
         self, mock_policy_post, mock_lv, mock_post, mock_check
     ):
@@ -2146,9 +2284,13 @@ class TestCreatePolicyAutodirExtended:
         mock_post.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_autodir_policy_failure(self, mock_policy_post, mock_lv, mock_post):
         """Test autodir policy creation failure"""
         mock_module = Mock()
@@ -2174,9 +2316,15 @@ class TestCreatePolicyAutodirExtended:
 class TestUpdatePolicyNfsExtended:
     """Test cases for update_policy with NFS policy - extended"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_nfs_policy_add_client_rule(
         self, mock_lv, mock_get, mock_post, mock_check
@@ -2223,7 +2371,9 @@ class TestUpdatePolicyNfsExtended:
         mock_post.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_nfs_policy_no_changes(self, mock_lv, mock_get):
         """Test update NFS policy with no changes needed"""
@@ -2263,12 +2413,22 @@ class TestUpdatePolicyNfsExtended:
 class TestUpdatePolicySmb:
     """Test cases for update_policy with SMB policy"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.patch_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicySmbPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicySmbPatch"
+    )
     def test_update_smb_policy_add_client(
         self, mock_smb_patch, mock_lv, mock_get, mock_patch, mock_post, mock_check
     ):
@@ -2313,7 +2473,9 @@ class TestUpdatePolicySmb:
 class TestUpdatePolicySnapshot:
     """Test cases for update_policy with snapshot policy"""
 
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_snapshot_policy_no_client_name(self, mock_lv, mock_get):
         """Test update snapshot policy without client name"""
@@ -2340,7 +2502,9 @@ class TestUpdatePolicySnapshot:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_snapshot_policy_retention_less_than_interval(
         self, mock_lv, mock_get
@@ -2380,7 +2544,9 @@ class TestUpdatePolicySnapshot:
 class TestUpdatePolicyQuota:
     """Test cases for update_policy with quota policy"""
 
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_quota_policy_no_changes(self, mock_lv, mock_get):
         """Test update quota policy with no changes needed"""
@@ -2411,7 +2577,9 @@ class TestUpdatePolicyQuota:
 class TestUpdatePolicyAutodir:
     """Test cases for update_policy with autodir policy"""
 
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_autodir_policy_no_changes(self, mock_lv, mock_get):
         """Test update autodir policy with no changes needed"""
@@ -2441,11 +2609,19 @@ class TestUpdatePolicyAutodir:
 class TestUpdatePolicyPassword:
     """Test cases for update_policy with password policy"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.patch_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPassword")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPassword"
+    )
     def test_update_password_policy_change_enabled(
         self, mock_pwd, mock_lv, mock_get, mock_patch, mock_check
     ):
@@ -2498,9 +2674,15 @@ class TestUpdatePolicyPassword:
 class TestUpdateNfsPolicyWithClientRules:
     """Test cases for update_policy with NFS policy client rules"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_nfs_policy_add_new_client_rule_all_squash(
         self, mock_lv, mock_get, mock_post, mock_check
@@ -2547,9 +2729,15 @@ class TestUpdateNfsPolicyWithClientRules:
         mock_post.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_nfs_policy_add_new_client_rule_with_security(
         self, mock_lv, mock_get, mock_post, mock_check
@@ -2600,10 +2788,16 @@ class TestUpdateNfsPolicyWithClientRules:
 class TestCreatePolicyExtendedCases:
     """Extended test cases for create_policy function"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_quota_policy_with_limit(
         self, mock_policy_post, mock_lv, mock_post, mock_check
     ):
@@ -2632,10 +2826,16 @@ class TestCreatePolicyExtendedCases:
         mock_post.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_autodir_policy_with_directory(
         self, mock_policy_post, mock_lv, mock_post, mock_check
     ):
@@ -2664,9 +2864,15 @@ class TestCreatePolicyExtendedCases:
 class TestUpdateSnapshotPolicyWithRules:
     """Test cases for update_policy with snapshot policy rules"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_snapshot_policy_add_rule(
         self, mock_lv, mock_get, mock_post, mock_check
@@ -2708,9 +2914,15 @@ class TestUpdateSnapshotPolicyWithRules:
         mock_post.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_snapshot_policy_with_snap_at(
         self, mock_lv, mock_get, mock_post, mock_check
@@ -2756,7 +2968,9 @@ class TestUpdateSnapshotPolicyWithRules:
         mock_post.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_snapshot_policy_retention_less_than_interval_fails(
         self, mock_lv, mock_get
@@ -2806,9 +3020,15 @@ class TestUpdateSnapshotPolicyWithRules:
 class TestUpdateQuotaPolicyWithRules:
     """Test cases for update_policy with quota policy rules"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.patch_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_quota_policy_change_limit(
         self, mock_lv, mock_get, mock_patch, mock_check
@@ -2848,7 +3068,9 @@ class TestUpdateQuotaPolicyWithRules:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_quota_policy_no_change(self, mock_lv, mock_get):
         """Test update quota policy with no changes needed"""
@@ -2889,9 +3111,15 @@ class TestUpdateQuotaPolicyWithRules:
 class TestUpdateAutodirPolicyWithDirectories:
     """Test cases for update_policy with autodir policy directories"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_autodir_policy_add_directory(
         self, mock_lv, mock_get, mock_post, mock_check
@@ -2925,7 +3153,9 @@ class TestUpdateAutodirPolicyWithDirectories:
         mock_post.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_autodir_policy_no_change(self, mock_lv, mock_get):
         """Test update autodir policy with no changes needed"""
@@ -2960,10 +3190,18 @@ class TestCreateNfsPolicyWithClient:
     """Tests for create_policy NFS with client rules"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicyNfsPatch")
-    @patch("plugins.modules.purefa_policy.PolicyrulenfsclientpostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleNfsClientPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyNfsPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulenfsclientpostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleNfsClientPost"
+    )
     def test_create_nfs_policy_with_client(
         self, mock_rule_post, mock_rules, mock_nfs_patch, mock_post, mock_lv
     ):
@@ -2997,10 +3235,18 @@ class TestCreateNfsPolicyWithClient:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicyNfsPatch")
-    @patch("plugins.modules.purefa_policy.PolicyrulenfsclientpostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleNfsClientPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyNfsPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulenfsclientpostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleNfsClientPost"
+    )
     def test_create_nfs_policy_with_nfs_version(
         self, mock_rule_post, mock_rules, mock_nfs_patch, mock_post, mock_lv
     ):
@@ -3033,8 +3279,12 @@ class TestCreateNfsPolicyWithClient:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicyNfsPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyNfsPatch"
+    )
     def test_create_nfs_policy_with_security(self, mock_nfs_patch, mock_post, mock_lv):
         """Test create NFS policy with security"""
         from plugins.modules.purefa_policy import create_policy
@@ -3066,10 +3316,18 @@ class TestCreateSmbPolicyWithClient:
     """Tests for create_policy SMB with client rules"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicySmbPatch")
-    @patch("plugins.modules.purefa_policy.PolicyrulesmbclientpostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleSmbClientPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicySmbPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulesmbclientpostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleSmbClientPost"
+    )
     def test_create_smb_policy_with_client(
         self, mock_rule_post, mock_rules, mock_smb_patch, mock_post, mock_lv
     ):
@@ -3102,8 +3360,12 @@ class TestCreateSmbPolicyWithClient:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicySmbPatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicySmbPatch"
+    )
     def test_create_smb_policy_with_ca(self, mock_smb_patch, mock_post, mock_lv):
         """Test create SMB policy with continuous availability"""
         from plugins.modules.purefa_policy import create_policy
@@ -3137,10 +3399,18 @@ class TestCreateSnapshotPolicyWithRules:
     """Tests for create_policy snapshot with rules"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicyrulesnapshotpostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleSnapshotPost")
-    @patch("plugins.modules.purefa_policy.convert_to_millisecs")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulesnapshotpostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleSnapshotPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.convert_to_millisecs"
+    )
     def test_create_snapshot_policy_with_snap_at(
         self, mock_convert, mock_rule_post, mock_rules, mock_post, mock_lv
     ):
@@ -3175,9 +3445,15 @@ class TestCreateSnapshotPolicyWithRules:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicyrulesnapshotpostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleSnapshotPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulesnapshotpostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleSnapshotPost"
+    )
     def test_create_snapshot_policy_without_snap_at(
         self, mock_rule_post, mock_rules, mock_post, mock_lv
     ):
@@ -3210,10 +3486,18 @@ class TestCreateSnapshotPolicyWithRules:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.DirectoryPolicyPost")
-    @patch("plugins.modules.purefa_policy.DirectorypolicypostPolicies")
-    @patch("plugins.modules.purefa_policy.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.DirectoryPolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.DirectorypolicypostPolicies"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.Reference"
+    )
     def test_create_snapshot_policy_with_directory(
         self, mock_ref, mock_dir_policies, mock_dir_post, mock_post, mock_lv
     ):
@@ -3252,13 +3536,27 @@ class TestCreateQuotaPolicyWithDirectory:
     """Tests for create_policy quota with directory"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicyrulequotapostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleQuotaPost")
-    @patch("plugins.modules.purefa_policy.PolicyMemberPost")
-    @patch("plugins.modules.purefa_policy.PolicymemberpostMembers")
-    @patch("plugins.modules.purefa_policy.ReferenceWithType")
-    @patch("plugins.modules.purefa_policy.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulequotapostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleQuotaPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyMemberPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicymemberpostMembers"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.ReferenceWithType"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.human_to_bytes"
+    )
     def test_create_quota_policy_with_directory(
         self,
         mock_human,
@@ -3301,10 +3599,18 @@ class TestCreateQuotaPolicyWithDirectory:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicyrulequotapostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleQuotaPost")
-    @patch("plugins.modules.purefa_policy.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulequotapostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleQuotaPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.human_to_bytes"
+    )
     def test_create_quota_policy_with_limit(
         self, mock_human, mock_rule_post, mock_rules, mock_post, mock_lv
     ):
@@ -3341,8 +3647,12 @@ class TestCreateQuotaPolicyWithDirectory:
 class TestDeleteAutodirPolicyWithDirectory:
     """Tests for delete_policy autodir with directory"""
 
-    @patch("plugins.modules.purefa_policy.delete_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_delete_autodir_policy_with_directory(self, mock_lv, mock_get, mock_delete):
         """Test delete autodir policy with directory"""
@@ -3371,8 +3681,12 @@ class TestDeleteAutodirPolicyWithDirectory:
         mock_delete.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.delete_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_delete_autodir_policy_directory_not_in_list(
         self, mock_lv, mock_get, mock_delete
@@ -3406,10 +3720,16 @@ class TestDeleteAutodirPolicyWithDirectory:
 class TestDeleteQuotaPolicyWithRules:
     """Tests for delete_policy quota with quota_limit"""
 
-    @patch("plugins.modules.purefa_policy.delete_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.human_to_bytes"
+    )
     def test_delete_quota_policy_with_quota_limit(
         self, mock_human, mock_lv, mock_get, mock_delete
     ):
@@ -3446,8 +3766,12 @@ class TestDeleteQuotaPolicyWithRules:
         mock_delete.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.delete_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_delete_quota_policy_with_directory(self, mock_lv, mock_get, mock_delete):
         """Test delete quota policy with directory members"""
@@ -3483,8 +3807,12 @@ class TestDeleteQuotaPolicyWithRules:
 class TestUpdateNfsPolicyWithClientRulesNew:
     """Tests for update_policy NFS with client rules - new tests"""
 
-    @patch("plugins.modules.purefa_policy.patch_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_nfs_policy_change_nfs_version(self, mock_lv, mock_get, mock_patch):
         """Test update NFS policy with nfs_version change"""
@@ -3516,8 +3844,12 @@ class TestUpdateNfsPolicyWithClientRulesNew:
         mock_patch.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.patch_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_nfs_policy_change_user_mapping(self, mock_lv, mock_get, mock_patch):
         """Test update NFS policy with user_mapping change"""
@@ -3554,12 +3886,22 @@ class TestUpdateNfsPolicyWithClientRulesNew:
 class TestUpdateNfsPolicyAddClientRule:
     """Tests for update_policy NFS adding new client rules"""
 
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.patch_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyrulenfsclientpostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleNfsClientPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulenfsclientpostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleNfsClientPost"
+    )
     def test_update_nfs_policy_add_client_rule(
         self, mock_rule_post, mock_rules, mock_lv, mock_get, mock_patch, mock_post
     ):
@@ -3610,7 +3952,9 @@ class TestCreateSnapshotPolicyValidation:
     """Tests for create_policy snapshot validation"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
     def test_create_snapshot_policy_keep_for_less_than_every(self, mock_post, mock_lv):
         """Test create snapshot policy fails when keep_for < every"""
         from plugins.modules.purefa_policy import create_policy
@@ -3641,8 +3985,12 @@ class TestCreateSnapshotPolicyValidation:
         assert "Retention period" in str(mock_module.fail_json.call_args)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.convert_to_millisecs")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.convert_to_millisecs"
+    )
     def test_create_snapshot_policy_snap_at_invalid_every(
         self, mock_convert, mock_post, mock_lv
     ):
@@ -3706,10 +4054,18 @@ class TestCreateSnapshotPolicyOldApi:
     """Tests for create_policy snapshot with older API (no suffix)"""
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicyrulesnapshotpostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleSnapshotPost")
-    @patch("plugins.modules.purefa_policy.convert_to_millisecs")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulesnapshotpostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleSnapshotPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.convert_to_millisecs"
+    )
     def test_create_snapshot_policy_old_api_with_snap_at(
         self, mock_convert, mock_rule_post, mock_rules, mock_post, mock_lv
     ):
@@ -3745,9 +4101,15 @@ class TestCreateSnapshotPolicyOldApi:
         mock_module.exit_json.assert_called_once_with(changed=True)
 
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPost")
-    @patch("plugins.modules.purefa_policy.PolicyrulesnapshotpostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleSnapshotPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulesnapshotpostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleSnapshotPost"
+    )
     def test_create_snapshot_policy_old_api_without_snap_at(
         self, mock_rule_post, mock_rules, mock_post, mock_lv
     ):
@@ -3784,8 +4146,12 @@ class TestCreateSnapshotPolicyOldApi:
 class TestUpdateSmbPolicyAccessEnumeration:
     """Tests for update_policy SMB with access_based_enumeration"""
 
-    @patch("plugins.modules.purefa_policy.patch_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_smb_policy_change_abe(self, mock_lv, mock_get, mock_patch):
         """Test update SMB policy changing access_based_enumeration"""
@@ -3821,8 +4187,12 @@ class TestUpdateSmbPolicyAccessEnumeration:
         mock_patch.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.patch_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_update_smb_policy_change_ca(self, mock_lv, mock_get, mock_patch):
         """Test update SMB policy changing continuous_availability"""
@@ -3862,13 +4232,25 @@ class TestUpdateSmbPolicyAccessEnumeration:
 class TestUpdateSnapshotPolicyWithDirectory:
     """Tests for update_policy snapshot with directory"""
 
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.patch_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.DirectoryPolicyPost")
-    @patch("plugins.modules.purefa_policy.DirectorypolicypostPolicies")
-    @patch("plugins.modules.purefa_policy.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.DirectoryPolicyPost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.DirectorypolicypostPolicies"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.Reference"
+    )
     def test_update_snapshot_policy_add_directory(
         self,
         mock_ref,
@@ -3919,8 +4301,12 @@ class TestUpdateSnapshotPolicyWithDirectory:
 class TestDeleteQuotaPolicyNoRulesNoDirectory:
     """Tests for delete_policy quota without rules or directory"""
 
-    @patch("plugins.modules.purefa_policy.delete_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_delete_quota_policy_full(self, mock_lv, mock_get, mock_delete):
         """Test delete quota policy fully (no rules, no directory)"""
@@ -3956,11 +4342,19 @@ class TestDeleteQuotaPolicyNoRulesNoDirectory:
 class TestUpdatePasswordPolicyBugFixes:
     """Test cases for password policy bug fixes - lockout_duration and None checks"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.patch_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPassword")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPassword"
+    )
     def test_update_lockout_duration_only(
         self, mock_pwd, mock_lv, mock_get, mock_patch, mock_check
     ):
@@ -4024,11 +4418,19 @@ class TestUpdatePasswordPolicyBugFixes:
         assert call_kwargs["min_password_length"] == 12
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.patch_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPassword")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPassword"
+    )
     def test_update_enforce_dictionary_check_false(
         self, mock_pwd, mock_lv, mock_get, mock_patch, mock_check
     ):
@@ -4083,11 +4485,19 @@ class TestUpdatePasswordPolicyBugFixes:
         assert call_kwargs["enforce_username_check"] is True
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.patch_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyPassword")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyPassword"
+    )
     def test_update_min_password_length_only(
         self, mock_pwd, mock_lv, mock_get, mock_patch, mock_check
     ):
@@ -4142,7 +4552,9 @@ class TestUpdatePasswordPolicyBugFixes:
         assert call_kwargs["min_character_groups"] == 2
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
     def test_no_change_when_all_params_none(self, mock_lv, mock_get):
         """Test no change is made when all password params are None.
@@ -4195,13 +4607,25 @@ class TestUpdatePasswordPolicyBugFixes:
 class TestUpdateQuotaPolicyBugFixes:
     """Test cases for quota policy bug fixes - quota_notifications assignment"""
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.patch_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyRuleQuotaPatch")
-    @patch("plugins.modules.purefa_policy.PolicyrulequotapatchRules")
-    @patch("plugins.modules.purefa_policy.human_to_bytes")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleQuotaPatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulequotapatchRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.human_to_bytes"
+    )
     def test_update_quota_notifications_with_none_value(
         self,
         mock_human,
@@ -4261,12 +4685,22 @@ class TestUpdateQuotaPolicyBugFixes:
         mock_patch.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_policy.check_response")
-    @patch("plugins.modules.purefa_policy.post_with_context")
-    @patch("plugins.modules.purefa_policy.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.get_with_context"
+    )
     @patch("plugins.modules.purefa_policy.LooseVersion", side_effect=LooseVersion)
-    @patch("plugins.modules.purefa_policy.PolicyrulequotapostRules")
-    @patch("plugins.modules.purefa_policy.PolicyRuleQuotaPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyrulequotapostRules"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_policy.PolicyRuleQuotaPost"
+    )
     def test_create_quota_rule_with_none_notification(
         self, mock_rule_post, mock_rules, mock_lv, mock_get, mock_post, mock_check
     ):

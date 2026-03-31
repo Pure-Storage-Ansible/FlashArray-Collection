@@ -16,18 +16,8 @@ import pytest
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -45,14 +35,18 @@ sys.modules[
 ] = MagicMock()
 
 # Import after mocking
-from plugins.modules.purefa_hardware import main
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_hardware import (
+    main,
+)
 
 
 class TestHardwareValidation:
     """Test cases for hardware validation"""
 
     @patch("plugins.modules.purefa_hardware.HAS_PURESTORAGE", False)
-    @patch("plugins.modules.purefa_hardware.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hardware.AnsibleModule"
+    )
     def test_missing_purestorage_dependency_fails(self, mock_ansible_module):
         """Test that missing pypureclient dependency fails"""
         mock_module = Mock()
@@ -74,8 +68,12 @@ class TestHardwareValidation:
 class TestHardwareNoChange:
     """Test cases for no change scenarios"""
 
-    @patch("plugins.modules.purefa_hardware.get_array")
-    @patch("plugins.modules.purefa_hardware.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hardware.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hardware.AnsibleModule"
+    )
     def test_no_change_when_led_already_matches(
         self, mock_ansible_module, mock_get_array
     ):
@@ -103,8 +101,12 @@ class TestHardwareNoChange:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_hardware.get_array")
-    @patch("plugins.modules.purefa_hardware.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hardware.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hardware.AnsibleModule"
+    )
     def test_no_change_when_identify_not_supported(
         self, mock_ansible_module, mock_get_array
     ):
@@ -135,8 +137,12 @@ class TestHardwareNoChange:
 class TestHardwareCheckMode:
     """Test cases for check mode"""
 
-    @patch("plugins.modules.purefa_hardware.get_array")
-    @patch("plugins.modules.purefa_hardware.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hardware.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_hardware.AnsibleModule"
+    )
     def test_check_mode_reports_change(self, mock_ansible_module, mock_get_array):
         """Test check mode reports change without making it"""
         mock_module = Mock()

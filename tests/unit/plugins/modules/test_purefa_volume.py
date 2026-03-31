@@ -15,18 +15,8 @@ from packaging.version import Version as LooseVersion
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -90,7 +80,9 @@ class TestCreateNguid:
 class TestGetVolume:
     """Test cases for get_volume function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_volume_exists(self, mock_loose_version):
         """Test get_volume returns volume when it exists"""
         mock_loose_version.side_effect = float
@@ -112,7 +104,9 @@ class TestGetVolume:
         assert result == mock_volume
         mock_array.get_volumes.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_volume_not_exists(self, mock_loose_version):
         """Test get_volume returns None when volume doesn't exist"""
         mock_loose_version.side_effect = float
@@ -134,7 +128,9 @@ class TestGetVolume:
 class TestGetDestroyedVolume:
     """Test cases for get_destroyed_volume function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_destroyed_volume_exists(self, mock_loose_version):
         """Test get_destroyed_volume returns destroyed volume"""
         mock_loose_version.side_effect = float
@@ -160,7 +156,9 @@ class TestGetDestroyedVolume:
 class TestGetTarget:
     """Test cases for get_target function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_target_exists(self, mock_loose_version):
         """Test get_target returns target volume"""
         mock_loose_version.side_effect = float
@@ -184,13 +182,27 @@ class TestGetTarget:
 class TestCreateVolume:
     """Test cases for create_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_vgroup")
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_vgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
     def test_create_volume_basic(
         self,
         mock_volume_post,
@@ -235,7 +247,9 @@ class TestCreateVolume:
         call_args = mock_module.exit_json.call_args[1]
         assert call_args["changed"] is True
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_create_volume_missing_size(self, mock_loose_version):
         """Test volume creation fails without size"""
         mock_loose_version.side_effect = float
@@ -264,12 +278,24 @@ class TestCreateVolume:
         call_args = mock_module.fail_json.call_args[1]
         assert "Size for a new volume must be specified" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_create_volume_check_mode(
         self,
         mock_qos,
@@ -309,12 +335,24 @@ class TestCreateVolume:
         call_args = mock_module.exit_json.call_args[1]
         assert call_args["changed"] is True
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_create_volume_with_bw_qos_only(
         self,
         mock_qos,
@@ -357,12 +395,24 @@ class TestCreateVolume:
         call_args = mock_module.exit_json.call_args[1]
         assert call_args["changed"] is True
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_create_volume_with_iops_qos_only(
         self,
         mock_qos,
@@ -403,13 +453,27 @@ class TestCreateVolume:
         mock_qos.assert_called()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.human_to_real")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_real"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_create_volume_with_both_qos(
         self,
         mock_qos,
@@ -458,11 +522,21 @@ class TestCreateVolume:
 class TestUpdateVolume:
     """Test cases for update_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_update_volume_size_increase(
         self,
         mock_volume_patch,
@@ -519,10 +593,18 @@ class TestUpdateVolume:
 class TestDeleteVolume:
     """Test cases for delete_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_delete_volume_success(
         self,
         mock_volume_patch,
@@ -554,9 +636,15 @@ class TestDeleteVolume:
         mock_array.patch_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_delete_volume_check_mode(
         self,
         mock_volume_patch,
@@ -589,9 +677,15 @@ class TestDeleteVolume:
 class TestEradicateVolume:
     """Test cases for eradicate_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_eradicate_volume_success(
         self,
         mock_loose_version,
@@ -621,8 +715,12 @@ class TestEradicateVolume:
         mock_array.delete_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_eradicate_volume_no_eradicate_flag(
         self,
         mock_loose_version,
@@ -655,10 +753,18 @@ class TestEradicateVolume:
 class TestRecoverVolume:
     """Test cases for recover_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_recover_volume_success(
         self,
         mock_volume_patch,
@@ -690,9 +796,15 @@ class TestRecoverVolume:
         call_args = mock_module.exit_json.call_args[1]
         assert call_args["changed"] is True
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_recover_volume_check_mode(
         self,
         mock_volume_patch,
@@ -725,12 +837,24 @@ class TestRecoverVolume:
 class TestCopyFromVolume:
     """Test cases for copy_from_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_target")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_target"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_copy_volume_success(
         self,
         mock_reference,
@@ -771,10 +895,18 @@ class TestCopyFromVolume:
 class TestRenameVolume:
     """Test cases for rename_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_rename_volume_success(
         self,
         mock_volume_patch,
@@ -810,7 +942,9 @@ class TestRenameVolume:
         mock_array.patch_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_rename_volume_target_exists(self, mock_loose_version):
         """Test rename fails when target exists"""
         mock_loose_version.side_effect = float
@@ -844,8 +978,12 @@ class TestRenameVolume:
 class TestMain:
     """Test cases for main function"""
 
-    @patch("plugins.modules.purefa_volume.get_array")
-    @patch("plugins.modules.purefa_volume.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_volume.HAS_PURESTORAGE", False)
     def test_main_missing_sdk(self, mock_ansible_module, mock_get_array):
         """Test main when pypureclient SDK is missing"""
@@ -886,11 +1024,21 @@ class TestMain:
         call_args = mock_module.fail_json.call_args[1]
         assert "py-pure-client sdk is required" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.get_volume")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.get_array")
-    @patch("plugins.modules.purefa_volume.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_volume"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_volume.HAS_PURESTORAGE", True)
     def test_main_volume_is_endpoint(
         self,
@@ -943,12 +1091,24 @@ class TestMain:
         call_args = mock_module.fail_json.call_args[1]
         assert "is an endpoint" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.get_volume")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.get_array")
-    @patch("plugins.modules.purefa_volume.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_volume"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_volume.HAS_PURESTORAGE", True)
     def test_main_bw_qos_out_of_range(
         self,
@@ -1002,13 +1162,27 @@ class TestMain:
         call_args = mock_module.fail_json.call_args[1]
         assert "Bandwidth QoS value out of range" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.human_to_real")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.get_volume")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.get_array")
-    @patch("plugins.modules.purefa_volume.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_real"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_volume"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_volume.HAS_PURESTORAGE", True)
     def test_main_iops_qos_out_of_range(
         self,
@@ -1068,12 +1242,24 @@ class TestMain:
 class TestCreateMultiVolume:
     """Test cases for create_multi_volume function"""
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_vgroup")
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_vgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
     def test_create_multi_volume_basic(
         self,
         mock_volume_post,
@@ -1145,12 +1331,24 @@ class TestCreateMultiVolume:
         assert call_kwargs["names"] == expected_names
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_vgroup")
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_vgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
     def test_create_multi_volume_with_suffix(
         self,
         mock_volume_post,
@@ -1222,12 +1420,24 @@ class TestCreateMultiVolume:
         assert call_kwargs["names"] == expected_names
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_vgroup")
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_vgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
     def test_create_multi_volume_check_mode(
         self,
         mock_volume_post,
@@ -1272,7 +1482,9 @@ class TestCreateMultiVolume:
         call_args = mock_module.exit_json.call_args[1]
         assert call_args["changed"] is True
 
-    @patch("plugins.modules.purefa_volume.check_vgroup")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_vgroup"
+    )
     def test_create_multi_volume_vgroup_not_exists(self, mock_check_vgroup):
         """Test multi-volume creation fails when volume group doesn't exist"""
         mock_check_vgroup.return_value = False
@@ -1309,7 +1521,9 @@ class TestCreateMultiVolume:
 class TestGetPod:
     """Test cases for get_pod function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_pod_exists(self, mock_loose_version):
         """Test get_pod returns pod when it exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1326,7 +1540,9 @@ class TestGetPod:
 
         assert result is not None
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_pod_not_exists(self, mock_loose_version):
         """Test get_pod returns None when pod doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1344,7 +1560,9 @@ class TestGetPod:
 class TestCheckPod:
     """Test cases for check_pod function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_check_pod_exists(self, mock_loose_version):
         """Test check_pod returns True when pod exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1358,7 +1576,9 @@ class TestCheckPod:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_check_pod_not_exists(self, mock_loose_version):
         """Test check_pod returns False when pod doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1376,7 +1596,9 @@ class TestCheckPod:
 class TestCheckVgroup:
     """Test cases for check_vgroup function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_check_vgroup_exists(self, mock_loose_version):
         """Test check_vgroup returns True when vgroup exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1390,7 +1612,9 @@ class TestCheckVgroup:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_check_vgroup_not_exists(self, mock_loose_version):
         """Test check_vgroup returns False when vgroup doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1408,7 +1632,9 @@ class TestCheckVgroup:
 class TestGetEndpoint:
     """Test cases for get_endpoint function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_endpoint_exists(self, mock_loose_version):
         """Test get_endpoint returns endpoint when it exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1425,7 +1651,9 @@ class TestGetEndpoint:
 
         assert result is not None
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_endpoint_not_exists(self, mock_loose_version):
         """Test get_endpoint returns None when endpoint doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1442,7 +1670,9 @@ class TestGetEndpoint:
 class TestGetMultiVolumes:
     """Test cases for get_multi_volumes function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_multi_volumes_all_exist(self, mock_loose_version):
         """Test get_multi_volumes returns volume when all volumes exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1467,7 +1697,9 @@ class TestGetMultiVolumes:
         # Returns the first volume when found
         assert result is not None
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_multi_volumes_not_exist(self, mock_loose_version):
         """Test get_multi_volumes returns None when volumes don't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1491,7 +1723,9 @@ class TestGetMultiVolumes:
 class TestGetPendingPgroup:
     """Test cases for get_pending_pgroup function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_pending_pgroup_exists_destroyed(self, mock_loose_version):
         """Test get_pending_pgroup returns pgroup when exists and destroyed"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1509,7 +1743,9 @@ class TestGetPendingPgroup:
 
         assert result == mock_pgroup
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_pending_pgroup_exists_not_destroyed(self, mock_loose_version):
         """Test get_pending_pgroup returns None when exists but not destroyed"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1531,7 +1767,9 @@ class TestGetPendingPgroup:
 class TestGetPgroup:
     """Test cases for get_pgroup function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_pgroup_exists(self, mock_loose_version):
         """Test get_pgroup returns pgroup when exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1548,7 +1786,9 @@ class TestGetPgroup:
 
         assert result == mock_pgroup
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_pgroup_not_exists(self, mock_loose_version):
         """Test get_pgroup returns None when not exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1566,7 +1806,9 @@ class TestGetPgroup:
 class TestPgExists:
     """Test cases for pg_exists function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_pg_exists_true(self, mock_loose_version):
         """Test pg_exists returns True when pgroup exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1580,7 +1822,9 @@ class TestPgExists:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_pg_exists_false(self, mock_loose_version):
         """Test pg_exists returns False when pgroup doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -1598,7 +1842,9 @@ class TestPgExists:
 class TestMoveVolume:
     """Test cases for move_volume function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_local_same_source_dest(self, mock_loose_version):
         """Test move_volume fails when moving local to local"""
         import pytest
@@ -1621,7 +1867,9 @@ class TestMoveVolume:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_target_exists(self, mock_loose_version):
         """Test move_volume fails when target volume exists"""
         import pytest
@@ -1649,7 +1897,9 @@ class TestMoveVolume:
 class TestVolfact:
     """Test cases for _volfact function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_volfact_check_mode(self, mock_loose_version):
         """Test _volfact returns empty dict in check mode"""
         from packaging.version import Version as LooseVersion
@@ -1666,7 +1916,9 @@ class TestVolfact:
 
         assert result == {}
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_volfact_basic(self, mock_loose_version):
         """Test _volfact returns volume facts"""
         from packaging.version import Version as LooseVersion
@@ -1706,8 +1958,12 @@ class TestVolfact:
 class TestMoveVolumeSuccess:
     """Test cases for move_volume function success scenarios"""
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume._volfact")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_move_volume_to_vgroup(self, mock_lv, mock_volfact, mock_check_response):
         """Test moving volume to a volume group"""
@@ -1740,8 +1996,12 @@ class TestMoveVolumeSuccess:
         mock_array.patch_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume._volfact")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_move_volume_to_pod(self, mock_lv, mock_volfact, mock_check_response):
         """Test moving volume to a pod"""
@@ -1779,8 +2039,12 @@ class TestMoveVolumeSuccess:
 class TestDeleteVolumeSuccess:
     """Test cases for delete_volume function success scenarios"""
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume._volfact")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_delete_volume_with_eradicate(
         self, mock_lv, mock_volfact, mock_check_response
@@ -1809,8 +2073,12 @@ class TestDeleteVolumeSuccess:
         mock_array.delete_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume._volfact")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_delete_volume_remove_from_pgs(
         self, mock_lv, mock_volfact, mock_check_response
@@ -1842,9 +2110,15 @@ class TestDeleteVolumeSuccess:
 class TestUpdateVolumeSuccess:
     """Test cases for update_volume function success scenarios"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_update_volume_resize(
         self, mock_lv, mock_check_response, mock_h2b, mock_volfact
@@ -1884,8 +2158,12 @@ class TestUpdateVolumeSuccess:
         mock_array.patch_volumes.assert_called()
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_update_volume_bw_qos(self, mock_lv, mock_check_response, mock_volfact):
         """Test updating volume bandwidth QoS"""
@@ -1921,7 +2199,9 @@ class TestUpdateVolumeSuccess:
         mock_array.patch_volumes.assert_called()
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_volume._volfact")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_update_volume_no_changes(self, mock_lv, mock_volfact):
         """Test update_volume when no changes needed"""
@@ -1961,9 +2241,15 @@ class TestUpdateVolumeSuccess:
 class TestCopyFromVolumeExtended:
     """Extended test cases for copy_from_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_target"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_copy_from_volume_overwrite_existing(
         self, mock_lv, mock_get_target, mock_check_response, mock_volfact
@@ -1988,8 +2274,12 @@ class TestCopyFromVolumeExtended:
         mock_array.post_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.get_target")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_target"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_copy_from_volume_target_exists_no_overwrite(
         self, mock_lv, mock_get_target, mock_volfact
@@ -2016,13 +2306,27 @@ class TestCopyFromVolumeExtended:
             changed=False, volume={"target-vol": {}}
         )
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_target")
-    @patch("plugins.modules.purefa_volume.ReferenceType")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Reference")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_target"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.ReferenceType"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_copy_from_volume_with_add_to_pgs(
         self,
         mock_lv,
@@ -2060,12 +2364,24 @@ class TestCopyFromVolumeExtended:
         # Verify ReferenceType was called for each protection group
         assert mock_ref_type.call_count == 2
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_target")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Reference")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_target"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_copy_from_volume_check_mode(
         self,
         mock_lv,
@@ -2106,8 +2422,12 @@ class TestCopyFromVolumeExtended:
 class TestRenameVolumeExtended:
     """Extended test cases for rename_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_rename_volume_in_pod(self, mock_lv, mock_check_response, mock_volfact):
         """Test rename_volume within a pod"""
@@ -2131,8 +2451,12 @@ class TestRenameVolumeExtended:
         mock_array.patch_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_rename_volume_in_vgroup(self, mock_lv, mock_check_response, mock_volfact):
         """Test rename_volume within a volume group"""
@@ -2160,9 +2484,15 @@ class TestRenameVolumeExtended:
 class TestUpdateVolumeQos:
     """Test cases for update_volume QoS changes"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_update_volume_reduce_bandwidth(
         self, mock_lv, mock_check_response, mock_h2b, mock_volfact
@@ -2200,8 +2530,12 @@ class TestUpdateVolumeQos:
         mock_array.patch_volumes.assert_called()
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_update_volume_check_mode_no_patch(
         self, mock_lv, mock_check_response, mock_volfact
@@ -2243,9 +2577,15 @@ class TestUpdateVolumeQos:
         mock_array.patch_volumes.assert_not_called()
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_update_volume_remove_bw_qos_context_api(
         self, mock_lv, mock_check_response, mock_h2b, mock_volfact
@@ -2283,9 +2623,15 @@ class TestUpdateVolumeQos:
         mock_array.patch_volumes.assert_called()
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_update_volume_remove_bw_qos_no_context(
         self, mock_lv, mock_check_response, mock_h2b, mock_volfact
@@ -2323,10 +2669,18 @@ class TestUpdateVolumeQos:
         mock_array.patch_volumes.assert_called()
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.human_to_real")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_real"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_update_volume_remove_iops_qos_context_api(
         self, mock_lv, mock_check_response, mock_h2b, mock_h2r, mock_volfact
@@ -2365,10 +2719,18 @@ class TestUpdateVolumeQos:
         mock_array.patch_volumes.assert_called()
         mock_module.exit_json.assert_called()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.human_to_real")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_real"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
     @patch("plugins.modules.purefa_volume.LooseVersion", side_effect=LooseVersion)
     def test_update_volume_change_iops_qos_context_api(
         self, mock_lv, mock_check_response, mock_h2b, mock_h2r, mock_volfact
@@ -2411,12 +2773,24 @@ class TestUpdateVolumeQos:
 class TestMoveVolume:
     """Test cases for move_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Reference")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_to_pod_success(
         self,
         mock_lv,
@@ -2469,12 +2843,24 @@ class TestMoveVolume:
         call_args = mock_module.exit_json.call_args[1]
         assert call_args["changed"] is True
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Reference")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_to_vgroup_success(
         self,
         mock_lv,
@@ -2521,7 +2907,9 @@ class TestMoveVolume:
         mock_array.patch_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_to_local_same_location(self, mock_lv):
         """Test move to local fails when volume is already local"""
         mock_lv.side_effect = float
@@ -2547,7 +2935,9 @@ class TestMoveVolume:
         call_args = mock_module.fail_json.call_args[1]
         assert "cannot be the same" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_to_stretched_pod_fails(self, mock_lv):
         """Test move to a stretched pod fails"""
         mock_lv.side_effect = float
@@ -2583,7 +2973,9 @@ class TestMoveVolume:
         call_args = mock_module.fail_json.call_args[1]
         assert "stretched pod" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_to_demoted_pod_fails(self, mock_lv):
         """Test move to a demoted pod fails"""
         mock_lv.side_effect = float
@@ -2616,7 +3008,9 @@ class TestMoveVolume:
         call_args = mock_module.fail_json.call_args[1]
         assert "demoted pod" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_target_exists_fails(self, mock_lv):
         """Test move fails when target volume already exists"""
         mock_lv.side_effect = float
@@ -2655,7 +3049,9 @@ class TestMoveVolume:
         call_args = mock_module.fail_json.call_args[1]
         assert "already exists" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_location_not_exists_fails(self, mock_lv):
         """Test move fails when move location doesn't exist"""
         mock_lv.side_effect = float
@@ -2685,10 +3081,18 @@ class TestMoveVolume:
         call_args = mock_module.fail_json.call_args[1]
         assert "does not exist" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Reference")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_check_mode(
         self, mock_lv, mock_reference, mock_vol_patch, mock_get_endpoint
     ):
@@ -2728,12 +3132,24 @@ class TestMoveVolume:
         call_args = mock_module.exit_json.call_args[1]
         assert call_args["changed"] is True
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Reference")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_from_vgroup_to_local(
         self,
         mock_lv,
@@ -2774,12 +3190,24 @@ class TestMoveVolume:
         mock_array.patch_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Reference")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_from_pod_to_local(
         self,
         mock_lv,
@@ -2820,7 +3248,9 @@ class TestMoveVolume:
         mock_array.patch_volumes.assert_called_once()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_to_linked_source_pod_fails(self, mock_lv):
         """Test move to a linked source pod fails"""
         mock_lv.side_effect = float
@@ -2853,7 +3283,9 @@ class TestMoveVolume:
         call_args = mock_module.fail_json.call_args[1]
         assert "linked source pod" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_both_pod_and_vgroup_exist_fails(self, mock_lv):
         """Test move fails when move location matches both pod and vgroup"""
         mock_lv.side_effect = float
@@ -2894,7 +3326,9 @@ class TestMoveVolume:
 class TestVolfact:
     """Test cases for _volfact function"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_volfact_returns_volume_facts(self, mock_lv):
         """Test _volfact returns correct volume facts"""
         mock_lv.side_effect = float
@@ -2933,7 +3367,9 @@ class TestVolfact:
         assert result["test_volume"]["bandwidth_limit"] == 1073741824
         assert result["test_volume"]["destroyed"] is False
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_volfact_check_mode_returns_empty(self, mock_lv):
         """Test _volfact returns empty dict in check mode"""
         mock_lv.side_effect = float
@@ -2950,7 +3386,9 @@ class TestVolfact:
         assert result == {}
         mock_array.get_volumes.assert_not_called()
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_volfact_with_priority_api_version(self, mock_lv):
         """Test _volfact handles priority API version"""
         mock_lv.side_effect = float
@@ -2992,11 +3430,21 @@ class TestVolfact:
 class TestCreateMultiVolumeExtended:
     """Extended test cases for create_multi_volume function"""
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_vgroup")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_vgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
     def test_create_multi_volume_vgroup_not_exists(
         self,
         mock_volume_post,
@@ -3041,11 +3489,21 @@ class TestCreateMultiVolumeExtended:
         mock_module.fail_json.assert_called_once()
         assert "Volume Group" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
     def test_create_multi_volume_pod_not_exists(
         self,
         mock_volume_post,
@@ -3090,11 +3548,21 @@ class TestCreateMultiVolumeExtended:
         mock_module.fail_json.assert_called_once()
         assert "Pod" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
     def test_create_multi_volume_demoted_pod_fails(
         self,
         mock_volume_post,
@@ -3147,10 +3615,18 @@ class TestCreateMultiVolumeExtended:
 class TestUpdateVolumePromotionState:
     """Test cases for update_volume with promotion_state parameter"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_update_volume_change_promotion_state(
         self, mock_vol_patch, mock_lv, mock_check_response, mock_volfact
     ):
@@ -3193,10 +3669,18 @@ class TestUpdateVolumePromotionState:
         call_args = mock_module.exit_json.call_args[1]
         assert call_args["changed"] is True
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_update_volume_same_promotion_state_no_change(
         self, mock_vol_patch, mock_lv, mock_check_response, mock_volfact
     ):
@@ -3240,11 +3724,21 @@ class TestUpdateVolumePromotionState:
 class TestUpdateVolumePriority:
     """Test cases for update_volume with priority_operator parameter"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.PriorityAdjustment"
+    )
     def test_update_volume_change_priority_operator(
         self,
         mock_prio_adj,
@@ -3293,11 +3787,21 @@ class TestUpdateVolumePriority:
         call_args = mock_module.exit_json.call_args[1]
         assert call_args["changed"] is True
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.PriorityAdjustment"
+    )
     def test_update_volume_change_priority_value(
         self,
         mock_prio_adj,
@@ -3350,9 +3854,15 @@ class TestUpdateVolumePriority:
 class TestUpdateVolumeAddToPgs:
     """Test cases for update_volume with add_to_pgs parameter"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_update_volume_add_to_new_pgs(
         self, mock_lv, mock_check_response, mock_volfact
     ):
@@ -3395,9 +3905,15 @@ class TestUpdateVolumeAddToPgs:
         call_args = mock_module.exit_json.call_args[1]
         assert call_args["changed"] is True
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_update_volume_already_in_pgs_no_change(
         self, mock_lv, mock_check_response, mock_volfact
     ):
@@ -3449,12 +3965,24 @@ class TestUpdateVolumeAddToPgs:
 class TestCreateVolumeExtended:
     """Extended test cases for create_volume function"""
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_create_volume_pod_not_exists(
         self,
         mock_qos,
@@ -3494,12 +4022,24 @@ class TestCreateVolumeExtended:
         mock_module.fail_json.assert_called_once()
         assert "Pod does not exist" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_create_volume_demoted_pod_fails(
         self,
         mock_qos,
@@ -3543,12 +4083,24 @@ class TestCreateVolumeExtended:
         mock_module.fail_json.assert_called_once()
         assert "demoted" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_create_volume_no_size_fails(
         self,
         mock_qos,
@@ -3591,10 +4143,18 @@ class TestCreateVolumeExtended:
 class TestRecoverVolumeExtended:
     """Extended test cases for recover_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_recover_volume_old_api_version(
         self, mock_vol_patch, mock_lv, mock_check_response, mock_volfact
     ):
@@ -3627,10 +4187,18 @@ class TestRecoverVolumeExtended:
 class TestDeleteVolumeExtended:
     """Extended test cases for delete_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_delete_volume_old_api_version(
         self, mock_vol_patch, mock_lv, mock_check_response, mock_volfact
     ):
@@ -3659,10 +4227,18 @@ class TestDeleteVolumeExtended:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_delete_volume_patch_fails(
         self, mock_vol_patch, mock_lv, mock_check_response, mock_volfact
     ):
@@ -3692,9 +4268,15 @@ class TestDeleteVolumeExtended:
 class TestEradicateVolumeExtended:
     """Extended test cases for eradicate_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_eradicate_volume_old_api_version(
         self, mock_lv, mock_check_response, mock_volfact
     ):
@@ -3722,8 +4304,12 @@ class TestEradicateVolumeExtended:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_eradicate_volume_no_eradicate_flag(self, mock_lv, mock_volfact):
         """Test eradicate_volume when eradicate flag is False"""
         mock_lv.side_effect = float
@@ -3752,13 +4338,27 @@ class TestEradicateVolumeExtended:
 class TestCreateVolumeWithPromotionState:
     """Test cases for create_volume with promotion_state parameter"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_create_volume_with_promotion_state_success(
         self,
         mock_qos,
@@ -3801,13 +4401,27 @@ class TestCreateVolumeWithPromotionState:
         mock_array.patch_volumes.assert_called()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_create_volume_with_promotion_state_fails_cleanup(
         self,
         mock_qos,
@@ -3863,14 +4477,30 @@ class TestCreateVolumeWithPromotionState:
 class TestCreateVolumeWithPriorityOperator:
     """Test cases for create_volume with priority_operator parameter"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Qos")
-    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.PriorityAdjustment"
+    )
     def test_create_volume_with_priority_operator_success(
         self,
         mock_priority_adj,
@@ -3915,14 +4545,30 @@ class TestCreateVolumeWithPriorityOperator:
         mock_array.patch_volumes.assert_called()
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Qos")
-    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.PriorityAdjustment"
+    )
     def test_create_volume_with_priority_operator_fails_cleanup(
         self,
         mock_priority_adj,
@@ -3977,13 +4623,27 @@ class TestCreateVolumeWithPriorityOperator:
 class TestCreateVolumeWithPgroup:
     """Test cases for create_volume with pgroup parameter"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Qos")
-    @patch("plugins.modules.purefa_volume.ReferenceType")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.ReferenceType"
+    )
     def test_create_volume_with_pgroup_success(
         self,
         mock_ref_type,
@@ -4030,12 +4690,24 @@ class TestCreateVolumeWithPgroup:
 class TestMoveVolumeExtended:
     """Extended test cases for move_volume function"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_move_volume_from_stretched_pod_fails(
         self,
         mock_ref,
@@ -4082,12 +4754,24 @@ class TestMoveVolumeExtended:
         mock_module.fail_json.assert_called_once()
         assert "stretched pod" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_move_volume_from_linked_pod_fails(
         self,
         mock_ref,
@@ -4131,12 +4815,24 @@ class TestMoveVolumeExtended:
         mock_module.fail_json.assert_called_once()
         assert "linked source pod" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_move_volume_to_protocol_endpoint_fails(
         self,
         mock_ref,
@@ -4174,12 +4870,24 @@ class TestMoveVolumeExtended:
         # Note: The code has a typo "protocol-endpoinnt"
         assert "protocol-endpoin" in str(mock_module.fail_json.call_args).lower()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_move_volume_vgroup_same_location_fails(
         self,
         mock_ref,
@@ -4218,12 +4926,24 @@ class TestMoveVolumeExtended:
         mock_module.fail_json.assert_called_once()
         assert "same" in str(mock_module.fail_json.call_args).lower()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_move_volume_local_from_vgroup_old_api(
         self,
         mock_ref,
@@ -4266,12 +4986,24 @@ class TestMoveVolumeExtended:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_move_volume_local_from_pod_old_api(
         self,
         mock_ref,
@@ -4324,11 +5056,21 @@ class TestMoveVolumeExtended:
 class TestCopyVolumeOverwrite:
     """Test cases for copy_from_volume with overwrite parameter"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_copy_volume_overwrite_success(
         self,
         mock_ref,
@@ -4365,11 +5107,21 @@ class TestCopyVolumeOverwrite:
         assert call_kwargs["overwrite"] is True
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_copy_volume_overwrite_old_api(
         self,
         mock_ref,
@@ -4406,11 +5158,21 @@ class TestCopyVolumeOverwrite:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_copy_volume_target_not_exists_old_api(
         self,
         mock_ref,
@@ -4452,13 +5214,27 @@ class TestCopyVolumeOverwrite:
 class TestCreateMultiVolumePromotionState:
     """Test cases for create_multi_volume with promotion_state parameter"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_create_multi_volume_with_promotion_state_check_mode(
         self,
         mock_qos,
@@ -4516,14 +5292,30 @@ class TestCreateMultiVolumePromotionState:
 class TestCreateMultiVolumePriorityOperator:
     """Test cases for create_multi_volume with priority_operator parameter"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Qos")
-    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.PriorityAdjustment"
+    )
     def test_create_multi_volume_with_priority_operator_fails(
         self,
         mock_priority_adj,
@@ -4596,11 +5388,21 @@ class TestCreateMultiVolumePriorityOperator:
 class TestUpdateVolumeOldApi:
     """Test cases for update_volume with old API version"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_update_volume_resize_old_api(
         self,
         mock_vol_patch,
@@ -4646,11 +5448,21 @@ class TestUpdateVolumeOldApi:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_update_volume_add_to_pgs_old_api(
         self,
         mock_vol_patch,
@@ -4696,12 +5508,24 @@ class TestUpdateVolumeOldApi:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.PriorityAdjustment"
+    )
     def test_update_volume_priority_old_api(
         self,
         mock_priority_adj,
@@ -4755,10 +5579,18 @@ class TestUpdateVolumeOldApi:
 class TestRenameVolumeOldApi:
     """Test cases for rename_volume with old API version"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_rename_volume_old_api(
         self, mock_vol_patch, mock_lv, mock_check_response, mock_volfact
     ):
@@ -4792,9 +5624,15 @@ class TestRenameVolumeOldApi:
 class TestDeleteVolumeWithAddToPgs:
     """Test cases for delete_volume with add_to_pgs parameter"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_delete_volume_remove_from_pgs_old_api(
         self,
         mock_loose_version,
@@ -4842,9 +5680,15 @@ class TestDeleteVolumeWithAddToPgs:
         assert call_kwargs["member_names"] == ["test_volume"]
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_delete_volume_no_matching_pgs(
         self,
         mock_loose_version,
@@ -4888,10 +5732,18 @@ class TestDeleteVolumeWithAddToPgs:
 class TestDeleteVolumeEradicateOldApi:
     """Test cases for delete_volume with eradicate using old API"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_delete_and_eradicate_volume_old_api(
         self,
         mock_volume_patch,
@@ -4944,11 +5796,21 @@ class TestDeleteVolumeEradicateOldApi:
 class TestUpdateVolumePriorityEdgeCases:
     """Test cases for update_volume priority adjustment edge cases"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.PriorityAdjustment"
+    )
     def test_update_volume_reset_priority_value_to_zero(
         self,
         mock_priority_adjustment,
@@ -5006,11 +5868,21 @@ class TestUpdateVolumePriorityEdgeCases:
         assert call_kwargs["priority_adjustment_value"] == 0
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.PriorityAdjustment")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.PriorityAdjustment"
+    )
     def test_update_volume_priority_no_change_needed(
         self,
         mock_priority_adjustment,
@@ -5068,14 +5940,30 @@ class TestUpdateVolumePriorityEdgeCases:
 class TestCreateVolumeQosOldApi:
     """Test cases for create_volume with QoS using old API"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_vgroup")
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_vgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_create_volume_bw_qos_old_api(
         self,
         mock_qos,
@@ -5121,14 +6009,30 @@ class TestCreateVolumeQosOldApi:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.check_vgroup")
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_vgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_create_volume_iops_qos_old_api(
         self,
         mock_qos,
@@ -5174,15 +6078,33 @@ class TestCreateVolumeQosOldApi:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.human_to_real")
-    @patch("plugins.modules.purefa_volume.check_vgroup")
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_real"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_vgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_create_volume_both_qos_old_api(
         self,
         mock_qos,
@@ -5234,12 +6156,24 @@ class TestCreateVolumeQosOldApi:
 class TestUpdateVolumeQosOldApi:
     """Test cases for update_volume QoS with old API"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_update_volume_bw_qos_old_api(
         self,
         mock_qos,
@@ -5295,13 +6229,27 @@ class TestUpdateVolumeQosOldApi:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.human_to_real")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Qos")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_real"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Qos"
+    )
     def test_update_volume_iops_qos_old_api(
         self,
         mock_qos,
@@ -5363,12 +6311,24 @@ class TestUpdateVolumeQosOldApi:
 class TestCopyFromVolumeOldApi:
     """Test cases for copy_from_volume using old API"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_target")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_target"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_copy_volume_no_add_to_pgs_old_api(
         self,
         mock_reference,
@@ -5407,12 +6367,24 @@ class TestCopyFromVolumeOldApi:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_target")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_target"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_copy_volume_with_add_to_pgs_old_api(
         self,
         mock_reference,
@@ -5455,9 +6427,15 @@ class TestCopyFromVolumeOldApi:
 class TestMoveVolumeValidation:
     """Test cases for move_volume validation paths"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_target_exists_fails(
         self,
         mock_loose_version,
@@ -5511,9 +6489,15 @@ class TestMoveVolumeValidation:
         call_args = mock_module.fail_json.call_args[1]
         assert "already exists" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_into_stretched_pod_fails(
         self,
         mock_loose_version,
@@ -5557,9 +6541,15 @@ class TestMoveVolumeValidation:
         call_args = mock_module.fail_json.call_args[1]
         assert "stretched pod" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_into_linked_pod_fails(
         self,
         mock_loose_version,
@@ -5603,9 +6593,15 @@ class TestMoveVolumeValidation:
         call_args = mock_module.fail_json.call_args[1]
         assert "linked source pod" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_into_demoted_pod_fails(
         self,
         mock_loose_version,
@@ -5653,12 +6649,24 @@ class TestMoveVolumeValidation:
 class TestMoveVolumeOldApiPaths:
     """Test cases for move_volume using old API paths"""
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_move_volume_to_pod_old_api(
         self,
         mock_reference,
@@ -5719,12 +6727,24 @@ class TestMoveVolumeOldApiPaths:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume._volfact")
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
-    @patch("plugins.modules.purefa_volume.Reference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.Reference"
+    )
     def test_move_volume_to_vgroup_old_api(
         self,
         mock_reference,
@@ -5783,7 +6803,9 @@ class TestMoveVolumeOldApiPaths:
 class TestGetDestroyedVolumeOldApi:
     """Test cases for get_destroyed_volume with old API"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_destroyed_volume_old_api(self, mock_loose_version):
         """Test get_destroyed_volume using old API"""
         mock_loose_version.side_effect = float
@@ -5811,7 +6833,9 @@ class TestGetDestroyedVolumeOldApi:
 class TestCreateVolumeValidation:
     """Test cases for create_volume validation paths"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_create_volume_add_to_pgs_old_api_fails(self, mock_loose_version):
         """Test create_volume fails when add_to_pgs is used with old API"""
         mock_loose_version.side_effect = float
@@ -5840,8 +6864,12 @@ class TestCreateVolumeValidation:
         call_args = mock_module.fail_json.call_args[1]
         assert "pgroup parameter" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.check_vgroup")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_vgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_create_volume_vgroup_not_exists(
         self, mock_loose_version, mock_check_vgroup
     ):
@@ -5873,8 +6901,12 @@ class TestCreateVolumeValidation:
         call_args = mock_module.fail_json.call_args[1]
         assert "Volume Group does not exist" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_create_volume_pod_not_exists(self, mock_loose_version, mock_check_pod):
         """Test create_volume fails when pod doesn't exist"""
         mock_loose_version.side_effect = float
@@ -5904,8 +6936,12 @@ class TestCreateVolumeValidation:
         call_args = mock_module.fail_json.call_args[1]
         assert "Pod does not exist" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_create_volume_in_demoted_pod_fails(
         self, mock_loose_version, mock_check_pod
     ):
@@ -5946,8 +6982,12 @@ class TestCreateVolumeValidation:
         call_args = mock_module.fail_json.call_args[1]
         assert "demoted pod" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.check_pod")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_pod"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_create_volume_in_pod_old_api(self, mock_loose_version, mock_check_pod):
         """Test create_volume in pod using old API path"""
         mock_loose_version.side_effect = float
@@ -5991,7 +7031,9 @@ class TestCreateVolumeValidation:
 class TestCheckVgroupOldApi:
     """Test cases for check_vgroup with old API"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_check_vgroup_old_api(self, mock_loose_version):
         """Test check_vgroup using old API"""
         mock_loose_version.side_effect = float
@@ -6016,7 +7058,9 @@ class TestCheckVgroupOldApi:
 class TestCheckPodOldApi:
     """Test cases for check_pod with old API"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_check_pod_old_api(self, mock_loose_version):
         """Test check_pod using old API"""
         mock_loose_version.side_effect = float
@@ -6041,7 +7085,9 @@ class TestCheckPodOldApi:
 class TestUpdateVolumeParamValidation:
     """Test cases for update_volume parameter validation"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_update_volume_pgroup_on_new_api_fails(self, mock_loose_version):
         """Test update_volume fails when pgroup is used with new API"""
         mock_loose_version.side_effect = float
@@ -6073,7 +7119,9 @@ class TestUpdateVolumeParamValidation:
         call_args = mock_module.fail_json.call_args[1]
         assert "add_to_pgs parameter" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_update_volume_add_to_pgs_on_old_api_fails(self, mock_loose_version):
         """Test update_volume fails when add_to_pgs is used with old API"""
         mock_loose_version.side_effect = float
@@ -6109,7 +7157,9 @@ class TestUpdateVolumeParamValidation:
 class TestGetTargetOldApi:
     """Test cases for get_target with old API"""
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_target_old_api(self, mock_loose_version):
         """Test get_target using old API"""
         mock_loose_version.side_effect = float
@@ -6132,7 +7182,9 @@ class TestGetTargetOldApi:
         call_kwargs = mock_array.get_volumes.call_args[1]
         assert "context_names" not in call_kwargs
 
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_get_target_not_found(self, mock_loose_version):
         """Test get_target returns None when target not found"""
         mock_loose_version.side_effect = float
@@ -6154,10 +7206,18 @@ class TestGetTargetOldApi:
 class TestCreateVolumeOldApiPaths:
     """Test cases for create_volume old API paths"""
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
     def test_create_volume_basic_old_api(
         self,
         mock_volume_post,
@@ -6211,11 +7271,21 @@ class TestCreateVolumeOldApiPaths:
         assert "context_names" not in call_kwargs
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_volume.check_response")
-    @patch("plugins.modules.purefa_volume.human_to_bytes")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
-    @patch("plugins.modules.purefa_volume.VolumePost")
-    @patch("plugins.modules.purefa_volume.VolumePatch")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.human_to_bytes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.VolumePatch"
+    )
     def test_create_volume_with_promotion_state_old_api(
         self,
         mock_volume_patch,
@@ -6280,8 +7350,12 @@ class TestCreateVolumeOldApiPaths:
 class TestMoveVolumeTargetExists:
     """Test cases for move_volume when target already exists"""
 
-    @patch("plugins.modules.purefa_volume.get_endpoint")
-    @patch("plugins.modules.purefa_volume.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.get_endpoint"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_volume.LooseVersion"
+    )
     def test_move_volume_target_already_exists_old_api(
         self, mock_loose_version, mock_get_endpoint
     ):

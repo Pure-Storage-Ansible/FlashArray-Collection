@@ -16,18 +16,8 @@ import pytest
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -45,13 +35,17 @@ sys.modules[
 ] = MagicMock()
 
 # Import after mocking
-from plugins.modules.purefa_syslog_settings import main
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings import (
+    main,
+)
 
 
 class TestSyslogSettingsValidation:
     """Test cases for syslog settings validation"""
 
-    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.AnsibleModule"
+    )
     def test_certificate_too_long_fails(self, mock_ansible_module):
         """Test that certificate over 3000 chars fails"""
         mock_module = Mock()
@@ -84,7 +78,9 @@ class TestSyslogSettingsValidation:
         )
 
     @patch("plugins.modules.purefa_syslog_settings.HAS_PURESTORAGE", False)
-    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.AnsibleModule"
+    )
     def test_missing_purestorage_dependency_fails(self, mock_ansible_module):
         """Test that missing pypureclient dependency fails"""
         mock_module = Mock()
@@ -108,9 +104,15 @@ class TestSyslogSettingsValidation:
 class TestSyslogSettingsOldApiVersion:
     """Test cases for unsupported API version"""
 
-    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
-    @patch("plugins.modules.purefa_syslog_settings.get_array")
-    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.AnsibleModule"
+    )
     def test_old_api_version_fails(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
@@ -147,10 +149,18 @@ class TestSyslogSettingsOldApiVersion:
 class TestSyslogSettingsNoChange:
     """Test cases for no change scenarios"""
 
-    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
-    @patch("plugins.modules.purefa_syslog_settings.get_with_context")
-    @patch("plugins.modules.purefa_syslog_settings.get_array")
-    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.AnsibleModule"
+    )
     def test_no_change_when_settings_match(
         self, mock_ansible_module, mock_get_array, mock_get_with_context, mock_lv
     ):
@@ -189,11 +199,21 @@ class TestSyslogSettingsNoChange:
 class TestSyslogSettingsChange:
     """Test cases for syslog settings change scenarios"""
 
-    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
-    @patch("plugins.modules.purefa_syslog_settings.check_response")
-    @patch("plugins.modules.purefa_syslog_settings.get_with_context")
-    @patch("plugins.modules.purefa_syslog_settings.get_array")
-    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.AnsibleModule"
+    )
     def test_change_tls_audit(
         self,
         mock_ansible_module,
@@ -231,11 +251,21 @@ class TestSyslogSettingsChange:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
-    @patch("plugins.modules.purefa_syslog_settings.check_response")
-    @patch("plugins.modules.purefa_syslog_settings.get_with_context")
-    @patch("plugins.modules.purefa_syslog_settings.get_array")
-    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.AnsibleModule"
+    )
     def test_change_severity(
         self,
         mock_ansible_module,
@@ -273,11 +303,21 @@ class TestSyslogSettingsChange:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
-    @patch("plugins.modules.purefa_syslog_settings.check_response")
-    @patch("plugins.modules.purefa_syslog_settings.get_with_context")
-    @patch("plugins.modules.purefa_syslog_settings.get_array")
-    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.AnsibleModule"
+    )
     def test_delete_certificate(
         self,
         mock_ansible_module,
@@ -315,11 +355,21 @@ class TestSyslogSettingsChange:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
-    @patch("plugins.modules.purefa_syslog_settings.check_response")
-    @patch("plugins.modules.purefa_syslog_settings.get_with_context")
-    @patch("plugins.modules.purefa_syslog_settings.get_array")
-    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.AnsibleModule"
+    )
     def test_update_certificate(
         self,
         mock_ansible_module,
@@ -357,10 +407,18 @@ class TestSyslogSettingsChange:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
-    @patch("plugins.modules.purefa_syslog_settings.get_with_context")
-    @patch("plugins.modules.purefa_syslog_settings.get_array")
-    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.AnsibleModule"
+    )
     def test_check_mode_with_changes(
         self, mock_ansible_module, mock_get_array, mock_get_with_context, mock_lv
     ):
@@ -393,10 +451,18 @@ class TestSyslogSettingsChange:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_syslog_settings.LooseVersion")
-    @patch("plugins.modules.purefa_syslog_settings.get_with_context")
-    @patch("plugins.modules.purefa_syslog_settings.get_array")
-    @patch("plugins.modules.purefa_syslog_settings.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_syslog_settings.AnsibleModule"
+    )
     def test_no_ca_certificate_attribute(
         self, mock_ansible_module, mock_get_array, mock_get_with_context, mock_lv
     ):

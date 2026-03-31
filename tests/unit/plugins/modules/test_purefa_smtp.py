@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock, patch
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -103,7 +93,9 @@ class TestCreateSmtp:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_smtp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_smtp.check_response"
+    )
     def test_create_smtp_with_changes_no_password(self, mock_check_response):
         """Test create_smtp when settings change without password"""
         mock_module = Mock()
@@ -137,7 +129,9 @@ class TestCreateSmtp:
         mock_array.patch_smtp_servers.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_smtp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_smtp.check_response"
+    )
     def test_create_smtp_with_password(self, mock_check_response):
         """Test create_smtp when password is provided"""
         mock_module = Mock()
@@ -207,7 +201,9 @@ class TestCreateSmtp:
 class TestDeleteSmtpSuccess:
     """Additional tests for delete_smtp function"""
 
-    @patch("plugins.modules.purefa_smtp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_smtp.check_response"
+    )
     def test_delete_smtp_success(self, mock_check_response):
         """Test delete_smtp successfully deletes"""
         mock_module = Mock()
@@ -224,7 +220,9 @@ class TestDeleteSmtpSuccess:
 class TestCreateSmtpSuccess:
     """Additional tests for create_smtp success paths"""
 
-    @patch("plugins.modules.purefa_smtp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_smtp.check_response"
+    )
     def test_create_smtp_with_password(self, mock_check_response):
         """Test create_smtp with password update"""
         mock_module = Mock()
@@ -257,7 +255,9 @@ class TestCreateSmtpSuccess:
         mock_array.patch_smtp_servers.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_smtp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_smtp.check_response"
+    )
     def test_create_smtp_change_relay_host(self, mock_check_response):
         """Test create_smtp when relay_host changes"""
         mock_module = Mock()
@@ -290,7 +290,9 @@ class TestCreateSmtpSuccess:
         mock_array.patch_smtp_servers.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_smtp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_smtp.check_response"
+    )
     def test_create_smtp_change_encryption_mode(self, mock_check_response):
         """Test create_smtp when encryption_mode changes"""
         mock_module = Mock()

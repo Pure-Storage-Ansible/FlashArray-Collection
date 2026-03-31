@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock, patch
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -171,7 +161,9 @@ class TestCreateVif:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vlan.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vlan.check_response"
+    )
     def test_create_vif_with_address(self, mock_check_response):
         """Test create_vif with address specified"""
         mock_module = Mock()
@@ -195,7 +187,9 @@ class TestCreateVif:
         mock_array.post_network_interfaces.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vlan.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vlan.check_response"
+    )
     def test_create_vif_without_address(self, mock_check_response):
         """Test create_vif without address specified"""
         mock_module = Mock()
@@ -219,7 +213,9 @@ class TestCreateVif:
         mock_array.post_network_interfaces.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vlan.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vlan.check_response"
+    )
     def test_create_vif_disabled(self, mock_check_response):
         """Test create_vif with disabled interface"""
         mock_module = Mock()
@@ -248,7 +244,9 @@ class TestCreateVif:
 class TestDeleteVifSuccess:
     """Additional test cases for delete_vif function"""
 
-    @patch("plugins.modules.purefa_vlan.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vlan.check_response"
+    )
     def test_delete_vif_success(self, mock_check_response):
         """Test delete_vif successfully deletes"""
         mock_module = Mock()
@@ -270,7 +268,9 @@ class TestDeleteVifSuccess:
 class TestUpdateVif:
     """Test cases for update_vif function"""
 
-    @patch("plugins.modules.purefa_vlan._get_vif")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vlan._get_vif"
+    )
     def test_update_vif_no_changes(self, mock_get_vif):
         """Test update_vif with no changes needed"""
         from plugins.modules.purefa_vlan import update_vif
@@ -295,8 +295,12 @@ class TestUpdateVif:
         mock_array.patch_network_interfaces.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_vlan.check_response")
-    @patch("plugins.modules.purefa_vlan._get_vif")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vlan.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vlan._get_vif"
+    )
     def test_update_vif_change_address(self, mock_get_vif, mock_check_response):
         """Test update_vif changes IP address"""
         from plugins.modules.purefa_vlan import update_vif
@@ -322,8 +326,12 @@ class TestUpdateVif:
         mock_array.patch_network_interfaces.assert_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vlan.check_response")
-    @patch("plugins.modules.purefa_vlan._get_vif")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vlan.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vlan._get_vif"
+    )
     def test_update_vif_enable(self, mock_get_vif, mock_check_response):
         """Test update_vif enables disabled interface"""
         from plugins.modules.purefa_vlan import update_vif
@@ -349,8 +357,12 @@ class TestUpdateVif:
         mock_array.patch_network_interfaces.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_vlan.check_response")
-    @patch("plugins.modules.purefa_vlan._get_vif")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vlan.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_vlan._get_vif"
+    )
     def test_update_vif_disable(self, mock_get_vif, mock_check_response):
         """Test update_vif disables enabled interface"""
         from plugins.modules.purefa_vlan import update_vif

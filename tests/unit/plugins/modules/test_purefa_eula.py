@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -36,7 +26,10 @@ sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers"
 ] = MagicMock()
 
-from plugins.modules.purefa_eula import main, set_eula
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_eula import (
+    main,
+    set_eula,
+)
 
 
 class TestSetEula:
@@ -123,8 +116,12 @@ class TestSetEula:
 class TestMain:
     """Test cases for main function"""
 
-    @patch("plugins.modules.purefa_eula.get_array")
-    @patch("plugins.modules.purefa_eula.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eula.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eula.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_eula.HAS_PURESTORAGE", False)
     def test_main_missing_sdk(self, mock_ansible_module, mock_get_array):
         """Test main when pypureclient SDK is missing"""
@@ -146,10 +143,18 @@ class TestMain:
         call_args = mock_module.fail_json.call_args[1]
         assert "py-pure-client sdk is required" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_eula.set_eula")
-    @patch("plugins.modules.purefa_eula.LooseVersion")
-    @patch("plugins.modules.purefa_eula.get_array")
-    @patch("plugins.modules.purefa_eula.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eula.set_eula"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eula.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eula.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eula.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_eula.HAS_PURESTORAGE", True)
     def test_main_calls_set_eula(
         self, mock_ansible_module, mock_get_array, mock_loose_version, mock_set_eula

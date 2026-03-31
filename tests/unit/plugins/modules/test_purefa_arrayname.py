@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -33,14 +23,21 @@ sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers"
 ] = MagicMock()
 
-from plugins.modules.purefa_arrayname import main, update_name
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_arrayname import (
+    main,
+    update_name,
+)
 
 
 class TestUpdateName:
     """Test cases for update_name function"""
 
-    @patch("plugins.modules.purefa_arrayname.check_response")
-    @patch("plugins.modules.purefa_arrayname.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_arrayname.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_arrayname.get_with_context"
+    )
     def test_update_name_success(self, mock_get_with_context, mock_check_response):
         """Test successful array name update"""
         mock_module = Mock()
@@ -58,8 +55,12 @@ class TestUpdateName:
         mock_check_response.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_arrayname.check_response")
-    @patch("plugins.modules.purefa_arrayname.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_arrayname.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_arrayname.get_with_context"
+    )
     def test_update_name_check_mode(self, mock_get_with_context, mock_check_response):
         """Test array name update in check mode"""
         mock_module = Mock()
@@ -79,8 +80,12 @@ class TestUpdateName:
 class TestMain:
     """Test cases for main function"""
 
-    @patch("plugins.modules.purefa_arrayname.get_array")
-    @patch("plugins.modules.purefa_arrayname.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_arrayname.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_arrayname.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_arrayname.HAS_PURESTORAGE", False)
     def test_main_missing_sdk(self, mock_ansible_module, mock_get_array):
         """Test main when pypureclient SDK is missing"""
@@ -98,9 +103,15 @@ class TestMain:
         call_args = mock_module.fail_json.call_args[1]
         assert "py-pure-client sdk is required" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_arrayname.get_with_context")
-    @patch("plugins.modules.purefa_arrayname.get_array")
-    @patch("plugins.modules.purefa_arrayname.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_arrayname.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_arrayname.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_arrayname.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_arrayname.HAS_PURESTORAGE", True)
     def test_main_invalid_name(
         self, mock_ansible_module, mock_get_array, mock_get_with_context
@@ -127,9 +138,15 @@ class TestMain:
         call_args = mock_module.fail_json.call_args[1]
         assert "does not conform to array name rules" in call_args["msg"]
 
-    @patch("plugins.modules.purefa_arrayname.get_with_context")
-    @patch("plugins.modules.purefa_arrayname.get_array")
-    @patch("plugins.modules.purefa_arrayname.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_arrayname.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_arrayname.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_arrayname.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_arrayname.HAS_PURESTORAGE", True)
     def test_main_name_unchanged(
         self, mock_ansible_module, mock_get_array, mock_get_with_context

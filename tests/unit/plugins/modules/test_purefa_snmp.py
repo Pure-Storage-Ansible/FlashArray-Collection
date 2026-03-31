@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -108,7 +98,9 @@ class TestCreateManager:
         mock_module.exit_json.assert_called_once_with(changed=True)
         mock_array.post_snmp_managers.assert_not_called()
 
-    @patch("plugins.modules.purefa_snmp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.check_response"
+    )
     def test_create_manager_v2c_success(self, mock_check_response):
         """Test create_manager with v2c version"""
         mock_module = Mock()
@@ -194,7 +186,9 @@ class TestSnmpTestManager:
 class TestUpdateManager:
     """Test cases for update_manager function"""
 
-    @patch("plugins.modules.purefa_snmp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.check_response"
+    )
     def test_update_manager_version_change_fails(self, mock_check_response):
         """Test update_manager fails when version changes"""
         import pytest
@@ -218,7 +212,9 @@ class TestUpdateManager:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_snmp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.check_response"
+    )
     def test_update_manager_v2c_check_mode(self, mock_check_response):
         """Test update_manager v2c in check mode"""
         mock_module = Mock()
@@ -242,7 +238,9 @@ class TestUpdateManager:
         mock_array.patch_snmp_managers.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.check_response"
+    )
     def test_update_manager_v2c_success(self, mock_check_response):
         """Test update_manager v2c succeeds"""
         mock_module = Mock()
@@ -267,7 +265,9 @@ class TestUpdateManager:
         mock_array.patch_snmp_managers.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.check_response"
+    )
     def test_update_manager_v3_auth_and_privacy(self, mock_check_response):
         """Test update_manager v3 with both auth and privacy protocols"""
         mock_module = Mock()
@@ -296,7 +296,9 @@ class TestUpdateManager:
         mock_array.patch_snmp_managers.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.check_response"
+    )
     def test_update_manager_v3_auth_only(self, mock_check_response):
         """Test update_manager v3 with only auth protocol"""
         mock_module = Mock()
@@ -324,7 +326,9 @@ class TestUpdateManager:
         mock_array.patch_snmp_managers.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.check_response"
+    )
     def test_update_manager_v3_privacy_only(self, mock_check_response):
         """Test update_manager v3 with only privacy protocol"""
         mock_module = Mock()
@@ -352,7 +356,9 @@ class TestUpdateManager:
         mock_array.patch_snmp_managers.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.check_response"
+    )
     def test_update_manager_v3_no_auth_no_privacy(self, mock_check_response):
         """Test update_manager v3 with neither auth nor privacy protocol"""
         mock_module = Mock()
@@ -383,7 +389,9 @@ class TestUpdateManager:
 class TestCreateManagerV3:
     """Test cases for create_manager function with v3"""
 
-    @patch("plugins.modules.purefa_snmp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.check_response"
+    )
     def test_create_manager_v3_auth_and_privacy(self, mock_check_response):
         """Test create_manager v3 with both auth and privacy protocols"""
         mock_module = Mock()
@@ -407,7 +415,9 @@ class TestCreateManagerV3:
         mock_array.post_snmp_managers.assert_called_once()
         mock_module.exit_json.assert_called_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.check_response"
+    )
     def test_create_manager_v3_auth_only(self, mock_check_response):
         """Test create_manager v3 with only auth protocol"""
         mock_module = Mock()
@@ -430,7 +440,9 @@ class TestCreateManagerV3:
         mock_array.post_snmp_managers.assert_called_once()
         mock_module.exit_json.assert_called_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.check_response"
+    )
     def test_create_manager_v3_privacy_only(self, mock_check_response):
         """Test create_manager v3 with only privacy protocol"""
         mock_module = Mock()
@@ -453,7 +465,9 @@ class TestCreateManagerV3:
         mock_array.post_snmp_managers.assert_called_once()
         mock_module.exit_json.assert_called_with(changed=True)
 
-    @patch("plugins.modules.purefa_snmp.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.check_response"
+    )
     def test_create_manager_v3_no_auth_no_privacy(self, mock_check_response):
         """Test create_manager v3 with no auth and no privacy protocols"""
         mock_module = Mock()
@@ -479,13 +493,19 @@ class TestCreateManagerV3:
 class TestMain:
     """Test cases for main() function"""
 
-    @patch("plugins.modules.purefa_snmp.get_array")
-    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
     def test_main_no_purestorage_sdk(self, mock_ansible_module, mock_get_array):
         """Test main() fails when purestorage SDK not available"""
         import pytest
-        from plugins.modules.purefa_snmp import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp import (
+            main,
+        )
 
         with patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", False):
             mock_module = Mock()
@@ -498,13 +518,19 @@ class TestMain:
 
             mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_snmp.get_array")
-    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
     def test_main_no_host(self, mock_ansible_module, mock_get_array):
         """Test main() fails when host is not provided"""
         import pytest
-        from plugins.modules.purefa_snmp import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -524,13 +550,19 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_snmp.get_array")
-    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
     def test_main_v3_no_user(self, mock_ansible_module, mock_get_array):
         """Test main() fails when v3 and user is not provided"""
         import pytest
-        from plugins.modules.purefa_snmp import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -551,13 +583,19 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_snmp.get_array")
-    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
     def test_main_v2c_no_community(self, mock_ansible_module, mock_get_array):
         """Test main() fails when v2c and community is not provided"""
         import pytest
-        from plugins.modules.purefa_snmp import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -578,15 +616,23 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_snmp.delete_manager")
-    @patch("plugins.modules.purefa_snmp.get_array")
-    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.delete_manager"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
     def test_main_delete_existing(
         self, mock_ansible_module, mock_get_array, mock_delete
     ):
         """Test main() calls delete_manager when state=absent and manager exists"""
-        from plugins.modules.purefa_snmp import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -608,15 +654,23 @@ class TestMain:
 
         mock_delete.assert_called_once()
 
-    @patch("plugins.modules.purefa_snmp.update_manager")
-    @patch("plugins.modules.purefa_snmp.get_array")
-    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.update_manager"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
     def test_main_update_existing(
         self, mock_ansible_module, mock_get_array, mock_update
     ):
         """Test main() calls update_manager when state=present and manager exists"""
-        from plugins.modules.purefa_snmp import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -638,13 +692,21 @@ class TestMain:
 
         mock_update.assert_called_once()
 
-    @patch("plugins.modules.purefa_snmp.create_manager")
-    @patch("plugins.modules.purefa_snmp.get_array")
-    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.create_manager"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
     def test_main_create_new(self, mock_ansible_module, mock_get_array, mock_create):
         """Test main() calls create_manager when state=present and manager doesn't exist"""
-        from plugins.modules.purefa_snmp import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -666,13 +728,21 @@ class TestMain:
 
         mock_create.assert_called_once()
 
-    @patch("plugins.modules.purefa_snmp.test_manager")
-    @patch("plugins.modules.purefa_snmp.get_array")
-    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.test_manager"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
     def test_main_test_existing(self, mock_ansible_module, mock_get_array, mock_test):
         """Test main() calls test_manager when state=test and manager exists"""
-        from plugins.modules.purefa_snmp import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -694,12 +764,18 @@ class TestMain:
 
         mock_test.assert_called_once()
 
-    @patch("plugins.modules.purefa_snmp.get_array")
-    @patch("plugins.modules.purefa_snmp.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_snmp.HAS_PURESTORAGE", True)
     def test_main_no_change(self, mock_ansible_module, mock_get_array):
         """Test main() exits with no change when nothing to do"""
-        from plugins.modules.purefa_snmp import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_snmp import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {

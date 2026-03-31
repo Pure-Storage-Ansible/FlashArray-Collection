@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -33,14 +23,22 @@ sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.api_helpers"
 ] = MagicMock()
 
-from plugins.modules.purefa_banner import main, set_banner, delete_banner
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_banner import (
+    main,
+    set_banner,
+    delete_banner,
+)
 
 
 class TestSetBanner:
     """Test cases for set_banner function"""
 
-    @patch("plugins.modules.purefa_banner.check_response")
-    @patch("plugins.modules.purefa_banner.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_banner.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_banner.get_with_context"
+    )
     def test_set_banner_success(self, mock_get_with_context, mock_check_response):
         """Test successful banner setting"""
         mock_module = Mock()
@@ -58,8 +56,12 @@ class TestSetBanner:
         mock_check_response.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_banner.check_response")
-    @patch("plugins.modules.purefa_banner.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_banner.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_banner.get_with_context"
+    )
     def test_set_banner_check_mode(self, mock_get_with_context, mock_check_response):
         """Test banner setting in check mode"""
         mock_module = Mock()
@@ -96,8 +98,12 @@ class TestSetBanner:
 class TestDeleteBanner:
     """Test cases for delete_banner function"""
 
-    @patch("plugins.modules.purefa_banner.check_response")
-    @patch("plugins.modules.purefa_banner.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_banner.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_banner.get_with_context"
+    )
     def test_delete_banner_success(self, mock_get_with_context, mock_check_response):
         """Test successful banner deletion"""
         mock_module = Mock()
@@ -114,8 +120,12 @@ class TestDeleteBanner:
         mock_check_response.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_banner.check_response")
-    @patch("plugins.modules.purefa_banner.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_banner.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_banner.get_with_context"
+    )
     def test_delete_banner_check_mode(self, mock_get_with_context, mock_check_response):
         """Test banner deletion in check mode"""
         mock_module = Mock()
@@ -133,8 +143,12 @@ class TestDeleteBanner:
 class TestMain:
     """Test cases for main function"""
 
-    @patch("plugins.modules.purefa_banner.get_array")
-    @patch("plugins.modules.purefa_banner.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_banner.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_banner.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_banner.HAS_PURESTORAGE", False)
     def test_main_missing_sdk(self, mock_ansible_module, mock_get_array):
         """Test main when pypureclient SDK is missing"""

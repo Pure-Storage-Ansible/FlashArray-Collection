@@ -14,18 +14,8 @@ from unittest.mock import MagicMock, Mock, patch
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -43,15 +33,24 @@ sys.modules[
 ] = MagicMock()
 
 # Import after mocking
-from plugins.modules.purefa_inventory import main, generate_new_hardware_dict
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_inventory import (
+    main,
+    generate_new_hardware_dict,
+)
 
 
 class TestInventoryMain:
     """Test cases for inventory main function"""
 
-    @patch("plugins.modules.purefa_inventory.generate_new_hardware_dict")
-    @patch("plugins.modules.purefa_inventory.get_array")
-    @patch("plugins.modules.purefa_inventory.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_inventory.generate_new_hardware_dict"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_inventory.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_inventory.AnsibleModule"
+    )
     def test_main_returns_inventory(
         self, mock_ansible_module, mock_get_array, mock_generate
     ):
@@ -83,7 +82,9 @@ class TestInventoryMain:
 class TestGenerateHardwareDict:
     """Test cases for generate_new_hardware_dict function"""
 
-    @patch("plugins.modules.purefa_inventory.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_inventory.LooseVersion"
+    )
     def test_generates_basic_hardware_dict(self, mock_lv):
         """Test generating hardware dict with basic components"""
         mock_array = Mock()
@@ -140,7 +141,9 @@ class TestGenerateHardwareDict:
         assert "drives" in result
         assert "CH0.BAY0" in result["drives"]
 
-    @patch("plugins.modules.purefa_inventory.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_inventory.LooseVersion"
+    )
     def test_handles_empty_hardware(self, mock_lv):
         """Test handling of empty hardware list"""
         mock_array = Mock()
@@ -165,7 +168,9 @@ class TestGenerateHardwareDict:
         assert result["interfaces"] == {}
         assert result["power"] == {}
 
-    @patch("plugins.modules.purefa_inventory.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_inventory.LooseVersion"
+    )
     def test_generates_temp_sensor_dict(self, mock_lv):
         """Test generating hardware dict with temp_sensor components"""
         mock_array = Mock()
@@ -194,7 +199,9 @@ class TestGenerateHardwareDict:
         assert result["controllers"]["CT0.TMP0"]["status"] == "ok"
         assert result["controllers"]["CT0.TMP0"]["temperature"] == 45
 
-    @patch("plugins.modules.purefa_inventory.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_inventory.LooseVersion"
+    )
     def test_generates_drive_bay_dict(self, mock_lv):
         """Test generating hardware dict with drive_bay components"""
         mock_array = Mock()
@@ -224,7 +231,9 @@ class TestGenerateHardwareDict:
         assert result["drives"]["SH0.BAY0"]["status"] == "ok"
         assert result["drives"]["SH0.BAY0"]["serial"] == "BAY001"
 
-    @patch("plugins.modules.purefa_inventory.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_inventory.LooseVersion"
+    )
     def test_generates_network_interfaces_dict(self, mock_lv):
         """Test generating hardware dict with various network port types"""
         mock_array = Mock()
@@ -260,7 +269,9 @@ class TestGenerateHardwareDict:
         assert "CT0.ETH0" in result["interfaces"]
         assert result["interfaces"]["CT0.ETH0"]["type"] == "eth_port"
 
-    @patch("plugins.modules.purefa_inventory.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_inventory.LooseVersion"
+    )
     def test_generates_power_supply_dict(self, mock_lv):
         """Test generating hardware dict with power_supply components"""
         mock_array = Mock()
@@ -292,7 +303,9 @@ class TestGenerateHardwareDict:
         assert result["power"]["CH0.PWR0"]["voltage"] == 12.0
         assert result["power"]["CH0.PWR0"]["serial"] == "PSU001"
 
-    @patch("plugins.modules.purefa_inventory.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_inventory.LooseVersion"
+    )
     def test_generates_sfp_port_details(self, mock_lv):
         """Test generating SFP port details when API version >= 2.16"""
         mock_array = Mock()

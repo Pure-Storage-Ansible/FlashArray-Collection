@@ -15,18 +15,8 @@ from packaging.version import Version as LooseVersion
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -60,7 +50,9 @@ from plugins.modules.purefa_pgsnap import (
 class TestCheckOffload:
     """Test cases for _check_offload function"""
 
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_check_offload_connected(self, mock_loose_version):
         """Test _check_offload returns True when offload is connected"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -78,7 +70,9 @@ class TestCheckOffload:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_check_offload_not_found(self, mock_loose_version):
         """Test _check_offload returns False when offload not found"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -96,7 +90,9 @@ class TestCheckOffload:
 class TestGetPgroup:
     """Test cases for get_pgroup function"""
 
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_get_pgroup_exists(self, mock_loose_version):
         """Test get_pgroup returns True when pgroup exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -110,7 +106,9 @@ class TestGetPgroup:
 
         assert result is True
 
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_get_pgroup_not_exists(self, mock_loose_version):
         """Test get_pgroup returns False when pgroup doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -128,7 +126,9 @@ class TestGetPgroup:
 class TestGetPgsnapshot:
     """Test cases for get_pgsnapshot function"""
 
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_get_pgsnapshot_exists(self, mock_loose_version):
         """Test get_pgsnapshot returns snapshot when it exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -146,7 +146,9 @@ class TestGetPgsnapshot:
 
         assert result == mock_snap
 
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_get_pgsnapshot_not_exists(self, mock_loose_version):
         """Test get_pgsnapshot returns None when snapshot doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -164,8 +166,12 @@ class TestGetPgsnapshot:
 class TestCreatePgsnapshot:
     """Test cases for create_pgsnapshot function"""
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_create_pgsnapshot_success(self, mock_loose_version, mock_check_response):
         """Test create_pgsnapshot creates snapshot successfully"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -202,7 +208,9 @@ class TestCreatePgsnapshot:
 class TestDeletePgsnapshot:
     """Test cases for delete_pgsnapshot function"""
 
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_delete_pgsnapshot_check_mode(self, mock_loose_version):
         """Test delete_pgsnapshot in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -225,7 +233,9 @@ class TestDeletePgsnapshot:
 class TestEradicatePgsnapshot:
     """Test cases for eradicate_pgsnapshot function"""
 
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_eradicate_pgsnapshot_check_mode(self, mock_loose_version):
         """Test eradicate_pgsnapshot in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -243,7 +253,9 @@ class TestEradicatePgsnapshot:
 class TestGetRpgsnapshot:
     """Test cases for get_rpgsnapshot function"""
 
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_get_rpgsnapshot_exists(self, mock_loose_version):
         """Test get_rpgsnapshot returns snapshot name when it exists"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -262,7 +274,9 @@ class TestGetRpgsnapshot:
 
         assert result == "test-pg.snap1.source-vol"
 
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_get_rpgsnapshot_not_exists(self, mock_loose_version):
         """Test get_rpgsnapshot returns None when snapshot doesn't exist"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -285,7 +299,9 @@ class TestGetRpgsnapshot:
 class TestUpdatePgsnapshot:
     """Test cases for update_pgsnapshot function"""
 
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_update_pgsnapshot_check_mode(self, mock_loose_version):
         """Test update_pgsnapshot in check mode"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -304,8 +320,12 @@ class TestUpdatePgsnapshot:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_update_pgsnapshot_success(self, mock_loose_version, mock_check_response):
         """Test update_pgsnapshot successfully renames"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -330,8 +350,12 @@ class TestUpdatePgsnapshot:
 class TestDeletePgsnapshotSuccess:
     """Test cases for delete_pgsnapshot success paths"""
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_delete_pgsnapshot_success(self, mock_loose_version, mock_check_response):
         """Test delete_pgsnapshot successfully deletes"""
         mock_loose_version.side_effect = lambda x: float(x) if x != "2.0" else 2.0
@@ -352,8 +376,12 @@ class TestDeletePgsnapshotSuccess:
         mock_array.patch_protection_group_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_delete_pgsnapshot_with_eradicate(
         self, mock_loose_version, mock_check_response
     ):
@@ -384,8 +412,12 @@ class TestDeletePgsnapshotSuccess:
 class TestEradicatePgsnapshotSuccess:
     """Test cases for eradicate_pgsnapshot success paths"""
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
     def test_eradicate_pgsnapshot_success(
         self, mock_loose_version, mock_check_response
     ):
@@ -413,9 +445,15 @@ class TestEradicatePgsnapshotSuccess:
 class TestRestorePgsnapvolume:
     """Test cases for restore_pgsnapvolume function"""
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroupvolume"
+    )
     def test_restore_pgsnapvolume_check_mode(
         self, mock_get_pgroupvolume, mock_loose_version, mock_check_response
     ):
@@ -441,9 +479,15 @@ class TestRestorePgsnapvolume:
         mock_array.post_volumes.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroupvolume"
+    )
     def test_restore_pgsnapvolume_volume_not_in_pgroup(
         self, mock_get_pgroupvolume, mock_loose_version, mock_check_response
     ):
@@ -472,9 +516,15 @@ class TestRestorePgsnapvolume:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
-    @patch("plugins.modules.purefa_pgsnap.LooseVersion")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroupvolume"
+    )
     def test_restore_pgsnapvolume_success(
         self, mock_get_pgroupvolume, mock_loose_version, mock_check_response
     ):
@@ -508,8 +558,12 @@ class TestRestorePgsnapvolume:
 class TestCreatePgsnapshotSuccess:
     """Test cases for create_pgsnapshot success paths"""
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
-    @patch("plugins.modules.purefa_pgsnap.ProtectionGroupSnapshot")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.ProtectionGroupSnapshot"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_create_pgsnapshot_with_target(
         self, mock_lv, mock_pgs, mock_check_response
@@ -550,7 +604,9 @@ class TestCreatePgsnapshotSuccess:
 class TestDeletePgsnapshotSuccess:
     """Test cases for delete_pgsnapshot success paths"""
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_delete_pgsnapshot_success(self, mock_lv, mock_check_response):
         """Test delete_pgsnapshot deletes successfully"""
@@ -593,7 +649,9 @@ class TestDeletePgsnapshotSuccess:
 class TestEradicatePgsnapshotSuccess:
     """Test cases for eradicate_pgsnapshot success paths"""
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_eradicate_pgsnapshot_success(self, mock_lv, mock_check_response):
         """Test eradicate_pgsnapshot eradicates successfully"""
@@ -628,7 +686,9 @@ class TestEradicatePgsnapshotSuccess:
 class TestUpdatePgsnapshotExtended:
     """Extended test cases for update_pgsnapshot"""
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_update_pgsnapshot_rename(self, mock_lv, mock_check_response):
         """Test update_pgsnapshot with rename"""
@@ -671,8 +731,12 @@ class TestUpdatePgsnapshotExtended:
 class TestDeleteOffloadSnapshot:
     """Test cases for delete_offload_snapshot function"""
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
-    @patch("plugins.modules.purefa_pgsnap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap._check_offload"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_delete_offload_snapshot_success(
         self, mock_lv, mock_check_offload, mock_check_response
@@ -704,7 +768,9 @@ class TestDeleteOffloadSnapshot:
         mock_array.patch_remote_protection_group_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsnap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap._check_offload"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_delete_offload_snapshot_offload_not_connected(
         self, mock_lv, mock_check_offload
@@ -757,8 +823,12 @@ class TestDeleteOffloadSnapshot:
         mock_module.fail_json.assert_called_once()
         assert "not in the correct format" in mock_module.fail_json.call_args[1]["msg"]
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
-    @patch("plugins.modules.purefa_pgsnap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap._check_offload"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_delete_offload_snapshot_with_eradicate(
         self, mock_lv, mock_check_offload, mock_check_response
@@ -798,7 +868,9 @@ class TestDeleteOffloadSnapshot:
 class TestUpdatePgSnapshot:
     """Test cases for update_pgsnapshot function"""
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_update_pgsnapshot_success(self, mock_lv, mock_check_response):
         """Test updating/renaming a protection group snapshot"""
@@ -842,7 +914,9 @@ class TestUpdatePgSnapshot:
         mock_array.patch_protection_group_snapshots.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_update_pgsnapshot_older_api(self, mock_lv, mock_check_response):
         """Test updating snapshot with older API version"""
@@ -872,7 +946,9 @@ class TestUpdatePgSnapshot:
 class TestEradicatePgSnapshot:
     """Test cases for eradicate_pgsnapshot function"""
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_eradicate_pgsnapshot_success(self, mock_lv, mock_check_response):
         """Test eradicating a protection group snapshot"""
@@ -916,7 +992,9 @@ class TestEradicatePgSnapshot:
         mock_array.delete_protection_group_snapshots.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_eradicate_pgsnapshot_older_api(self, mock_lv, mock_check_response):
         """Test eradicating snapshot with older API version"""
@@ -1168,8 +1246,12 @@ class TestGetPgroupvolume:
 class TestDeleteOffloadSnapshot:
     """Test cases for delete_offload_snapshot function"""
 
-    @patch("plugins.modules.purefa_pgsnap._check_offload")
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap._check_offload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_delete_offload_snapshot_replicated_pg(
         self, mock_lv, mock_check_response, mock_check_offload
@@ -1205,8 +1287,12 @@ class TestDeleteOffloadSnapshot:
         mock_array.patch_remote_protection_group_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsnap._check_offload")
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap._check_offload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_delete_offload_snapshot_with_eradicate(
         self, mock_lv, mock_check_response, mock_check_offload
@@ -1245,8 +1331,12 @@ class TestDeleteOffloadSnapshot:
         mock_array.delete_remote_protection_group_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsnap._check_offload")
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap._check_offload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_delete_offload_snapshot_already_destroyed_with_eradicate(
         self, mock_lv, mock_check_response, mock_check_offload
@@ -1282,7 +1372,9 @@ class TestDeleteOffloadSnapshot:
         mock_array.delete_remote_protection_group_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsnap._check_offload")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap._check_offload"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_delete_offload_snapshot_offload_not_connected(
         self, mock_lv, mock_check_offload
@@ -1330,8 +1422,12 @@ class TestDeleteOffloadSnapshot:
         mock_module.fail_json.assert_called_once()
         assert "not in the correct format" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_pgsnap._check_offload")
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap._check_offload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_delete_offload_snapshot_legacy_api(
         self, mock_lv, mock_check_response, mock_check_offload
@@ -1399,7 +1495,9 @@ class TestCheckOffloadContext:
 class TestDeletePgsnapshot:
     """Test delete_pgsnapshot function"""
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_delete_pgsnapshot_with_eradicate(self, mock_lv, mock_check_response):
         """Test delete_pgsnapshot with immediate eradication"""
@@ -1426,7 +1524,9 @@ class TestDeletePgsnapshot:
         mock_array.delete_protection_group_snapshots.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_delete_pgsnapshot_legacy_api_with_eradicate(
         self, mock_lv, mock_check_response
@@ -1459,9 +1559,15 @@ class TestDeletePgsnapshot:
 class TestRestorePgsnapvolume:
     """Test restore_pgsnapvolume function"""
 
-    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.get_rpgsnapshot")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroupvolume"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_rpgsnapshot"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_restore_pgsnapvolume_stretched_pod_fails(
         self, mock_lv, mock_get_rpgsnapshot, mock_get_pgsnapshot, mock_get_pgroupvolume
@@ -1498,8 +1604,12 @@ class TestRestorePgsnapvolume:
             mock_module.fail_json.call_args
         )
 
-    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroupvolume"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_restore_pgsnapvolume_with_add_to_pgs(
         self, mock_lv, mock_get_pgsnapshot, mock_get_pgroupvolume
@@ -1532,8 +1642,12 @@ class TestRestorePgsnapvolume:
         assert "add_to_protection_groups" in call_kwargs
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroupvolume"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_restore_pgsnapvolume_with_overwrite_context(
         self, mock_lv, mock_get_pgsnapshot, mock_get_pgroupvolume
@@ -1566,8 +1680,12 @@ class TestRestorePgsnapvolume:
         assert call_kwargs.get("context_names") == ["test-context"]
         assert call_kwargs.get("overwrite") is True
 
-    @patch("plugins.modules.purefa_pgsnap.get_pgroupvolume")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroupvolume"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_restore_pgsnapvolume_legacy_api_no_overwrite(
         self, mock_lv, mock_get_pgsnapshot, mock_get_pgroupvolume
@@ -1603,7 +1721,9 @@ class TestRestorePgsnapvolume:
 class TestCreatePgsnapshot:
     """Test create_pgsnapshot function additional branches"""
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_create_pgsnapshot_with_throttle_and_now(
         self, mock_lv, mock_check_response
@@ -1645,7 +1765,9 @@ class TestCreatePgsnapshot:
         assert call_kwargs.get("replicate_now") is True
         mock_module.exit_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_create_pgsnapshot_no_remote_target_with_context(
         self, mock_lv, mock_check_response
@@ -1684,7 +1806,9 @@ class TestCreatePgsnapshot:
         call_kwargs = mock_array.post_protection_group_snapshots.call_args[1]
         assert call_kwargs.get("context_names") == ["test-context"]
 
-    @patch("plugins.modules.purefa_pgsnap.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.check_response"
+    )
     @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     def test_create_pgsnapshot_legacy_api_with_remote(
         self, mock_lv, mock_check_response
@@ -1728,15 +1852,25 @@ class TestCreatePgsnapshot:
 class TestMain:
     """Test main function branches"""
 
-    @patch("plugins.modules.purefa_pgsnap.get_array")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.AnsibleModule"
+    )
     def test_main_pgroup_not_found(
         self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
     ):
         """Test main fails when protection group doesn't exist"""
-        from plugins.modules.purefa_pgsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -1757,15 +1891,25 @@ class TestMain:
         mock_module.fail_json.assert_called_once()
         assert "does not exist" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_pgsnap.get_array")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.AnsibleModule"
+    )
     def test_main_offload_not_supported_for_present(
         self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
     ):
         """Test main fails when offload used with state=present"""
-        from plugins.modules.purefa_pgsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -1787,11 +1931,21 @@ class TestMain:
         mock_module.fail_json.assert_called_once()
         assert "offload parameter not supported" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_pgsnap.get_array")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.restore_pgsnapvolume")
-    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.restore_pgsnapvolume"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.AnsibleModule"
+    )
     def test_main_copy_with_overwrite_and_add_to_pgs_fails(
         self,
         mock_ansible,
@@ -1801,7 +1955,9 @@ class TestMain:
         mock_get_array,
     ):
         """Test main fails when copy with overwrite and add_to_pgs"""
-        from plugins.modules.purefa_pgsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -1826,15 +1982,25 @@ class TestMain:
         mock_module.fail_json.assert_called_once()
         assert "overwrite and add_to_pgs" in str(mock_module.fail_json.call_args)
 
-    @patch("plugins.modules.purefa_pgsnap.get_array")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.AnsibleModule"
+    )
     def test_main_present_snapshot_exists_no_change(
         self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
     ):
         """Test main exits unchanged when snapshot already exists"""
-        from plugins.modules.purefa_pgsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -1857,15 +2023,25 @@ class TestMain:
 
         mock_module.exit_json.assert_called_with(changed=False)
 
-    @patch("plugins.modules.purefa_pgsnap.get_array")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.AnsibleModule"
+    )
     def test_main_absent_snapshot_not_exists_no_change(
         self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
     ):
         """Test main exits unchanged when absent and snapshot doesn't exist"""
-        from plugins.modules.purefa_pgsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -1887,11 +2063,21 @@ class TestMain:
 
         mock_module.exit_json.assert_called_with(changed=False)
 
-    @patch("plugins.modules.purefa_pgsnap.get_array")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.update_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.update_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.AnsibleModule"
+    )
     def test_main_rename_calls_update(
         self,
         mock_ansible,
@@ -1901,7 +2087,9 @@ class TestMain:
         mock_get_array,
     ):
         """Test main calls update_pgsnapshot for rename state"""
-        from plugins.modules.purefa_pgsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -1924,11 +2112,21 @@ class TestMain:
 
         mock_update.assert_called_once()
 
-    @patch("plugins.modules.purefa_pgsnap.get_array")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.delete_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.delete_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.AnsibleModule"
+    )
     def test_main_absent_calls_delete(
         self,
         mock_ansible,
@@ -1938,7 +2136,9 @@ class TestMain:
         mock_get_array,
     ):
         """Test main calls delete_pgsnapshot for absent state"""
-        from plugins.modules.purefa_pgsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -1962,11 +2162,21 @@ class TestMain:
 
         mock_delete.assert_called_once()
 
-    @patch("plugins.modules.purefa_pgsnap.get_array")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.eradicate_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.eradicate_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.AnsibleModule"
+    )
     def test_main_absent_destroyed_eradicate_calls_eradicate(
         self,
         mock_ansible,
@@ -1976,7 +2186,9 @@ class TestMain:
         mock_get_array,
     ):
         """Test main calls eradicate_pgsnapshot for destroyed snapshot with eradicate"""
-        from plugins.modules.purefa_pgsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -2000,11 +2212,21 @@ class TestMain:
 
         mock_eradicate.assert_called_once()
 
-    @patch("plugins.modules.purefa_pgsnap.get_array")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.delete_offload_snapshot")
-    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.delete_offload_snapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.AnsibleModule"
+    )
     def test_main_absent_with_offload_calls_delete_offload(
         self,
         mock_ansible,
@@ -2014,7 +2236,9 @@ class TestMain:
         mock_get_array,
     ):
         """Test main calls delete_offload_snapshot for absent with offload"""
-        from plugins.modules.purefa_pgsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -2039,10 +2263,18 @@ class TestMain:
         mock_delete_offload.assert_called_once()
 
     @patch("plugins.modules.purefa_pgsnap.HAS_PURESTORAGE", True)
-    @patch("plugins.modules.purefa_pgsnap.get_array")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.AnsibleModule"
+    )
     def test_main_suffix_validation_fails(
         self,
         mock_ansible,
@@ -2051,7 +2283,9 @@ class TestMain:
         mock_get_array,
     ):
         """Test main fails on invalid suffix name"""
-        from plugins.modules.purefa_pgsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {
@@ -2080,15 +2314,25 @@ class TestMain:
             mock_module.fail_json.call_args
         )
 
-    @patch("plugins.modules.purefa_pgsnap.get_array")
-    @patch("plugins.modules.purefa_pgsnap.get_pgroup")
-    @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
-    @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgroup"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.get_pgsnapshot"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap.AnsibleModule"
+    )
     def test_main_rename_target_validation_fails(
         self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
     ):
         """Test main fails on invalid rename target"""
-        from plugins.modules.purefa_pgsnap import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_pgsnap import (
+            main,
+        )
 
         mock_module = Mock()
         mock_module.params = {

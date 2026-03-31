@@ -11,6 +11,16 @@ import pytest
 from unittest.mock import Mock, MagicMock
 
 
+@pytest.fixture(autouse=True)
+def mock_external_deps(monkeypatch):
+    mock_pure = MagicMock()
+    monkeypatch.setitem(sys.modules, "grp", MagicMock())
+    monkeypatch.setitem(sys.modules, "pwd", MagicMock())
+    monkeypatch.setitem(sys.modules, "fcntl", MagicMock())
+    monkeypatch.setitem(sys.modules, "pypureclient", mock_pure)
+    monkeypatch.setitem(sys.modules, "pypureclient.flasharray", mock_pure.flasharray)
+
+
 @pytest.fixture
 def mock_module():
     """Create a mock Ansible module with common parameters.

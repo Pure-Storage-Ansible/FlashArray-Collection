@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock, patch
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -65,8 +55,12 @@ class TestDeleteFs:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fs.check_response")
-    @patch("plugins.modules.purefa_fs.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.patch_with_context"
+    )
     def test_delete_fs_success(self, mock_patch_with_context, mock_check_response):
         """Test delete_fs successfully deletes file system"""
         mock_module = Mock()
@@ -80,9 +74,15 @@ class TestDeleteFs:
         mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fs.check_response")
-    @patch("plugins.modules.purefa_fs.delete_with_context")
-    @patch("plugins.modules.purefa_fs.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.patch_with_context"
+    )
     def test_delete_fs_with_eradicate(
         self, mock_patch_with_context, mock_delete_with_context, mock_check_response
     ):
@@ -115,8 +115,12 @@ class TestRecoverFs:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fs.check_response")
-    @patch("plugins.modules.purefa_fs.patch_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.patch_with_context"
+    )
     def test_recover_fs_success(self, mock_patch_with_context, mock_check_response):
         """Test recover_fs successfully recovers file system"""
         mock_module = Mock()
@@ -145,8 +149,12 @@ class TestEradicateFs:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fs.check_response")
-    @patch("plugins.modules.purefa_fs.delete_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.delete_with_context"
+    )
     def test_eradicate_fs_success(self, mock_delete_with_context, mock_check_response):
         """Test eradicate_fs successfully eradicates file system"""
         mock_module = Mock()
@@ -164,7 +172,9 @@ class TestEradicateFs:
 class TestRenameFs:
     """Test cases for rename_fs function"""
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_rename_fs_check_mode(self, mock_get_with_context):
         """Test rename_fs in check mode"""
         mock_module = Mock()
@@ -182,9 +192,15 @@ class TestRenameFs:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fs.check_response")
-    @patch("plugins.modules.purefa_fs.patch_with_context")
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_rename_fs_success(
         self, mock_get_with_context, mock_patch_with_context, mock_check_response
     ):
@@ -220,8 +236,12 @@ class TestCreateFs:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fs.check_response")
-    @patch("plugins.modules.purefa_fs.post_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.post_with_context"
+    )
     def test_create_fs_success(self, mock_post_with_context, mock_check_response):
         """Test create_fs successfully creates file system"""
         mock_module = Mock()
@@ -235,9 +255,15 @@ class TestCreateFs:
         mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fs.check_response")
-    @patch("plugins.modules.purefa_fs.post_with_context")
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.post_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_create_fs_in_pod_success(
         self, mock_get_with_context, mock_post_with_context, mock_check_response
     ):
@@ -256,7 +282,9 @@ class TestCreateFs:
         mock_post_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_create_fs_in_pod_not_exists(self, mock_get_with_context):
         """Test create_fs fails when pod doesn't exist"""
         import pytest
@@ -273,7 +301,9 @@ class TestCreateFs:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_create_fs_in_demoted_pod_fails(self, mock_get_with_context):
         """Test create_fs fails when pod is demoted"""
         import pytest
@@ -296,7 +326,9 @@ class TestCreateFs:
 class TestRenameFsExtended:
     """Extended test cases for rename_fs function"""
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_rename_fs_target_exists_fails(self, mock_get_with_context):
         """Test rename_fs fails when target exists"""
         import pytest
@@ -318,9 +350,15 @@ class TestRenameFsExtended:
 
         mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_fs.check_response")
-    @patch("plugins.modules.purefa_fs.patch_with_context")
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_rename_fs_in_pod_success(
         self, mock_get_with_context, mock_patch_with_context, mock_check_response
     ):
@@ -366,9 +404,15 @@ class TestMoveFs:
         mock_module.fail_json.assert_called_once()
         assert "cannot be the same" in mock_module.fail_json.call_args[1]["msg"]
 
-    @patch("plugins.modules.purefa_fs.check_response")
-    @patch("plugins.modules.purefa_fs.patch_with_context")
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_move_fs_to_local_success(
         self, mock_get_with_context, mock_patch_with_context, mock_check_response
     ):
@@ -391,9 +435,15 @@ class TestMoveFs:
         mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fs.check_response")
-    @patch("plugins.modules.purefa_fs.patch_with_context")
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_move_fs_to_pod_success(
         self, mock_get_with_context, mock_patch_with_context, mock_check_response
     ):
@@ -425,7 +475,9 @@ class TestMoveFs:
         mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_move_fs_to_stretched_pod_fails(self, mock_get_with_context):
         """Test move_fs fails when moving to a stretched pod"""
         import pytest
@@ -457,7 +509,9 @@ class TestMoveFs:
         mock_module.fail_json.assert_called_once()
         assert "stretched pod" in mock_module.fail_json.call_args[1]["msg"]
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_move_fs_check_mode(self, mock_get_with_context):
         """Test move_fs in check mode"""
         from plugins.modules.purefa_fs import move_fs
@@ -486,7 +540,9 @@ class TestMoveFs:
         mock_array.patch_file_systems.assert_not_called()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_move_fs_target_exists_fails(self, mock_get_with_context):
         """Test move_fs fails when target filesystem already exists"""
         import pytest
@@ -513,7 +569,9 @@ class TestMoveFs:
         mock_module.fail_json.assert_called_once()
         assert "already exists" in mock_module.fail_json.call_args[1]["msg"]
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_move_fs_to_linked_pod_fails(self, mock_get_with_context):
         """Test move_fs fails when moving to a linked source pod"""
         import pytest
@@ -545,7 +603,9 @@ class TestMoveFs:
         mock_module.fail_json.assert_called_once()
         assert "linked source pod" in mock_module.fail_json.call_args[1]["msg"]
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_move_fs_to_demoted_pod_fails(self, mock_get_with_context):
         """Test move_fs fails when moving to a demoted pod"""
         import pytest
@@ -577,7 +637,9 @@ class TestMoveFs:
         mock_module.fail_json.assert_called_once()
         assert "demoted pod" in mock_module.fail_json.call_args[1]["msg"]
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_move_fs_pod_not_exists_fails(self, mock_get_with_context):
         """Test move_fs fails when target pod doesn't exist"""
         import pytest
@@ -610,7 +672,9 @@ class TestMoveFsFromPod:
     calls use the same target pod name.
     """
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_move_fs_out_of_stretched_pod_fails(self, mock_get_with_context):
         """Test move_fs fails when checking pod for stretched status (out of pod path)"""
         import pytest
@@ -657,7 +721,9 @@ class TestMoveFsFromPod:
         mock_module.fail_json.assert_called_once()
         assert "stretched pod" in mock_module.fail_json.call_args[1]["msg"]
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_move_fs_out_of_linked_pod_fails(self, mock_get_with_context):
         """Test move_fs fails when checking pod for linked status (out of pod path)"""
         import pytest
@@ -701,7 +767,9 @@ class TestMoveFsFromPod:
         mock_module.fail_json.assert_called_once()
         assert "linked source pod" in mock_module.fail_json.call_args[1]["msg"]
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_move_fs_out_of_demoted_pod_fails(self, mock_get_with_context):
         """Test move_fs fails when checking pod for demoted status (out of pod path)"""
         import pytest
@@ -745,7 +813,9 @@ class TestMoveFsFromPod:
         mock_module.fail_json.assert_called_once()
         assert "demoted pod" in mock_module.fail_json.call_args[1]["msg"]
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
     def test_move_fs_second_pod_check_not_exists_fails(self, mock_get_with_context):
         """Test move_fs fails when second pod check returns 404"""
         import pytest
@@ -784,9 +854,15 @@ class TestMoveFsFromPod:
 class TestMain:
     """Test cases for main function"""
 
-    @patch("plugins.modules.purefa_fs.get_with_context")
-    @patch("plugins.modules.purefa_fs.get_array")
-    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.AnsibleModule"
+    )
     def test_main_no_purestorage_sdk(
         self, mock_ansible_module, mock_get_array, mock_get_with_context
     ):
@@ -811,10 +887,18 @@ class TestMain:
         finally:
             purefa_fs_module.HAS_PURESTORAGE = original_value
 
-    @patch("plugins.modules.purefa_fs.LooseVersion")
-    @patch("plugins.modules.purefa_fs.get_with_context")
-    @patch("plugins.modules.purefa_fs.get_array")
-    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.AnsibleModule"
+    )
     def test_main_api_version_too_low(
         self,
         mock_ansible_module,
@@ -846,10 +930,18 @@ class TestMain:
         mock_module.fail_json.assert_called_once()
         assert "not supported" in mock_module.fail_json.call_args[1]["msg"]
 
-    @patch("plugins.modules.purefa_fs.LooseVersion")
-    @patch("plugins.modules.purefa_fs.get_with_context")
-    @patch("plugins.modules.purefa_fs.get_array")
-    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.AnsibleModule"
+    )
     def test_main_repl_api_version_too_low(
         self,
         mock_ansible_module,
@@ -894,11 +986,21 @@ class TestMain:
         mock_module.fail_json.assert_called_once()
         assert "Replication" in mock_module.fail_json.call_args[1]["msg"]
 
-    @patch("plugins.modules.purefa_fs.LooseVersion")
-    @patch("plugins.modules.purefa_fs.create_fs")
-    @patch("plugins.modules.purefa_fs.get_with_context")
-    @patch("plugins.modules.purefa_fs.get_array")
-    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.create_fs"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.AnsibleModule"
+    )
     def test_main_create_new_fs(
         self,
         mock_ansible_module,
@@ -936,11 +1038,21 @@ class TestMain:
 
         mock_create_fs.assert_called_once_with(mock_module, mock_array)
 
-    @patch("plugins.modules.purefa_fs.LooseVersion")
-    @patch("plugins.modules.purefa_fs.move_fs")
-    @patch("plugins.modules.purefa_fs.get_with_context")
-    @patch("plugins.modules.purefa_fs.get_array")
-    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.move_fs"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.AnsibleModule"
+    )
     def test_main_move_fs(
         self,
         mock_ansible_module,
@@ -980,11 +1092,21 @@ class TestMain:
 
         mock_move_fs.assert_called_once_with(mock_module, mock_array)
 
-    @patch("plugins.modules.purefa_fs.LooseVersion")
-    @patch("plugins.modules.purefa_fs.rename_fs")
-    @patch("plugins.modules.purefa_fs.get_with_context")
-    @patch("plugins.modules.purefa_fs.get_array")
-    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.rename_fs"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.AnsibleModule"
+    )
     def test_main_rename_fs(
         self,
         mock_ansible_module,
@@ -1023,11 +1145,21 @@ class TestMain:
 
         mock_rename_fs.assert_called_once_with(mock_module, mock_array)
 
-    @patch("plugins.modules.purefa_fs.LooseVersion")
-    @patch("plugins.modules.purefa_fs.recover_fs")
-    @patch("plugins.modules.purefa_fs.get_with_context")
-    @patch("plugins.modules.purefa_fs.get_array")
-    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.recover_fs"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.AnsibleModule"
+    )
     def test_main_recover_fs(
         self,
         mock_ansible_module,
@@ -1066,10 +1198,18 @@ class TestMain:
 
         mock_recover_fs.assert_called_once_with(mock_module, mock_array)
 
-    @patch("plugins.modules.purefa_fs.LooseVersion")
-    @patch("plugins.modules.purefa_fs.get_with_context")
-    @patch("plugins.modules.purefa_fs.get_array")
-    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.AnsibleModule"
+    )
     def test_main_move_destroyed_fs_fails(
         self,
         mock_ansible_module,
@@ -1111,11 +1251,21 @@ class TestMain:
         mock_module.fail_json.assert_called_once()
         assert "destroyed state" in mock_module.fail_json.call_args[1]["msg"]
 
-    @patch("plugins.modules.purefa_fs.LooseVersion")
-    @patch("plugins.modules.purefa_fs.delete_fs")
-    @patch("plugins.modules.purefa_fs.get_with_context")
-    @patch("plugins.modules.purefa_fs.get_array")
-    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.delete_fs"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.AnsibleModule"
+    )
     def test_main_delete_fs(
         self,
         mock_ansible_module,
@@ -1153,11 +1303,21 @@ class TestMain:
 
         mock_delete_fs.assert_called_once_with(mock_module, mock_array)
 
-    @patch("plugins.modules.purefa_fs.LooseVersion")
-    @patch("plugins.modules.purefa_fs.eradicate_fs")
-    @patch("plugins.modules.purefa_fs.get_with_context")
-    @patch("plugins.modules.purefa_fs.get_array")
-    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.eradicate_fs"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.AnsibleModule"
+    )
     def test_main_eradicate_fs(
         self,
         mock_ansible_module,
@@ -1195,10 +1355,18 @@ class TestMain:
 
         mock_eradicate_fs.assert_called_once_with(mock_module, mock_array)
 
-    @patch("plugins.modules.purefa_fs.LooseVersion")
-    @patch("plugins.modules.purefa_fs.get_with_context")
-    @patch("plugins.modules.purefa_fs.get_array")
-    @patch("plugins.modules.purefa_fs.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_fs.AnsibleModule"
+    )
     def test_main_no_change_needed(
         self,
         mock_ansible_module,

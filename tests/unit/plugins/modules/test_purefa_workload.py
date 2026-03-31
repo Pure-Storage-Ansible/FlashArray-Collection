@@ -14,18 +14,8 @@ from unittest.mock import Mock, MagicMock, patch
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -237,7 +227,9 @@ class TestConnectOrDisconnectVolumes:
 class TestDeleteWorkloadSuccess:
     """Additional test cases for delete_workload function"""
 
-    @patch("plugins.modules.purefa_workload.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
     def test_delete_workload_success(self, mock_check_response):
         """Test delete_workload successfully deletes"""
         mock_module = Mock()
@@ -259,7 +251,9 @@ class TestDeleteWorkloadSuccess:
 class TestEradicateWorkloadSuccess:
     """Additional test cases for eradicate_workload function"""
 
-    @patch("plugins.modules.purefa_workload.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
     def test_eradicate_workload_success(self, mock_check_response):
         """Test eradicate_workload successfully eradicates"""
         mock_module = Mock()
@@ -277,7 +271,9 @@ class TestEradicateWorkloadSuccess:
 class TestRecoverWorkloadSuccess:
     """Additional test cases for recover_workload function"""
 
-    @patch("plugins.modules.purefa_workload.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
     def test_recover_workload_success(self, mock_check_response):
         """Test recover_workload successfully recovers without host"""
         mock_module = Mock()
@@ -295,7 +291,9 @@ class TestRecoverWorkloadSuccess:
 class TestRenameWorkloadSuccess:
     """Additional test cases for rename_workload function"""
 
-    @patch("plugins.modules.purefa_workload.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
     def test_rename_workload_success(self, mock_check_response):
         """Test rename_workload successfully renames"""
         mock_module = Mock()
@@ -317,7 +315,9 @@ class TestRenameWorkloadSuccess:
 class TestCreateWorkloadSuccess:
     """Test cases for create_workload function success scenarios"""
 
-    @patch("plugins.modules.purefa_workload.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
     def test_create_workload_success(self, mock_check_response):
         """Test create_workload successfully creates"""
         mock_module = Mock()
@@ -377,8 +377,12 @@ class TestCreateWorkloadSuccess:
 class TestExpandWorkloadSuccess:
     """Test cases for expand_workload function success scenarios"""
 
-    @patch("plugins.modules.purefa_workload._connect_volumes")
-    @patch("plugins.modules.purefa_workload._create_volume")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload._connect_volumes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload._create_volume"
+    )
     def test_expand_workload_success(self, mock_create_vol, mock_connect_vols):
         """Test expand_workload successfully expands"""
         mock_module = Mock()
@@ -404,7 +408,9 @@ class TestExpandWorkloadSuccess:
         mock_connect_vols.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_workload._create_volume")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload._create_volume"
+    )
     def test_expand_workload_no_match_fails(self, mock_create_vol):
         """Test expand_workload fails when no volume config matches"""
         import pytest
@@ -437,8 +443,12 @@ class TestExpandWorkloadSuccess:
 class TestDeleteWorkloadWithEradicate:
     """Test cases for delete_workload with eradicate option"""
 
-    @patch("plugins.modules.purefa_workload.eradicate_workload")
-    @patch("plugins.modules.purefa_workload.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.eradicate_workload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
     def test_delete_workload_with_eradicate(
         self, mock_check_response, mock_eradicate_workload
     ):
@@ -458,7 +468,9 @@ class TestDeleteWorkloadWithEradicate:
         mock_array.patch_workloads.assert_called_once()
         mock_eradicate_workload.assert_called_once_with(mock_module, mock_array)
 
-    @patch("plugins.modules.purefa_workload.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
     def test_delete_workload_without_eradicate(self, mock_check_response):
         """Test delete_workload without eradicate flag"""
         mock_module = Mock()
@@ -480,8 +492,12 @@ class TestDeleteWorkloadWithEradicate:
 class TestRecoverWorkloadWithHost:
     """Test cases for recover_workload with host option"""
 
-    @patch("plugins.modules.purefa_workload._connect_volumes")
-    @patch("plugins.modules.purefa_workload.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload._connect_volumes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
     def test_recover_workload_with_host(
         self, mock_check_response, mock_connect_volumes
     ):
@@ -506,8 +522,12 @@ class TestRecoverWorkloadWithHost:
 class TestConnectOrDisconnectVolumesSuccess:
     """Test cases for connect_or_disconnect_volumes success paths"""
 
-    @patch("plugins.modules.purefa_workload._connect_volumes")
-    @patch("plugins.modules.purefa_workload.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload._connect_volumes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
     def test_connect_volumes_success(self, mock_check_response, mock_connect_volumes):
         """Test connect_or_disconnect_volumes connects volumes"""
         mock_module = Mock()
@@ -534,8 +554,12 @@ class TestConnectOrDisconnectVolumesSuccess:
         mock_connect_volumes.assert_called_once_with(mock_module, mock_array)
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_workload._disconnect_volumes")
-    @patch("plugins.modules.purefa_workload.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload._disconnect_volumes"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
     def test_disconnect_volumes_success(
         self, mock_check_response, mock_disconnect_volumes
     ):
@@ -573,9 +597,15 @@ class TestConnectOrDisconnectVolumesSuccess:
 class TestCreateVolume:
     """Test cases for _create_volume helper function"""
 
-    @patch("plugins.modules.purefa_workload.check_response")
-    @patch("plugins.modules.purefa_workload.VolumePost")
-    @patch("plugins.modules.purefa_workload.WorkloadConfigurationReference")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.VolumePost"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.WorkloadConfigurationReference"
+    )
     def test_create_volume_success(
         self, mock_workload_config, mock_volume_post, mock_check_response
     ):
@@ -600,7 +630,9 @@ class TestCreateVolume:
 class TestDisconnectVolumes:
     """Test cases for _disconnect_volumes helper function"""
 
-    @patch("plugins.modules.purefa_workload.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
     def test_disconnect_volumes_success(self, mock_check_response):
         """Test _disconnect_volumes disconnects all workload volumes"""
         from plugins.modules.purefa_workload import _disconnect_volumes
@@ -630,8 +662,12 @@ class TestDisconnectVolumes:
 class TestConnectVolumes:
     """Test cases for _connect_volumes helper function"""
 
-    @patch("plugins.modules.purefa_workload.check_response")
-    @patch("plugins.modules.purefa_workload.ConnectionPost")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.ConnectionPost"
+    )
     def test_connect_volumes_success(self, mock_connection_post, mock_check_response):
         """Test _connect_volumes connects all workload volumes"""
         from plugins.modules.purefa_workload import _connect_volumes
@@ -657,16 +693,24 @@ class TestConnectVolumes:
 class TestMain:
     """Test cases for main() function"""
 
-    @patch("plugins.modules.purefa_workload.LooseVersion")
-    @patch("plugins.modules.purefa_workload.get_array")
-    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
     def test_main_no_purestorage_sdk(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() fails when purestorage SDK not available"""
         import pytest
-        from plugins.modules.purefa_workload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload import (
+            main,
+        )
 
         # Need to patch at module level to override HAS_PURESTORAGE
         with patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", False):
@@ -679,16 +723,24 @@ class TestMain:
 
             mock_module.fail_json.assert_called_once()
 
-    @patch("plugins.modules.purefa_workload.LooseVersion")
-    @patch("plugins.modules.purefa_workload.get_array")
-    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
     def test_main_api_version_too_old(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() fails when API version is too old"""
         import pytest
-        from plugins.modules.purefa_workload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -705,16 +757,24 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_workload.LooseVersion")
-    @patch("plugins.modules.purefa_workload.get_array")
-    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
     def test_main_invalid_volume_count(
         self, mock_ansible_module, mock_get_array, mock_loose_version
     ):
         """Test main() fails when volume_count is not positive"""
         import pytest
-        from plugins.modules.purefa_workload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -737,11 +797,21 @@ class TestMain:
 
         mock_module.fail_json.assert_called()
 
-    @patch("plugins.modules.purefa_workload.create_workload")
-    @patch("plugins.modules.purefa_workload.LooseVersion")
-    @patch("plugins.modules.purefa_workload.check_response")
-    @patch("plugins.modules.purefa_workload.get_array")
-    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.create_workload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
     def test_main_fleet_check_fails(
         self,
@@ -752,7 +822,9 @@ class TestMain:
         mock_create_workload,
     ):
         """Test main() calls check_response for fleet"""
-        from plugins.modules.purefa_workload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -788,11 +860,21 @@ class TestMain:
 
         mock_check_response.assert_called()
 
-    @patch("plugins.modules.purefa_workload.delete_workload")
-    @patch("plugins.modules.purefa_workload.LooseVersion")
-    @patch("plugins.modules.purefa_workload.check_response")
-    @patch("plugins.modules.purefa_workload.get_array")
-    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.delete_workload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
     def test_main_state_absent_delete(
         self,
@@ -803,7 +885,9 @@ class TestMain:
         mock_delete_workload,
     ):
         """Test main() calls delete_workload when state=absent"""
-        from plugins.modules.purefa_workload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -837,11 +921,21 @@ class TestMain:
 
         mock_delete_workload.assert_called_once()
 
-    @patch("plugins.modules.purefa_workload.eradicate_workload")
-    @patch("plugins.modules.purefa_workload.LooseVersion")
-    @patch("plugins.modules.purefa_workload.check_response")
-    @patch("plugins.modules.purefa_workload.get_array")
-    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.eradicate_workload"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
     def test_main_state_absent_eradicate(
         self,
@@ -852,7 +946,9 @@ class TestMain:
         mock_eradicate_workload,
     ):
         """Test main() calls eradicate_workload when state=absent and eradicate=true"""
-        from plugins.modules.purefa_workload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 
@@ -886,10 +982,18 @@ class TestMain:
 
         mock_eradicate_workload.assert_called_once()
 
-    @patch("plugins.modules.purefa_workload.LooseVersion")
-    @patch("plugins.modules.purefa_workload.check_response")
-    @patch("plugins.modules.purefa_workload.get_array")
-    @patch("plugins.modules.purefa_workload.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.LooseVersion"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload.AnsibleModule"
+    )
     @patch("plugins.modules.purefa_workload.HAS_PURESTORAGE", True)
     def test_main_no_change(
         self,
@@ -899,7 +1003,9 @@ class TestMain:
         mock_loose_version,
     ):
         """Test main() exits with no change when no action needed"""
-        from plugins.modules.purefa_workload import main
+        from ansible_collections.purestorage.flasharray.plugins.modules.purefa_workload import (
+            main,
+        )
 
         mock_loose_version.side_effect = lambda x: float(x) if x else 0.0
 

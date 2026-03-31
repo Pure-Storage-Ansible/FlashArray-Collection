@@ -14,18 +14,8 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -55,7 +45,9 @@ from plugins.modules.purefa_endpoint import (
 class TestGetVolume:
     """Test cases for get_volume function"""
 
-    @patch("plugins.modules.purefa_endpoint.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.get_with_context"
+    )
     def test_get_volume_exists(self, mock_get_with_context):
         """Test get_volume returns volume when it exists"""
         mock_module = Mock()
@@ -69,7 +61,9 @@ class TestGetVolume:
 
         assert result == mock_vol
 
-    @patch("plugins.modules.purefa_endpoint.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.get_with_context"
+    )
     def test_get_volume_not_exists(self, mock_get_with_context):
         """Test get_volume returns None when volume doesn't exist"""
         mock_module = Mock()
@@ -150,7 +144,9 @@ class TestVolfact:
 class TestRenameEndpoint:
     """Test cases for rename_endpoint function"""
 
-    @patch("plugins.modules.purefa_endpoint.get_volume")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.get_volume"
+    )
     def test_rename_endpoint_check_mode(self, mock_get_volume):
         """Test rename_endpoint in check mode"""
         mock_module = Mock()
@@ -168,7 +164,9 @@ class TestRenameEndpoint:
 
         mock_module.exit_json.assert_called_once_with(changed=True, volume={})
 
-    @patch("plugins.modules.purefa_endpoint.get_volume")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.get_volume"
+    )
     def test_rename_endpoint_target_exists(self, mock_get_volume):
         """Test rename_endpoint fails when target exists"""
         import pytest
@@ -194,9 +192,15 @@ class TestRenameEndpoint:
 class TestDeleteEndpointSuccess:
     """Test cases for delete_endpoint success paths"""
 
-    @patch("plugins.modules.purefa_endpoint._volfact")
-    @patch("plugins.modules.purefa_endpoint.patch_with_context")
-    @patch("plugins.modules.purefa_endpoint.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.check_response"
+    )
     def test_delete_endpoint_success(
         self, mock_check_response, mock_patch_with_context, mock_volfact
     ):
@@ -220,10 +224,18 @@ class TestDeleteEndpointSuccess:
         mock_patch_with_context.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True, volume={})
 
-    @patch("plugins.modules.purefa_endpoint._volfact")
-    @patch("plugins.modules.purefa_endpoint.delete_with_context")
-    @patch("plugins.modules.purefa_endpoint.patch_with_context")
-    @patch("plugins.modules.purefa_endpoint.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.check_response"
+    )
     def test_delete_endpoint_with_eradicate(
         self,
         mock_check_response,
@@ -261,8 +273,12 @@ class TestDeleteEndpointSuccess:
 class TestEradicateEndpointSuccess:
     """Test cases for eradicate_endpoint success paths"""
 
-    @patch("plugins.modules.purefa_endpoint.delete_with_context")
-    @patch("plugins.modules.purefa_endpoint.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.delete_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.check_response"
+    )
     def test_eradicate_endpoint_success(
         self, mock_check_response, mock_delete_with_context
     ):
@@ -286,9 +302,15 @@ class TestEradicateEndpointSuccess:
 class TestRecoverEndpointSuccess:
     """Test cases for recover_endpoint success paths"""
 
-    @patch("plugins.modules.purefa_endpoint._volfact")
-    @patch("plugins.modules.purefa_endpoint.patch_with_context")
-    @patch("plugins.modules.purefa_endpoint.check_response")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint._volfact"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.patch_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.check_response"
+    )
     def test_recover_endpoint_success(
         self, mock_check_response, mock_patch_with_context, mock_volfact
     ):
@@ -309,7 +331,9 @@ class TestRecoverEndpointSuccess:
 class TestCreateEndpoint:
     """Test cases for create_endpoint function"""
 
-    @patch("plugins.modules.purefa_endpoint.get_with_context")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_endpoint.get_with_context"
+    )
     def test_create_endpoint_check_mode(self, mock_get_with_context):
         """Test create_endpoint in check mode"""
         from plugins.modules.purefa_endpoint import create_endpoint

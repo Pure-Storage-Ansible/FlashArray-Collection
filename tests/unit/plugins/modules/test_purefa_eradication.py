@@ -16,18 +16,8 @@ import pytest
 sys.modules["grp"] = MagicMock()
 sys.modules["pwd"] = MagicMock()
 sys.modules["fcntl"] = MagicMock()
-sys.modules["ansible"] = MagicMock()
-sys.modules["ansible.module_utils"] = MagicMock()
-sys.modules["ansible.module_utils.basic"] = MagicMock()
 sys.modules["pypureclient"] = MagicMock()
 sys.modules["pypureclient.flasharray"] = MagicMock()
-sys.modules["ansible_collections"] = MagicMock()
-sys.modules["ansible_collections.purestorage"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins"] = MagicMock()
-sys.modules["ansible_collections.purestorage.flasharray.plugins.module_utils"] = (
-    MagicMock()
-)
 sys.modules[
     "ansible_collections.purestorage.flasharray.plugins.module_utils.purefa"
 ] = MagicMock()
@@ -51,13 +41,17 @@ sys.modules[
 ] = MagicMock()
 
 # Import after mocking
-from plugins.modules.purefa_eradication import main
+from ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication import (
+    main,
+)
 
 
 class TestEradicationTimerValidation:
     """Test cases for eradication timer validation"""
 
-    @patch("plugins.modules.purefa_eradication.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.AnsibleModule"
+    )
     def test_timer_out_of_range_fails(self, mock_ansible_module):
         """Test that timer value outside 1-30 range fails"""
         mock_module = Mock()
@@ -77,7 +71,9 @@ class TestEradicationTimerValidation:
             msg="Eradication Timer must be between 1 and 30 days."
         )
 
-    @patch("plugins.modules.purefa_eradication.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.AnsibleModule"
+    )
     def test_disabled_delay_out_of_range_fails(self, mock_ansible_module):
         """Test that disabled_delay value outside 1-30 range fails"""
         mock_module = Mock()
@@ -97,7 +93,9 @@ class TestEradicationTimerValidation:
             msg="disabled_delay must be between 1 and 30 days."
         )
 
-    @patch("plugins.modules.purefa_eradication.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.AnsibleModule"
+    )
     def test_enabled_delay_out_of_range_fails(self, mock_ansible_module):
         """Test that enabled_delay value outside 1-30 range fails"""
         mock_module = Mock()
@@ -121,9 +119,15 @@ class TestEradicationTimerValidation:
 class TestEradicationOldApiVersion:
     """Test cases for unsupported API version"""
 
-    @patch("plugins.modules.purefa_eradication.get_with_context")
-    @patch("plugins.modules.purefa_eradication.get_array")
-    @patch("plugins.modules.purefa_eradication.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.AnsibleModule"
+    )
     def test_old_api_version_fails(
         self,
         mock_ansible_module,
@@ -167,7 +171,9 @@ class TestEradicationMissingDependency:
     """Test cases for missing dependency"""
 
     @patch("plugins.modules.purefa_eradication.HAS_PURESTORAGE", False)
-    @patch("plugins.modules.purefa_eradication.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.AnsibleModule"
+    )
     def test_missing_purestorage_dependency_fails(self, mock_ansible_module):
         """Test that missing pypureclient dependency fails"""
         mock_module = Mock()
@@ -191,12 +197,24 @@ class TestEradicationMissingDependency:
 class TestEradicationTimerChange:
     """Test cases for eradication timer changes"""
 
-    @patch("plugins.modules.purefa_eradication.EradicationConfig")
-    @patch("plugins.modules.purefa_eradication.Arrays")
-    @patch("plugins.modules.purefa_eradication.check_response")
-    @patch("plugins.modules.purefa_eradication.get_with_context")
-    @patch("plugins.modules.purefa_eradication.get_array")
-    @patch("plugins.modules.purefa_eradication.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.EradicationConfig"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.Arrays"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.AnsibleModule"
+    )
     def test_timer_change_success(
         self,
         mock_ansible_module,
@@ -237,9 +255,15 @@ class TestEradicationTimerChange:
         # Should have changed
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_eradication.get_with_context")
-    @patch("plugins.modules.purefa_eradication.get_array")
-    @patch("plugins.modules.purefa_eradication.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.AnsibleModule"
+    )
     def test_timer_no_change_when_same(
         self,
         mock_ansible_module,
@@ -276,9 +300,15 @@ class TestEradicationTimerChange:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_eradication.get_with_context")
-    @patch("plugins.modules.purefa_eradication.get_array")
-    @patch("plugins.modules.purefa_eradication.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.AnsibleModule"
+    )
     def test_timer_no_timer_uses_current(
         self,
         mock_ansible_module,
@@ -320,12 +350,24 @@ class TestEradicationTimerChange:
 class TestEradicationDelayChange:
     """Test cases for eradication delay changes (API >= 2.26)"""
 
-    @patch("plugins.modules.purefa_eradication.EradicationConfig")
-    @patch("plugins.modules.purefa_eradication.Arrays")
-    @patch("plugins.modules.purefa_eradication.check_response")
-    @patch("plugins.modules.purefa_eradication.get_with_context")
-    @patch("plugins.modules.purefa_eradication.get_array")
-    @patch("plugins.modules.purefa_eradication.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.EradicationConfig"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.Arrays"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.check_response"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.AnsibleModule"
+    )
     def test_delay_change_success(
         self,
         mock_ansible_module,
@@ -365,9 +407,15 @@ class TestEradicationDelayChange:
 
         mock_module.exit_json.assert_called_once_with(changed=True)
 
-    @patch("plugins.modules.purefa_eradication.get_with_context")
-    @patch("plugins.modules.purefa_eradication.get_array")
-    @patch("plugins.modules.purefa_eradication.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.AnsibleModule"
+    )
     def test_delay_no_change_when_same(
         self,
         mock_ansible_module,
@@ -404,11 +452,21 @@ class TestEradicationDelayChange:
 
         mock_module.exit_json.assert_called_once_with(changed=False)
 
-    @patch("plugins.modules.purefa_eradication.EradicationConfig")
-    @patch("plugins.modules.purefa_eradication.Arrays")
-    @patch("plugins.modules.purefa_eradication.get_with_context")
-    @patch("plugins.modules.purefa_eradication.get_array")
-    @patch("plugins.modules.purefa_eradication.AnsibleModule")
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.EradicationConfig"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.Arrays"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_with_context"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.get_array"
+    )
+    @patch(
+        "ansible_collections.purestorage.flasharray.plugins.modules.purefa_eradication.AnsibleModule"
+    )
     def test_check_mode_no_api_call(
         self,
         mock_ansible_module,
