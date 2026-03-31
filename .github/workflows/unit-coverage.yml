@@ -47,10 +47,10 @@ jobs:
           path: ansible_collections/purestorage/flasharray
           persist-credentials: false
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'
 
       # Install the same ansible-core branch used by the certification workflow.
       # Pin to stable-2.16 to keep results comparable.
@@ -72,7 +72,7 @@ jobs:
             --color \
             --coverage \
             --docker default \
-            --python 3.12
+            --python 3.11
 
       # Convert the raw .coverage data files into a single Cobertura XML report.
       # --group-by command produces coverage=units.xml (not coverage=sanity.xml).
