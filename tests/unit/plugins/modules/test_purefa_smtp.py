@@ -80,7 +80,6 @@ class TestCreateSmtp:
             "sender_domain": "example.com",
             "relay_host": "smtp.example.com",
             "user": None,
-            "user_name": None,
             "password": None,
             "encryption_mode": "tls",
             "sender": None,
@@ -112,7 +111,6 @@ class TestCreateSmtp:
             "sender_domain": "new-domain.com",
             "relay_host": "new-smtp.example.com",
             "user": None,
-            "user_name": None,
             "password": None,
             "encryption_mode": "starttls",
             "sender": "alerts",
@@ -146,7 +144,6 @@ class TestCreateSmtp:
             "sender_domain": "example.com",
             "relay_host": "smtp.example.com",
             "user": "smtp_user",
-            "user_name": "smtp_user",
             "password": "secret_password",
             "encryption_mode": "tls",
             "sender": None,
@@ -171,6 +168,42 @@ class TestCreateSmtp:
         mock_array.patch_smtp_servers.assert_called_once()
         mock_module.exit_json.assert_called_once_with(changed=True)
 
+    @patch("plugins.modules.purefa_smtp.check_response")
+    def test_create_smtp_change_user(self, mock_check_response):
+        """Test create_smtp when user changes - regression test for issue #990"""
+        mock_module = Mock()
+        mock_module.check_mode = False
+        mock_module.params = {
+            "sender_domain": None,
+            "relay_host": None,
+            "user": "new_smtp_user",
+            "password": "secret_password",
+            "encryption_mode": None,
+            "sender": None,
+            "subject_prefix": None,
+            "body_prefix": None,
+        }
+        mock_array = Mock()
+        # Current settings have different user
+        mock_smtp = Mock()
+        mock_smtp.sender_domain = "example.com"
+        mock_smtp.relay_host = "smtp.example.com"
+        mock_smtp.user_name = "old_smtp_user"
+        mock_smtp.encryption_mode = "tls"
+        mock_smtp.sender_username = None
+        mock_smtp.subject_prefix = "[Alert]"
+        mock_smtp.body_prefix = "FlashArray:"
+        mock_array.get_smtp_servers.return_value.items = [mock_smtp]
+        mock_array.patch_smtp_servers.return_value = Mock(status_code=200)
+
+        create_smtp(mock_module, mock_array)
+
+        mock_array.patch_smtp_servers.assert_called_once()
+        # Verify user_name is in the patch call
+        call_args = mock_array.patch_smtp_servers.call_args
+        assert call_args is not None
+        mock_module.exit_json.assert_called_once_with(changed=True)
+
     def test_create_smtp_check_mode_with_changes(self):
         """Test create_smtp in check mode when changes would be made"""
         mock_module = Mock()
@@ -179,7 +212,6 @@ class TestCreateSmtp:
             "sender_domain": "new-domain.com",
             "relay_host": "new-smtp.example.com",
             "user": None,
-            "user_name": None,
             "password": None,
             "encryption_mode": "starttls",
             "sender": None,
@@ -232,7 +264,6 @@ class TestCreateSmtpSuccess:
             "sender_domain": None,
             "relay_host": None,
             "user": None,
-            "user_name": None,
             "password": "new_password",
             "sender": None,
             "body_prefix": None,
@@ -265,7 +296,6 @@ class TestCreateSmtpSuccess:
             "sender_domain": None,
             "relay_host": "new-smtp.example.com",
             "user": None,
-            "user_name": None,
             "password": None,
             "sender": None,
             "body_prefix": None,
@@ -298,7 +328,6 @@ class TestCreateSmtpSuccess:
             "sender_domain": None,
             "relay_host": None,
             "user": None,
-            "user_name": None,
             "password": None,
             "sender": None,
             "body_prefix": None,
@@ -330,7 +359,6 @@ class TestCreateSmtpSuccess:
             "sender_domain": None,
             "relay_host": None,
             "user": None,
-            "user_name": None,
             "password": None,
             "sender": None,
             "body_prefix": None,
@@ -362,7 +390,6 @@ class TestCreateSmtpSuccess:
             "sender_domain": None,
             "relay_host": None,
             "user": None,
-            "user_name": None,
             "password": None,
             "sender": None,
             "body_prefix": "New Body:",
