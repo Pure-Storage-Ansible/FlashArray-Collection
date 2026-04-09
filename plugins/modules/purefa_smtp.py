@@ -172,10 +172,7 @@ def create_smtp(module, array):
         and current_server["relay_host"] != module.params["relay_host"]
     ):
         new_server["relay_host"] = module.params["relay_host"]
-    if (
-        module.params["user"]
-        and current_server["user_name"] != module.params["user_name"]
-    ):
+    if module.params["user"] and current_server["user_name"] != module.params["user"]:
         new_server["user_name"] = module.params["user"]
     if (
         module.params["sender"]

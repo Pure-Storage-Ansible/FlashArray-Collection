@@ -1,0 +1,2 @@
+bugfixes:
+  - purefa_smtp - Fixed ``KeyError 'user_name'`` when configuring SMTP with authentication by correcting parameter name from ``module.params["user_name"]`` to ``module.params["user"]``
