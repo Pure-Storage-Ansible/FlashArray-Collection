@@ -1032,6 +1032,14 @@ def main():
                 )
             )
     array = get_array(module)
+    api_version = array.get_rest_version()
+
+    # If context is empty and API supports context, set it to current array name
+    if not module.params["context"] and LooseVersion(
+        CONTEXT_API_VERSION
+    ) <= LooseVersion(api_version):
+        module.params["context"] = list(array.get_arrays().items)[0].name
+
     pgroup = get_pgroup(module, array)
     if not pgroup:
         module.fail_json(
@@ -1047,6 +1055,7 @@ def main():
     elif state == "copy":
         if module.params["restore"] == "all":
             # Restore all volumes from pgroup snapshot
+            # add_to_pgs and with_default_protection are not supported by post_protection_groups()
             if (
                 module.params["add_to_pgs"]
                 or not module.params["with_default_protection"]

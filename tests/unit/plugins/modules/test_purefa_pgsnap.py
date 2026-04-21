@@ -1729,12 +1729,18 @@ class TestCreatePgsnapshot:
 class TestMain:
     """Test main function branches"""
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
     @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
     @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
     def test_main_pgroup_not_found(
-        self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
+        self,
+        mock_ansible,
+        mock_get_pgsnapshot,
+        mock_get_pgroup,
+        mock_get_array,
+        mock_lv,
     ):
         """Test main fails when protection group doesn't exist"""
         from plugins.modules.purefa_pgsnap import main
@@ -1750,7 +1756,12 @@ class TestMain:
             "context": "",
         }
         mock_ansible.return_value = mock_module
-        mock_get_array.return_value = Mock()
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
+        mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = False
 
         main()
@@ -1758,12 +1769,18 @@ class TestMain:
         mock_module.fail_json.assert_called_once()
         assert "does not exist" in str(mock_module.fail_json.call_args)
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
     @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
     @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
     def test_main_offload_not_supported_for_present(
-        self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
+        self,
+        mock_ansible,
+        mock_get_pgsnapshot,
+        mock_get_pgroup,
+        mock_get_array,
+        mock_lv,
     ):
         """Test main fails when offload used with state=present"""
         from plugins.modules.purefa_pgsnap import main
@@ -1779,7 +1796,12 @@ class TestMain:
             "context": "",
         }
         mock_ansible.return_value = mock_module
-        mock_get_array.return_value = Mock()
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
+        mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = True
         mock_get_pgsnapshot.return_value = None
 
@@ -1788,6 +1810,7 @@ class TestMain:
         mock_module.fail_json.assert_called_once()
         assert "offload parameter not supported" in str(mock_module.fail_json.call_args)
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
     @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
@@ -1800,6 +1823,7 @@ class TestMain:
         mock_get_pgsnapshot,
         mock_get_pgroup,
         mock_get_array,
+        mock_lv,
     ):
         """Test main fails when copy with overwrite and add_to_pgs"""
         from plugins.modules.purefa_pgsnap import main
@@ -1818,7 +1842,12 @@ class TestMain:
             "with_default_protection": True,
         }
         mock_ansible.return_value = mock_module
-        mock_get_array.return_value = Mock()
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
+        mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = True
         mock_get_pgsnapshot.return_value = None
 
@@ -1827,12 +1856,18 @@ class TestMain:
         mock_module.fail_json.assert_called_once()
         assert "overwrite and add_to_pgs" in str(mock_module.fail_json.call_args)
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
     @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
     @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
     def test_main_present_snapshot_exists_no_change(
-        self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
+        self,
+        mock_ansible,
+        mock_get_pgsnapshot,
+        mock_get_pgroup,
+        mock_get_array,
+        mock_lv,
     ):
         """Test main exits unchanged when snapshot already exists"""
         from plugins.modules.purefa_pgsnap import main
@@ -1848,7 +1883,12 @@ class TestMain:
             "context": "",
         }
         mock_ansible.return_value = mock_module
-        mock_get_array.return_value = Mock()
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
+        mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = True
         mock_snap = Mock()
         mock_snap.destroyed = False
@@ -1858,12 +1898,18 @@ class TestMain:
 
         mock_module.exit_json.assert_called_with(changed=False)
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
     @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
     @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
     def test_main_absent_snapshot_not_exists_no_change(
-        self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
+        self,
+        mock_ansible,
+        mock_get_pgsnapshot,
+        mock_get_pgroup,
+        mock_get_array,
+        mock_lv,
     ):
         """Test main exits unchanged when absent and snapshot doesn't exist"""
         from plugins.modules.purefa_pgsnap import main
@@ -1880,7 +1926,12 @@ class TestMain:
             "eradicate": False,
         }
         mock_ansible.return_value = mock_module
-        mock_get_array.return_value = Mock()
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
+        mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = True
         mock_get_pgsnapshot.return_value = None
 
@@ -1888,6 +1939,7 @@ class TestMain:
 
         mock_module.exit_json.assert_called_with(changed=False)
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
     @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
@@ -1900,6 +1952,7 @@ class TestMain:
         mock_get_pgsnapshot,
         mock_get_pgroup,
         mock_get_array,
+        mock_lv,
     ):
         """Test main calls update_pgsnapshot for rename state"""
         from plugins.modules.purefa_pgsnap import main
@@ -1915,7 +1968,12 @@ class TestMain:
             "context": "",
         }
         mock_ansible.return_value = mock_module
-        mock_get_array.return_value = Mock()
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
+        mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = True
         mock_snap = Mock()
         mock_snap.destroyed = False
@@ -1925,6 +1983,7 @@ class TestMain:
 
         mock_update.assert_called_once()
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
     @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
@@ -1937,6 +1996,7 @@ class TestMain:
         mock_get_pgsnapshot,
         mock_get_pgroup,
         mock_get_array,
+        mock_lv,
     ):
         """Test main calls delete_pgsnapshot for absent state"""
         from plugins.modules.purefa_pgsnap import main
@@ -1953,7 +2013,12 @@ class TestMain:
             "eradicate": False,
         }
         mock_ansible.return_value = mock_module
-        mock_get_array.return_value = Mock()
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
+        mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = True
         mock_snap = Mock()
         mock_snap.destroyed = False
@@ -1963,6 +2028,7 @@ class TestMain:
 
         mock_delete.assert_called_once()
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
     @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
@@ -1975,6 +2041,7 @@ class TestMain:
         mock_get_pgsnapshot,
         mock_get_pgroup,
         mock_get_array,
+        mock_lv,
     ):
         """Test main calls eradicate_pgsnapshot for destroyed snapshot with eradicate"""
         from plugins.modules.purefa_pgsnap import main
@@ -1991,7 +2058,12 @@ class TestMain:
             "eradicate": True,
         }
         mock_ansible.return_value = mock_module
-        mock_get_array.return_value = Mock()
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
+        mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = True
         mock_snap = Mock()
         mock_snap.destroyed = True
@@ -2001,6 +2073,7 @@ class TestMain:
 
         mock_eradicate.assert_called_once()
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
     @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
@@ -2013,6 +2086,7 @@ class TestMain:
         mock_get_pgsnapshot,
         mock_get_pgroup,
         mock_get_array,
+        mock_lv,
     ):
         """Test main calls delete_offload_snapshot for absent with offload"""
         from plugins.modules.purefa_pgsnap import main
@@ -2029,7 +2103,12 @@ class TestMain:
             "eradicate": False,
         }
         mock_ansible.return_value = mock_module
-        mock_get_array.return_value = Mock()
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
+        mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = True
         mock_snap = Mock()
         mock_snap.destroyed = False
@@ -2039,6 +2118,7 @@ class TestMain:
 
         mock_delete_offload.assert_called_once()
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.HAS_PURESTORAGE", True)
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
@@ -2050,6 +2130,7 @@ class TestMain:
         mock_get_pgsnapshot,
         mock_get_pgroup,
         mock_get_array,
+        mock_lv,
     ):
         """Test main fails on invalid suffix name"""
         from plugins.modules.purefa_pgsnap import main
@@ -2081,12 +2162,18 @@ class TestMain:
             mock_module.fail_json.call_args
         )
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
     @patch("plugins.modules.purefa_pgsnap.get_pgsnapshot")
     @patch("plugins.modules.purefa_pgsnap.AnsibleModule")
     def test_main_rename_target_validation_fails(
-        self, mock_ansible, mock_get_pgsnapshot, mock_get_pgroup, mock_get_array
+        self,
+        mock_ansible,
+        mock_get_pgsnapshot,
+        mock_get_pgroup,
+        mock_get_array,
+        mock_lv,
     ):
         """Test main fails on invalid rename target"""
         from plugins.modules.purefa_pgsnap import main
@@ -2102,7 +2189,12 @@ class TestMain:
             "context": "",
         }
         mock_ansible.return_value = mock_module
-        mock_get_array.return_value = Mock()
+        mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
+        mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = True
         mock_snap = Mock()
         mock_snap.destroyed = False
@@ -2320,6 +2412,7 @@ class TestRestorePgsnapshotAll:
 class TestMainRestoreAll:
     """Tests for main() function with restore=all"""
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.restore_pgsnapshot_all")
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
@@ -2332,6 +2425,7 @@ class TestMainRestoreAll:
         mock_get_pgroup,
         mock_get_array,
         mock_restore_all,
+        mock_lv,
     ):
         """Test main() calls restore_pgsnapshot_all when restore=all"""
         from plugins.modules.purefa_pgsnap import main
@@ -2351,6 +2445,10 @@ class TestMainRestoreAll:
         }
         mock_ansible.return_value = mock_module
         mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
         mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = True
         mock_snap = Mock()
@@ -2361,6 +2459,7 @@ class TestMainRestoreAll:
 
         mock_restore_all.assert_called_once_with(mock_module, mock_array)
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.restore_pgsnapshot_all")
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
@@ -2373,6 +2472,7 @@ class TestMainRestoreAll:
         mock_get_pgroup,
         mock_get_array,
         mock_restore_all,
+        mock_lv,
     ):
         """Test main() fails when restore=all with add_to_pgs"""
         import pytest
@@ -2394,6 +2494,10 @@ class TestMainRestoreAll:
         mock_module.fail_json.side_effect = SystemExit(1)
         mock_ansible.return_value = mock_module
         mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
         mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = True
         mock_snap = Mock()
@@ -2407,6 +2511,7 @@ class TestMainRestoreAll:
         assert "not supported when restore=all" in str(mock_module.fail_json.call_args)
         mock_restore_all.assert_not_called()
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.restore_pgsnapshot_all")
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
@@ -2419,6 +2524,7 @@ class TestMainRestoreAll:
         mock_get_pgroup,
         mock_get_array,
         mock_restore_all,
+        mock_lv,
     ):
         """Test main() fails when restore=all with with_default_protection=False"""
         import pytest
@@ -2440,6 +2546,10 @@ class TestMainRestoreAll:
         mock_module.fail_json.side_effect = SystemExit(1)
         mock_ansible.return_value = mock_module
         mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
         mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = True
         mock_snap = Mock()
@@ -2453,6 +2563,7 @@ class TestMainRestoreAll:
         assert "not supported when restore=all" in str(mock_module.fail_json.call_args)
         mock_restore_all.assert_not_called()
 
+    @patch("plugins.modules.purefa_pgsnap.LooseVersion", side_effect=LooseVersion)
     @patch("plugins.modules.purefa_pgsnap.restore_pgsnapshot_all")
     @patch("plugins.modules.purefa_pgsnap.get_array")
     @patch("plugins.modules.purefa_pgsnap.get_pgroup")
@@ -2465,6 +2576,7 @@ class TestMainRestoreAll:
         mock_get_pgroup,
         mock_get_array,
         mock_restore_all,
+        mock_lv,
     ):
         """Test that target doesn't default to 'all' when restore=all"""
         from plugins.modules.purefa_pgsnap import main
@@ -2484,6 +2596,10 @@ class TestMainRestoreAll:
         }
         mock_ansible.return_value = mock_module
         mock_array = Mock()
+        mock_array.get_rest_version.return_value = "2.38"
+        mock_array_info = Mock()
+        mock_array_info.name = "array1"
+        mock_array.get_arrays.return_value = Mock(items=iter([mock_array_info]))
         mock_get_array.return_value = mock_array
         mock_get_pgroup.return_value = True
         mock_snap = Mock()
