@@ -51,13 +51,20 @@ options:
     default: false
   restore:
     description:
-    - Restore a specific volume from a protection group snapshot.
+    - Restore a specific volume from a protection group snapshot, or use C(all)
+      to restore all member volumes at once.
     - The protection group name is not required. Only provide the name of the
-      volume to be restored.
+      volume to be restored, or C(all) to restore all volumes.
+    - When using C(all), if restoring to an existing protection group the
+      I(overwrite) parameter must be set to C(true).
+    - When using C(all), the I(target) parameter can specify a new or existing
+      protection group name. If not specified, it defaults to the source
+      protection group name.
     type: str
   overwrite:
     description:
     - Define whether to overwrite the target volume if it already exists.
+    - Required when I(restore=all) and restoring to an existing protection group.
     type: bool
     default: false
   target:
@@ -65,6 +72,8 @@ options:
     - Volume to restore a specified volume to.
     - If not supplied this will default to the volume defined in I(restore)
     - Name of new snapshot suffix if renaming a snapshot
+    - When I(restore=all), this specifies the target protection group name.
+      If not supplied, defaults to the source protection group name.
     type: str
   offload:
     description:
@@ -196,6 +205,26 @@ EXAMPLES = r"""
     fa_url: 10.10.10.2
     api_token: e31060a7-21fc-e277-6240-25983c6c4592
     state: rename
+
+- name: Restore all volumes from protection group snapshot foo.snap (overwrite existing)
+  purestorage.flasharray.purefa_pgsnap:
+    name: foo
+    suffix: snap
+    restore: all
+    overwrite: true
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+    state: copy
+
+- name: Clone all volumes from protection group snapshot foo.snap to new protection group foo_clone
+  purestorage.flasharray.purefa_pgsnap:
+    name: foo
+    suffix: snap
+    restore: all
+    target: foo_clone
+    fa_url: 10.10.10.2
+    api_token: e31060a7-21fc-e277-6240-25983c6c4592
+    state: copy
 """
 
 RETURN = r"""
@@ -687,6 +716,80 @@ def restore_pgsnapvolume(module, array):
     module.exit_json(changed=changed)
 
 
+def restore_pgsnapshot_all(module, array):
+    """Restore all volumes from a Protection Group Snapshot"""
+    api_version = array.get_rest_version()
+    changed = True
+
+    # Handle 'latest' suffix
+    if module.params["suffix"] == "latest":
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            latest_snapshot = list(
+                array.get_protection_group_snapshots(
+                    names=[module.params["name"]],
+                    context_names=[module.params["context"]],
+                ).items
+            )[-1].suffix
+        else:
+            latest_snapshot = list(
+                array.get_protection_group_snapshots(
+                    names=[module.params["name"]]
+                ).items
+            )[-1].suffix
+        module.params["suffix"] = latest_snapshot
+
+    # Source is the pgroup snapshot: pgname.suffix
+    source_snapshot = module.params["name"] + "." + module.params["suffix"]
+
+    # Target defaults to original protection group if not specified
+    if module.params["target"]:
+        target_pgroup = module.params["target"]
+    else:
+        target_pgroup = module.params["name"]
+
+    # Check if target protection group exists
+    target_exists = False
+    if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+        res = array.get_protection_groups(
+            names=[target_pgroup], context_names=[module.params["context"]]
+        )
+    else:
+        res = array.get_protection_groups(names=[target_pgroup])
+    if res.status_code == 200:
+        items = list(res.items)
+        if items:
+            target_exists = True
+
+    # Validate: overwrite required if target exists
+    if target_exists and not module.params["overwrite"]:
+        module.fail_json(
+            msg="overwrite must be True when restoring to existing protection group '{0}'".format(
+                target_pgroup
+            )
+        )
+
+    if not module.check_mode:
+        if LooseVersion(CONTEXT_API_VERSION) <= LooseVersion(api_version):
+            res = array.post_protection_groups(
+                names=[target_pgroup],
+                source_names=[source_snapshot],
+                overwrite=module.params["overwrite"],
+                context_names=[module.params["context"]],
+            )
+        else:
+            res = array.post_protection_groups(
+                names=[target_pgroup],
+                source_names=[source_snapshot],
+                overwrite=module.params["overwrite"],
+            )
+        check_response(
+            res,
+            module,
+            f"Failed to restore all volumes from pgroup snapshot {source_snapshot}",
+        )
+    module.exit_json(changed=changed)
+
+
 def delete_offload_snapshot(module, array):
     """Delete Offloaded Protection Group Snapshot"""
     changed = False
@@ -912,7 +1015,13 @@ def main():
                     )
                 )
 
-    if not module.params["target"] and module.params["restore"]:
+    # For single volume restore, default target to restore volume name
+    # For restore=all, target defaults to source pgroup name (handled in function)
+    if (
+        not module.params["target"]
+        and module.params["restore"]
+        and module.params["restore"] != "all"
+    ):
         module.params["target"] = module.params["restore"]
 
     if state == "rename" and module.params["target"] is not None:
@@ -936,13 +1045,25 @@ def main():
             msg="offload parameter not supported for state {0}".format(state)
         )
     elif state == "copy":
-        if module.params["overwrite"] and (
-            module.params["add_to_pgs"] or module.params["with_default_protection"]
-        ):
-            module.fail_json(
-                msg="overwrite and add_to_pgs or with_default_protection are incompatible"
-            )
-        restore_pgsnapvolume(module, array)
+        if module.params["restore"] == "all":
+            # Restore all volumes from pgroup snapshot
+            if (
+                module.params["add_to_pgs"]
+                or not module.params["with_default_protection"]
+            ):
+                module.fail_json(
+                    msg="add_to_pgs and with_default_protection are not supported when restore=all"
+                )
+            restore_pgsnapshot_all(module, array)
+        else:
+            # Restore single volume
+            if module.params["overwrite"] and (
+                module.params["add_to_pgs"] or module.params["with_default_protection"]
+            ):
+                module.fail_json(
+                    msg="overwrite and add_to_pgs or with_default_protection are incompatible"
+                )
+            restore_pgsnapvolume(module, array)
     elif state == "present" and not pgsnap:
         create_pgsnapshot(module, array)
     elif state == "present" and pgsnap:
