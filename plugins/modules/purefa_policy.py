@@ -1466,6 +1466,7 @@ def update_policy(module, array, api_version, all_squash):
                                     client=module.params["client"],
                                     access=module.params["nfs_access"],
                                     security=module.params["security"],
+                                    nfs_version=module.params["nfs_version"],
                                 )
                         else:
                             if all_squash:
@@ -1482,6 +1483,7 @@ def update_policy(module, array, api_version, all_squash):
                                     permission=module.params["nfs_permission"],
                                     client=module.params["client"],
                                     access=module.params["nfs_access"],
+                                    nfs_version=module.params["nfs_version"],
                                 )
                     rule = PolicyRuleNfsClientPost(rules=[rules])
                     changed_rule = True
