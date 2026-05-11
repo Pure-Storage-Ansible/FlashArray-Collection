@@ -1,0 +1,2 @@
+bugfixes:
+  - purefa_policy - Fixed ``Versions options must be the same for all NFS export policy rules`` when adding multiple clients to an existing NFS policy by adding missing ``nfs_version`` parameter
