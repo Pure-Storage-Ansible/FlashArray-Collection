@@ -1,0 +1,2 @@
+minor_changes:
+  - purefa_pgsnap - Added ``restore=all`` option to restore all member volumes from a protection group snapshot at once using a single API call instead of iterating through each volume individually
